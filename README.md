@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# tanktide
-A repository to keep track of the referal website.
 =======
 # TankTide - Professional Networking Platform
 
