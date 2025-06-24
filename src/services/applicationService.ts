@@ -9,18 +9,48 @@ type ApplicationUpdate = Database['public']['Tables']['applications']['Update']
 export const applicationService = {
   // Get applications for a job
   getJobApplications: async (jobId: string) => {
-    const { data, error } = await supabase
-      .from('applications')
-      .select(`
-        *,
-        applicant:profiles!applications_applicant_id_fkey(*),
-        job:jobs!applications_job_id_fkey(*)
-      `)
-      .eq('job_id', jobId)
-      .order('applied_at', { ascending: false })
+    console.log('🔍 Fetching applications for job ID:', jobId);
+    
+    try {
+      // Try with applicant_id first
+      let { data, error } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          applicant:profiles!applications_applicant_id_fkey(*),
+          job:jobs!applications_job_id_fkey(*)
+        `)
+        .eq('job_id', jobId as any)
+        .order('applied_at', { ascending: false });
 
-    if (error) throw error
-    return data
+      // If that fails, try with user_id
+      if (error && error.message?.includes('user_id')) {
+        console.log('Retrying getJobApplications with user_id field...');
+        const result = await supabase
+          .from('applications')
+          .select(`
+            *,
+            applicant:profiles!applications_user_id_fkey(*),
+            job:jobs!applications_job_id_fkey(*)
+          `)
+          .eq('job_id', jobId as any)
+          .order('applied_at', { ascending: false });
+          
+        data = result.data as any;
+        error = result.error;
+      }
+
+      if (error) {
+        console.error('❌ Supabase error fetching applications:', error);
+        throw error;
+      }
+      
+      console.log('✅ Successfully fetched applications:', data);
+      return (data as any[]) || [];
+    } catch (error) {
+      console.error('❌ Error in getJobApplications:', error);
+      throw error;
+    }
   },
 
   // Get user's applications
@@ -34,7 +64,7 @@ export const applicationService = {
         *,
         job:jobs!applications_job_id_fkey(*)
       `)
-      .eq('applicant_id', user.id)
+      .eq('applicant_id', user.id as any)
       .order('applied_at', { ascending: false })
 
     if (error) throw error
@@ -48,7 +78,7 @@ export const applicationService = {
 
     const { data, error } = await supabase
       .from('applications')
-      .insert({ ...application, applicant_id: user.id })
+      .insert({ ...application, applicant_id: user.id } as any)
       .select(`
         *,
         job:jobs!applications_job_id_fkey(*),
@@ -59,20 +89,20 @@ export const applicationService = {
     if (error) throw error
 
     // Create notification for job creator
-    if (data.job && data.job.created_by && data.job.created_by !== user.id) {
+    if ((data as any).job && (data as any).job.created_by && (data as any).job.created_by !== user.id) {
       try {
         await notificationService.createNotification({
           type: 'job',
           title: 'New Job Application',
-          message: `${data.applicant?.full_name || 'Someone'} applied for ${data.job.title} at ${data.job.company}`,
+          message: `${(data as any).applicant?.full_name || 'Someone'} applied for ${(data as any).job.title} at ${(data as any).job.company}`,
           actionable: true,
           priority: 'high',
           metadata: {
-            job_id: data.job.id,
+            job_id: (data as any).job.id,
             application_id: data.id,
             applicant_id: user.id
           }
-        }, data.job.created_by)
+        }, (data as any).job.created_by)
       } catch (notificationError) {
         console.warn('Failed to create application notification:', notificationError)
       }
@@ -85,8 +115,8 @@ export const applicationService = {
   updateApplication: async (id: string, updates: ApplicationUpdate) => {
     const { data, error } = await supabase
       .from('applications')
-      .update(updates)
-      .eq('id', id)
+      .update(updates as any)
+      .eq('id', id as any)
       .select()
       .single()
 
@@ -98,8 +128,8 @@ export const applicationService = {
   shortlistApplication: async (id: string) => {
     const { data, error } = await supabase
       .from('applications')
-      .update({ shortlisted: true, status: 'shortlisted' })
-      .eq('id', id)
+      .update({ shortlisted: true, status: 'shortlisted' } as any)
+      .eq('id', id as any)
       .select(`
         *,
         job:jobs!applications_job_id_fkey(*),
@@ -110,19 +140,19 @@ export const applicationService = {
     if (error) throw error
 
     // Create notification for applicant
-    if (data.applicant_id) {
+    if ((data as any).applicant_id) {
       try {
         await notificationService.createNotification({
           type: 'job',
           title: 'Application Shortlisted',
-          message: `Great news! You've been shortlisted for ${data.job?.title} at ${data.job?.company}. The hiring team will be in touch soon.`,
+          message: `Great news! You've been shortlisted for ${(data as any).job?.title} at ${(data as any).job?.company}. The hiring team will be in touch soon.`,
           actionable: false,
           priority: 'high',
           metadata: {
-            job_id: data.job_id,
-            application_id: data.id
+            job_id: (data as any).job_id,
+            application_id: (data as any).id
           }
-        }, data.applicant_id)
+        }, (data as any).applicant_id)
       } catch (notificationError) {
         console.warn('Failed to create shortlist notification:', notificationError)
       }

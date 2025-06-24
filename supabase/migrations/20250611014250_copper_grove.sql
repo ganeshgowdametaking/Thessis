@@ -291,6 +291,11 @@ CREATE POLICY "Users can create conversations"
   TO authenticated
   WITH CHECK (participant_1 = auth.uid() OR participant_2 = auth.uid());
 
+CREATE POLICY "Users can delete their own conversations"
+  ON conversations FOR DELETE
+  TO authenticated
+  USING (participant_1 = auth.uid() OR participant_2 = auth.uid());
+
 -- Messages policies
 CREATE POLICY "Users can view messages in their conversations"
   ON messages FOR SELECT

@@ -2,23 +2,29 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, User, FileText, MessageCircle, CheckCircle, Calendar, MapPin, Briefcase, Filter, Search, Download, Eye, Mail, Phone, X } from 'lucide-react';
 import { applicationService } from '../services/applicationService';
 import { useAuthContext } from '../contexts/AuthContext';
+import { jobService } from '../services/jobService';
+import { Database } from '../lib/database.types';
+
+type Job = Database['public']['Tables']['jobs']['Row'];
 
 interface ApplicationsPageProps {
   onBack: () => void;
   onMessage: (applicantId: number) => void;
-  referralId: number;
+  referralId: string;
   referralTitle: string;
 }
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, referralId, referralTitle }) => {
   const { user } = useAuthContext();
-  const [selectedFilter, setSelectedFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showResumeModal, setShowResumeModal] = useState<number | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [currentApplication, setCurrentApplication] = useState<any>(null);
 
   // Load applications when component mounts
   useEffect(() => {
@@ -28,40 +34,43 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
   const loadApplications = async () => {
     try {
       setLoading(true);
-      setError('');
+      setError(null);
       
       console.log('Loading applications for job ID:', referralId);
       
-      const applicationsData = await applicationService.getJobApplications(referralId.toString());
+      const applicationsData = await applicationService.getJobApplications(referralId);
       
-      console.log('Loaded applications:', applicationsData);
+      console.log('Raw applications data:', applicationsData);
       
-      // Transform backend data to match the expected format
+      // Transform the data to match the expected format
       const transformedApplications = applicationsData.map((app: any) => ({
         id: app.id,
+        applicantId: app.applicant_id,
+        status: app.status,
+        appliedDate: formatTimeAgo(app.applied_at),
+        coverLetter: app.cover_letter,
+        resumeUrl: app.resume_url,
+        shortlisted: app.shortlisted,
+        rating: app.rating,
+        notes: app.notes,
+        // Applicant data from the join
         applicant: {
           name: app.applicant?.full_name || 'Unknown Applicant',
-          email: app.applicant?.email || 'No email',
-          phone: app.applicant?.phone || '+1 (555) 123-4567',
-          avatar: app.applicant?.avatar_url || `https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop`,
-          title: app.applicant?.title || 'Professional',
-          company: app.applicant?.company || 'Company',
-          location: app.applicant?.location || 'Location'
+          title: app.applicant?.title || 'No Title',
+          company: app.applicant?.company || 'No Company',
+          location: app.applicant?.location || 'No Location',
+          avatar: app.applicant?.avatar_url || '/default-avatar.png',
+          bio: app.applicant?.bio || 'No bio available'
         },
-        appliedDate: formatTimeAgo(app.applied_at),
-        status: app.status,
-        education: app.applicant?.bio || 'Professional Background',
-        resumeUrl: app.resume_url || null,
-        shortlisted: app.shortlisted,
-        coverLetter: app.cover_letter,
-        applicantId: app.applicant_id // Store the actual applicant ID for messaging
+        // Education/background info (using bio as fallback)
+        education: app.applicant?.bio || 'No background information available'
       }));
       
+      console.log('Transformed applications:', transformedApplications);
       setApplications(transformedApplications);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading applications:', error);
-      setError('Failed to load applications. Please try again.');
-      setApplications([]);
+      setError(error.message || 'Failed to load applications. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -110,7 +119,11 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
   };
 
   const handleViewResume = (applicationId: number) => {
-    setShowResumeModal(applicationId);
+    const application = applications.find(app => app.id === applicationId);
+    if (application) {
+      setCurrentApplication(application);
+      setShowResumeModal(true);
+    }
   };
 
   const handleMessage = (application: any) => {
@@ -152,8 +165,6 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
       default: return 'bg-slate-100 text-slate-800';
     }
   };
-
-  const currentApplication = applications.find(app => app.id === showResumeModal);
 
   // UPDATED: Remove "rejected" filter from filter options
   const filterOptions = [
@@ -389,7 +400,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
                   </div>
                 </div>
                 <button
-                  onClick={() => setShowResumeModal(null)}
+                  onClick={() => setShowResumeModal(false)}
                   className="text-slate-400 hover:text-slate-600 transition-colors p-2 flex-shrink-0"
                 >
                   <X className="h-5 w-5" />

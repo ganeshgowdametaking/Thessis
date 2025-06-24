@@ -135,7 +135,7 @@ export const connectionService = {
         .select('*')
         .eq('user_id', addresseeId)
         .eq('type', 'connection')
-        .filter('metadata->connection_id', 'eq', data.id)
+        .filter('metadata->>connection_id', 'eq', data.id)
         
       // Only create a new notification if one doesn't already exist
       if (!existingNotifications || existingNotifications.length === 0) {
@@ -323,7 +323,7 @@ export const connectionService = {
           .from('notifications')
           .select('*')
           .eq('type', 'connection')
-          .filter('metadata->connection_id', 'eq', connectionToDelete.id)
+          .filter('metadata->>connection_id', 'eq', connectionToDelete.id)
           
         if (notifications && notifications.length > 0) {
           console.log(`🔍 Found ${notifications.length} notifications to delete for this connection`)
@@ -484,30 +484,31 @@ export const connectionService = {
 
   // Clear connection cache for a specific user (useful for forced refresh)
   clearConnectionCache: (otherUserId: string) => {
-    const { data: { user } } = supabase.auth.getUser()
-    if (user) {
-      const cacheKey = `connection_${user.id}_${otherUserId}`
-      localStorage.removeItem(cacheKey)
-      console.log('🗑️ Cleared connection cache for user:', otherUserId)
-    }
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        const cacheKey = `connection_${user.id}_${otherUserId}`
+        localStorage.removeItem(cacheKey)
+        console.log('🗑️ Cleared connection cache for user:', otherUserId)
+      }
+    })
   },
 
   // Clear all connection caches (useful for logout)
   clearAllConnectionCaches: () => {
-    const { data: { user } } = supabase.auth.getUser()
-    if (user) {
-      // Find all connection cache keys for this user
-      const keysToRemove: string[] = []
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (key && key.startsWith(`connection_${user.id}_`)) {
-          keysToRemove.push(key)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        // Find all connection cache keys for this user
+        const keysToRemove: string[] = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key.startsWith(`connection_${user.id}_`)) {
+            keysToRemove.push(key)
+          }
         }
+        // Remove all found keys
+        keysToRemove.forEach(key => localStorage.removeItem(key))
+        console.log('🗑️ Cleared all connection caches for user:', user.id)
       }
-      
-      // Remove all found keys
-      keysToRemove.forEach(key => localStorage.removeItem(key))
-      console.log('🗑️ Cleared all connection caches for user:', user.id)
-    }
+    })
   }
 }

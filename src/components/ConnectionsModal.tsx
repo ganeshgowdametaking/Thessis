@@ -16,6 +16,7 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
   const [connections, setConnections] = useState<any[]>([]);
   const [filteredConnections, setFilteredConnections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [removingConnectionId, setRemovingConnectionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -65,14 +66,19 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
     }
   };
 
-  const handleRemoveConnection = async (connectionId: string) => {
+  const handleRemoveConnection = async (otherUserId: string) => {
     if (confirm('Are you sure you want to remove this connection?')) {
+      setRemovingConnectionId(otherUserId);
       try {
-        await connectionService.cancelConnectionRequest(connectionId);
+        await connectionService.cancelConnectionRequest(otherUserId);
+        await new Promise(res => setTimeout(res, 300));
+        await connectionService.forceRefreshConnectionStatus(otherUserId);
         await loadConnections(); // Reload connections
       } catch (error) {
         console.error('Error removing connection:', error);
         alert('Failed to remove connection. Please try again.');
+      } finally {
+        setRemovingConnectionId(null);
       }
     }
   };
@@ -206,10 +212,15 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
                     </button>
                     <button
                       onClick={() => handleRemoveConnection(connection.profile.id)}
-                      className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      className={`p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all ${removingConnectionId === connection.profile.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                       title="Remove Connection"
+                      disabled={removingConnectionId === connection.profile.id}
                     >
-                      <UserMinus className="h-4 w-4" />
+                      {removingConnectionId === connection.profile.id ? (
+                        <span className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin inline-block"></span>
+                      ) : (
+                        <UserMinus className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>

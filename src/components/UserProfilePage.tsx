@@ -124,7 +124,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const loadUserPosts = async () => {
     try {
       const allPosts = await postService.getFeedPosts();
-      const userPosts = allPosts.filter(post => post.author_id === userId);
+      const userPosts = allPosts.filter(post => post && post.author_id === userId);
       setPosts(userPosts);
     } catch (error) {
       console.error('Error loading user posts:', error);
@@ -149,11 +149,15 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     try {
       // Load real posts count for this user
       const allPosts = await postService.getFeedPosts();
-      const userPosts = allPosts.filter(post => post.author_id === userId);
+      const userPosts = allPosts.filter(post => post && post.author_id === userId);
       
       // Load real connections count for this user
       const connections = await connectionService.getConnections();
       const userConnections = connections.filter(conn => 
+        conn && 
+        conn.requester_id && 
+        conn.addressee_id && 
+        conn.status &&
         (conn.requester_id === userId || conn.addressee_id === userId) && 
         conn.status === 'accepted'
       );
@@ -241,26 +245,29 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
   const handleConnect = async () => {
     if (!user || userId === user.id) return;
-
     try {
       setConnectionLoading(true);
-      
       if (connectionStatus === 'none') {
         await connectionService.sendConnectionRequest(userId);
-        setConnectionStatus('pending_sent');
+        await new Promise(res => setTimeout(res, 300));
+        const status = await connectionService.forceRefreshConnectionStatus(userId);
+        setConnectionStatus(status);
       } else if (connectionStatus === 'pending_sent') {
         await connectionService.cancelConnectionRequest(userId);
-        setConnectionStatus('none');
+        await new Promise(res => setTimeout(res, 300));
+        const status = await connectionService.forceRefreshConnectionStatus(userId);
+        setConnectionStatus(status);
       } else if (connectionStatus === 'pending_received') {
         const connections = await connectionService.getConnections();
         const connection = connections.find(conn => 
           (conn.requester_id === userId && conn.addressee_id === user.id) ||
           (conn.requester_id === user.id && conn.addressee_id === userId)
         );
-        
         if (connection) {
           await connectionService.acceptConnectionRequest(connection.id);
-          setConnectionStatus('connected');
+          await new Promise(res => setTimeout(res, 300));
+          const status = await connectionService.forceRefreshConnectionStatus(userId);
+          setConnectionStatus(status);
         }
       }
     } catch (error) {
@@ -298,17 +305,17 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
   const handleRemoveConnection = async () => {
     if (!user || userId === user.id) return;
-
     try {
       const connections = await connectionService.getConnections();
       const connection = connections.find(conn => 
         (conn.requester_id === userId && conn.addressee_id === user.id) ||
         (conn.requester_id === user.id && conn.addressee_id === userId)
       );
-      
       if (connection) {
         await connectionService.cancelConnectionRequest(userId);
-        setConnectionStatus('none');
+        await new Promise(res => setTimeout(res, 300));
+        const status = await connectionService.forceRefreshConnectionStatus(userId);
+        setConnectionStatus(status);
         setShowActionsMenu(false);
         alert('Connection removed successfully');
       }

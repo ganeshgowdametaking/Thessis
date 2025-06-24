@@ -230,5 +230,27 @@ export const messageService = {
         throw new Error(error.message || 'Failed to delete conversation. Please try again.')
       }
     }
+  },
+
+  // Get count of unread messages for the current user
+  getUnreadMessagesCount: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    // Get all conversations for the user
+    const { data: conversations, error } = await supabase
+      .from('conversations')
+      .select('id')
+      .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`);
+    if (error) throw error;
+    if (!conversations || conversations.length === 0) return 0;
+    // Get count of unread messages in all conversations where the user is not the sender
+    const { count, error: countError } = await supabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .in('conversation_id', conversations.map((c: any) => c.id))
+      .eq('read', false)
+      .neq('sender_id', user.id);
+    if (countError) throw countError;
+    return count || 0;
   }
 }

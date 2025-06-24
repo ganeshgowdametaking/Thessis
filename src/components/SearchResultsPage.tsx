@@ -4,6 +4,7 @@ import { profileService } from '../services/profileService';
 import { postService } from '../services/postService';
 import { connectionService } from '../services/connectionService';
 import { useAuthContext } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface SearchResultsPageProps {
   searchQuery: string;
@@ -13,11 +14,12 @@ interface SearchResultsPageProps {
 
 const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBack, onViewProfile }) => {
   const { user } = useAuthContext();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('people');
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState({
-    people: [],
-    companies: []
+    people: [] as any[],
+    companies: [] as { name: string }[]
   });
   const [userConnections, setUserConnections] = useState<Record<string, string>>({});
 
@@ -37,7 +39,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
       
       // Search companies (unique companies from profiles)
       const companiesData = await profileService.searchProfiles('', { company: searchQuery });
-      const uniqueCompanies = [...new Set(companiesData.map(profile => profile.company))].filter(Boolean);
+      const uniqueCompanies = [...new Set(companiesData.map((profile: any) => profile.company))].filter(Boolean);
       
       setSearchResults({
         people: people || [],
@@ -82,15 +84,17 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
   const handleConnect = async (userId: string) => {
     try {
       const currentStatus = userConnections[userId] || 'none';
-      
       if (currentStatus === 'none') {
         await connectionService.sendConnectionRequest(userId);
-        setUserConnections(prev => ({ ...prev, [userId]: 'pending_sent' }));
+        await new Promise(res => setTimeout(res, 300));
+        const status = await connectionService.forceRefreshConnectionStatus(userId);
+        setUserConnections(prev => ({ ...prev, [userId]: status }));
       } else if (currentStatus === 'pending_sent') {
         await connectionService.cancelConnectionRequest(userId);
-        setUserConnections(prev => ({ ...prev, [userId]: 'none' }));
+        await new Promise(res => setTimeout(res, 300));
+        const status = await connectionService.forceRefreshConnectionStatus(userId);
+        setUserConnections(prev => ({ ...prev, [userId]: status }));
       }
-      
       await loadUserConnections();
     } catch (error) {
       console.error('Error handling connection:', error);
@@ -209,63 +213,61 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
               {/* People Results */}
               {activeTab === 'people' && (
                 <div className="space-y-4">
-                  {searchResults.people.length > 0 ? (
-                    searchResults.people.map((person: any) => (
-                      <div key={person.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-                          <div className="flex items-center space-x-4 min-w-0 flex-1">
-                            <img
-                              src={getProfilePicture(person)}
-                              alt={person.full_name}
-                              className="w-12 h-12 sm:w-16 sm:h-16 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all flex-shrink-0"
-                              onClick={() => onViewProfile(person.id)}
-                            />
-                            <div className="min-w-0 flex-1">
-                              <h3 
-                                className="text-lg sm:text-xl font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-colors truncate"
+                  {searchResults.people.filter((person: any) => person.id !== user?.id).length > 0 ? (
+                    searchResults.people
+                      .filter((person: any) => person.id !== user?.id)
+                      .map((person: any) => (
+                        <div key={person.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                            <div className="flex items-center space-x-4 min-w-0 flex-1">
+                              <img
+                                src={getProfilePicture(person)}
+                                alt={person.full_name}
+                                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all flex-shrink-0"
                                 onClick={() => onViewProfile(person.id)}
-                              >
-                                {person.full_name}
-                              </h3>
-                              <p className="text-slate-600 font-medium truncate">{person.title || 'Professional'}</p>
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-sm text-slate-500 mt-1 space-y-1 sm:space-y-0">
-                                {person.company && (
-                                  <div className="flex items-center space-x-1">
-                                    <Building className="h-4 w-4 flex-shrink-0" />
-                                    <span className="truncate">{person.company}</span>
-                                  </div>
-                                )}
-                                {person.location && (
-                                  <div className="flex items-center space-x-1">
-                                    <MapPin className="h-4 w-4 flex-shrink-0" />
-                                    <span className="truncate">{person.location}</span>
-                                  </div>
-                                )}
+                              />
+                              <div className="min-w-0 flex-1">
+                                <h3 
+                                  className="text-lg sm:text-xl font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-colors truncate"
+                                  onClick={() => onViewProfile(person.id)}
+                                >
+                                  {person.full_name}
+                                </h3>
+                                <p className="text-slate-600 font-medium truncate">{person.title || 'Professional'}</p>
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-sm text-slate-500 mt-1 space-y-1 sm:space-y-0">
+                                  {person.company && (
+                                    <div className="flex items-center space-x-1">
+                                      <Building className="h-4 w-4 flex-shrink-0" />
+                                      <span className="truncate">{person.company}</span>
+                                    </div>
+                                  )}
+                                  {person.location && (
+                                    <div className="flex items-center space-x-1">
+                                      <MapPin className="h-4 w-4 flex-shrink-0" />
+                                      <span className="truncate">{person.location}</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          
-                          {person.id !== user?.id && (
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+                            <div className="flex items-center space-x-2 mt-4 sm:mt-0">
                               <button
                                 onClick={() => handleConnect(person.id)}
+                                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${getConnectionButtonStyle(person.id)}`}
                                 disabled={userConnections[person.id] === 'connected'}
-                                className={`px-4 sm:px-6 py-2 sm:py-2 rounded-lg transition-colors font-medium flex items-center justify-center space-x-2 text-sm sm:text-base ${getConnectionButtonStyle(person.id)}`}
                               >
-                                <UserPlus className="h-4 w-4" />
-                                <span className="truncate">{getConnectionButtonText(person.id)}</span>
+                                {getConnectionButtonText(person.id)}
                               </button>
-                              <button 
-                                onClick={() => onViewProfile(person.id)}
-                                className="bg-slate-200 text-slate-700 px-4 sm:px-6 py-2 rounded-lg hover:bg-slate-300 transition-colors font-medium text-sm sm:text-base"
+                              <button
+                                onClick={() => navigate(`/messages?user=${person.id}`)}
+                                className="p-2 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                               >
-                                View Profile
+                                <MessageCircle className="h-5 w-5" />
                               </button>
                             </div>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      ))
                   ) : (
                     <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-12 text-center">
                       <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />

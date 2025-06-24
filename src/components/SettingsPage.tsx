@@ -106,7 +106,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
       // Sign out the user after deletion
       await signOut();
       
-      alert('Your profile has been deleted. You will be redirected to the home page.');
+      alert('Your profile has been deleted. You will be redirected to the jobs page.');
       window.location.href = '/';
     } catch (error) {
       console.error('Error deleting profile:', error);
