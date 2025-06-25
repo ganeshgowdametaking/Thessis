@@ -195,10 +195,10 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <button onClick={onSignIn} className="font-medium text-white transition-colors hover:text-blue-400">
+              <button onClick={onSignIn} className="sign-in-btn">
                 Sign In
               </button>
-              <button onClick={onJoinNow} className="rounded-lg bg-blue-600 px-4 py-2 font-bold text-white transition-all hover:bg-blue-700">
+              <button onClick={onJoinNow} className="join-now-btn">
                 Join Now
               </button>
             </div>

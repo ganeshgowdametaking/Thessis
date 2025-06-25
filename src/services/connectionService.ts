@@ -510,5 +510,16 @@ export const connectionService = {
         console.log('🗑️ Cleared all connection caches for user:', user.id)
       }
     })
+  },
+
+  // Get connections for any user by userId
+  getConnectionsForUser: async (userId: string) => {
+    const { data, error } = await supabase
+      .from('connections')
+      .select(`*, requester:profiles!connections_requester_id_fkey(*), addressee:profiles!connections_addressee_id_fkey(*)`)
+      .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
+      .eq('status', 'accepted');
+    if (error) throw error;
+    return data || [];
   }
 }

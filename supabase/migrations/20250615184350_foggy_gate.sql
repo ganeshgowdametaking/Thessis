@@ -18,8 +18,11 @@
     - Maintains data integrity while allowing proper deletion
 */
 
+DROP FUNCTION IF EXISTS delete_conversation_with_messages(uuid);
+DROP FUNCTION IF EXISTS check_conversation_deletion_permissions(uuid);
+
 -- Create a secure function to delete conversations with proper constraint handling
-CREATE OR REPLACE FUNCTION delete_conversation_with_messages(conversation_id uuid)
+CREATE OR REPLACE FUNCTION delete_conversation_with_messages(conv_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -44,7 +47,7 @@ BEGIN
   -- Get the conversation record and verify it exists
   SELECT * INTO conversation_record 
   FROM conversations 
-  WHERE id = conversation_id;
+  WHERE id = conv_id;
   
   IF conversation_record.id IS NULL THEN
     RETURN jsonb_build_object(
@@ -63,16 +66,16 @@ BEGIN
   
   -- Step 1: Delete all messages in the conversation first
   DELETE FROM messages 
-  WHERE conversation_id = conversation_record.id;
+  WHERE messages.conversation_id = conv_id;
   
   GET DIAGNOSTICS deleted_messages_count = ROW_COUNT;
   
   -- Step 2: Delete the conversation
   DELETE FROM conversations 
-  WHERE id = conversation_record.id;
+  WHERE id = conv_id;
   
   -- Verify the conversation was deleted
-  IF EXISTS (SELECT 1 FROM conversations WHERE id = conversation_id) THEN
+  IF EXISTS (SELECT 1 FROM conversations WHERE id = conv_id) THEN
     RETURN jsonb_build_object(
       'success', false,
       'error', 'Conversation deletion failed - conversation still exists after deletion attempt'
@@ -84,7 +87,7 @@ BEGIN
     'success', true,
     'message', 'Conversation deleted successfully',
     'deleted_messages', deleted_messages_count,
-    'conversation_id', conversation_id
+    'conversation_id', conv_id
   );
   
 EXCEPTION
@@ -105,7 +108,7 @@ COMMENT ON FUNCTION delete_conversation_with_messages(uuid) IS
 'Safely deletes a conversation and all its messages. Only conversation participants can delete conversations.';
 
 -- Create an additional function to check conversation permissions for debugging
-CREATE OR REPLACE FUNCTION check_conversation_deletion_permissions(conversation_id uuid)
+CREATE OR REPLACE FUNCTION check_conversation_deletion_permissions(conv_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -120,16 +123,16 @@ BEGIN
   current_user_id := auth.uid();
   
   -- Get the conversation record
-  SELECT * INTO conversation_record FROM conversations WHERE id = conversation_id;
+  SELECT * INTO conversation_record FROM conversations WHERE id = conv_id;
   
   -- Count messages in conversation
-  SELECT COUNT(*) INTO messages_count FROM messages WHERE conversation_id = conversation_id;
+  SELECT COUNT(*) INTO messages_count FROM messages WHERE messages.conversation_id = conv_id;
   
   -- Build comprehensive result
   result := jsonb_build_object(
     'user_id', current_user_id,
     'conversation_exists', conversation_record.id IS NOT NULL,
-    'conversation_id', conversation_id,
+    'conversation_id', conv_id,
     'participant_1', conversation_record.participant_1,
     'participant_2', conversation_record.participant_2,
     'is_participant_1', conversation_record.participant_1 = current_user_id,

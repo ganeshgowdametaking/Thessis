@@ -5,12 +5,12 @@ import { useAuthContext } from '../contexts/AuthContext'
 interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
-  mode: 'signin' | 'signup' | 'verify-email'
-  onModeChange: (mode: 'signin' | 'signup' | 'verify-email') => void
+  mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password'
+  onModeChange: (mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password') => void
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChange }) => {
-  const { signIn, signUp, verifyOTP, resendOTP } = useAuthContext()
+  const { signIn, signUp, verifyOTP, resendOTP, resetPassword } = useAuthContext()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -66,6 +66,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
           onClose()
           setSuccess('')
         }, 2000)
+      } else if (mode === 'forgot-password') {
+        const { error } = await resetPassword(formData.email)
+        if (error) throw error
+        
+        setSuccess('Password reset link sent to your email! Please check your inbox and follow the link to set a new password.')
+        setTimeout(() => {
+          onModeChange('signin')
+          setSuccess('')
+        }, 3000)
       }
     } catch (error: any) {
       setError(error.message)
@@ -116,6 +125,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
             {mode === 'signin' && 'Welcome Back'}
             {mode === 'signup' && 'Join TankTide'}
             {mode === 'verify-email' && 'Verify Your Email'}
+            {mode === 'forgot-password' && 'Reset Your Password'}
           </h2>
           <button
             onClick={onClose}
@@ -136,6 +146,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
             </p>
             <p className="text-blue-600 text-xs mt-1">
               📧 Check your spam folder if you don't see the email within 2 minutes.
+            </p>
+          </div>
+        )}
+
+        {mode === 'forgot-password' && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-800 text-sm">
+              Enter your email address and we'll send you a link to reset your password.
             </p>
           </div>
         )}
@@ -181,6 +199,25 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
                 >
                   Resend Code
                 </button>
+              </div>
+            </>
+          ) : mode === 'forgot-password' ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Email Address <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="your.email@example.com"
+                    required
+                  />
+                </div>
               </div>
             </>
           ) : (
@@ -300,6 +337,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
                   )}
                 </div>
               )}
+
+              {mode === 'signin' && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => onModeChange('forgot-password')}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+              )}
             </>
           )}
 
@@ -311,11 +360,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
             {loading ? 'Loading...' : 
              mode === 'signin' ? 'Sign In' : 
              mode === 'signup' ? 'Create Account' : 
+             mode === 'forgot-password' ? 'Send Reset Link' :
              'Verify Email'}
           </button>
         </form>
 
-        {mode !== 'verify-email' && (
+        {mode !== 'verify-email' && mode !== 'forgot-password' && (
           <div className="mt-6 text-center">
             <p className="text-slate-600">
               {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}
@@ -330,6 +380,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
         )}
 
         {mode === 'verify-email' && (
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => onModeChange('signin')}
+              className="text-slate-600 hover:text-slate-800 text-sm"
+            >
+              ← Back to Sign In
+            </button>
+          </div>
+        )}
+
+        {mode === 'forgot-password' && (
           <div className="mt-6 text-center">
             <button
               onClick={() => onModeChange('signin')}

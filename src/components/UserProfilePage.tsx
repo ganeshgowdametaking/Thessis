@@ -5,11 +5,50 @@ import { connectionService } from '../services/connectionService';
 import { postService } from '../services/postService';
 import { messageService } from '../services/messageService';
 import { useAuthContext } from '../contexts/AuthContext';
+import ConnectionsModal from './ConnectionsModal';
 
 interface UserProfilePageProps {
   userId: string;
   onBack: () => void;
   onViewProfile: (userId: string) => void;
+}
+
+interface Experience {
+  id: number;
+  title: string;
+  company: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  description: string;
+  logo: string;
+}
+
+interface Education {
+  id: number;
+  degree: string;
+  school: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+  gpa: string;
+}
+
+interface Skill {
+  id: number;
+  name: string;
+  level: number;
+  category: string;
+}
+
+interface Achievement {
+  id: number;
+  title: string;
+  organization: string;
+  date: string;
+  type: string;
+  description: string;
 }
 
 const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onViewProfile }) => {
@@ -28,81 +67,13 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     posts: 0,
     connections: 0
   });
+  const [showConnectionsModal, setShowConnectionsModal] = useState(false);
 
-  // Mock data for experience, education, skills, and achievements
-  const [experiences] = useState([
-    {
-      id: 1,
-      title: 'Senior Software Engineer',
-      company: 'TechCorp Inc.',
-      location: 'San Francisco, CA',
-      startDate: '2021-01-15',
-      endDate: '',
-      current: true,
-      description: 'Leading a team of 5 developers in building scalable microservices architecture. Implemented CI/CD pipelines that reduced deployment time by 60%.',
-      logo: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop'
-    },
-    {
-      id: 2,
-      title: 'Software Engineer',
-      company: 'StartupXYZ',
-      location: 'San Francisco, CA',
-      startDate: '2019-06-01',
-      endDate: '2020-12-31',
-      current: false,
-      description: 'Developed full-stack web applications using React, Node.js, and PostgreSQL. Built features used by over 100k users.',
-      logo: 'https://images.pexels.com/photos/196644/pexels-photo-196644.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop'
-    }
-  ]);
-
-  const [education] = useState([
-    {
-      id: 1,
-      degree: 'Master of Science in Computer Science',
-      school: 'Stanford University',
-      startDate: '2017-09-01',
-      endDate: '2019-06-15',
-      description: 'Specialized in Machine Learning and Distributed Systems',
-      gpa: '3.8'
-    },
-    {
-      id: 2,
-      degree: 'Bachelor of Science in Computer Engineering',
-      school: 'UC Berkeley',
-      startDate: '2013-09-01',
-      endDate: '2017-05-15',
-      description: 'Graduated Magna Cum Laude',
-      gpa: '3.7'
-    }
-  ]);
-
-  const [skills] = useState([
-    { id: 1, name: 'JavaScript', level: 95, category: 'Programming' },
-    { id: 2, name: 'React', level: 90, category: 'Frontend' },
-    { id: 3, name: 'Node.js', level: 88, category: 'Backend' },
-    { id: 4, name: 'Python', level: 85, category: 'Programming' },
-    { id: 5, name: 'PostgreSQL', level: 80, category: 'Database' },
-    { id: 6, name: 'AWS', level: 82, category: 'Cloud' }
-  ]);
-
-  const [achievements] = useState([
-    {
-      id: 1,
-      title: 'Employee of the Year 2023',
-      organization: 'TechCorp Inc.',
-      date: '2023-12-01',
-      type: 'award',
-      description: 'Recognized for outstanding performance and leadership'
-    },
-    {
-      id: 2,
-      title: 'AWS Certified Solutions Architect',
-      organization: 'Amazon Web Services',
-      date: '2023-03-15',
-      type: 'certification',
-      description: 'Professional level certification'
-    }
-  ]);
+  // Use actual data from profile instead of hardcoded mock data
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [education, setEducation] = useState<Education[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
 
   useEffect(() => {
     loadUserProfile();
@@ -116,6 +87,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     try {
       const userProfile = await profileService.getProfile(userId);
       setProfile(userProfile);
+      
+      // Set the actual data from the user's profile
+      setExperiences(userProfile.experiences || []);
+      setEducation(userProfile.education || []);
+      setSkills(userProfile.skills || []);
+      setAchievements(userProfile.achievements || []);
     } catch (error) {
       console.error('Error loading user profile:', error);
     }
@@ -257,19 +234,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
         await new Promise(res => setTimeout(res, 300));
         const status = await connectionService.forceRefreshConnectionStatus(userId);
         setConnectionStatus(status);
-      } else if (connectionStatus === 'pending_received') {
-        const connections = await connectionService.getConnections();
-        const connection = connections.find(conn => 
-          (conn.requester_id === userId && conn.addressee_id === user.id) ||
-          (conn.requester_id === user.id && conn.addressee_id === userId)
-        );
-        if (connection) {
-          await connectionService.acceptConnectionRequest(connection.id);
-          await new Promise(res => setTimeout(res, 300));
-          const status = await connectionService.forceRefreshConnectionStatus(userId);
-          setConnectionStatus(status);
-        }
       }
+      // Removed the 'pending_received' case - users can only accept from notifications page
     } catch (error) {
       console.error('Error handling connection:', error);
       alert('Failed to update connection. Please try again.');
@@ -356,9 +322,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     
     switch (connectionStatus) {
       case 'connected': return 'Connected';
-      
       case 'pending_sent': return 'Cancel Request';
-      case 'pending_received': return 'Accept Request';
+      case 'pending_received': return 'Request Sent';
       default: return 'Connect';
     }
   };
@@ -374,7 +339,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
       case 'pending_sent': 
         return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
       case 'pending_received': 
-        return 'bg-blue-600 text-white hover:bg-blue-700';
+        return 'bg-slate-300 text-slate-600 cursor-not-allowed';
       default: 
         return 'bg-slate-900 text-white hover:bg-slate-800';
     }
@@ -503,7 +468,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                 <div className="flex items-center justify-center space-x-4 pt-4">
                   <button
                     onClick={handleConnect}
-                    disabled={connectionStatus === 'connected' || connectionLoading}
+                    disabled={connectionStatus === 'connected' || connectionStatus === 'pending_received' || connectionLoading}
                     className={`px-6 py-3 rounded-lg transition-colors font-medium flex items-center space-x-2 ${getConnectionButtonStyle()}`}
                   >
                     <UserPlus className="h-4 w-4" />
@@ -556,30 +521,20 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                 </div>
               )}
 
-              {/* Stats - Updated to show real counts */}
-              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-slate-200 max-w-md mx-auto">
-                {/* Clickable Connections */}
+              {/* Stats - Only Connections, Centered */}
+              <div className="flex flex-col items-center justify-center pt-6 border-t border-slate-200 max-w-md mx-auto">
                 <button
-                  onClick={handleViewConnections}
-                  className="text-center p-4 rounded-lg hover:bg-slate-50 transition-colors group"
+                  onClick={() => {
+                    if (connectionStatus === 'connected') setShowConnectionsModal(true);
+                  }}
+                  className={`text-center p-4 rounded-lg transition-colors group ${connectionStatus === 'connected' ? 'hover:bg-slate-50 cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                  disabled={connectionStatus !== 'connected'}
                 >
                   <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:bg-slate-200 transition-colors">
                     <Users className="h-6 w-6 text-slate-600" />
                   </div>
                   <div className="text-2xl font-bold text-slate-900">{realCounts.connections}</div>
                   <div className="text-sm text-slate-500 font-medium">Connections</div>
-                </button>
-
-                {/* Clickable Posts */}
-                <button
-                  onClick={handleViewUserPosts}
-                  className="text-center p-4 rounded-lg hover:bg-slate-50 transition-colors group"
-                >
-                  <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:bg-slate-200 transition-colors">
-                    <MessageCircle className="h-6 w-6 text-slate-600" />
-                  </div>
-                  <div className="text-2xl font-bold text-slate-900">{realCounts.posts}</div>
-                  <div className="text-sm text-slate-500 font-medium">Posts</div>
                 </button>
               </div>
             </div>
@@ -596,7 +551,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                 <span>Experience</span>
               </h2>
               <div className="space-y-6">
-                {experiences.map((exp) => (
+                {(Array.isArray(experiences) ? experiences : []).map((exp) => (
                   <div key={exp.id} className="flex space-x-4">
                     <img
                       src={exp.logo}
@@ -623,7 +578,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                 <span>Education</span>
               </h2>
               <div className="space-y-6">
-                {education.map((edu) => (
+                {(Array.isArray(education) ? education : []).map((edu) => (
                   <div key={edu.id} className="flex space-x-4">
                     <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200">
                       <GraduationCap className="h-6 w-6 text-slate-600" />
@@ -794,7 +749,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <h2 className="text-xl font-bold text-slate-900 mb-6">Skills</h2>
               <div className="space-y-4">
-                {skills.map((skill) => (
+                {(Array.isArray(skills) ? skills : []).map((skill) => (
                   <div key={skill.id}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-slate-900">{skill.name}</span>
@@ -819,7 +774,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                 <span>Achievements</span>
               </h2>
               <div className="space-y-4">
-                {achievements.map((achievement) => (
+                {(Array.isArray(achievements) ? achievements : []).map((achievement) => (
                   <div key={achievement.id} className="flex space-x-3">
                     <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200">
                       <Award className="h-5 w-5 text-slate-600" />
@@ -1000,6 +955,16 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
           </div>
         </div>
       )}
+
+      <ConnectionsModal
+        isOpen={showConnectionsModal}
+        onClose={() => setShowConnectionsModal(false)}
+        onViewProfile={(userId) => {
+          setShowConnectionsModal(false);
+          onViewProfile(userId);
+        }}
+        userId={userId}
+      />
     </div>
   );
 };

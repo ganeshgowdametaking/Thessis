@@ -8,21 +8,28 @@ interface ConnectionsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onViewProfile: (userId: string) => void;
+  userId?: string;
 }
 
-const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, onViewProfile }) => {
+const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, onViewProfile, userId }) => {
   const { user } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [connections, setConnections] = useState<any[]>([]);
   const [filteredConnections, setFilteredConnections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [removingConnectionId, setRemovingConnectionId] = useState<string | null>(null);
+  const [modalUser, setModalUser] = useState<any>(null);
 
   useEffect(() => {
     if (isOpen) {
       loadConnections();
+      if (userId) {
+        profileService.getProfile(userId).then(setModalUser).catch(() => setModalUser(null));
+      } else {
+        setModalUser(user);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, userId]);
 
   useEffect(() => {
     // Filter connections based on search query
@@ -41,13 +48,18 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
   const loadConnections = async () => {
     try {
       setLoading(true);
-      const userConnections = await connectionService.getConnections();
+      let userConnections;
+      if (userId) {
+        userConnections = await connectionService.getConnectionsForUser(userId);
+      } else {
+        userConnections = await connectionService.getConnections();
+      }
       
       // Transform connections to include profile data
       const connectionsWithProfiles = userConnections
         .filter(conn => conn.status === 'accepted')
         .map(conn => {
-          const isRequester = conn.requester_id === user?.id;
+          const isRequester = (userId ? conn.requester_id === userId : conn.requester_id === user?.id);
           const otherProfile = isRequester ? conn.addressee : conn.requester;
           
           return {
@@ -119,7 +131,7 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
                 <Users className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">My Connections</h2>
+                <h2 className="text-xl font-bold text-slate-900">{modalUser && modalUser.full_name ? `${modalUser.full_name}'s Connections` : 'Connections'}</h2>
                 <p className="text-slate-600">{connections.length} professional connections</p>
               </div>
             </div>

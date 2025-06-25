@@ -17,6 +17,7 @@ import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiePolicy from './components/CookiePolicy';
 import TermsOfService from './components/TermsOfService';
 import DataRequestForm from './components/DataRequestForm';
+import PasswordResetPage from './components/PasswordResetPage';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import { useAuthContext } from './contexts/AuthContext';
@@ -193,6 +194,22 @@ function DataRequestFormWrapper() {
   return <DataRequestForm onBack={handleBack} />;
 }
 
+// Wrapper component for Home page that handles password reset
+function HomePageWrapper() {
+  const [searchParams] = useSearchParams();
+  const isResetFlow = searchParams.get('reset') === 'true';
+  
+  if (isResetFlow) {
+    return <PasswordResetPage />;
+  }
+  
+  return (
+    <>
+      <Hero /> <Services /> <About />
+    </>
+  );
+}
+
 function App() {
   return (
     <Router>
@@ -205,8 +222,10 @@ function AppContent() {
   const { user, loading } = useAuthContext();
   const location = useLocation();
   const isMobile = useMediaQuery({ maxWidth: 767 });
+  const [searchParams] = useSearchParams();
+  const isResetFlow = searchParams.get('reset') === 'true';
 
-  const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'signin' | 'signup' | 'verify-email' }>({
+  const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password' }>({
     isOpen: false,
     mode: 'signin',
   });
@@ -219,7 +238,7 @@ function AppContent() {
     setAuthModal({ isOpen: false, mode: 'signin' });
   };
 
-  const handleAuthModeChange = (mode: 'signin' | 'signup' | 'verify-email') => {
+  const handleAuthModeChange = (mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password') => {
     setAuthModal(prev => ({ ...prev, mode }));
   };
 
@@ -227,6 +246,17 @@ function AppContent() {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-900">
         <div className="h-16 w-16 animate-spin rounded-full border-4 border-solid border-blue-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  // If this is a password reset flow, show the password reset page regardless of authentication status
+  if (isResetFlow) {
+    return (
+      <div className="flex min-h-screen flex-col bg-slate-100">
+        <main className="flex-grow">
+          <PasswordResetPage />
+        </main>
       </div>
     );
   }
@@ -253,11 +283,7 @@ function AppContent() {
             <>
               <Route
                 path="/"
-                element={
-                  <>
-                    <Hero /> <Services /> <About />
-                  </>
-                }
+                element={<HomePageWrapper />}
               />
               <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
               <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />

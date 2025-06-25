@@ -57,7 +57,7 @@ export const notificationService = {
           .select('*')
           .eq('user_id', userId)
           .eq('type', 'connection')
-          .filter('metadata->connection_id', 'eq', (notification.metadata as any).connection_id)
+          .filter('metadata->>connection_id', 'eq', (notification.metadata as any).connection_id)
           .eq('read', false); // Only check unread notifications
         if (existingNotifications && existingNotifications.length > 0) {
           console.log('⚠️ Similar notification already exists, skipping creation to prevent duplicates');
@@ -180,5 +180,22 @@ export const notificationService = {
       .eq('read', false);
     if (error) throw error;
     return count || 0;
-  }
+  },
+
+  // Mark notification as read and non-actionable
+  markAsReadAndNonActionable: async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .update({ read: true, actionable: false })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error marking notification as read and non-actionable:', error);
+      throw error;
+    }
+  },
 }

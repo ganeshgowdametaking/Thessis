@@ -185,6 +185,27 @@ export const auth = {
       console.error('❌ Network error during OTP resend:', error)
       return { data: null, error: { message: 'Network connection failed. Please check your internet connection and try again.' } }
     }
+  },
+
+  resetPassword: async (email: string) => {
+    console.log('🔐 Sending password reset for:', email)
+    
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/?reset=true`
+      })
+      
+      if (error) {
+        console.error('❌ Password reset error:', error)
+      } else {
+        console.log('✅ Password reset email sent successfully')
+      }
+      
+      return { data, error }
+    } catch (error) {
+      console.error('❌ Network error during password reset:', error)
+      return { data: null, error: { message: 'Network connection failed. Please check your internet connection and try again.' } }
+    }
   }
 }
 

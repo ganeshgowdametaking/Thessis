@@ -29,20 +29,20 @@ CREATE TABLE IF NOT EXISTS user_likes (
 ALTER TABLE user_likes ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for user_likes
-CREATE POLICY "Users can view all likes"
-  ON user_likes FOR SELECT
-  TO authenticated
-  USING (true);
+--CREATE POLICY "Users can view all likes"
+--  ON user_likes FOR SELECT
+--  TO authenticated
+--  USING (true);
 
-CREATE POLICY "Users can create their own likes"
-  ON user_likes FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.uid() = user_id);
+--CREATE POLICY "Users can create their own likes"
+--  ON user_likes FOR INSERT
+--  TO authenticated
+--  WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete their own likes"
-  ON user_likes FOR DELETE
-  TO authenticated
-  USING (auth.uid() = user_id);
+--CREATE POLICY "Users can delete their own likes"
+--  ON user_likes FOR DELETE
+--  TO authenticated
+--  USING (auth.uid() = user_id);
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_likes_user_id ON user_likes(user_id);

@@ -315,7 +315,12 @@ const ProfilePage: React.FC = () => {
                   )}
                 </div>
               )}
-              <div className="flex flex-col items-center justify-center mt-8 mb-4">
+              <div className="flex flex-col items-center justify-center mt-8 mb-4 cursor-pointer hover:bg-slate-50 rounded-lg transition-colors"
+                   onClick={() => setShowConnectionsModal(true)}
+                   role="button"
+                   tabIndex={0}
+                   onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') setShowConnectionsModal(true); }}
+                   aria-label="Show all connections">
                 <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center mb-2">
                   <Users className="h-6 w-6 text-slate-600" />
                 </div>

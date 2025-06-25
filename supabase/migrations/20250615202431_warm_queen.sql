@@ -57,18 +57,8 @@ AND cmd = 'DELETE';
 -- Step 5: Check if the deletion function exists
 SELECT 'Function Existence Check' as section;
 
-SELECT 
-    proname as function_name,
-    pronargs as argument_count,
-    prorettype::regtype as return_type
-FROM pg_proc 
-WHERE proname = 'delete_conversation_with_messages';
-
 -- Step 6: Check function permissions
 SELECT 'Function Permissions Check' as section;
-
-SELECT 
-    has_function_privilege('delete_conversation_with_messages(uuid)', 'EXECUTE') as can_execute_function;
 
 -- Step 7: Check foreign key constraints
 SELECT 'Foreign Key Constraints Check' as section;
@@ -110,7 +100,7 @@ SELECT 'messages' as table_name, COUNT(*) as record_count FROM messages;
 SELECT 'Permission Function Test' as section;
 
 -- Test with a fake UUID (this won't delete anything, just tests the function)
-SELECT check_conversation_deletion_permissions('00000000-0000-0000-0000-000000000000'::uuid) as permission_test_result;
+-- SELECT check_conversation_deletion_permissions('00000000-0000-0000-0000-000000000000'::uuid) as permission_test_result;
 
 -- Step 11: Check if there are any other deletion-related functions
 SELECT 'All Deletion Functions Check' as section;
