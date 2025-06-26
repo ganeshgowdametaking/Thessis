@@ -6,6 +6,8 @@ import { jobService } from '../services/jobService';
 import { Database } from '../lib/database.types';
 import { useMediaQuery } from 'react-responsive';
 import './JobsPage.css';
+import LoadingSpinner from './LoadingSpinner';
+import debounce from 'lodash.debounce';
 
 type Job = Database['public']['Tables']['jobs']['Row'];
 type ApplicationInsert = Database['public']['Tables']['applications']['Insert'];
@@ -58,6 +60,10 @@ const JobsPage: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const isMobile = useMediaQuery({ maxWidth: 767 });
+  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
+  const [locationQuery, setLocationQuery] = useState(filters.location);
+  const [locationError, setLocationError] = useState('');
+  const [locationTouched, setLocationTouched] = useState(false);
 
   // Height of the header (adjust if your header height changes)
   const HEADER_HEIGHT = 80; // px (h-20 = 5rem = 80px)
@@ -168,11 +174,62 @@ const JobsPage: React.FC = () => {
     }));
   };
 
-  const handleApplyFilters = () => {
-    // Clear selected job on mobile when applying filters
-    if (isMobile) {
-      setSelectedJob(null);
+  // Debounced fetch for location suggestions
+  const fetchLocationSuggestions = React.useCallback(
+    debounce(async (query: string) => {
+      if (!query) {
+        setLocationSuggestions([]);
+        return;
+      }
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=8`
+        );
+        const data = await response.json();
+        setLocationSuggestions(data);
+      } catch (error) {
+        setLocationSuggestions([]);
+      }
+    }, 300),
+    []
+  );
+
+  useEffect(() => {
+    if (locationQuery) {
+      fetchLocationSuggestions(locationQuery);
+    } else {
+      setLocationSuggestions([]);
     }
+  }, [locationQuery, fetchLocationSuggestions]);
+
+  const handleLocationInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocationTouched(true);
+    setLocationQuery(e.target.value);
+    setLocationError('');
+    setFilters(prev => ({ ...prev, location: '' }));
+  };
+
+  const handleLocationSelect = (suggestion: any) => {
+    const displayName = suggestion.display_name;
+    setFilters(prev => ({ ...prev, location: displayName }));
+    setLocationQuery(displayName);
+    setLocationSuggestions([]);
+    setLocationError('');
+  };
+
+  const validateLocation = () => {
+    if (!filters.location || !locationQuery || filters.location !== locationQuery) {
+      setLocationError('Select a valid location.');
+      return false;
+    }
+    setLocationError('');
+    return true;
+  };
+
+  const handleApplyFilters = () => {
+    setLocationTouched(true);
+    if (!validateLocation()) return;
+    if (isMobile) setSelectedJob(null);
     loadJobs();
     setShowFilters(false);
   };
@@ -341,15 +398,84 @@ const JobsPage: React.FC = () => {
     setTimeout(() => setCopied(false), 1500);
   };
 
+  // Add the Uiverse.io button styles scoped to .my-button
+  const uiverseApplyNowBtnStyles = `
+  .my-button {
+    background: linear-gradient(90deg, #3b82f6 0%, #00ddeb 100%);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    border-radius: 5px;
+    box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.25);
+    position: relative;
+    overflow: hidden;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    transition: all 0.3s;
+  }
+  .my-button:after {
+    content: "";
+    background-color: rgba(255, 255, 255, 0.2);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+  }
+  .my-button:hover:after {
+    animation: ripple_401 1s ease-out;
+  }
+  @keyframes ripple_401 {
+    0% {
+      width: 5px;
+      height: 5px;
+      opacity: 1;
+    }
+    100% {
+      width: 200px;
+      height: 200px;
+      opacity: 0;
+    }
+  }
+  `;
+
+  // Add the Uiverse.io Send button styles scoped to .uiverse-send-btn
+  const uiverseSendBtnStyles = `
+  .uiverse-send-btn {
+    display: flex;
+    align-items: center;
+    background-color: #3b82f6;
+    color: #fff;
+    gap: 0.25rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    border-radius: 0.375rem;
+    transition: all 0.3s;
+    font-size: 1rem;
+    box-shadow: none;
+    border: none;
+  }
+  .uiverse-send-btn:hover {
+    background-color: #60a5fa;
+    gap: 0.5rem;
+    transform: translateX(0.75rem);
+  }
+  .uiverse-send-btn:active {
+    transform: scale(0.97);
+  }
+  `;
+
   if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading jobs...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text="Loading jobs..." />;
   }
 
   if (error) {
@@ -374,6 +500,7 @@ const JobsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100">
+      <style>{uiverseApplyNowBtnStyles}</style>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className={isMobile ? '' : 'grid lg:grid-cols-3 gap-6'}>
           {/* Search, Filters, Job List, Create Referral */}
@@ -468,11 +595,29 @@ const JobsPage: React.FC = () => {
                         <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
                         <input
                           type="text"
-                          value={filters.location}
-                          onChange={e => handleFilterChange('location', e.target.value)}
+                          value={locationQuery}
+                          onChange={handleLocationInput}
+                          onBlur={() => setLocationTouched(true)}
                           placeholder="City, State, or Country"
-                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className={`w-full px-4 py-2 border ${locationError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                          autoComplete="off"
                         />
+                        {locationSuggestions.length > 0 && (
+                          <ul className="absolute z-10 bg-white border border-slate-200 rounded-md mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
+                            {locationSuggestions.map((suggestion, idx) => (
+                              <li
+                                key={suggestion.place_id}
+                                className="px-4 py-2 cursor-pointer hover:bg-blue-100"
+                                onMouseDown={() => handleLocationSelect(suggestion)}
+                              >
+                                {suggestion.display_name}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {locationError && locationTouched && (
+                          <p className="text-red-600 text-xs mt-1">{locationError}</p>
+                        )}
                       </div>
                       {/* Onsite/Remote */}
                       <div className="flex items-center space-x-3 mt-6">
@@ -641,14 +786,14 @@ const JobsPage: React.FC = () => {
                         <button
                           onClick={handleApplyToJob}
                           disabled={!user}
-                          className={`self-start px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 ${
+                          className={
                             !user
-                              ? 'bg-slate-400 text-slate-600 cursor-not-allowed'
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
-                          }`}
+                              ? 'self-start px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 bg-slate-400 text-slate-600 cursor-not-allowed'
+                              : 'my-button self-start font-medium flex justify-center items-center'
+                          }
+                          style={{ width: 'fit-content', minWidth: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                         >
-                          <Briefcase className="h-4 w-4" />
-                          <span>{!user ? 'Sign In to Apply' : 'Apply Now'}</span>
+                          <span style={{ width: '100%', textAlign: 'center' }}>Apply Now</span>
                         </button>
                       )}
                     </div>
@@ -809,14 +954,14 @@ const JobsPage: React.FC = () => {
                       <button
                         onClick={handleApplyToJob}
                         disabled={!user}
-                        className={`self-start px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 ${
+                        className={
                           !user
-                            ? 'bg-slate-400 text-slate-600 cursor-not-allowed'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                        }`}
+                            ? 'self-start px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 bg-slate-400 text-slate-600 cursor-not-allowed'
+                            : 'my-button self-start font-medium flex justify-center items-center'
+                        }
+                        style={{ width: 'fit-content', minWidth: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                       >
-                        <Briefcase className="h-4 w-4" />
-                        <span>{!user ? 'Sign In to Apply' : 'Apply Now'}</span>
+                        <span style={{ width: '100%', textAlign: 'center' }}>Apply Now</span>
                       </button>
                     )}
                   </div>
@@ -891,6 +1036,7 @@ const JobsPage: React.FC = () => {
         {/* Application Modal */}
         {showApplicationModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <style>{uiverseSendBtnStyles}</style>
             <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-900">Apply for {selectedJob?.title}</h2>
@@ -904,7 +1050,6 @@ const JobsPage: React.FC = () => {
 
               {applicationStep === 1 && (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-slate-900">Apply for {selectedJob?.title}</h3>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Email <span className="text-red-500">*</span></label>
                     <input
@@ -938,9 +1083,23 @@ const JobsPage: React.FC = () => {
                     </button>
                     <button
                       onClick={handleApplicationSubmit}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="uiverse-send-btn"
                     >
-                      Submit Application
+                      Send
+                      <svg
+                        className="w-5 h-5"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                        ></path>
+                      </svg>
                     </button>
                   </div>
                 </div>

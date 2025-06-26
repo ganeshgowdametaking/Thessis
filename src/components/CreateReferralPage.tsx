@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase';
 import { Database } from '../lib/database.types';
 import { useNavigate } from 'react-router-dom';
 import { jobService } from '../services/jobService';
+import LoadingSpinner from './LoadingSpinner';
+import debounce from 'lodash.debounce';
 
 type Job = Database['public']['Tables']['jobs']['Row'];
 type JobInsert = Database['public']['Tables']['jobs']['Insert'];
@@ -28,6 +30,89 @@ const CreateReferralPage: React.FC = () => {
   const [myReferrals, setMyReferrals] = useState<Job[]>([]);
   const [loadingReferrals, setLoadingReferrals] = useState(true);
 
+  // Add the Uiverse.io button styles scoped to .my-button
+  const uiverseApplyNowBtnStyles = `
+  .my-button {
+    background: linear-gradient(90deg, #3b82f6 0%, #00ddeb 100%);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    border-radius: 5px;
+    box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.25);
+    position: relative;
+    overflow: hidden;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    transition: all 0.3s;
+  }
+  .my-button:after {
+    content: "";
+    background-color: rgba(255, 255, 255, 0.2);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+  }
+  .my-button:hover:after {
+    animation: ripple_401 1s ease-out;
+  }
+  @keyframes ripple_401 {
+    0% {
+      width: 5px;
+      height: 5px;
+      opacity: 1;
+    }
+    100% {
+      width: 200px;
+      height: 200px;
+      opacity: 0;
+    }
+  }
+  `;
+
+  // Add the Uiverse.io back button styles
+  const uiverseBackBtnStyles = `
+  .uiverse-back-btn {
+    display: flex;
+    height: 3em;
+    width: 100px;
+    align-items: center;
+    justify-content: center;
+    background-color: #eeeeee4b;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    transition: all 0.2s linear;
+    cursor: pointer;
+    border: none;
+    background: #fff;
+  }
+
+  .uiverse-back-btn > svg {
+    margin-right: 5px;
+    margin-left: 5px;
+    font-size: 20px;
+    transition: all 0.4s ease-in;
+  }
+
+  .uiverse-back-btn:hover > svg {
+    font-size: 1.2em;
+    transform: translateX(-5px);
+  }
+
+  .uiverse-back-btn:hover {
+    box-shadow: 9px 9px 33px #d1d1d1, -9px -9px 33px #ffffff;
+    transform: translateY(-2px);
+  }
+  `;
+
   // Form state
   const [formData, setFormData] = useState<JobInsert>({
     title: '',
@@ -50,6 +135,11 @@ const CreateReferralPage: React.FC = () => {
   const [skillInput, setSkillInput] = useState('');
   const [benefitInput, setBenefitInput] = useState('');
 
+  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [locationTouched, setLocationTouched] = useState(false);
+
   // Fetch user's jobs (acting as referrals)
   const fetchMyReferrals = useCallback(async () => {
     if (!user?.id) return;
@@ -67,6 +157,34 @@ const CreateReferralPage: React.FC = () => {
   useEffect(() => {
     fetchMyReferrals();
   }, [fetchMyReferrals]);
+
+  // Debounced fetch for location suggestions
+  const fetchLocationSuggestions = useCallback(
+    debounce(async (query: string) => {
+      if (!query) {
+        setLocationSuggestions([]);
+        return;
+      }
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=8`
+        );
+        const data = await response.json();
+        setLocationSuggestions(data);
+      } catch (error) {
+        setLocationSuggestions([]);
+      }
+    }, 300),
+    []
+  );
+
+  useEffect(() => {
+    if (locationQuery) {
+      fetchLocationSuggestions(locationQuery);
+    } else {
+      setLocationSuggestions([]);
+    }
+  }, [locationQuery, fetchLocationSuggestions]);
 
   const handleInputChange = (field: keyof JobInsert, value: any) => {
     setFormData(prev => ({
@@ -109,10 +227,36 @@ const CreateReferralPage: React.FC = () => {
     }));
   };
 
+  const handleLocationInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocationTouched(true);
+    setLocationQuery(e.target.value);
+    setFormData(prev => ({ ...prev, location: '' }));
+    setLocationError('');
+  };
+
+  const handleLocationSelect = (suggestion: any) => {
+    const displayName = suggestion.display_name;
+    setFormData(prev => ({ ...prev, location: displayName }));
+    setLocationQuery(displayName);
+    setLocationSuggestions([]);
+    setLocationError('');
+  };
+
+  const validateLocation = () => {
+    // Only allow submission if location matches a suggestion
+    if (!formData.location || !locationQuery || formData.location !== locationQuery) {
+      setLocationError('Select a valid location.');
+      return false;
+    }
+    setLocationError('');
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
-
+    setLocationTouched(true);
+    if (!validateLocation()) return;
     setLoading(true);
     try {
       // Fix experience_level to match database schema
@@ -216,6 +360,8 @@ const CreateReferralPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <style>{uiverseApplyNowBtnStyles}</style>
+      <style>{uiverseBackBtnStyles}</style>
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -223,9 +369,9 @@ const CreateReferralPage: React.FC = () => {
             <div className="flex items-center">
               <button 
                 onClick={() => window.history.back()}
-                className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
+                className="uiverse-back-btn"
               >
-                <ArrowLeft className="h-5 w-5 mr-2" />
+                <ArrowLeft className="h-5 w-5" />
                 Back
               </button>
               <h1 className="text-xl font-semibold text-gray-900">Create Job Referral</h1>
@@ -318,11 +464,29 @@ const CreateReferralPage: React.FC = () => {
                     <input
                       type="text"
                       required
-                      value={formData.location}
-                      onChange={(e) => handleInputChange('location', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g. San Francisco, CA or Remote"
+                      value={locationQuery}
+                      onChange={handleLocationInput}
+                      onBlur={() => setLocationTouched(true)}
+                      className={`w-full px-3 py-2 border ${locationError ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      placeholder="Type a city, state, or country..."
+                      autoComplete="off"
                     />
+                    {locationSuggestions.length > 0 && (
+                      <ul className="absolute z-10 bg-white border border-gray-200 rounded-md mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
+                        {locationSuggestions.map((suggestion, idx) => (
+                          <li
+                            key={suggestion.place_id}
+                            className="px-4 py-2 cursor-pointer hover:bg-blue-100"
+                            onMouseDown={() => handleLocationSelect(suggestion)}
+                          >
+                            {suggestion.display_name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {locationError && locationTouched && (
+                      <p className="text-red-600 text-xs mt-1">{locationError}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -425,76 +589,7 @@ const CreateReferralPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Benefits */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Benefits & Perks
-                  </label>
-                  <div className="flex mb-2">
-                    <input
-                      type="text"
-                      value={benefitInput}
-                      onChange={(e) => setBenefitInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBenefit())}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g. Health insurance, 401k, Remote work"
-                    />
-                    <button
-                      type="button"
-                      onClick={addBenefit}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.benefits?.map((benefit, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800"
-                      >
-                        {benefit}
-                        <button
-                          type="button"
-                          onClick={() => removeBenefit(benefit)}
-                          className="ml-2 text-green-600 hover:text-green-800"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Additional Options */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Application Deadline
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.application_deadline || ''}
-                      onChange={(e) => handleInputChange('application_deadline', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Contact Email
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.contact_email || ''}
-                      onChange={(e) => handleInputChange('contact_email', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="hiring@company.com"
-                    />
-                  </div>
-                </div>
-
-                {/* Checkboxes */}
                 <div className="space-y-3">
                   <div className="border rounded-md p-3">
                     <label className="flex items-center">
@@ -527,9 +622,12 @@ const CreateReferralPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="my-button font-medium flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ width: 'fit-content', minWidth: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                 >
-                  {loading ? 'Creating...' : 'Create Referral'}
+                  <span style={{ width: '100%', textAlign: 'center' }}>
+                    {loading ? 'Creating...' : 'Create Referral'}
+                  </span>
                 </button>
               </div>
             </form>
@@ -541,9 +639,7 @@ const CreateReferralPage: React.FC = () => {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">My Referrals</h2>
               
               {loadingReferrals ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
+                <LoadingSpinner text="Loading referrals..." size="medium" />
               ) : myReferrals.length === 0 ? (
                 <div className="text-center py-8">
                   <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-4" />

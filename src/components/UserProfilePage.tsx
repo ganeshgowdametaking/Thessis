@@ -76,6 +76,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const [achievements, setAchievements] = useState<Achievement[]>([]);
 
   useEffect(() => {
+    console.log('UserProfilePage: userId', userId);
     loadUserProfile();
     loadUserPosts();
     loadConnectionStatus();
@@ -86,15 +87,16 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const loadUserProfile = async () => {
     try {
       const userProfile = await profileService.getProfile(userId);
+      console.log('UserProfilePage: userProfile', userProfile);
       setProfile(userProfile);
-      
-      // Set the actual data from the user's profile
       setExperiences(userProfile.experiences || []);
       setEducation(userProfile.education || []);
       setSkills(userProfile.skills || []);
       setAchievements(userProfile.achievements || []);
     } catch (error) {
       console.error('Error loading user profile:', error);
+    } finally {
+      setLoading(false);
     }
   };
 

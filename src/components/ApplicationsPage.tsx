@@ -4,17 +4,19 @@ import { applicationService } from '../services/applicationService';
 import { useAuthContext } from '../contexts/AuthContext';
 import { jobService } from '../services/jobService';
 import { Database } from '../lib/database.types';
+import LoadingSpinner from './LoadingSpinner';
 
 type Job = Database['public']['Tables']['jobs']['Row'];
 
 interface ApplicationsPageProps {
   onBack: () => void;
   onMessage: (applicantId: number) => void;
+  onViewProfile: (userId: string) => void;
   referralId: string;
   referralTitle: string;
 }
 
-const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, referralId, referralTitle }) => {
+const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, onViewProfile, referralId, referralTitle }) => {
   const { user } = useAuthContext();
   
   const [applications, setApplications] = useState<any[]>([]);
@@ -25,6 +27,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [currentApplication, setCurrentApplication] = useState<any>(null);
+  const [sortOrder, setSortOrder] = useState<'latest' | 'earliest'>('latest');
 
   // Load applications when component mounts
   useEffect(() => {
@@ -55,7 +58,9 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
         notes: app.notes,
         // Applicant data from the join
         applicant: {
+          id: app.applicant?.id,
           name: app.applicant?.full_name || 'Unknown Applicant',
+          email: app.applicant?.email || '',
           title: app.applicant?.title || 'No Title',
           company: app.applicant?.company || 'No Company',
           location: app.applicant?.location || 'No Location',
@@ -74,6 +79,34 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to get profile picture with fallback
+  const getProfilePicture = (applicant: any) => {
+    // Check if user has uploaded a profile picture (not the default placeholder)
+    if (applicant?.avatar && applicant.avatar !== '/default-avatar.png') {
+      return applicant.avatar;
+    }
+    
+    // Create a simple colored background based on user ID
+    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
+    const colorIndex = applicant?.id ? applicant.id.charCodeAt(0) % colors.length : 0;
+    const backgroundColor = colors[colorIndex];
+    
+    // Get initials
+    const initials = applicant?.name
+      ? applicant.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+      : 'U';
+    
+    // Return a simple SVG data URL
+    const svg = `
+      <svg width="150" height="150" xmlns="http://www.w3.org/2000/svg">
+        <rect width="150" height="150" fill="${backgroundColor}"/>
+        <text x="75" y="85" font-family="Arial, sans-serif" font-size="60" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
+      </svg>
+    `;
+    
+    return `data:image/svg+xml;base64,${btoa(svg)}`;
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -134,16 +167,13 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
 
   // UPDATED: Handle profile navigation
   const handleViewProfile = (applicantId: string) => {
-    // Dispatch custom event to navigate to user profile
-    window.dispatchEvent(new CustomEvent('navigate-to-profile', { 
-      detail: { userId: applicantId } 
-    }));
+    console.log('Navigating to profile for applicant ID:', applicantId);
+    onViewProfile(applicantId);
   };
 
-  // UPDATED: Sort applications with shortlisted at the top
+  // UPDATED: Sort applications with shortlisted at the top, and by sortOrder
   const filteredApplications = applications
     .filter(app => {
-      // UPDATED: Remove "rejected" filter completely
       const matchesFilter = selectedFilter === 'all' || 
                            (selectedFilter === 'pending' && app.status === 'pending') ||
                            (selectedFilter === 'shortlisted' && app.status === 'shortlisted');
@@ -152,10 +182,15 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
       return matchesFilter && matchesSearch;
     })
     .sort((a, b) => {
-      // Sort by shortlisted status first (shortlisted at top), then by application date
+      // Sort by shortlisted status first (shortlisted at top)
       if (a.shortlisted && !b.shortlisted) return -1;
       if (!a.shortlisted && b.shortlisted) return 1;
-      return 0; // Keep original order for same shortlist status
+      // Then by applied_at
+      if (sortOrder === 'earliest') {
+        return new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime();
+      } else {
+        return new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime();
+      }
     });
 
   const getStatusColor = (status: string) => {
@@ -174,14 +209,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
   ];
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading applications...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text="Loading applications..." />;
   }
 
   if (error) {
@@ -270,6 +298,17 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
                   </span>
                 </button>
               ))}
+              {/* Add earliest first sort button */}
+              <button
+                onClick={() => setSortOrder(sortOrder === 'earliest' ? 'latest' : 'earliest')}
+                className={`px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 whitespace-nowrap ${
+                  sortOrder === 'earliest'
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                }`}
+              >
+                <span>Earliest First</span>
+              </button>
             </div>
           )}
         </div>
@@ -286,17 +325,17 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
                   <div className="flex items-start space-x-4 min-w-0 flex-1">
                     {/* UPDATED: Make profile picture clickable */}
                     <img
-                      src={application.applicant.avatar}
+                      src={getProfilePicture(application.applicant)}
                       alt={application.applicant.name}
                       className="w-12 h-12 sm:w-16 sm:h-16 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all flex-shrink-0"
-                      onClick={() => handleViewProfile(application.applicantId)}
+                      onClick={() => onViewProfile(application.applicant.id)}
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 mb-2">
                         {/* UPDATED: Make username clickable */}
                         <h3 
                           className="text-lg sm:text-xl font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-colors truncate"
-                          onClick={() => handleViewProfile(application.applicantId)}
+                          onClick={() => onViewProfile(application.applicant.id)}
                         >
                           {application.applicant.name}
                         </h3>
@@ -322,10 +361,8 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
 
                 {/* Education */}
                 <div className="mt-4 sm:mt-6">
-                  <h4 className="font-medium text-slate-900 mb-1">Background</h4>
-                  <p className="text-slate-600 text-sm">{application.education}</p>
                   {application.coverLetter && (
-                    <div className="mt-2">
+                    <div>
                       <h4 className="font-medium text-slate-900 mb-1">Cover Letter</h4>
                       <p className="text-slate-600 text-sm">{application.coverLetter}</p>
                     </div>
@@ -390,7 +427,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4 min-w-0 flex-1">
                   <img
-                    src={currentApplication.applicant.avatar}
+                    src={getProfilePicture(currentApplication.applicant)}
                     alt={currentApplication.applicant.name}
                     className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex-shrink-0"
                   />
@@ -416,10 +453,6 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
                   <div className="flex items-center space-x-2">
                     <Mail className="h-4 w-4 text-slate-500 flex-shrink-0" />
                     <span className="text-slate-700 truncate">{currentApplication.applicant.email}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Phone className="h-4 w-4 text-slate-500 flex-shrink-0" />
-                    <span className="text-slate-700">{currentApplication.applicant.phone}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <MapPin className="h-4 w-4 text-slate-500 flex-shrink-0" />

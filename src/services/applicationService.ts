@@ -17,7 +17,16 @@ export const applicationService = {
         .from('applications')
         .select(`
           *,
-          applicant:profiles!applications_applicant_id_fkey(*),
+          applicant:profiles!applications_applicant_id_fkey(
+            id,
+            email,
+            full_name,
+            title,
+            company,
+            location,
+            avatar_url,
+            bio
+          ),
           job:jobs!applications_job_id_fkey(*)
         `)
         .eq('job_id', jobId as any)

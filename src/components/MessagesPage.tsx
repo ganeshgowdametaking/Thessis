@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, MoreHorizontal, Send, Smile, Circle, MessageSquare, Trash2, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { messageService } from '../services/messageService';
 import { profileService } from '../services/profileService';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -54,6 +54,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const [emojiSearch, setEmojiSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('smileys');
   const navigate = useNavigate();
+  const location = useLocation();
+  const msgNavTs = location.state?.msgNavTs;
 
   // Common emojis for the emoji picker
   const commonEmojis = ['😊', '😂', '❤️', '👍', '👎', '😢', '😮', '😡', '🎉', '🔥', '💯', '👏', '🙏', '💪', '✨', '🚀'];
@@ -65,10 +67,22 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   useEffect(() => {
     if (selectedApplicant) {
       console.log('Opening chat for applicant ID:', selectedApplicant);
-      setSelectedChat(selectedApplicant);
-      setShowConversationsList(false); // Hide conversations list on mobile when chat is selected
+      // Create or get conversation with the selected applicant
+      const openConversationWithApplicant = async () => {
+        try {
+          const conversation = await messageService.createOrGetConversation(selectedApplicant.toString());
+          setSelectedChat(conversation.id);
+          setShowConversationsList(false); // Hide conversations list on mobile when chat is selected
+          // Reload conversations to include the new one if it was created
+          await loadConversations();
+        } catch (error) {
+          console.error('Error opening conversation with applicant:', error);
+          alert('Failed to open conversation. Please try again.');
+        }
+      };
+      openConversationWithApplicant();
     }
-  }, [selectedApplicant]);
+  }, [selectedApplicant, msgNavTs]);
 
   useEffect(() => {
     if (selectedChat) {

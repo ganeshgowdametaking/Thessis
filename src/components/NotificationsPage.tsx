@@ -6,6 +6,7 @@ import { connectionService } from '../services/connectionService';
 import { profileService } from '../services/profileService';
 import { postService } from '../services/postService';
 import { useAuthContext } from '../contexts/AuthContext';
+import LoadingSpinner from './LoadingSpinner';
 
 interface NotificationsPageProps {
   onViewProfile?: (userId: string) => void;
@@ -415,10 +416,19 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
             filteredNotifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 transition-all ${
+                className={`bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 transition-all relative ${
                   !notification.read ? `border-l-4 ${getPriorityColor(notification.priority)} bg-slate-50` : ''
                 }`}
               >
+                {/* Delete Button - Positioned at top-right */}
+                <button
+                  onClick={() => handleDeleteNotification(notification.id)}
+                  className="absolute top-3 right-3 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-red-600 transition-colors z-10"
+                  aria-label="Delete notification"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   {/* Profile Picture or Icon */}
                   <div className="flex-shrink-0">
@@ -573,15 +583,6 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="flex items-start justify-between">
-                  <button
-                    onClick={() => handleDeleteNotification(notification.id)}
-                    className="ml-2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-red-600 transition-colors"
-                    aria-label="Delete notification"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
                 </div>
               </div>
             ))

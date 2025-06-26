@@ -38,9 +38,9 @@ const Services = () => {
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Everything You Need for{' '}
+            Connecting You to Careers That{' '}
             <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-              Professional Success
+              Rise with the Tide
             </span>
           </h2>
         </div>

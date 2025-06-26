@@ -21,8 +21,10 @@ import PasswordResetPage from './components/PasswordResetPage';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import { useAuthContext } from './contexts/AuthContext';
+import { LoadingProvider } from './contexts/LoadingContext';
 import { supabase } from './lib/supabase';
 import { useMediaQuery } from 'react-responsive';
+import LoadingSpinner from './components/LoadingSpinner';
 
 // Wrapper component for ApplicationsPage to handle React Router integration
 function ApplicationsPageWrapper() {
@@ -61,9 +63,12 @@ function ApplicationsPageWrapper() {
   };
   
   const handleMessage = (applicantId: number) => {
-    // Navigate to messages page or open message modal
-    console.log('Opening message for applicant:', applicantId);
-    // For now, just log the action
+    // Navigate to messages page and pass applicantId as state, always include a unique timestamp
+    navigate('/messages', { state: { selectedApplicant: applicantId, msgNavTs: Date.now() } });
+  };
+  
+  const handleViewProfile = (userId: string) => {
+    navigate(`/user/${userId}`);
   };
   
   if (!referralId) {
@@ -71,14 +76,7 @@ function ApplicationsPageWrapper() {
   }
   
   if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text="Loading job details..." />;
   }
   
   return (
@@ -86,7 +84,8 @@ function ApplicationsPageWrapper() {
       referralId={referralId}
       referralTitle={referralTitle}
       onBack={handleBack} 
-      onMessage={handleMessage} 
+      onMessage={handleMessage}
+      onViewProfile={handleViewProfile}
     />
   );
 }
@@ -210,11 +209,21 @@ function HomePageWrapper() {
   );
 }
 
+// Add a wrapper for MessagesPage to read selectedApplicant from location state
+function MessagesPageWrapper() {
+  const location = useLocation();
+  // Read selectedApplicant from navigation state (if present)
+  const selectedApplicant = location.state?.selectedApplicant;
+  return <MessagesPage selectedApplicant={selectedApplicant} />;
+}
+
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <LoadingProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </LoadingProvider>
   );
 }
 
@@ -243,11 +252,7 @@ function AppContent() {
   };
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-slate-900">
-        <div className="h-16 w-16 animate-spin rounded-full border-4 border-solid border-blue-500 border-t-transparent"></div>
-      </div>
-    );
+    return <LoadingSpinner text="Initializing..." />;
   }
 
   // If this is a password reset flow, show the password reset page regardless of authentication status
@@ -272,7 +277,7 @@ function AppContent() {
               <Route path="/create-referral" element={<CreateReferralPage />} />
               <Route path="/applications/:referralId" element={<ApplicationsPageWrapper />} />
               <Route path="/search-results" element={<SearchResultsPageWrapper key={location.search} />} />
-              <Route path="/messages" element={<MessagesPage />} />
+              <Route path="/messages" element={<MessagesPageWrapper />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/user/:userId" element={<UserProfilePageWrapper />} />

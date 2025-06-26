@@ -3,6 +3,7 @@ import { X, Search, Users, MapPin, Building, UserPlus, UserMinus, MessageCircle 
 import { connectionService } from '../services/connectionService';
 import { profileService } from '../services/profileService';
 import { useAuthContext } from '../contexts/AuthContext';
+import LoadingSpinner from './LoadingSpinner';
 
 interface ConnectionsModalProps {
   isOpen: boolean;
@@ -161,9 +162,7 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
         {/* Connections List */}
         <div className="flex-1 overflow-y-auto p-6">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin"></div>
-            </div>
+            <LoadingSpinner text="Loading connections..." />
           ) : filteredConnections.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredConnections.map((connection) => (

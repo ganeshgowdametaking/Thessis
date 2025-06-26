@@ -115,10 +115,56 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
 
   const passwordStrength = getPasswordStrength(formData.password)
 
+  // Add the Uiverse.io button styles scoped to .uiverse-signin-btn
+  const uiverseBtnStyles = `
+  .uiverse-signin-btn {
+    align-items: center;
+    background-image: linear-gradient(144deg, #af40ff, #5b42f3 50%, #00ddeb);
+    border: 0;
+    border-radius: 8px;
+    box-shadow: rgba(151, 65, 252, 0.2) 0 15px 30px -5px;
+    box-sizing: border-box;
+    color: #ffffff;
+    display: flex;
+    font-size: 18px;
+    justify-content: center;
+    line-height: 1em;
+    max-width: 100%;
+    min-width: 140px;
+    padding: 3px;
+    text-decoration: none;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .uiverse-signin-btn:active,
+  .uiverse-signin-btn:hover {
+    outline: 0;
+  }
+  .uiverse-signin-btn span {
+    background-color: rgb(5, 6, 45);
+    padding: 16px 24px;
+    border-radius: 6px;
+    width: 100%;
+    height: 100%;
+    transition: 300ms;
+  }
+  .uiverse-signin-btn:hover span {
+    background: none;
+  }
+  .uiverse-signin-btn:active {
+    transform: scale(0.9);
+  }
+  `;
+
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <style>{uiverseBtnStyles}</style>
       <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-slate-900">
@@ -355,13 +401,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
           <button
             type="submit"
             disabled={loading || (mode === 'signup' && formData.password !== formData.confirmPassword)}
-            className="w-full bg-slate-900 text-white py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className={
+              (mode === 'signin' || mode === 'signup')
+                ? 'uiverse-signin-btn w-full disabled:opacity-50 disabled:cursor-not-allowed'
+                : 'w-full bg-slate-900 text-white py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed'
+            }
           >
-            {loading ? 'Loading...' : 
-             mode === 'signin' ? 'Sign In' : 
-             mode === 'signup' ? 'Create Account' : 
-             mode === 'forgot-password' ? 'Send Reset Link' :
-             'Verify Email'}
+            {(mode === 'signin' || mode === 'signup') ? (
+              <span>{loading ? 'Loading...' : (mode === 'signin' ? 'Sign In' : 'Create Account')}</span>
+            ) : loading ? 'Loading...' :
+              mode === 'forgot-password' ? 'Send Reset Link' :
+              'Verify Email'}
           </button>
         </form>
 

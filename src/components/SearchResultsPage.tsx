@@ -5,6 +5,7 @@ import { postService } from '../services/postService';
 import { connectionService } from '../services/connectionService';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import LoadingSpinner from './LoadingSpinner';
 
 interface SearchResultsPageProps {
   searchQuery: string;
@@ -204,10 +205,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
         {/* Results */}
         <div className="space-y-6">
           {loading ? (
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-12 text-center">
-              <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-slate-600">Searching...</p>
-            </div>
+            <LoadingSpinner text="Searching..." />
           ) : (
             <>
               {/* People Results */}

@@ -6,6 +6,7 @@ import { connectionService } from '../services/connectionService';
 import { useAuthContext } from '../contexts/AuthContext';
 import ConnectionsModal from './ConnectionsModal';
 import PostsModal from './PostsModal';
+import LoadingSpinner from './LoadingSpinner';
 
 interface Experience {
   id: number;
@@ -241,14 +242,7 @@ const ProfilePage: React.FC = () => {
   };
 
   if (!profile) {
-    return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading profile...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text="Loading profile..." />;
   }
 
   return (

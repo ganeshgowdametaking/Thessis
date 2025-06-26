@@ -4,6 +4,7 @@ import { gdprService } from '../services/gdprService';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Check from './Check';
+import LoadingSpinner from './LoadingSpinner';
 
 interface DataRequestFormProps {
   onBack: () => void;
@@ -239,7 +240,7 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
                     >
                       {loading ? (
                         <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <LoadingSpinner size="small" />
                           <span>Processing...</span>
                         </>
                       ) : (
