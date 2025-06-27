@@ -41,23 +41,20 @@ export const supabase = createClient<Database>(
 export const auth = {
   signUp: async (email: string, password: string, userData: any) => {
     console.log('🔐 Attempting sign up for:', email)
-    
     try {
-      // Use OTP-based signup instead of email confirmation
-      const { data, error } = await supabase.auth.signInWithOtp({
+      // Use password-based signup so user can log in with password
+      const { data, error } = await supabase.auth.signUp({
         email,
+        password,
         options: {
-          data: userData,
-          shouldCreateUser: true
+          data: userData
         }
       })
-
       if (error) {
         console.error('❌ Sign up error:', error)
         return { data: null, error }
       }
-
-      console.log('✅ OTP sent successfully for signup')
+      console.log('✅ Sign up successful, confirmation email sent')
       return { data, error: null }
     } catch (error) {
       console.error('❌ Network error during sign up:', error)
@@ -67,31 +64,15 @@ export const auth = {
 
   signIn: async (email: string, password: string) => {
     console.log('🔐 Attempting sign in for:', email)
-    
     try {
-      // For existing users, try password-based sign in first
+      // Only try password-based sign in
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
-      
       if (error) {
-        console.log('⚠️ Password sign in failed, trying OTP...')
-        // If password sign in fails, fall back to OTP
-        const { data: otpData, error: otpError } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: false
-          }
-        })
-        
-        if (otpError) {
-          console.error('❌ OTP sign in error:', otpError)
-          return { data: null, error: otpError }
-        } else {
-          console.log('✅ OTP sent successfully for sign in')
-          return { data: otpData, error: null }
-        }
+        console.error('❌ Password sign in error:', error)
+        return { data: null, error }
       } else {
         console.log('✅ Password sign in successful')
         return { data, error: null }
