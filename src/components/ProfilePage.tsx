@@ -6,6 +6,7 @@ import { connectionService } from '../services/connectionService';
 import { useAuthContext } from '../contexts/AuthContext';
 import ConnectionsModal from './ConnectionsModal';
 import PostsModal from './PostsModal';
+import LoadingSpinner from './LoadingSpinner';
 
 interface Experience {
   id: number;
@@ -117,21 +118,21 @@ const ProfilePage: React.FC = () => {
   const addItem = (section: keyof typeof editForm, newItem: any) => {
     setEditForm({
       ...editForm,
-      [section]: [...editForm[section], { ...newItem, id: Date.now() }],
+      [section]: Array.isArray(editForm[section]) ? [...editForm[section], { ...newItem, id: Date.now() }] : [{ ...newItem, id: Date.now() }],
     });
   };
 
   const updateItem = (section: keyof typeof editForm, id: number, updatedItem: any) => {
     setEditForm({
       ...editForm,
-      [section]: editForm[section].map((item: any) => (item.id === id ? { ...item, ...updatedItem } : item)),
+      [section]: Array.isArray(editForm[section]) ? editForm[section].map((item: any) => (item.id === id ? { ...item, ...updatedItem } : item)) : [],
     });
   };
 
   const deleteItem = (section: keyof typeof editForm, id: number) => {
     setEditForm({
       ...editForm,
-      [section]: editForm[section].filter((item: any) => item.id !== id),
+      [section]: Array.isArray(editForm[section]) ? editForm[section].filter((item: any) => item.id !== id) : [],
     });
   };
 
@@ -241,14 +242,7 @@ const ProfilePage: React.FC = () => {
   };
 
   if (!profile) {
-    return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading profile...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text="Loading profile..." />;
   }
 
   return (
@@ -289,35 +283,43 @@ const ProfilePage: React.FC = () => {
                   <MapPin className="h-4 w-4" />
                   <span>{editForm.location || 'Location'}</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>Joined {new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-                </div>
               </div>
-              {editForm.bio && (
-                <p className="text-slate-700 leading-relaxed max-w-2xl mx-auto">{editForm.bio}</p>
+              {isEditing ? (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Bio</label>
+                  <textarea
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                    rows={4}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    disabled={isSaving}
+                  />
+                </div>
+              ) : (
+                <div className="mt-4">
+                  {editForm.bio ? (
+                    <p className="text-slate-700 leading-relaxed max-w-2xl mx-auto whitespace-pre-line">{editForm.bio}</p>
+                  ) : (
+                    <button
+                      className="text-blue-600 hover:underline text-sm"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      + Add a bio
+                    </button>
+                  )}
+                </div>
               )}
-              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-slate-200 max-w-md mx-auto">
-                <button
-                  onClick={() => setShowConnectionsModal(true)}
-                  className="text-center p-4 rounded-lg hover:bg-slate-50 transition-colors group"
-                >
-                  <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:bg-slate-200 transition-colors">
-                    <Users className="h-6 w-6 text-slate-600" />
-                  </div>
-                  <div className="text-2xl font-bold text-slate-900">{realCounts.connections}</div>
-                  <div className="text-sm text-slate-500 font-medium">Connections</div>
-                </button>
-                <button
-                  onClick={() => setShowPostsModal(true)}
-                  className="text-center p-4 rounded-lg hover:bg-slate-50 transition-colors group"
-                >
-                  <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:bg-slate-200 transition-colors">
-                    <MessageCircle className="h-6 w-6 text-slate-600" />
-                  </div>
-                  <div className="text-2xl font-bold text-slate-900">{realCounts.posts}</div>
-                  <div className="text-sm text-slate-500 font-medium">Posts</div>
-                </button>
+              <div className="flex flex-col items-center justify-center mt-8 mb-4 cursor-pointer hover:bg-slate-50 rounded-lg transition-colors"
+                   onClick={() => setShowConnectionsModal(true)}
+                   role="button"
+                   tabIndex={0}
+                   onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') setShowConnectionsModal(true); }}
+                   aria-label="Show all connections">
+                <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center mb-2">
+                  <Users className="h-6 w-6 text-slate-600" />
+                </div>
+                <div className="text-2xl font-bold text-slate-900">{realCounts.connections}</div>
+                <div className="text-sm text-slate-500 font-medium">Connections</div>
               </div>
             </div>
           </div>
@@ -360,7 +362,7 @@ const ProfilePage: React.FC = () => {
                 <span>Education</span>
               </h2>
               <div className="space-y-6">
-                {editForm.education.length > 0 ? (
+                {Array.isArray(editForm.education) && editForm.education.length > 0 ? (
                   editForm.education.map((edu) => (
                     <div key={edu.id} className="flex space-x-4">
                       <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200">
@@ -414,7 +416,7 @@ const ProfilePage: React.FC = () => {
                 <span>Achievements</span>
               </h2>
               <div className="space-y-4">
-                {editForm.achievements.length > 0 ? (
+                {Array.isArray(editForm.achievements) && editForm.achievements.length > 0 ? (
                   editForm.achievements.map((achievement) => (
                     <div key={achievement.id} className="flex space-x-3">
                       <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200">
@@ -663,7 +665,7 @@ const ProfilePage: React.FC = () => {
                     <span>Add</span>
                   </button>
                 </div>
-                {editForm.education.map((edu) => (
+                {Array.isArray(editForm.education) ? editForm.education.map((edu) => (
                   <div key={edu.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
                     <button
                       type="button"
@@ -736,7 +738,7 @@ const ProfilePage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : null}
               </div>
 
               {/* Skills */}
@@ -829,7 +831,7 @@ const ProfilePage: React.FC = () => {
                     <span>Add</span>
                   </button>
                 </div>
-                {editForm.achievements.map((achievement) => (
+                {Array.isArray(editForm.achievements) ? editForm.achievements.map((achievement) => (
                   <div key={achievement.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
                     <button
                       type="button"
@@ -892,7 +894,7 @@ const ProfilePage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : null}
               </div>
 
               {/* Feedback Messages */}

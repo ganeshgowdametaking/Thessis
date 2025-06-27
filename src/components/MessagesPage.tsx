@@ -1,16 +1,42 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, MoreHorizontal, Send, Smile, Circle, MessageSquare, Trash2, X } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { messageService } from '../services/messageService';
 import { profileService } from '../services/profileService';
 import { useAuthContext } from '../contexts/AuthContext';
+import { useMediaQuery } from 'react-responsive';
 
 interface MessagesPageProps {
   selectedApplicant?: number | null;
   onViewProfile?: (userId: string) => void;
 }
 
+// Add emoji categories and a larger emoji set
+const emojiCategories = [
+  { key: 'smileys', label: '😊', name: 'Smileys' },
+  { key: 'animals', label: '🐻', name: 'Animals' },
+  { key: 'food', label: '🍔', name: 'Food' },
+  { key: 'activities', label: '⚽', name: 'Activities' },
+  { key: 'travel', label: '🚗', name: 'Travel' },
+  { key: 'objects', label: '💡', name: 'Objects' },
+  { key: 'symbols', label: '💯', name: 'Symbols' },
+  { key: 'flags', label: '🏳️', name: 'Flags' },
+];
+
+const emojiData: { [key: string]: string[] } = {
+  smileys: ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😜','😝','😛','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','🤡','👹','👺','👻','👽','👾','🤖','😺','😸','😹','😻','😼','😽','🙀','😿','😾'],
+  animals: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐽','🐸','🐵','🙈','🙉','🙊','🐒','🐔','🐧','🐦','🐤','🐣','🐥','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🦧','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🦥','🦦','🦨','🦡','🐁','🐀','🐇','🐿️','🦔'],
+  food: ['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','��','🥒','🌶️','🫑','🌽','🥕','🫒','🧄','🧅','🥔','🍠','🥐','🥯','🍞','🥖','🥨','🧀','🥚','🍳','🥞','🧇','🥓','🥩','🍗','🍖','🦴','🌭','🍔','🍟','🍕','🥪','🥙','🧆','🌮','🌯','🫔','🥗','🥘','🫕','🥫','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🦪','🍤','🍙','🍚','🍘','🍥','🥠','🥮','🍢','🍡','🍧','🍨','🍦','🥧','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯','🥛','🍼','🫖','☕','🍵','🧃','🥤','🧋','🍶','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🧉','🍾','🥄','🍴','🍽️','🥣','🥡','🥢'],
+  activities: ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🥅','🏒','🏑','🏏','🥍','🏹','🎣','🤿','🥊','🥋','🎽','🛹','🛷','⛸️','🥌','🎿','⛷️','🏂','🪂','🏋️‍♂️','🏋️‍♀️','🤼‍♂️','🤼‍♀️','🤸‍♂️','🤸‍♀️','⛹️‍♂️','⛹️‍♀️','🤺','🤾‍♂️','🤾‍♀️','🏌️‍♂️','🏌️‍♀️','🏇','🧘‍♂️','🧘‍♀️','🏄‍♂️','🏄‍♀️','🏊‍♂️','🏊‍♀️','🤽‍♂️','🤽‍♀️','🚣‍♂️','🚣‍♀️','🧗‍♂️','🧗‍♀️','🚵‍♂️','🚵‍♀️','🚴‍♂️','🚴‍♀️','🏆','🥇','🥈','🥉','🏅','🎖️','🏵️','🎗️','🎫','🎟️','🎪','🤹‍♂️','🤹‍♀️','🎭','🩰','🎨','🎬','🎤','🎧','🎼','🎹','🥁','🪘','🎷','🎺','🪗','🎸','🪕','🎻','🎲','♟️','🎯','🎳','🎮','🎰'],
+  travel: ['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🦯','🦽','🦼','🛴','🚲','🛵','🏍️','🛺','🚨','🚔','🚍','🚘','🚖','🚡','🚠','🚟','🚃','🚋','🚞','🚝','🚄','🚅','🚈','🚂','🚆','🚇','🚊','🚉','✈️','🛫','🛬','🛩️','💺','🛰️','🚀','🛸','🚁','🛶','⛵','🚤','🛥️','🛳️','⛴️','🚢','⚓','🪝','⛽','🚧','🚦','🚥','🛑','🚏','🗺️','🗿','🗽','🗼','🏰','🏯','🏟️','🎡','🎢','🎠','⛲','⛱️','🏖️','🏝️','🏜️','🌋','⛰️','🏔️','🗻','🏕️','⛺','🏠','🏡','🏘️','🏚️','🏗️','🏭','🏢','🏬','🏣','🏤','🏥','🏦','🏨','🏩','🏪','🏫','🏩','💒','🏛️','⛪','🕌','🛕','🕍','🕋','⛩️','🛤️','🛣️','🗾','🎑','🏞️','🌅','🌄','🌠','🎇','🎆','🌇','🌆','🏙️','🌃','🌉','🌌','🌁','🌫️','🌬️','🌀','🌈','🌂','☂️','☔','⛱️','⚡','❄️','☃️','⛄','☄️','🔥','💧','🌊','🎃','🎄','🎆','🎇','🧨','✨','🎈','🎉','🎊','🎋','🎍','🎎','🎏','🎐','🎑','🧧','🎀','🎁','🎗️','🎟️','🎫','🔮','🧿','🧸','🪅','🪆','🧩','🧸','🪅','🪆','🧩'],
+  objects: ['💡','🔦','🕯️','🪔','🧯','🛢️','💸','💵','💴','💶','💷','🪙','💰','💳','🧾','💎','⚖️','🔧','🔨','⚒️','🛠️','⛏️','🔩','⚙️','🗜️','⚗️','🧪','🧫','🧬','🔬','🔭','📡','💻','🖥️','🖨️','⌨️','🖱️','🖲️','💽','💾','💿','📀','📼','📷','📸','📹','🎥','📽️','🎞️','📞','☎️','📟','📠','📺','📻','🎙️','🎚️','🎛️','⏱️','⏲️','⏰','🕰️','⌛','⏳','📡','🔋','��','💡','🔦','🕯️','🪔','🧯','🛢️','💸','💵','💴','💶','💷','🪙','💰','💳','🧾','💎','⚖️','🔧','🔨','⚒️','🛠️','⛏️','🔩','⚙️','🗜️','⚗️','🧪','🧫','🧬','🔬','🔭','📡'],
+  symbols: ['💯','🔢','🔣','🔤','🔠','🔡','🔇','🔈','🔉','🔊','🔔','🔕','🎼','🎵','🎶','💤','💢','💬','💭','🗯️','♠️','♣️','♥️','♦️','🃏','🎴','🀄','🕐','🕑','🕒','🕓','🕔','🕕','🕖','🕗','🕘','🕙','🕚','🕛','🕜','🕝','🕞','🕟','🕠','🕡','🕢','🕣','🕤','🕥','🕦','🕧','🚸','🔱','🔰','🔯','✅','✔️','✖️','❌','❎','➕','➖','➗','➰','➿','〽️','✳️','✴️','❇️','‼️','⁉️','❓','❔','❕','❗','〰️','©️','®️','™️','#️⃣','*️⃣','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','🔠','🔡','🔢','🔣','🔤','🅰️','🆎','🅱️','🆑','🆒','🆓','🆔','🆕','🆖','🆗','🆘','🆙','🆚','🈁','🈂️','🈷️','🈶','🈯','🉐','🉑','🈹','🈚','🈲','🅰️','🅱️','🆎','🆑','🆒','🆓','🆕','🆖','🆗','🆘','🆙','🆚','🈁','🈂️','🈷️','🈶','🈯','🉐','🉑','🈹','🈚','🈲'],
+  flags: ['🏳️','🏴','🏁','🚩','🏳️‍🌈','🏳️‍⚧️','🏴‍☠️','🇦🇫','🇦🇽','🇦🇱','🇩🇿','🇦🇸','🇦🇩','🇦🇴','🇦🇮','🇦🇶','🇦🇬','🇦🇷','🇦🇲','🇦🇼','🇦🇺','🇦🇹','🇦🇿','🇧🇸','🇧🇭','🇧🇩','🇧🇧','🇧🇾','🇧🇪','🇧🇿','🇧🇯','🇧🇲','🇧🇹','🇧🇴','🇧🇦','🇧🇼','🇧🇷','🇮🇴','🇻🇬','🇧🇳','🇧🇬','🇧🇫','🇧🇮','🇰🇭','🇨🇲','🇨🇦','🇨🇻','🇰🇾','🇨🇫','🇹🇩','🇨🇱','🇨🇳','🇨🇽','🇨🇨','🇨🇴','🇰🇲','🇨🇬','🇨🇩','🇨🇷','🇭🇷','🇨🇺','🇨🇼','🇨🇾','🇨🇿','🇩🇰','🇩🇯','🇩🇲','🇩🇴','🇪🇨','🇪🇬','🇸🇻','🇬🇶','🇪🇷','🇪🇪','🇸🇿','🇪🇹','🇪🇺','🇫🇰','🇫🇴','🇫🇯','🇫🇮','🇫🇷','🇬🇫','🇵🇫','🇹🇫','🇬🇦','🇬🇲','🇬🇪','🇩🇪','🇬🇭','🇬🇮','🇬🇷','🇬🇱','🇬🇩','🇬🇵','🇬🇺','🇬🇹','🇬🇬','🇬🇳','🇬🇼','🇬🇾','🇭🇹','🇭🇳','🇭🇰','🇭🇺','🇮🇸','🇮🇳','🇮🇩','🇮🇷','🇮🇶','🇮🇪','🇮🇲','🇮🇱','🇮🇹','🇨🇮','🇯🇲','🇯🇵','🎌','🇯🇪','🇯🇴','🇰🇿','🇰🇪','🇰🇮','🇽🇰','🇰🇼','🇰🇬','🇱🇦','🇱🇻','🇱🇧','🇱🇸','🇱🇷','🇱🇾','🇱🇮','🇱🇹','🇱🇺','🇲🇴','🇲🇰','🇲🇬','🇲🇼','🇲🇾','🇲🇻','🇲🇱','🇲🇹','🇲🇭','🇲🇶','🇲🇷','🇲🇺','🇾🇹','🇲🇽','🇫🇲','🇲🇩','🇲🇨','🇲🇳','🇲🇪','🇲🇸','🇲🇦','🇲🇿','🇲🇲','🇳🇦','🇳🇷','🇳🇵','🇳🇱','🇳🇨','🇳🇿','🇳🇮','🇳🇪','🇳🇬','🇳🇺','🇳🇫','🇰🇵','🇲🇵','🇳🇴','🇴🇲','🇵🇰','🇵🇼','🇵🇸','🇵🇦','🇵🇬','🇵🇾','🇵🇪','🇵🇭','🇵🇳','🇵🇱','🇵🇹','🇵🇷','🇶🇦','🇷🇴','🇷🇺','🇷🇼','🇷🇪','🇼🇸','🇸🇲','🇸🇹','🇸🇦','🇸🇳','🇷🇸','🇸🇨','🇸🇱','🇸🇬','🇸🇽','🇸🇰','🇸🇮','🇸🇧','🇸🇴','🇿🇦','🇬🇸','🇰🇷','🇸🇸','🇪🇸','🇱🇰','🇸🇩','🇸🇷','🇸🇯','🇸🇪','🇨🇭','🇸🇾','🇹🇼','🇹🇯','🇹🇿','🇹🇭','🇹🇱','🇹🇬','🇹🇰','🇹🇴','🇹🇹','🇹🇳','🇹🇷','🇹🇲','🇹🇨','🇹🇻','🇺🇬','🇺🇦','🇦🇪','🇬🇧','🇺🇸','🇺🇾','🇺🇿','🇻🇺','🇻🇦','🇻🇪','🇻🇳','🇻🇬','🇻🇮','🇼🇫','🇪🇭','🇾🇪','🇿🇲','🇿🇼'],
+};
+
 const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewProfile }) => {
   const { user } = useAuthContext();
+  const isMobile = useMediaQuery({ maxWidth: 767 });
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [conversations, setConversations] = useState<any[]>([]);
@@ -25,6 +51,11 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const [showConversationsList, setShowConversationsList] = useState(true);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [emojiSearch, setEmojiSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState('smileys');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const msgNavTs = location.state?.msgNavTs;
 
   // Common emojis for the emoji picker
   const commonEmojis = ['😊', '😂', '❤️', '👍', '👎', '😢', '😮', '😡', '🎉', '🔥', '💯', '👏', '🙏', '💪', '✨', '🚀'];
@@ -36,10 +67,22 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   useEffect(() => {
     if (selectedApplicant) {
       console.log('Opening chat for applicant ID:', selectedApplicant);
-      setSelectedChat(selectedApplicant);
-      setShowConversationsList(false); // Hide conversations list on mobile when chat is selected
+      // Create or get conversation with the selected applicant
+      const openConversationWithApplicant = async () => {
+        try {
+          const conversation = await messageService.createOrGetConversation(selectedApplicant.toString());
+          setSelectedChat(conversation.id);
+          setShowConversationsList(false); // Hide conversations list on mobile when chat is selected
+          // Reload conversations to include the new one if it was created
+          await loadConversations();
+        } catch (error) {
+          console.error('Error opening conversation with applicant:', error);
+          alert('Failed to open conversation. Please try again.');
+        }
+      };
+      openConversationWithApplicant();
     }
-  }, [selectedApplicant]);
+  }, [selectedApplicant, msgNavTs]);
 
   useEffect(() => {
     if (selectedChat) {
@@ -101,9 +144,10 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       const userConversations = await messageService.getConversations();
       setConversations(userConversations || []);
       
-      if (userConversations && userConversations.length > 0 && !selectedChat) {
+      // Only auto-select first conversation on desktop (not mobile)
+      if (userConversations && userConversations.length > 0 && !selectedChat && !isMobile) {
         setSelectedChat(userConversations[0].id);
-        setShowConversationsList(false); // Auto-hide on mobile when conversation is loaded
+        setShowConversationsList(false); // Auto-hide on desktop when conversation is loaded
       }
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -115,6 +159,9 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
   const loadMessages = async (conversationId: string) => {
     try {
+      // Mark messages as read before loading
+      await messageService.markMessagesAsRead(conversationId);
+      if (window.refreshUnreadCounts) window.refreshUnreadCounts();
       const conversationMessages = await messageService.getConversationMessages(conversationId);
       setMessages(conversationMessages || []);
     } catch (error) {
@@ -152,8 +199,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
         setShowActionsMenu(false);
         setShowConversationsList(true); // Show conversations list after deletion
         
-        // Select next conversation if available
-        if (updatedConversations.length > 0) {
+        // Select next conversation if available (only on desktop)
+        if (updatedConversations.length > 0 && !isMobile) {
           setSelectedChat(updatedConversations[0].id);
           setShowConversationsList(false);
         }
@@ -195,7 +242,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       setSelectedChat(conversation.id);
       setSearchQuery('');
       setSearchSuggestions([]);
-      setShowConversationsList(false); // Hide conversations list when new chat starts
+      setShowConversationsList(false); // Hide conversations list when new chat starts (both mobile and desktop)
       // Reload conversations to include the new one
       await loadConversations();
     } catch (error) {
@@ -224,6 +271,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const handleProfileClick = (userId: string) => {
     if (onViewProfile) {
       onViewProfile(userId);
+    } else {
+      navigate(`/user/${userId}`);
     }
   };
 
@@ -436,7 +485,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       </div>
 
       {/* Chat Area - Mobile responsive */}
-      <div className={`${!showConversationsList ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-white`}>
+      <div className={`${!showConversationsList ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-white relative h-screen md:h-auto`}>
         {currentConversation ? (
           <>
             {/* Chat Header */}
@@ -518,12 +567,12 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 message-wallpaper pb-28 md:pb-0">
               {messages.length > 0 ? (
                 messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                    className={`flex relative z-10 ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
                   >
                     <div className={`max-w-xs lg:max-w-md ${message.sender_id === user?.id ? 'order-2' : 'order-1'}`}>
                       <div className={`px-4 py-3 rounded-2xl shadow-sm ${
@@ -556,7 +605,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
             </div>
 
             {/* Message Input */}
-            <div className="p-4 sm:p-6 border-t border-slate-200 bg-white">
+            <div className="md:static fixed bottom-0 left-0 right-0 z-40 w-full bg-white p-4 sm:p-6 border-t border-slate-200">
               <form onSubmit={handleSendMessage} className="flex items-center space-x-4">
                 <div className="flex-1 relative">
                   <input
@@ -566,37 +615,74 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                     placeholder="Type a message..."
                     className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                   />
-                  
-                  {/* UPDATED: Functional emoji button */}
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <button
-                      type="button"
-                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      className="text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                      <Smile className="h-4 w-4" />
-                    </button>
-                    
-                    {/* Emoji Picker */}
-                    {showEmojiPicker && (
-                      <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 rounded-lg shadow-xl p-3 z-50">
-                        <div className="grid grid-cols-8 gap-1">
-                          {commonEmojis.map((emoji, index) => (
+                  {/* Emoji button and picker: Only show on desktop */}
+                  {!isMobile && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <button
+                        type="button"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className="text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <Smile className="h-4 w-4" />
+                      </button>
+                      {/* Emoji Picker */}
+                      {showEmojiPicker && (
+                        <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 rounded-lg shadow-xl p-0 z-50 min-w-[320px] max-w-[360px] w-full">
+                          {/* Search bar */}
+                          <div className="p-2 border-b border-slate-100 flex items-center">
+                            <input
+                              type="text"
+                              value={emojiSearch}
+                              onChange={e => setEmojiSearch(e.target.value)}
+                              placeholder="Search emojis..."
+                              className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none text-sm"
+                              autoFocus
+                            />
                             <button
-                              key={index}
+                              className="ml-2 text-slate-400 hover:text-slate-600"
+                              onClick={() => setShowEmojiPicker(false)}
                               type="button"
-                              onClick={() => handleEmojiSelect(emoji)}
-                              className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded transition-colors"
+                              aria-label="Close emoji picker"
                             >
-                              {emoji}
+                              <X className="h-5 w-5" />
                             </button>
-                          ))}
+                          </div>
+                          {/* Category row */}
+                          <div className="flex overflow-x-auto no-scrollbar px-2 py-1 space-x-2 border-b border-slate-100 bg-slate-50">
+                            {emojiCategories.map(cat => (
+                              <button
+                                key={cat.key}
+                                className={`text-xl px-2 py-1 rounded-full transition-colors ${activeCategory === cat.key ? 'bg-slate-200' : 'hover:bg-slate-100'}`}
+                                onClick={() => setActiveCategory(cat.key)}
+                                type="button"
+                              >
+                                {cat.label}
+                              </button>
+                            ))}
+                          </div>
+                          {/* Emoji grid */}
+                          <div className="max-h-64 overflow-y-auto p-3">
+                            <div className="grid grid-cols-8 gap-2">
+                              {(emojiSearch
+                                ? Object.values(emojiData).flat().filter((e: string) => e.includes(emojiSearch))
+                                : emojiData[activeCategory]
+                              ).slice(0, 80).map((emoji: string, index: number) => (
+                                <button
+                                  key={index}
+                                  type="button"
+                                  onClick={() => handleEmojiSelect(emoji)}
+                                  className="min-w-[36px] min-h-[36px] flex items-center justify-center text-xl hover:bg-slate-100 rounded transition-colors"
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                
                 <button
                   type="submit"
                   disabled={!newMessage.trim()}

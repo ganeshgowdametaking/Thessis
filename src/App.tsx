@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import Header from './components/Header';
-import HomePage from './components/HomePage';
 import JobsPage from './components/JobsPage';
 import CreateReferralPage from './components/CreateReferralPage';
 import ApplicationsPage from './components/ApplicationsPage';
@@ -18,330 +17,295 @@ import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiePolicy from './components/CookiePolicy';
 import TermsOfService from './components/TermsOfService';
 import DataRequestForm from './components/DataRequestForm';
+import PasswordResetPage from './components/PasswordResetPage';
 import Footer from './components/Footer';
-import GDPRBanner from './components/GDPRBanner';
+import AuthModal from './components/AuthModal';
 import { useAuthContext } from './contexts/AuthContext';
-import { gdprService } from './services/gdprService';
+import { LoadingProvider } from './contexts/LoadingContext';
+import { supabase } from './lib/supabase';
+import { useMediaQuery } from 'react-responsive';
+import LoadingSpinner from './components/LoadingSpinner';
+import AnalyticsPage from './components/AnalyticsPage';
+
+// Wrapper component for ApplicationsPage to handle React Router integration
+function ApplicationsPageWrapper() {
+  const { referralId } = useParams<{ referralId: string }>();
+  const navigate = useNavigate();
+  const [referralTitle, setReferralTitle] = useState('Job Referral');
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchJobTitle = async () => {
+      if (!referralId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('jobs')
+          .select('title')
+          .eq('id', referralId as any)
+          .single();
+        
+        if (error) throw error;
+        if (data) {
+          setReferralTitle((data as any).title);
+        }
+      } catch (error) {
+        console.error('Error fetching job title:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchJobTitle();
+  }, [referralId]);
+  
+  const handleBack = () => {
+    navigate(-1);
+  };
+  
+  const handleMessage = (applicantId: number) => {
+    // Navigate to messages page and pass applicantId as state, always include a unique timestamp
+    navigate('/messages', { state: { selectedApplicant: applicantId, msgNavTs: Date.now() } });
+  };
+  
+  const handleViewProfile = (userId: string) => {
+    navigate(`/user/${userId}`);
+  };
+  
+  if (!referralId) {
+    return <Navigate to="/jobs" />;
+  }
+  
+  if (loading) {
+    return <LoadingSpinner text="Loading job details..." />;
+  }
+  
+  return (
+    <ApplicationsPage 
+      referralId={referralId}
+      referralTitle={referralTitle}
+      onBack={handleBack} 
+      onMessage={handleMessage}
+      onViewProfile={handleViewProfile}
+    />
+  );
+}
+
+// Wrapper component for UserProfilePage to handle React Router integration
+function UserProfilePageWrapper() {
+  const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
+  
+  const handleBack = () => {
+    navigate(-1);
+  };
+  
+  const handleViewProfile = (newUserId: string) => {
+    navigate(`/user/${newUserId}`);
+  };
+  
+  if (!userId) {
+    return <Navigate to="/jobs" />;
+  }
+  
+  return (
+    <UserProfilePage 
+      userId={userId} 
+      onBack={handleBack} 
+      onViewProfile={handleViewProfile} 
+    />
+  );
+}
+
+// Wrapper component for SearchResultsPage to handle React Router integration
+function SearchResultsPageWrapper() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  const searchQuery = searchParams.get('q') || '';
+  
+  const handleBack = () => {
+    navigate(-1);
+  };
+  
+  const handleViewProfile = (userId: string) => {
+    navigate(`/user/${userId}`);
+  };
+  
+  if (!searchQuery) {
+    return <Navigate to="/jobs" />;
+  }
+  
+  return (
+    <SearchResultsPage 
+      searchQuery={searchQuery}
+      onBack={handleBack} 
+      onViewProfile={handleViewProfile} 
+    />
+  );
+}
+
+// Wrapper component for SettingsPage
+function SettingsPageWrapper() {
+  return <SettingsPage currentSection="settings" />;
+}
+
+// Wrapper component for PrivacyPolicy
+function PrivacyPolicyWrapper() {
+  const navigate = useNavigate();
+  
+  const handleBack = () => {
+    navigate('/');
+  };
+  
+  return <PrivacyPolicy onBack={handleBack} />;
+}
+
+// Wrapper component for CookiePolicy
+function CookiePolicyWrapper() {
+  const navigate = useNavigate();
+  
+  const handleBack = () => {
+    navigate('/');
+  };
+  
+  return <CookiePolicy onBack={handleBack} />;
+}
+
+// Wrapper component for TermsOfService
+function TermsOfServiceWrapper() {
+  const navigate = useNavigate();
+  
+  const handleBack = () => {
+    navigate('/');
+  };
+  
+  return <TermsOfService onBack={handleBack} />;
+}
+
+// Wrapper component for DataRequestForm
+function DataRequestFormWrapper() {
+  const navigate = useNavigate();
+  
+  const handleBack = () => {
+    navigate('/');
+  };
+  
+  return <DataRequestForm onBack={handleBack} />;
+}
+
+// Wrapper component for Home page that handles password reset
+function HomePageWrapper() {
+  const [searchParams] = useSearchParams();
+  const isResetFlow = searchParams.get('reset') === 'true';
+  
+  if (isResetFlow) {
+    return <PasswordResetPage />;
+  }
+  
+  return (
+    <>
+      <Hero /> <Services /> <About />
+    </>
+  );
+}
+
+// Add a wrapper for MessagesPage to read selectedApplicant from location state
+function MessagesPageWrapper() {
+  const location = useLocation();
+  // Read selectedApplicant from navigation state (if present)
+  const selectedApplicant = location.state?.selectedApplicant;
+  return <MessagesPage selectedApplicant={selectedApplicant} />;
+}
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <LoadingProvider>
+      <Router>
+        <Routes>
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/*" element={<AppContent />} />
+        </Routes>
+      </Router>
+    </LoadingProvider>
   );
 }
 
 function AppContent() {
-  const { user, loading, error } = useAuthContext();
+  const { user, loading } = useAuthContext();
   const location = useLocation();
-  const navigate = useNavigate();
-  
-  const [currentPage, setCurrentPage] = useState(() => {
-    const path = location.pathname.substring(1) || 'home';
-    const storedPage = sessionStorage.getItem('tanktide_current_page');
-    const validPages = [
-      'home', 'jobs', 'create-referral', 'applications', 'search-results',
-      'messages', 'notifications', 'profile', 'user-profile', 'account-settings',
-      'privacy-policy', 'notifications-settings', 'privacy-policy-page',
-      'cookie-policy', 'terms', 'data-request'
-    ];
-    return validPages.includes(path) ? path : (validPages.includes(storedPage || '') ? storedPage! : 'home');
+  const isMobile = useMediaQuery({ maxWidth: 767 });
+  const [searchParams] = useSearchParams();
+  const isResetFlow = searchParams.get('reset') === 'true';
+
+  const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password' }>({
+    isOpen: false,
+    mode: 'signin',
   });
-  
-  const [selectedReferral, setSelectedReferral] = useState<{id: number, title: string} | null>(null);
-  const [selectedApplicant, setSelectedApplicant] = useState<number | null>(null);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState(() => {
-    return sessionStorage.getItem('tanktide_search_query') || '';
-  });
-  const [isEUUser, setIsEUUser] = useState(false);
-  const [showGDPRBanner, setShowGDPRBanner] = useState(false);
-  const [refreshJobsTrigger, setRefreshJobsTrigger] = useState(0); // Added for refresh
 
-  useEffect(() => {
-    const checkEUStatus = async () => {
-      try {
-        const isEU = await gdprService.isEUUser();
-        setIsEUUser(isEU);
-        if (isEU && !gdprService.hasConsent()) {
-          setShowGDPRBanner(true);
-        }
-      } catch (error) {
-        console.error('Failed to check EU status:', error);
-        setIsEUUser(false);
-      }
-    };
-    
-    checkEUStatus();
-  }, []);
-
-  useEffect(() => {
-    if (currentPage && currentPage !== 'landing') {
-      sessionStorage.setItem('tanktide_current_page', currentPage);
-      const currentPath = location.pathname.substring(1) || 'home';
-      if (currentPage !== currentPath) {
-        const newPath = currentPage === 'home' ? '/' : `/${currentPage}`;
-        navigate(newPath, { replace: true, state: { internal: true } });
-      }
-    }
-  }, [currentPage, location.pathname, navigate]);
-
-  useEffect(() => {
-    if (searchQuery) {
-      sessionStorage.setItem('tanktide_search_query', searchQuery);
-    } else {
-      sessionStorage.removeItem('tanktide_search_query');
-    }
-  }, [searchQuery]);
-
-  useEffect(() => {
-    const path = location.pathname.substring(1) || 'home';
-    if (path !== currentPage) {
-      setCurrentPage(path);
-      if (location.state) {
-        const state = location.state as any;
-        if (state.selectedApplicant) setSelectedApplicant(state.selectedApplicant);
-        if (state.selectedReferral) setSelectedReferral(state.selectedReferral);
-        if (state.selectedUserId) setSelectedUserId(state.selectedUserId);
-        if (state.searchQuery) setSearchQuery(state.searchQuery);
-      }
-    }
-  }, [location.pathname, currentPage]);
-
-  useEffect(() => {
-    const handleRefreshJobs = () => {
-      setRefreshJobsTrigger(prev => prev + 1);
-    };
-    window.addEventListener('refresh-jobs', handleRefreshJobs);
-    return () => {
-      window.removeEventListener('refresh-jobs', handleRefreshJobs);
-    };
-  }, []);
-
-  const handleViewApplications = (referralId: number, referralTitle: string) => {
-    setSelectedReferral({ id: referralId, title: referralTitle });
-    setCurrentPage('applications');
-    navigate('/applications', { 
-      state: { selectedReferral: { id: referralId, title: referralTitle }, internal: true } 
-    });
+  const handleOpenAuthModal = (mode: 'signin' | 'signup') => {
+    setAuthModal({ isOpen: true, mode });
   };
 
-  const handleMessageApplicant = (applicantId: number) => {
-    setSelectedApplicant(applicantId);
-    setCurrentPage('messages');
-    navigate('/messages', { 
-      state: { selectedApplicant: applicantId, internal: true } 
-    });
+  const handleCloseAuthModal = () => {
+    setAuthModal({ isOpen: false, mode: 'signin' });
   };
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    setCurrentPage('search-results');
-    navigate('/search-results', { 
-      state: { searchQuery: query, internal: true } 
-    });
+  const handleAuthModeChange = (mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password') => {
+    setAuthModal(prev => ({ ...prev, mode }));
   };
 
-  const handleBackFromSearch = () => {
-    setSearchQuery('');
-    sessionStorage.removeItem('tanktide_search_query');
-    setCurrentPage('home');
-    navigate('/', { replace: true, state: { internal: true } });
-  };
+  if (loading) {
+    return <LoadingSpinner text="Initializing..." />;
+  }
 
-  const handleViewProfile = (userId: string) => {
-    setSelectedUserId(userId);
-    setCurrentPage('user-profile');
-    navigate('/user-profile', { 
-      state: { selectedUserId: userId, internal: true } 
-    });
-  };
-
-  const handleGDPRAccept = (preferences: any) => {
-    gdprService.saveConsent(preferences);
-    setShowGDPRBanner(false);
-  };
-
-  const handleGDPRReject = () => {
-    gdprService.clearNonEssentialCookies();
-    setShowGDPRBanner(false);
-  };
-
-  const handleCreateReferral = (callback: () => void) => {
-    setCurrentPage('create-referral');
-    navigate('/create-referral', { state: { internal: true } });
-    callback(); // Trigger refresh in JobsPage
-  };
-
-  const renderPage = () => {
-    if (loading) {
-      return (
-        <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-slate-600 mb-2">Loading TankTide...</p>
-            {error && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg max-w-md">
-                <p className="text-red-800 text-sm font-medium">Connection Error</p>
-                <p className="text-red-600 text-sm mt-1">{error}</p>
-                <button 
-                  onClick={() => window.location.reload()} 
-                  className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition-colors"
-                >
-                  Retry
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    if (error && !loading) {
-      return (
-        <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-          <div className="text-center max-w-md mx-auto p-8">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-red-600 text-2xl">⚠️</span>
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Connection Error</h3>
-            <p className="text-slate-600 mb-4">{error}</p>
-            <div className="space-y-2">
-              <button 
-                onClick={() => window.location.reload()} 
-                className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                Retry Connection
-              </button>
-              <button 
-                onClick={() => {
-                  setCurrentPage('landing');
-                  window.location.hash = '';
-                }} 
-                className="w-full bg-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-300 transition-colors font-medium"
-              >
-                Continue Offline
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (!user || !user.email_confirmed_at) {
-      return (
-        <>
-          <Hero />
-          <Services />
-          <About />
-        </>
-      );
-    }
-
-    switch (currentPage) {
-      case 'home':
-        return <HomePage onViewProfile={handleViewProfile} />;
-      case 'jobs':
-        return <JobsPage onCreateReferral={handleCreateReferral} />;
-      case 'create-referral':
-        return (
-          <CreateReferralPage 
-            onBack={() => {
-              setCurrentPage('jobs');
-              navigate('/jobs', { state: { internal: true } });
-            }}
-            onViewApplications={handleViewApplications}
-          />
-        );
-      case 'applications':
-        return selectedReferral ? (
-          <ApplicationsPage
-            onBack={() => {
-              setCurrentPage('create-referral');
-              navigate('/create-referral', { state: { internal: true } });
-            }}
-            onMessage={handleMessageApplicant}
-            referralId={selectedReferral.id}
-            referralTitle={selectedReferral.title}
-          />
-        ) : (
-          <Navigate to="/jobs" replace />
-        );
-      case 'search-results':
-        return <SearchResultsPage searchQuery={searchQuery} onBack={handleBackFromSearch} onViewProfile={handleViewProfile} />;
-      case 'messages':
-        return <MessagesPage selectedApplicant={selectedApplicant} onViewProfile={handleViewProfile} />;
-      case 'notifications':
-        return <NotificationsPage onViewProfile={handleViewProfile} />;
-      case 'profile':
-        return <ProfilePage />;
-      case 'user-profile':
-        return selectedUserId ? (
-          <UserProfilePage 
-            userId={selectedUserId} 
-            onBack={() => {
-              setCurrentPage('home');
-              navigate('/', { state: { internal: true } });
-            }}
-            onViewProfile={handleViewProfile}
-          />
-        ) : (
-          <Navigate to="/" replace />
-        );
-      case 'account-settings':
-      case 'privacy-policy':
-      case 'notifications-settings':
-        return <SettingsPage currentSection={currentPage} />;
-      case 'privacy-policy-page':
-        return <PrivacyPolicy onBack={() => {
-          setCurrentPage('home');
-          navigate('/', { state: { internal: true } });
-        }} />;
-      case 'cookie-policy':
-        return <CookiePolicy onBack={() => {
-          setCurrentPage('home');
-          navigate('/', { state: { internal: true } });
-        }} />;
-      case 'terms':
-        return <TermsOfService onBack={() => {
-          setCurrentPage('home');
-          navigate('/', { state: { internal: true } });
-        }} />;
-      case 'data-request':
-        return <DataRequestForm onBack={() => {
-          setCurrentPage('home');
-          navigate('/', { state: { internal: true } });
-        }} />;
-      default:
-        return <HomePage onViewProfile={handleViewProfile} />;
-    }
-  };
+  // If this is a password reset flow, show the password reset page regardless of authentication status
+  if (isResetFlow) {
+    return (
+      <div className="flex min-h-screen flex-col bg-slate-100">
+        <main className="flex-grow">
+          <PasswordResetPage />
+        </main>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header 
-        currentPage={currentPage} 
-        onPageChange={(page) => {
-          setCurrentPage(page);
-          const path = page === 'home' ? '/' : `/${page}`;
-          navigate(path, { state: { internal: true } });
-        }} 
-        onSearch={handleSearch} 
-      />
-      <main className="flex-1">
+    <div className="flex min-h-screen flex-col bg-slate-100">
+      <Header onSignIn={() => handleOpenAuthModal('signin')} onJoinNow={() => handleOpenAuthModal('signup')} />
+      <main className="flex-grow">
         <Routes>
-          <Route path="/" element={renderPage()} />
-          <Route path="/:page" element={renderPage()} />
+          {user ? (
+            <>
+              <Route path="/jobs" element={<JobsPage />} />
+              <Route path="/create-referral" element={<CreateReferralPage />} />
+              <Route path="/applications/:referralId" element={<ApplicationsPageWrapper />} />
+              <Route path="/search-results" element={<SearchResultsPageWrapper key={location.search} />} />
+              <Route path="/messages" element={<MessagesPageWrapper />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
+              <Route path="/settings" element={<SettingsPageWrapper />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="*" element={<Navigate to="/jobs" />} />
+            </>
+          ) : (
+            <>
+              <Route
+                path="/"
+                element={<HomePageWrapper />}
+              />
+              <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
+              <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
+              <Route path="/terms" element={<TermsOfServiceWrapper />} />
+              <Route path="/data-request" element={<DataRequestFormWrapper />} />
+              <Route path="*" element={<Navigate to="/" />} />
+            </>
+          )}
         </Routes>
       </main>
-      <Footer />
-      
-      {showGDPRBanner && isEUUser && (
-        <GDPRBanner 
-          onAccept={handleGDPRAccept}
-          onReject={handleGDPRReject}
-        />
-      )}
+      {!(isMobile && location.pathname === '/messages') && <Footer />}
+      <AuthModal isOpen={authModal.isOpen} onClose={handleCloseAuthModal} mode={authModal.mode} onModeChange={handleAuthModeChange} />
     </div>
   );
 }

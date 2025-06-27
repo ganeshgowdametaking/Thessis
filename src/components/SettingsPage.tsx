@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, User, Shield, Bell, LogOut, ChevronRight, Trash2 } from 'lucide-react';
+import { Settings, User, Shield, LogOut, ChevronRight, Trash2, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 
 interface SettingsPageProps {
@@ -9,30 +9,97 @@ interface SettingsPageProps {
 const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
   const { user, signOut } = useAuthContext();
   const [activeSection, setActiveSection] = useState(currentSection === 'settings' ? 'account-settings' : currentSection);
-  const [notifications, setNotifications] = useState({
-    email: true
-  });
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [otp, setOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changePasswordLoading, setChangePasswordLoading] = useState(false);
+  const [changePasswordError, setChangePasswordError] = useState('');
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState('');
+  
+  // Secondary email verification states
+  const [secondaryEmail, setSecondaryEmail] = useState('');
+  const [secondaryEmailOtp, setSecondaryEmailOtp] = useState('');
+  const [secondaryEmailOtpSent, setSecondaryEmailOtpSent] = useState(false);
+  const [secondaryEmailVerified, setSecondaryEmailVerified] = useState(false);
+  const [secondaryEmailLoading, setSecondaryEmailLoading] = useState(false);
+  const [secondaryEmailError, setSecondaryEmailError] = useState('');
+  const [secondaryEmailSuccess, setSecondaryEmailSuccess] = useState('');
 
   const menuItems = [
     { id: 'account-settings', label: 'Account Settings', icon: User },
     { id: 'privacy-policy', label: 'Privacy Settings', icon: Shield },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'logout', label: 'Logout', icon: LogOut, danger: true }
   ];
 
-  const handleNotificationToggle = (key: string) => {
-    setNotifications(prev => ({
-      ...prev,
-      [key]: !prev[key as keyof typeof prev]
-    }));
+  // Validate organization email (not gmail.com)
+  const validateOrganizationEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return 'Please enter a valid email address.';
+    }
+    if (email.toLowerCase().includes('gmail.com')) {
+      return 'Please use your organization email address, not Gmail.';
+    }
+    return null;
+  };
+
+  const handleSendSecondaryEmailOTP = async () => {
+    const validationError = validateOrganizationEmail(secondaryEmail);
+    if (validationError) {
+      setSecondaryEmailError(validationError);
+      return;
+    }
+
+    setSecondaryEmailError('');
+    setSecondaryEmailLoading(true);
+    
+    try {
+      // In a real implementation, this would call an API to send OTP to the secondary email
+      console.log('Sending OTP to secondary email:', secondaryEmail);
+      setSecondaryEmailOtpSent(true);
+      setSecondaryEmailSuccess('Verification code sent to your organization email.');
+      
+      // Simulate API delay
+      setTimeout(() => {
+        setSecondaryEmailLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error('Error sending secondary email OTP:', error);
+      setSecondaryEmailError('Failed to send verification code. Please try again.');
+      setSecondaryEmailLoading(false);
+    }
+  };
+
+  const handleVerifySecondaryEmailOTP = async () => {
+    if (!secondaryEmailOtp || secondaryEmailOtp.length !== 6) {
+      setSecondaryEmailError('Please enter a valid 6-digit verification code.');
+      return;
+    }
+
+    setSecondaryEmailError('');
+    setSecondaryEmailLoading(true);
+    
+    try {
+      // In a real implementation, this would verify the OTP with the backend
+      console.log('Verifying secondary email OTP:', secondaryEmailOtp);
+      
+      // Simulate verification delay
+      setTimeout(() => {
+        setSecondaryEmailVerified(true);
+        setSecondaryEmailSuccess('Organization email verified successfully!');
+        setSecondaryEmailLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error('Error verifying secondary email OTP:', error);
+      setSecondaryEmailError('Failed to verify code. Please try again.');
+      setSecondaryEmailLoading(false);
+    }
   };
 
   const handleSendOTP = async () => {
@@ -62,32 +129,56 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
     }
   };
 
-  const handleChangePassword = async () => {
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangePasswordError('');
+    setChangePasswordSuccess('');
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setChangePasswordError('All fields are required.');
+      return;
+    }
+    if (!user || !user.email) {
+      setChangePasswordError('User not authenticated.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setChangePasswordError('New passwords do not match.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setChangePasswordError('Password must be at least 6 characters long.');
+      return;
+    }
+    setChangePasswordLoading(true);
     try {
-      if (newPassword !== confirmPassword) {
-        alert('Passwords do not match.');
+      // Re-authenticate user
+      const { error: signInError } = await import('../lib/supabase').then(({ supabase }) =>
+        supabase.auth.signInWithPassword({
+          email: user.email as string,
+          password: currentPassword
+        })
+      );
+      if (signInError) {
+        setChangePasswordError('Current password is incorrect.');
+        setChangePasswordLoading(false);
         return;
       }
-      
-      if (newPassword.length < 6) {
-        alert('Password must be at least 6 characters long.');
-        return;
+      // Update password
+      const { error } = await import('../lib/supabase').then(({ supabase }) =>
+        supabase.auth.updateUser({ password: newPassword })
+      );
+      if (error) {
+        setChangePasswordError(error.message || 'Failed to update password.');
+      } else {
+        setChangePasswordSuccess('Password updated successfully!');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
       }
-      
-      // In a real implementation, this would call an API to change the password
-      console.log('Changing password...');
-      alert('Password changed successfully!');
-      
-      // Reset the form
-      setShowForgotPassword(false);
-      setOtp('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setOtpSent(false);
-      setOtpVerified(false);
-    } catch (error) {
-      console.error('Error changing password:', error);
-      alert('Failed to change password. Please try again.');
+    } catch (err: any) {
+      setChangePasswordError(err.message || 'Failed to update password.');
+    } finally {
+      setChangePasswordLoading(false);
     }
   };
 
@@ -106,7 +197,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
       // Sign out the user after deletion
       await signOut();
       
-      alert('Your profile has been deleted. You will be redirected to the home page.');
+      alert('Your profile has been deleted. You will be redirected to the jobs page.');
       window.location.href = '/';
     } catch (error) {
       console.error('Error deleting profile:', error);
@@ -122,136 +213,210 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-6">Account Settings</h2>
               
-              {/* Change Password Section */}
-              <div className="border-t border-slate-200 pt-6">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">Change Password</h3>
+              {/* Secondary Email Verification Section */}
+              <div className="border-t border-slate-200 pt-6 mb-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Mail className="h-5 w-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-slate-900">Organization Email Verification</h3>
+                </div>
                 
-                {!showForgotPassword ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start space-x-2">
+                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium mb-1">Why verify your organization email?</p>
+                      <p>This helps us verify your professional identity and provides additional security for your account.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {secondaryEmailError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                    <div className="flex items-center space-x-2">
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                      <span className="text-red-800 text-sm">{secondaryEmailError}</span>
+                    </div>
+                  </div>
+                )}
+
+                {secondaryEmailSuccess && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-green-800 text-sm">{secondaryEmailSuccess}</span>
+                    </div>
+                  </div>
+                )}
+
+                {!secondaryEmailVerified ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Organization Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={secondaryEmail}
+                        onChange={(e) => setSecondaryEmail(e.target.value)}
+                        placeholder="your.name@company.com"
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        disabled={secondaryEmailOtpSent}
+                        required
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Please use your organization email (not Gmail)
+                      </p>
+                    </div>
+
+                    {!secondaryEmailOtpSent ? (
+                      <button
+                        onClick={handleSendSecondaryEmailOTP}
+                        disabled={secondaryEmailLoading || !secondaryEmail}
+                        className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                      >
+                        {secondaryEmailLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>Sending...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="h-4 w-4" />
+                            <span>Send Verification Code</span>
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Verification Code <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={secondaryEmailOtp}
+                            onChange={(e) => setSecondaryEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            placeholder="Enter 6-digit code"
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base text-center tracking-widest"
+                            maxLength={6}
+                            required
+                          />
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <button
+                            onClick={handleVerifySecondaryEmailOTP}
+                            disabled={secondaryEmailLoading || secondaryEmailOtp.length !== 6}
+                            className="bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                          >
+                            {secondaryEmailLoading ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                <span>Verifying...</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4" />
+                                <span>Verify Email</span>
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSecondaryEmailOtpSent(false);
+                              setSecondaryEmailOtp('');
+                              setSecondaryEmailError('');
+                              setSecondaryEmailSuccess('');
+                            }}
+                            className="bg-slate-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-slate-700 transition-colors text-sm sm:text-base"
+                          >
+                            Change Email
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="text-green-800 font-medium">Organization Email Verified</p>
+                        <p className="text-green-700 text-sm">{secondaryEmail}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSecondaryEmailVerified(false);
+                        setSecondaryEmailOtpSent(false);
+                        setSecondaryEmail('');
+                        setSecondaryEmailOtp('');
+                        setSecondaryEmailError('');
+                        setSecondaryEmailSuccess('');
+                      }}
+                      className="mt-3 text-green-700 hover:text-green-800 text-sm font-medium"
+                    >
+                      Change Email
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Change Password Section */}
+              <form onSubmit={handleChangePassword} className="space-y-6">
+                <div className="border-t border-slate-200 pt-6">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Change Password</h3>
+                  {changePasswordError && <div className="text-red-600 text-sm mb-2">{changePasswordError}</div>}
+                  {changePasswordSuccess && <div className="text-green-600 text-sm mb-2">{changePasswordSuccess}</div>}
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Current Password</label>
                       <input
                         type="password"
+                        value={currentPassword}
+                        onChange={e => setCurrentPassword(e.target.value)}
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        required
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">New Password</label>
                       <input
                         type="password"
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        required
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Confirm New Password</label>
                       <input
                         type="password"
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        required
                       />
                     </div>
                     <div className="flex justify-between items-center">
                       <button
+                        type="button"
                         onClick={() => setShowForgotPassword(true)}
                         className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                       >
                         Forgot Password?
                       </button>
-                      <button className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base">
-                        Update Password
+                      <button
+                        type="submit"
+                        className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+                        disabled={changePasswordLoading}
+                      >
+                        {changePasswordLoading ? 'Updating...' : 'Update Password'}
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {!otpSent ? (
-                      <>
-                        <p className="text-slate-600 text-sm">
-                          We'll send a verification code to your email address to reset your password.
-                        </p>
-                        <div className="flex justify-end">
-                          <button
-                            onClick={handleSendOTP}
-                            className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-                          >
-                            Send Verification Code
-                          </button>
-                        </div>
-                      </>
-                    ) : !otpVerified ? (
-                      <>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Enter Verification Code
-                          </label>
-                          <input
-                            type="text"
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                            placeholder="6-digit code"
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                          />
-                        </div>
-                        <div className="flex justify-between">
-                          <button
-                            onClick={() => {
-                              setShowForgotPassword(false);
-                              setOtpSent(false);
-                            }}
-                            className="text-slate-600 hover:text-slate-800 text-sm"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleVerifyOTP}
-                            className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-                          >
-                            Verify Code
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-2">New Password</label>
-                          <input
-                            type="password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Confirm New Password</label>
-                          <input
-                            type="password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                          />
-                        </div>
-                        <div className="flex justify-between">
-                          <button
-                            onClick={() => {
-                              setShowForgotPassword(false);
-                              setOtpSent(false);
-                              setOtpVerified(false);
-                            }}
-                            className="text-slate-600 hover:text-slate-800 text-sm"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleChangePassword}
-                            className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-                          >
-                            Change Password
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
+                </div>
+              </form>
             </div>
           </div>
         );
@@ -309,35 +474,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
                       </div>
                     </div>
                   )}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'notifications':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-6">Notification Preferences</h2>
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-slate-900 text-sm sm:text-base">Email Notifications</div>
-                    <div className="text-xs sm:text-sm text-slate-600">Receive notifications via email</div>
-                  </div>
-                  <button
-                    onClick={() => handleNotificationToggle('email')}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      notifications.email ? 'bg-blue-600' : 'bg-slate-200'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        notifications.email ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
                 </div>
               </div>
             </div>

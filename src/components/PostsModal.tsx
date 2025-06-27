@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, MessageCircle, Send, MoreHorizontal, Trash2, Share2 } from 'lucide-react';
 import { postService } from '../services/postService';
 import { useAuthContext } from '../contexts/AuthContext';
+import LoadingSpinner from './LoadingSpinner';
 
 interface PostsModalProps {
   isOpen: boolean;
@@ -203,9 +204,7 @@ const PostsModal: React.FC<PostsModalProps> = ({ isOpen, onClose, onViewProfile 
         {/* Posts List - Scrollable */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin"></div>
-            </div>
+            <LoadingSpinner text="Loading posts..." />
           ) : posts.length > 0 ? (
             <div className="space-y-6 p-6">
               {posts.map((post) => (

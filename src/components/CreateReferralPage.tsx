@@ -1,605 +1,741 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Building, MapPin, Clock, Users, Briefcase, Star, Plus, X, Eye, Share2, Trash2, Calendar, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ArrowLeft, Plus, Share2, Trash2, Briefcase, Users, MapPin, Clock, Calendar, Eye } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { Database } from '../lib/database.types';
+import { useNavigate } from 'react-router-dom';
+import { jobService } from '../services/jobService';
+import LoadingSpinner from './LoadingSpinner';
+import debounce from 'lodash.debounce';
 
-interface CreateReferralPageProps {
-  onBack: () => void;
-  onViewApplications: (referralId: number, referralTitle: string) => void;
+type Job = Database['public']['Tables']['jobs']['Row'];
+type JobInsert = Database['public']['Tables']['jobs']['Insert'];
+
+// Define a referral type that matches your use case
+interface Referral {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  job_type: string;
+  status: 'active' | 'closed' | 'draft';
+  created_at: string;
+  applications_count: number;
 }
 
-const CreateReferralPage: React.FC<CreateReferralPageProps> = ({ onBack, onViewApplications }) => {
-  const { user } = useAuthContext();
+const CreateReferralPage: React.FC = () => {
+  const { user, profile } = useAuthContext();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [myReferrals, setMyReferrals] = useState<Job[]>([]);
   const [loadingReferrals, setLoadingReferrals] = useState(true);
-  const [userReferrals, setUserReferrals] = useState<any[]>([]);
-  const [error, setError] = useState<string>('');
-  const [formData, setFormData] = useState({
-    jobTitle: '',
+
+  // Add the Uiverse.io button styles scoped to .my-button
+  const uiverseApplyNowBtnStyles = `
+  .my-button {
+    background: linear-gradient(90deg, #3b82f6 0%, #00ddeb 100%);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    border-radius: 5px;
+    box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.25);
+    position: relative;
+    overflow: hidden;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    transition: all 0.3s;
+  }
+  .my-button:after {
+    content: "";
+    background-color: rgba(255, 255, 255, 0.2);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+  }
+  .my-button:hover:after {
+    animation: ripple_401 1s ease-out;
+  }
+  @keyframes ripple_401 {
+    0% {
+      width: 5px;
+      height: 5px;
+      opacity: 1;
+    }
+    100% {
+      width: 200px;
+      height: 200px;
+      opacity: 0;
+    }
+  }
+  `;
+
+  // Add the Uiverse.io checkbox styles
+  const uiverseCheckboxStyles = `
+  /* From Uiverse.io by SelfMadeSystem */ 
+  /* Hide the default checkbox */
+  .container input {
+    display: none;
+  }
+
+  .container {
+    display: block;
+    position: relative;
+    cursor: pointer;
+    font-size: 20px;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Create a custom checkbox */
+  .checkmark {
+    position: relative;
+    top: 0;
+    left: 0;
+    height: 1.3em;
+    width: 1.3em;
+    background-color: #2196F300;
+    border-radius: 0.25em;
+    transition: all 0.25s;
+  }
+
+  /* When the checkbox is checked, add a blue background */
+  .container input:checked ~ .checkmark {
+    background-color: #2196F3;
+  }
+
+  /* Create the checkmark/indicator (hidden when not checked) */
+  .checkmark:after {
+    content: "";
+    position: absolute;
+    transform: rotate(0deg);
+    border: 0.1em solid black;
+    left: 0;
+    top: 0;
+    width: 1.05em;
+    height: 1.05em;
+    border-radius: 0.25em;
+    transition: all 0.25s, border-width 0.1s;
+  }
+
+  /* Show the checkmark when checked */
+  .container input:checked ~ .checkmark:after {
+    left: 0.45em;
+    top: 0.25em;
+    width: 0.25em;
+    height: 0.5em;
+    border-color: #fff0 white white #fff0;
+    border-width: 0 0.15em 0.15em 0;
+    border-radius: 0em;
+    transform: rotate(45deg);
+  }
+  `;
+
+  // Form state
+  const [formData, setFormData] = useState<JobInsert>({
+    title: '',
     company: '',
     department: '',
     location: '',
-    jobType: 'Full-time',
+    job_type: 'Full-time',
     description: '',
-    remoteAvailable: false,
-    urgentHiring: false,
-    experienceLevel: 'Mid Level',
-    applicationDeadline: '',
-    contactEmail: '',
-    benefits: ''
+    skills: [],
+    benefits: [],
+    remote_available: false,
+    urgent_hiring: false,
+    experience_level: 'Mid-level',
+    application_deadline: '',
+    contact_email: '',
+    created_by: user?.id || '',
+    status: 'active'
   });
 
-  useEffect(() => {
-    loadUserReferrals();
-  }, []);
+  const [skillInput, setSkillInput] = useState('');
+  const [benefitInput, setBenefitInput] = useState('');
 
-  const loadUserReferrals = async () => {
+  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [locationTouched, setLocationTouched] = useState(false);
+
+  // Fetch user's jobs (acting as referrals)
+  const fetchMyReferrals = useCallback(async () => {
+    if (!user?.id) return;
+    setLoadingReferrals(true);
     try {
-      setLoadingReferrals(true);
-      if (!user) return;
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('created_by', user.id);
-      if (error) throw error;
-      const jobsWithCounts = data.map((job) => ({
-        id: job.id,
-        title: job.title,
-        company: job.company,
-        location: job.location,
-        posted: formatTimeAgo(job.created_at),
-        applications: job.applications_count || 0,
-        status: job.status,
-        type: job.job_type,
-        urgent: job.urgent_hiring
-      }));
-      console.log('Fetched user referrals:', jobsWithCounts); // Debug
-      setUserReferrals(jobsWithCounts);
+      const jobs = await jobService.getUserJobs();
+      setMyReferrals(jobs || []);
     } catch (error) {
-      console.error('Error loading user referrals:', error);
-      setUserReferrals([]);
+      console.error('Error fetching referrals:', error);
     } finally {
       setLoadingReferrals(false);
     }
-  };
+  }, [user?.id]);
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
-    
-    const diffInWeeks = Math.floor(diffInDays / 7);
-    if (diffInWeeks < 4) return `${diffInWeeks} week${diffInWeeks > 1 ? 's' : ''} ago`;
-    
-    const diffInMonths = Math.floor(diffInDays / 30);
-    return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
-  };
+  useEffect(() => {
+    fetchMyReferrals();
+  }, [fetchMyReferrals]);
 
-  const handleInputChange = (field: string, value: string | boolean) => {
+  // Debounced fetch for location suggestions
+  const fetchLocationSuggestions = useCallback(
+    debounce(async (query: string) => {
+      if (!query) {
+        setLocationSuggestions([]);
+        return;
+      }
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=8`
+        );
+        const data = await response.json();
+        setLocationSuggestions(data);
+      } catch (error) {
+        setLocationSuggestions([]);
+      }
+    }, 300),
+    []
+  );
+
+  useEffect(() => {
+    if (locationQuery) {
+      fetchLocationSuggestions(locationQuery);
+    } else {
+      setLocationSuggestions([]);
+    }
+  }, [locationQuery, fetchLocationSuggestions]);
+
+  const handleInputChange = (field: keyof JobInsert, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-    
-    if (error) {
-      setError('');
+  };
+
+  const addSkill = () => {
+    if (skillInput.trim() && !formData.skills?.includes(skillInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        skills: [...(prev.skills || []), skillInput.trim()]
+      }));
+      setSkillInput('');
     }
+  };
+
+  const removeSkill = (skillToRemove: string) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: (prev.skills || []).filter(skill => skill !== skillToRemove)
+    }));
+  };
+
+  const addBenefit = () => {
+    if (benefitInput.trim() && !formData.benefits?.includes(benefitInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        benefits: [...(prev.benefits || []), benefitInput.trim()]
+      }));
+      setBenefitInput('');
+    }
+  };
+
+  const removeBenefit = (benefitToRemove: string) => {
+    setFormData(prev => ({
+      ...prev,
+      benefits: (prev.benefits || []).filter(benefit => benefit !== benefitToRemove)
+    }));
+  };
+
+  const handleLocationInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocationTouched(true);
+    setLocationQuery(e.target.value);
+    setFormData(prev => ({ ...prev, location: '' }));
+    setLocationError('');
+  };
+
+  const handleLocationSelect = (suggestion: any) => {
+    const displayName = suggestion.display_name;
+    setFormData(prev => ({ ...prev, location: displayName }));
+    setLocationQuery(displayName);
+    setLocationSuggestions([]);
+    setLocationError('');
+  };
+
+  const validateLocation = () => {
+    // Only allow submission if location matches a suggestion
+    if (!formData.location || !locationQuery || formData.location !== locationQuery) {
+      setLocationError('Select a valid location.');
+      return false;
+    }
+    setLocationError('');
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    setError('');
-    
-    if (!user) {
-      setError('You must be logged in to create a referral');
-      return;
-    }
-
-    if (!formData.jobTitle.trim()) {
-      setError('Job title is required');
-      return;
-    }
-    
-    if (!formData.company.trim()) {
-      setError('Company name is required');
-      return;
-    }
-    
-    if (!formData.location.trim()) {
-      setError('Location is required');
-      return;
-    }
-    
-    if (!formData.description.trim()) {
-      setError('Job description is required');
-      return;
-    }
-
+    if (!user?.id) return;
+    setLocationTouched(true);
+    if (!validateLocation()) return;
+    setLoading(true);
     try {
-      setLoading(true);
-      console.log('🔄 Starting job creation process...');
-
+      // Fix experience_level to match database schema
+      const experienceLevel = formData.experience_level === 'Mid-level' ? 'Mid Level' : formData.experience_level;
+      
       const jobData = {
-        title: formData.jobTitle.trim(),
+        title: formData.title.trim(),
         company: formData.company.trim(),
-        department: formData.department.trim() || null,
+        department: formData.department || null,
         location: formData.location.trim(),
-        job_type: formData.jobType,
+        job_type: formData.job_type,
         description: formData.description.trim(),
-        skills: [],
-        benefits: formData.benefits ? formData.benefits.split(',').map(s => s.trim()).filter(Boolean) : [],
-        remote_available: formData.remoteAvailable,
-        urgent_hiring: formData.urgentHiring,
-        experience_level: formData.experienceLevel,
-        application_deadline: formData.applicationDeadline || null,
-        contact_email: formData.contactEmail.trim() || null,
-        status: 'open',
+        skills: formData.skills || [],
+        benefits: formData.benefits || [],
+        remote_available: formData.remote_available || false,
+        urgent_hiring: formData.urgent_hiring || false,
+        experience_level: experienceLevel,
+        application_deadline: formData.application_deadline || null,
+        contact_email: formData.contact_email || null,
         created_by: user.id,
-        applications_count: 0,
-        views_count: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        status: 'active'
       };
 
-      console.log('📝 Prepared job data:', jobData); // Enhanced logging
+      console.log('Creating job with data:', jobData);
 
       const { data, error } = await supabase
         .from('jobs')
-        .insert(jobData)
+        .insert([jobData as any])
         .select()
         .single();
-      
-      if (error) throw error;
-      
-      console.log('✅ Job created successfully:', data); // Enhanced logging
 
-      setShowSuccess(true);
-      
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      console.log('Job created successfully:', data);
+
+      // Reset form
       setFormData({
-        jobTitle: '',
+        title: '',
         company: '',
         department: '',
         location: '',
-        jobType: 'Full-time',
+        job_type: 'Full-time',
         description: '',
-        remoteAvailable: false,
-        urgentHiring: false,
-        experienceLevel: 'Mid Level',
-        applicationDeadline: '',
-        contactEmail: '',
-        benefits: ''
+        skills: [],
+        benefits: [],
+        remote_available: false,
+        urgent_hiring: false,
+        experience_level: 'Mid-level',
+        application_deadline: '',
+        contact_email: '',
+        created_by: user.id,
+        status: 'active'
       });
 
-      await loadUserReferrals();
-      window.dispatchEvent(new CustomEvent('refresh-jobs'));
+      // Refresh referrals list
+      fetchMyReferrals();
 
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 3000);
-
+      alert('Job referral created successfully!');
     } catch (error: any) {
-      console.error('❌ Error creating referral:', error);
-      
-      if (error.message) {
-        setError(error.message);
-      } else {
-        setError('Failed to create referral. Please try again.');
-      }
+      console.error('Error creating referral:', error);
+      const errorMessage = error.message || 'Failed to create referral. Please try again.';
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleViewApplications = (referralId: number, referralTitle: string) => {
-    onViewApplications(referralId, referralTitle);
-  };
+  const deleteReferral = async (jobId: string) => {
+    if (!confirm('Are you sure you want to delete this referral?')) return;
 
-  const handleShareReferral = (referralId: number) => {
-    const jobUrl = `${window.location.origin}/jobs/${referralId}`;
-    navigator.clipboard.writeText(jobUrl).then(() => {
-      alert('Job link copied to clipboard!');
-    }).catch(() => {
-      alert('Failed to copy link. Please try again.');
-    });
-  };
-
-  const handleDeleteReferral = async (referralId: number) => {
     try {
       const { error } = await supabase
         .from('jobs')
         .delete()
-        .eq('id', referralId.toString());
+        .eq('id', jobId as any);
+
       if (error) throw error;
-      await loadUserReferrals();
-      window.dispatchEvent(new CustomEvent('refresh-jobs'));
+      
+      fetchMyReferrals();
+      alert('Referral deleted successfully!');
     } catch (error) {
       console.error('Error deleting referral:', error);
       alert('Failed to delete referral. Please try again.');
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'bg-green-100 text-green-800';
-      case 'closed': return 'bg-red-100 text-red-800';
-      case 'draft': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-slate-100 text-slate-800';
-    }
+  const handleViewApplications = (jobId: string, jobTitle: string) => {
+    navigate(`/applications/${jobId}`);
   };
 
-  const activeReferrals = userReferrals.filter(r => r.status === 'open').length;
-  const totalApplications = userReferrals.reduce((sum, r) => sum + r.applications, 0);
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {showSuccess && (
-          <div className="fixed top-4 right-4 bg-green-600 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-lg shadow-lg z-50 flex items-center space-x-3">
-            <CheckCircle className="h-5 w-5" />
-            <span className="font-medium">Referral created successfully! 🎉</span>
+    <div className="min-h-screen bg-gray-50">
+      <style>{uiverseApplyNowBtnStyles}</style>
+      <style>{uiverseCheckboxStyles}</style>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <button 
+                onClick={() => window.history.back()}
+                className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
+                aria-label="Go back"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <h1 className="text-xl font-semibold text-gray-900">Create Job Referral</h1>
+            </div>
           </div>
-        )}
+        </div>
+      </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 mb-6">
-          <div className="flex items-center space-x-4 mb-4">
-            <button
-              onClick={onBack}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 truncate">Referral Management</h1>
-              <p className="text-slate-600 mt-1 truncate">
-                Create new referrals and manage your existing ones
-              </p>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Banner */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg p-8 mb-8 text-white">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="text-4xl font-bold mb-2">{myReferrals.length}</div>
+              <div className="text-blue-100">Total Referrals</div>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 sm:gap-6">
-            <div className="text-center p-3 sm:p-4 bg-slate-50 rounded-lg">
-              <div className="text-xl sm:text-2xl font-bold text-slate-900">{activeReferrals}</div>
-              <div className="text-xs sm:text-sm text-slate-600">Active Referrals</div>
+            <div className="text-center">
+              <div className="text-4xl font-bold mb-2">
+                {myReferrals.reduce((sum, job) => sum + job.applications_count, 0)}
+              </div>
+              <div className="text-blue-100">Applications Received</div>
             </div>
-            <div className="text-center p-3 sm:p-4 bg-slate-50 rounded-lg">
-              <div className="text-xl sm:text-2xl font-bold text-slate-900">{totalApplications}</div>
-              <div className="text-xs sm:text-sm text-slate-600">Total Applications</div>
+            <div className="text-center">
+              <div className="text-4xl font-bold mb-2">
+                {myReferrals.filter(job => job.status === 'active').length}
+              </div>
+              <div className="text-blue-100">Active Referrals</div>
             </div>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Create Form */}
+          <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-5 h-5 bg-red-600 rounded-full flex items-center justify-center">
-                      <X className="h-3 w-3 text-white" />
-                    </div>
-                    <p className="text-red-800 font-medium text-sm sm:text-base">{error}</p>
-                  </div>
+              {/* Basic Information */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center mb-4">
+                  <Briefcase className="h-5 w-5 text-blue-600 mr-2" />
+                  <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
                 </div>
-              )}
-
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-8">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center">
-                    <Briefcase className="h-5 w-5 text-white" />
-                  </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900">Basic Information</h2>
-                    <p className="text-slate-600 text-sm sm:text-base">Tell us about the position you're referring</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Job Title <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Job Title *
                     </label>
                     <input
                       type="text"
-                      value={formData.jobTitle}
-                      onChange={(e) => handleInputChange('jobTitle', e.target.value)}
-                      placeholder="e.g. Senior Software Engineer"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm sm:text-base"
                       required
+                      value={formData.title}
+                      onChange={(e) => handleInputChange('title', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g. Senior Software Engineer"
                     />
                   </div>
-
+                  
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Company <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Company *
                     </label>
                     <input
                       type="text"
+                      required
                       value={formData.company}
                       onChange={(e) => handleInputChange('company', e.target.value)}
-                      placeholder="Your company name"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm sm:text-base"
-                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g. Google, Microsoft, Startup Inc."
                     />
                   </div>
-
+                  
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Department</label>
-                    <input
-                      type="text"
-                      value={formData.department}
-                      onChange={(e) => handleInputChange('department', e.target.value)}
-                      placeholder="e.g. Engineering, Product, Design"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm sm:text-base"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Location <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Department
                     </label>
                     <input
                       type="text"
-                      value={formData.location}
-                      onChange={(e) => handleInputChange('location', e.target.value)}
-                      placeholder="e.g. San Francisco, CA"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm sm:text-base"
-                      required
+                      value={formData.department || ''}
+                      onChange={(e) => handleInputChange('department', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g. Engineering, Marketing, Sales"
                     />
                   </div>
-
+                  
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Job Type</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Location *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={locationQuery}
+                      onChange={handleLocationInput}
+                      onBlur={() => setLocationTouched(true)}
+                      className={`w-full px-3 py-2 border ${locationError ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      placeholder="Type a city, state, or country..."
+                      autoComplete="off"
+                    />
+                    {locationSuggestions.length > 0 && (
+                      <ul className="absolute z-10 bg-white border border-gray-200 rounded-md mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
+                        {locationSuggestions.map((suggestion, idx) => (
+                          <li
+                            key={suggestion.place_id}
+                            className="px-4 py-2 cursor-pointer hover:bg-blue-100"
+                            onMouseDown={() => handleLocationSelect(suggestion)}
+                          >
+                            {suggestion.display_name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {locationError && locationTouched && (
+                      <p className="text-red-600 text-xs mt-1">{locationError}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Job Details */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center mb-4">
+                  <Users className="h-5 w-5 text-blue-600 mr-2" />
+                  <h2 className="text-lg font-semibold text-gray-900">Job Details</h2>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Job Type *
+                    </label>
                     <select
-                      value={formData.jobType}
-                      onChange={(e) => handleInputChange('jobType', e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm sm:text-base"
+                      required
+                      value={formData.job_type}
+                      onChange={(e) => handleInputChange('job_type', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="Full-time">Full-time</option>
                       <option value="Part-time">Part-time</option>
                       <option value="Contract">Contract</option>
                       <option value="Internship">Internship</option>
-                      <option value="Freelance">Freelance</option>
                     </select>
                   </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-8">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
+                  
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900">Job Details</h2>
-                    <p className="text-slate-600 text-sm sm:text-base">Provide detailed information about the role</p>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Job Description <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Experience Level *
                     </label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => handleInputChange('description', e.target.value)}
-                      rows={6}
-                      placeholder="Describe the role, responsibilities, requirements, and what makes this opportunity special..."
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none text-sm sm:text-base"
-                      required
-                    ></textarea>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <label className="flex items-center space-x-3 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.remoteAvailable}
-                        onChange={(e) => handleInputChange('remoteAvailable', e.target.checked)}
-                        className="rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                      />
-                      <div>
-                        <div className="font-medium text-slate-900 text-sm sm:text-base">Remote work available</div>
-                        <div className="text-xs sm:text-sm text-slate-600">Position offers remote work options</div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center space-x-3 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.urgentHiring}
-                        onChange={(e) => handleInputChange('urgentHiring', e.target.checked)}
-                        className="rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                      />
-                      <div>
-                        <div className="font-medium text-slate-900 text-sm sm:text-base">Urgent hiring</div>
-                        <div className="text-xs sm:text-sm text-slate-600">Position needs to be filled quickly</div>
-                      </div>
-                    </label>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Experience Level</label>
                     <select
-                      value={formData.experienceLevel}
-                      onChange={(e) => handleInputChange('experienceLevel', e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm sm:text-base"
+                      required
+                      value={formData.experience_level}
+                      onChange={(e) => handleInputChange('experience_level', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="Entry Level">Entry Level</option>
-                      <option value="Mid Level">Mid Level</option>
-                      <option value="Senior Level">Senior Level</option>
+                      <option value="Entry-level">Entry-level</option>
+                      <option value="Mid-level">Mid-level</option>
+                      <option value="Senior-level">Senior-level</option>
+                      <option value="Executive">Executive</option>
                     </select>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Application Deadline</label>
-                    <input
-                      type="date"
-                      value={formData.applicationDeadline}
-                      onChange={(e) => handleInputChange('applicationDeadline', e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm sm:text-base"
-                    />
-                  </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Job Description *
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Describe the role, responsibilities, and requirements..."
+                  />
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Contact Email</label>
-                    <input
-                      type="email"
-                      value={formData.contactEmail}
-                      onChange={(e) => handleInputChange('contactEmail', e.target.value)}
-                      placeholder="e.g. hr@company.com"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm sm:text-base"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Benefits (comma-separated)</label>
+                {/* Skills */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Required Skills
+                  </label>
+                  <div className="flex mb-2">
                     <input
                       type="text"
-                      value={formData.benefits}
-                      onChange={(e) => handleInputChange('benefits', e.target.value)}
-                      placeholder="e.g. Health insurance, Remote work, Bonuses"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm sm:text-base"
+                      value={skillInput}
+                      onChange={(e) => setSkillInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g. JavaScript, React, Python"
                     />
+                    <button
+                      type="button"
+                      onClick={addSkill}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.skills?.map((skill, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                      >
+                        {skill}
+                        <button
+                          type="button"
+                          onClick={() => removeSkill(skill)}
+                          className="ml-2 text-blue-600 hover:text-blue-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Additional Options */}
+                <div className="space-y-3">
+                  <div className="border rounded-md p-3">
+                    <label className="container flex flex-row items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.remote_available}
+                        onChange={(e) => handleInputChange('remote_available', e.target.checked)}
+                      />
+                      <div className="checkmark"></div>
+                      <span className="text-sm text-gray-700">Remote work available</span>
+                    </label>
+                  </div>
+                  
+                  <div className="border rounded-md p-3">
+                    <label className="container flex flex-row items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.urgent_hiring}
+                        onChange={(e) => handleInputChange('urgent_hiring', e.target.checked)}
+                      />
+                      <div className="checkmark"></div>
+                      <span className="text-sm text-gray-700">Urgent hiring</span>
+                    </label>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-                  <button
-                    type="button"
-                    onClick={onBack}
-                    className="px-6 py-3 text-slate-700 bg-slate-200 rounded-lg hover:bg-slate-300 transition-colors font-medium text-sm sm:text-base"
-                  >
-                    Cancel
-                  </button>
-                  <div className="flex items-center space-x-4">
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors font-medium flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base w-full sm:w-auto"
-                    >
-                      {loading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>Creating...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="h-4 w-4" />
-                          <span>Create Referral</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
+              {/* Submit Button */}
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="my-button font-medium flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ width: 'fit-content', minWidth: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <span style={{ width: '100%', textAlign: 'center' }}>
+                    {loading ? 'Creating...' : 'Create Referral'}
+                  </span>
+                </button>
               </div>
             </form>
           </div>
 
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 h-[calc(100vh-200px)] flex flex-col">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900">My Referrals</h2>
-                <span className="bg-slate-100 text-slate-700 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium">
-                  {userReferrals.length} total
-                </span>
-              </div>
-
+          {/* Right Column - My Referrals */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-8">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">My Referrals</h2>
+              
               {loadingReferrals ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin mx-auto mb-2"></div>
-                    <p className="text-slate-600 text-sm">Loading referrals...</p>
-                  </div>
+                <LoadingSpinner text="Loading referrals..." size="medium" />
+              ) : myReferrals.length === 0 ? (
+                <div className="text-center py-8">
+                  <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 text-sm">No referrals created yet</p>
                 </div>
               ) : (
-                <div className="space-y-3 sm:space-y-4 flex-1 overflow-y-auto">
-                  {userReferrals.length > 0 ? (
-                    userReferrals.map((referral) => (
-                      <div
-                        key={referral.id}
-                        className="border border-slate-200 rounded-lg p-3 sm:p-4 hover:border-slate-300 transition-all"
-                      >
-                        <div className="flex items-start justify-between mb-2 sm:mb-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <h3 className="font-bold text-slate-900 text-sm truncate">{referral.title}</h3>
-                              {referral.urgent && (
-                                <span className="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded-full font-medium">
-                                  Urgent
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs sm:text-sm text-slate-600 font-medium truncate">{referral.company}</p>
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 text-xs text-slate-500 mt-1 space-y-1 sm:space-y-0">
-                              <div className="flex items-center space-x-1">
-                                <MapPin className="h-3 w-3 flex-shrink-0" />
-                                <span className="truncate">{referral.location}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="h-3 w-3 flex-shrink-0" />
-                                <span>{referral.posted}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(referral.status)}`}>
-                            {referral.status}
-                          </span>
+                <div className="space-y-4">
+                  {myReferrals.slice(0, 5).map((job) => (
+                    <div key={job.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-medium text-gray-900 text-sm leading-tight">
+                          {job.title}
+                        </h3>
+                        <button
+                          onClick={() => deleteReferral(job.id)}
+                          className="text-gray-400 hover:text-red-600 ml-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      
+                      <p className="text-sm text-gray-600 mb-2">{job.company}</p>
+                      
+                      <div className="flex items-center text-xs text-gray-500 space-x-3 mb-2">
+                        <div className="flex items-center">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {job.location}
                         </div>
-
-                        <div className="text-xs sm:text-sm text-slate-700 font-medium mb-3">{referral.type}</div>
-
-                        <div className="grid grid-cols-1 gap-3 mb-4">
-                          <div className="text-center p-2 bg-slate-50 rounded-lg">
-                            <div className="text-base sm:text-lg font-bold text-slate-900">{referral.applications}</div>
-                            <div className="text-xs text-slate-600">Applications</div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleViewApplications(referral.id, referral.title)}
-                            className="flex-1 bg-slate-900 text-white px-2 sm:px-3 py-2 rounded-lg text-xs hover:bg-slate-800 transition-colors flex items-center justify-center space-x-1"
-                          >
-                            <Eye className="h-3 w-3" />
-                            <span>View Applications</span>
-                          </button>
-                          <button
-                            onClick={() => handleShareReferral(referral.id)}
-                            className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                            title="Share"
-                          >
-                            <Share2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteReferral(referral.id)}
-                            className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                        <div className="flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {job.job_type}
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Briefcase className="h-8 w-8 text-slate-400" />
+                      
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500">
+                          <Calendar className="h-3 w-3 inline mr-1" />
+                          {formatDate(job.created_at)}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          job.status === 'active' 
+                            ? 'bg-green-100 text-green-800'
+                            : job.status === 'closed'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {job.status}
+                        </span>
                       </div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-2">No referrals yet</h3>
-                      <p className="text-slate-600 text-sm">
-                        Create your first referral to help your network discover opportunities
-                      </p>
+                      
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                        <span className="text-xs text-gray-500">
+                          {job.applications_count} applications
+                        </span>
+                        <button
+                          onClick={() => handleViewApplications(job.id, job.title)}
+                          className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center space-x-1"
+                        >
+                          <Eye className="h-3 w-3" />
+                          <span>View Applications</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {myReferrals.length > 5 && (
+                    <div className="text-center pt-2">
+                      <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        View all ({myReferrals.length})
+                      </button>
                     </div>
                   )}
                 </div>

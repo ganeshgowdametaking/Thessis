@@ -29,9 +29,6 @@ export const supabase = createClient<Database>(
         'apikey': supabaseAnonKey || 'placeholder-key'
       }
     },
-    storage: {
-      url: supabaseUrl ? `${supabaseUrl}/storage/v1` : 'https://placeholder.supabase.co/storage/v1',
-    },
     realtime: {
       params: {
         eventsPerSecond: 2
@@ -44,38 +41,21 @@ export const supabase = createClient<Database>(
 export const auth = {
   signUp: async (email: string, password: string, userData: any) => {
     console.log('🔐 Attempting sign up for:', email)
-    
     try {
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      // Use password-based signup so user can log in with password
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: userData,
-          emailRedirectTo: undefined
+          data: userData
         }
       })
-
-      if (signUpError) {
-        console.error('❌ Sign up error:', signUpError)
-        return { data: null, error: signUpError }
+      if (error) {
+        console.error('❌ Sign up error:', error)
+        return { data: null, error }
       }
-
-      console.log('✅ Sign up successful, sending OTP...')
-
-      const { data: otpData, error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false
-        }
-      })
-
-      if (otpError) {
-        console.warn('⚠️ OTP send failed, but signup succeeded:', otpError)
-      } else {
-        console.log('✅ OTP sent successfully')
-      }
-
-      return { data: signUpData, error: null }
+      console.log('✅ Sign up successful, confirmation email sent')
+      return { data, error: null }
     } catch (error) {
       console.error('❌ Network error during sign up:', error)
       return { data: null, error: { message: 'Network connection failed. Please check your internet connection and try again.' } }
@@ -84,20 +64,19 @@ export const auth = {
 
   signIn: async (email: string, password: string) => {
     console.log('🔐 Attempting sign in for:', email)
-    
     try {
+      // Only try password-based sign in
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
-      
       if (error) {
-        console.error('❌ Sign in error:', error)
+        console.error('❌ Password sign in error:', error)
+        return { data: null, error }
       } else {
-        console.log('✅ Sign in successful')
+        console.log('✅ Password sign in successful')
+        return { data, error: null }
       }
-      
-      return { data, error }
     } catch (error) {
       console.error('❌ Network error during sign in:', error)
       return { data: null, error: { message: 'Network connection failed. Please check your internet connection and try again.' } }
@@ -185,6 +164,27 @@ export const auth = {
       return { data, error }
     } catch (error) {
       console.error('❌ Network error during OTP resend:', error)
+      return { data: null, error: { message: 'Network connection failed. Please check your internet connection and try again.' } }
+    }
+  },
+
+  resetPassword: async (email: string) => {
+    console.log('🔐 Sending password reset for:', email)
+    
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/?reset=true`
+      })
+      
+      if (error) {
+        console.error('❌ Password reset error:', error)
+      } else {
+        console.log('✅ Password reset email sent successfully')
+      }
+      
+      return { data, error }
+    } catch (error) {
+      console.error('❌ Network error during password reset:', error)
       return { data: null, error: { message: 'Network connection failed. Please check your internet connection and try again.' } }
     }
   }

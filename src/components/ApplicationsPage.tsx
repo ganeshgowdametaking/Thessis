@@ -2,23 +2,33 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, User, FileText, MessageCircle, CheckCircle, Calendar, MapPin, Briefcase, Filter, Search, Download, Eye, Mail, Phone, X } from 'lucide-react';
 import { applicationService } from '../services/applicationService';
 import { useAuthContext } from '../contexts/AuthContext';
+import { jobService } from '../services/jobService';
+import { Database } from '../lib/database.types';
+import LoadingSpinner from './LoadingSpinner';
+
+type Job = Database['public']['Tables']['jobs']['Row'];
 
 interface ApplicationsPageProps {
   onBack: () => void;
   onMessage: (applicantId: number) => void;
-  referralId: number;
+  onViewProfile: (userId: string) => void;
+  referralId: string;
   referralTitle: string;
 }
 
-const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, referralId, referralTitle }) => {
+const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, onViewProfile, referralId, referralTitle }) => {
   const { user } = useAuthContext();
-  const [selectedFilter, setSelectedFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showResumeModal, setShowResumeModal] = useState<number | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [currentApplication, setCurrentApplication] = useState<any>(null);
+  const [sortOrder, setSortOrder] = useState<'latest' | 'earliest'>('latest');
+  const [resumeLoading, setResumeLoading] = useState(false);
 
   // Load applications when component mounts
   useEffect(() => {
@@ -28,61 +38,88 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
   const loadApplications = async () => {
     try {
       setLoading(true);
-      setError('');
+      setError(null);
       
       console.log('Loading applications for job ID:', referralId);
       
-      const applicationsData = await applicationService.getJobApplications(referralId.toString());
+      const applicationsData = await applicationService.getJobApplications(referralId);
       
-      console.log('Loaded applications:', applicationsData);
+      console.log('Raw applications data:', applicationsData);
       
-      // Transform backend data to match the expected format
+      // Transform the data to match the expected format
       const transformedApplications = applicationsData.map((app: any) => ({
         id: app.id,
-        applicant: {
-          name: app.applicant?.full_name || 'Unknown Applicant',
-          email: app.applicant?.email || 'No email',
-          phone: app.applicant?.phone || '+1 (555) 123-4567',
-          avatar: app.applicant?.avatar_url || `https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop`,
-          title: app.applicant?.title || 'Professional',
-          company: app.applicant?.company || 'Company',
-          location: app.applicant?.location || 'Location'
-        },
-        appliedDate: formatTimeAgo(app.applied_at),
+        applicantId: app.applicant_id,
         status: app.status,
-        education: app.applicant?.bio || 'Professional Background',
-        resumeUrl: app.resume_url || null,
-        shortlisted: app.shortlisted,
+        appliedDate: formatTimeAgo(app.applied_at),
         coverLetter: app.cover_letter,
-        applicantId: app.applicant_id // Store the actual applicant ID for messaging
+        resumeUrl: app.resume_url,
+        shortlisted: app.shortlisted,
+        rating: app.rating,
+        notes: app.notes,
+        // Applicant data from the join
+        applicant: {
+          id: app.applicant?.id,
+          name: app.applicant?.full_name || 'Unknown Applicant',
+          email: app.applicant?.email || '',
+          title: app.applicant?.title || 'No Title',
+          company: app.applicant?.company || 'No Company',
+          location: app.applicant?.location || 'No Location',
+          avatar: app.applicant?.avatar_url || '/default-avatar.png',
+          bio: app.applicant?.bio || 'No bio available'
+        },
+        // Education/background info (using bio as fallback)
+        education: app.applicant?.bio || 'No background information available'
       }));
       
+      console.log('Transformed applications:', transformedApplications);
       setApplications(transformedApplications);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading applications:', error);
-      setError('Failed to load applications. Please try again.');
-      setApplications([]);
+      setError(error.message || 'Failed to load applications. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Helper function to format time ago
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Helper function to get profile picture
+  const getProfilePicture = (applicant: any) => {
+    if (applicant?.avatar && applicant.avatar !== '/default-avatar.png') {
+      return applicant.avatar;
+    }
     
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    // Create a simple colored background based on user ID
+    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
+    const colorIndex = applicant?.id ? applicant.id.charCodeAt(0) % colors.length : 0;
+    const backgroundColor = colors[colorIndex];
     
-    const diffInWeeks = Math.floor(diffInDays / 7);
-    if (diffInWeeks < 4) return `${diffInWeeks} week${diffInWeeks > 1 ? 's' : ''} ago`;
+    // Get initials
+    const initials = applicant?.name
+      ? applicant.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+      : 'U';
     
-    const diffInMonths = Math.floor(diffInDays / 30);
-    return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
+    // Return a simple SVG data URL
+    const svg = `
+      <svg width="150" height="150" xmlns="http://www.w3.org/2000/svg">
+        <rect width="150" height="150" fill="${backgroundColor}"/>
+        <text x="75" y="85" font-family="Arial, sans-serif" font-size="60" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
+      </svg>
+    `;
+    
+    return `data:image/svg+xml;base64,${btoa(svg)}`;
   };
 
   const handleShortlist = async (applicationId: number) => {
@@ -110,7 +147,11 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
   };
 
   const handleViewResume = (applicationId: number) => {
-    setShowResumeModal(applicationId);
+    const application = applications.find(app => app.id === applicationId);
+    if (application) {
+      setCurrentApplication(application);
+      setShowResumeModal(true);
+    }
   };
 
   const handleMessage = (application: any) => {
@@ -121,16 +162,68 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
 
   // UPDATED: Handle profile navigation
   const handleViewProfile = (applicantId: string) => {
-    // Dispatch custom event to navigate to user profile
-    window.dispatchEvent(new CustomEvent('navigate-to-profile', { 
-      detail: { userId: applicantId } 
-    }));
+    console.log('Navigating to profile for applicant ID:', applicantId);
+    onViewProfile(applicantId);
   };
 
-  // UPDATED: Sort applications with shortlisted at the top
+  // NEW: Get pre-signed download URL for resume
+  const getResumeDownloadUrl = async (resumeUrl: string) => {
+    try {
+      setResumeLoading(true);
+      
+      // Extract the key from the S3 URL
+      const url = new URL(resumeUrl);
+      const key = url.pathname.substring(1); // Remove leading slash
+      
+      const response = await fetch('http://localhost:3001/generate-download-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate download URL');
+      }
+      
+      const { url: downloadUrl } = await response.json();
+      return downloadUrl;
+    } catch (error) {
+      console.error('Error generating download URL:', error);
+      throw error;
+    } finally {
+      setResumeLoading(false);
+    }
+  };
+
+  // NEW: Handle resume view/download with pre-signed URLs
+  const handleResumeAction = async (action: 'view' | 'download') => {
+    if (!currentApplication?.resumeUrl) return;
+    
+    try {
+      setResumeLoading(true);
+      const downloadUrl = await getResumeDownloadUrl(currentApplication.resumeUrl);
+      
+      if (action === 'view') {
+        window.open(downloadUrl, '_blank');
+      } else if (action === 'download') {
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `${currentApplication.applicant.name}_Resume.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Error handling resume action:', error);
+      alert('Failed to access resume. Please try again.');
+    } finally {
+      setResumeLoading(false);
+    }
+  };
+
+  // UPDATED: Sort applications with shortlisted at the top, and by sortOrder
   const filteredApplications = applications
     .filter(app => {
-      // UPDATED: Remove "rejected" filter completely
       const matchesFilter = selectedFilter === 'all' || 
                            (selectedFilter === 'pending' && app.status === 'pending') ||
                            (selectedFilter === 'shortlisted' && app.status === 'shortlisted');
@@ -139,10 +232,15 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
       return matchesFilter && matchesSearch;
     })
     .sort((a, b) => {
-      // Sort by shortlisted status first (shortlisted at top), then by application date
+      // Sort by shortlisted status first (shortlisted at top)
       if (a.shortlisted && !b.shortlisted) return -1;
       if (!a.shortlisted && b.shortlisted) return 1;
-      return 0; // Keep original order for same shortlist status
+      // Then by applied_at
+      if (sortOrder === 'earliest') {
+        return new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime();
+      } else {
+        return new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime();
+      }
     });
 
   const getStatusColor = (status: string) => {
@@ -153,8 +251,6 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
     }
   };
 
-  const currentApplication = applications.find(app => app.id === showResumeModal);
-
   // UPDATED: Remove "rejected" filter from filter options
   const filterOptions = [
     { value: 'all', label: 'All Applications', count: applications.length },
@@ -163,14 +259,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
   ];
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading applications...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text="Loading applications..." />;
   }
 
   if (error) {
@@ -259,6 +348,17 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
                   </span>
                 </button>
               ))}
+              {/* Add earliest first sort button */}
+              <button
+                onClick={() => setSortOrder(sortOrder === 'earliest' ? 'latest' : 'earliest')}
+                className={`px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 whitespace-nowrap ${
+                  sortOrder === 'earliest'
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                }`}
+              >
+                <span>Earliest First</span>
+              </button>
             </div>
           )}
         </div>
@@ -275,17 +375,17 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
                   <div className="flex items-start space-x-4 min-w-0 flex-1">
                     {/* UPDATED: Make profile picture clickable */}
                     <img
-                      src={application.applicant.avatar}
+                      src={getProfilePicture(application.applicant)}
                       alt={application.applicant.name}
                       className="w-12 h-12 sm:w-16 sm:h-16 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all flex-shrink-0"
-                      onClick={() => handleViewProfile(application.applicantId)}
+                      onClick={() => onViewProfile(application.applicant.id)}
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 mb-2">
                         {/* UPDATED: Make username clickable */}
                         <h3 
                           className="text-lg sm:text-xl font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-colors truncate"
-                          onClick={() => handleViewProfile(application.applicantId)}
+                          onClick={() => onViewProfile(application.applicant.id)}
                         >
                           {application.applicant.name}
                         </h3>
@@ -311,10 +411,8 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
 
                 {/* Education */}
                 <div className="mt-4 sm:mt-6">
-                  <h4 className="font-medium text-slate-900 mb-1">Background</h4>
-                  <p className="text-slate-600 text-sm">{application.education}</p>
                   {application.coverLetter && (
-                    <div className="mt-2">
+                    <div>
                       <h4 className="font-medium text-slate-900 mb-1">Cover Letter</h4>
                       <p className="text-slate-600 text-sm">{application.coverLetter}</p>
                     </div>
@@ -379,7 +477,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4 min-w-0 flex-1">
                   <img
-                    src={currentApplication.applicant.avatar}
+                    src={getProfilePicture(currentApplication.applicant)}
                     alt={currentApplication.applicant.name}
                     className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex-shrink-0"
                   />
@@ -389,7 +487,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
                   </div>
                 </div>
                 <button
-                  onClick={() => setShowResumeModal(null)}
+                  onClick={() => setShowResumeModal(false)}
                   className="text-slate-400 hover:text-slate-600 transition-colors p-2 flex-shrink-0"
                 >
                   <X className="h-5 w-5" />
@@ -405,10 +503,6 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
                   <div className="flex items-center space-x-2">
                     <Mail className="h-4 w-4 text-slate-500 flex-shrink-0" />
                     <span className="text-slate-700 truncate">{currentApplication.applicant.email}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Phone className="h-4 w-4 text-slate-500 flex-shrink-0" />
-                    <span className="text-slate-700">{currentApplication.applicant.phone}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <MapPin className="h-4 w-4 text-slate-500 flex-shrink-0" />
@@ -440,25 +534,28 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
                     </p>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3">
                       <button
-                        onClick={() => window.open(currentApplication.resumeUrl, '_blank')}
-                        className="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                        onClick={() => handleResumeAction('view')}
+                        disabled={resumeLoading}
+                        className="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Eye className="h-4 w-4" />
-                        <span>View Resume</span>
+                        {resumeLoading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                        <span>{resumeLoading ? 'Loading...' : 'View Resume'}</span>
                       </button>
                       <button
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = currentApplication.resumeUrl;
-                          link.download = `${currentApplication.applicant.name}_Resume.pdf`;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                        }}
-                        className="bg-slate-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-slate-700 transition-colors flex items-center justify-center space-x-2"
+                        onClick={() => handleResumeAction('download')}
+                        disabled={resumeLoading}
+                        className="bg-slate-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-slate-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Download className="h-4 w-4" />
-                        <span>Download Resume</span>
+                        {resumeLoading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                        <span>{resumeLoading ? 'Loading...' : 'Download Resume'}</span>
                       </button>
                     </div>
                   </>

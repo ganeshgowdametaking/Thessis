@@ -3,25 +3,34 @@ import { X, Search, Users, MapPin, Building, UserPlus, UserMinus, MessageCircle 
 import { connectionService } from '../services/connectionService';
 import { profileService } from '../services/profileService';
 import { useAuthContext } from '../contexts/AuthContext';
+import LoadingSpinner from './LoadingSpinner';
 
 interface ConnectionsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onViewProfile: (userId: string) => void;
+  userId?: string;
 }
 
-const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, onViewProfile }) => {
+const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, onViewProfile, userId }) => {
   const { user } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [connections, setConnections] = useState<any[]>([]);
   const [filteredConnections, setFilteredConnections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [removingConnectionId, setRemovingConnectionId] = useState<string | null>(null);
+  const [modalUser, setModalUser] = useState<any>(null);
 
   useEffect(() => {
     if (isOpen) {
       loadConnections();
+      if (userId) {
+        profileService.getProfile(userId).then(setModalUser).catch(() => setModalUser(null));
+      } else {
+        setModalUser(user);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, userId]);
 
   useEffect(() => {
     // Filter connections based on search query
@@ -40,13 +49,18 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
   const loadConnections = async () => {
     try {
       setLoading(true);
-      const userConnections = await connectionService.getConnections();
+      let userConnections;
+      if (userId) {
+        userConnections = await connectionService.getConnectionsForUser(userId);
+      } else {
+        userConnections = await connectionService.getConnections();
+      }
       
       // Transform connections to include profile data
       const connectionsWithProfiles = userConnections
         .filter(conn => conn.status === 'accepted')
         .map(conn => {
-          const isRequester = conn.requester_id === user?.id;
+          const isRequester = (userId ? conn.requester_id === userId : conn.requester_id === user?.id);
           const otherProfile = isRequester ? conn.addressee : conn.requester;
           
           return {
@@ -65,14 +79,19 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
     }
   };
 
-  const handleRemoveConnection = async (connectionId: string) => {
+  const handleRemoveConnection = async (otherUserId: string) => {
     if (confirm('Are you sure you want to remove this connection?')) {
+      setRemovingConnectionId(otherUserId);
       try {
-        await connectionService.cancelConnectionRequest(connectionId);
+        await connectionService.cancelConnectionRequest(otherUserId);
+        await new Promise(res => setTimeout(res, 300));
+        await connectionService.forceRefreshConnectionStatus(otherUserId);
         await loadConnections(); // Reload connections
       } catch (error) {
         console.error('Error removing connection:', error);
         alert('Failed to remove connection. Please try again.');
+      } finally {
+        setRemovingConnectionId(null);
       }
     }
   };
@@ -113,7 +132,7 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
                 <Users className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">My Connections</h2>
+                <h2 className="text-xl font-bold text-slate-900">{modalUser && modalUser.full_name ? `${modalUser.full_name}'s Connections` : 'Connections'}</h2>
                 <p className="text-slate-600">{connections.length} professional connections</p>
               </div>
             </div>
@@ -143,9 +162,7 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
         {/* Connections List */}
         <div className="flex-1 overflow-y-auto p-6">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin"></div>
-            </div>
+            <LoadingSpinner text="Loading connections..." />
           ) : filteredConnections.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredConnections.map((connection) => (
@@ -206,10 +223,15 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
                     </button>
                     <button
                       onClick={() => handleRemoveConnection(connection.profile.id)}
-                      className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      className={`p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all ${removingConnectionId === connection.profile.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                       title="Remove Connection"
+                      disabled={removingConnectionId === connection.profile.id}
                     >
-                      <UserMinus className="h-4 w-4" />
+                      {removingConnectionId === connection.profile.id ? (
+                        <span className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin inline-block"></span>
+                      ) : (
+                        <UserMinus className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>

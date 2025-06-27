@@ -124,6 +124,19 @@ export function useAuth() {
     }
   }
 
+  const resetPassword = async (email: string) => {
+    try {
+      setError(null)
+      const { data, error } = await auth.resetPassword(email)
+      if (error) setError(error.message)
+      return { data, error }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to send password reset email'
+      setError(errorMessage)
+      return { data: null, error: { message: errorMessage } }
+    }
+  }
+
   return {
     user,
     loading,
@@ -132,6 +145,7 @@ export function useAuth() {
     signIn,
     signOut,
     verifyOTP,
-    resendOTP
+    resendOTP,
+    resetPassword
   }
 }

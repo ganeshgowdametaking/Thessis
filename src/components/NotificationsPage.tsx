@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Users, Briefcase, Heart, MessageCircle, UserPlus, CheckCircle, Calendar, MapPin, Star, Filter, Search, Download, Eye, Mail, Phone, X, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { notificationService } from '../services/notificationService';
 import { connectionService } from '../services/connectionService';
 import { profileService } from '../services/profileService';
 import { postService } from '../services/postService';
 import { useAuthContext } from '../contexts/AuthContext';
+import LoadingSpinner from './LoadingSpinner';
 
 interface NotificationsPageProps {
   onViewProfile?: (userId: string) => void;
@@ -12,16 +14,20 @@ interface NotificationsPageProps {
 
 const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) => {
   const { user } = useAuthContext();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   useEffect(() => {
     loadNotifications();
     loadUserLikes();
-  }, []);
+    // Update the global notification count when component loads
+    if (window.refreshUnreadCounts) window.refreshUnreadCounts();
+  }, []); // Empty dependency array
 
   const loadNotifications = async () => {
     try {
@@ -30,6 +36,20 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
       
       const userNotifications = await notificationService.getNotifications();
       console.log('📊 Received notifications:', userNotifications);
+      
+      // Debug connection notifications specifically
+      const connectionNotifications = userNotifications.filter(n => n.type === 'connection');
+      console.log('🔗 Connection notifications found:', connectionNotifications.length);
+      connectionNotifications.forEach((notif, index) => {
+        console.log(`🔗 Connection notification ${index + 1}:`, {
+          id: notif.id,
+          type: notif.type,
+          metadata: notif.metadata,
+          metadataType: typeof notif.metadata,
+          actionable: notif.actionable,
+          read: notif.read
+        });
+      });
       
       // Enhance notifications with user profile data
       const enhancedNotifications = await Promise.all(
@@ -61,7 +81,22 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
         })
       );
       
-      setNotifications(enhancedNotifications || []);
+      // DEDUPLICATE CONNECTION NOTIFICATIONS: Only show the latest per user-pair
+      const dedupedNotifications: any[] = [];
+      const connectionPairs = new Map();
+      for (const notif of enhancedNotifications) {
+        if (notif.type === 'connection' && notif.metadata?.requester_id && notif.user_id) {
+          const ids = [notif.metadata.requester_id, notif.user_id].sort();
+          const pairKey = ids.join('_');
+          if (!connectionPairs.has(pairKey)) {
+            connectionPairs.set(pairKey, true);
+            dedupedNotifications.push(notif);
+          }
+        } else {
+          dedupedNotifications.push(notif);
+        }
+      }
+      setNotifications(dedupedNotifications || []);
     } catch (error) {
       console.error('❌ Error loading notifications:', error);
       setNotifications([]);
@@ -73,7 +108,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
   const loadUserLikes = async () => {
     try {
       const userLikesData = await postService.getUserLikes();
-      const likedPostIds = new Set(userLikesData.map((like: any) => like.post_id));
+      const likedPostIds = new Set<string>(userLikesData.map((like: any) => like.post_id));
       setLikedPosts(likedPostIds);
     } catch (error) {
       console.error('Error loading user likes:', error);
@@ -85,6 +120,10 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
       setRefreshing(true);
       await loadNotifications();
       await loadUserLikes();
+      // Add a small delay to ensure database operation completes
+      setTimeout(() => {
+        if (window.refreshUnreadCounts) window.refreshUnreadCounts();
+      }, 100);
     } catch (error) {
       console.error('Error refreshing notifications:', error);
     } finally {
@@ -179,11 +218,22 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
         await connectionService.acceptConnectionRequest(connectionId);
       }
       
-      // Mark notification as read and non-actionable
-      await notificationService.markAsRead(notificationId);
-      
-      // Reload notifications
-      await loadNotifications();
+      // Update notification in local state to show connected message and non-actionable
+      setNotifications(notifications => notifications.map(notif =>
+        notif.id === notificationId
+          ? {
+              ...notif,
+              message: `You are now connected with ${notif.actorProfile?.full_name || 'this user'}`,
+              actionable: false,
+              read: true
+            }
+          : notif
+      ));
+      await notificationService.markAsReadAndNonActionable(notificationId);
+      // Add a small delay to ensure database operation completes
+      setTimeout(() => {
+        if (window.refreshUnreadCounts) window.refreshUnreadCounts();
+      }, 100);
     } catch (error) {
       console.error('Error accepting connection:', error);
       alert('Failed to accept connection. Please try again.');
@@ -195,12 +245,14 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
       if (connectionId) {
         await connectionService.declineConnectionRequest(connectionId);
       }
-      
       // Remove notification
       await notificationService.deleteNotification(notificationId);
-      
       // Reload notifications
       await loadNotifications();
+      // Add a small delay to ensure database operation completes
+      setTimeout(() => {
+        if (window.refreshUnreadCounts) window.refreshUnreadCounts();
+      }, 100);
     } catch (error) {
       console.error('Error declining connection:', error);
       alert('Failed to decline connection. Please try again.');
@@ -215,6 +267,10 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
           ? { ...notif, read: true }
           : notif
       ));
+      // Add a small delay to ensure database operation completes
+      setTimeout(() => {
+        if (window.refreshUnreadCounts) window.refreshUnreadCounts();
+      }, 100);
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -224,14 +280,31 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
     try {
       await notificationService.markAllAsRead();
       setNotifications(notifications.map(notif => ({ ...notif, read: true })));
+      // Add a small delay to ensure database operation completes
+      setTimeout(() => {
+        if (window.refreshUnreadCounts) window.refreshUnreadCounts();
+      }, 100);
     } catch (error) {
       console.error('Error marking all as read:', error);
     }
   };
 
   const handleProfileClick = (userId: string) => {
-    if (onViewProfile) {
-      onViewProfile(userId);
+    // Navigate directly to the user's profile page
+    navigate(`/user/${userId}`);
+  };
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    try {
+      await notificationService.deleteNotification(notificationId);
+      setNotifications(notifications => notifications.filter(notif => notif.id !== notificationId));
+      // Add a small delay to ensure database operation completes
+      setTimeout(() => {
+        if (window.refreshUnreadCounts) window.refreshUnreadCounts();
+      }, 100);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      alert('Failed to delete notification. Please try again.');
     }
   };
 
@@ -243,12 +316,17 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
 
   const unreadCount = notifications.filter(notif => !notif.read).length;
 
+  // Debug logging for render
+  console.log('🔄 NotificationsPage render - forceUpdate:', forceUpdate);
+  console.log('📊 Current notifications count:', notifications.length);
+  console.log('🔍 Filtered notifications count:', filteredNotifications.length);
+  console.log('📋 All notifications:', notifications);
+
   const filterOptions = [
     { value: 'all', label: 'All', count: notifications.length, icon: Bell },
     { value: 'unread', label: 'Unread', count: unreadCount, icon: Filter },
     { value: 'connection', label: 'Connections', count: notifications.filter(n => n.type === 'connection').length, icon: Users },
-    { value: 'job', label: 'Jobs', count: notifications.filter(n => n.type === 'job' || n.type === 'referral').length, icon: Briefcase },
-    { value: 'like', label: 'Likes', count: notifications.filter(n => n.type === 'like').length, icon: Heart }
+    { value: 'job', label: 'Jobs', count: notifications.filter(n => n.type === 'job' || n.type === 'referral').length, icon: Briefcase }
   ];
 
   if (loading) {
@@ -275,7 +353,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Notifications</h1>
                 <p className="text-slate-600 text-sm sm:text-base">
-                  {unreadCount > 0 ? `${unreadCount} new notifications` : 'All caught up!'}
+                  {unreadCount > 0 ? `${unreadCount} new notifications` : ''}
                 </p>
               </div>
             </div>
@@ -338,10 +416,19 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
             filteredNotifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 transition-all ${
+                className={`bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 transition-all relative ${
                   !notification.read ? `border-l-4 ${getPriorityColor(notification.priority)} bg-slate-50` : ''
                 }`}
               >
+                {/* Delete Button - Positioned at top-right */}
+                <button
+                  onClick={() => handleDeleteNotification(notification.id)}
+                  className="absolute top-3 right-3 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-red-600 transition-colors z-10"
+                  aria-label="Delete notification"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   {/* Profile Picture or Icon */}
                   <div className="flex-shrink-0">
@@ -505,17 +592,6 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
                 <Bell className="h-8 w-8 text-slate-400" />
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">No notifications found</h3>
-              <p className="text-slate-600 mb-4 text-sm sm:text-base">
-                {filter === 'all' 
-                  ? 'You\'re all caught up! Check back later for new notifications.' 
-                  : `No ${filter} notifications at the moment.`
-                }
-              </p>
-              <div className="bg-blue-50 rounded-lg p-4">
-                <p className="text-blue-800 text-sm">
-                  💡 <strong>Tip:</strong> Try liking posts, sending connection requests, or creating job referrals to generate notifications.
-                </p>
-              </div>
             </div>
           )}
         </div>

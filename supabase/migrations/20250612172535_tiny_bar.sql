@@ -18,12 +18,12 @@
 */
 
 -- First, ensure we have a proper DELETE policy
-CREATE POLICY "connections_delete_policy"
-  ON connections FOR DELETE
-  TO authenticated
-  USING (
-    requester_id = auth.uid() OR addressee_id = auth.uid()
-  );
+--CREATE POLICY "connections_delete_policy"
+--  ON connections FOR DELETE
+--  TO authenticated
+--  USING (
+--    requester_id = auth.uid() OR addressee_id = auth.uid()
+--  );
 
 -- Create the safe delete function that was missing
 CREATE OR REPLACE FUNCTION delete_connection_safely(connection_id uuid)

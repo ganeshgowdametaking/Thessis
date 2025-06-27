@@ -55,31 +55,31 @@ ALTER TABLE gdpr_consents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE data_requests ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for gdpr_consents
-CREATE POLICY "Users can view their own consent"
-  ON gdpr_consents FOR SELECT
-  TO authenticated
-  USING (user_id = auth.uid());
+--CREATE POLICY "Users can view their own consent"
+--  ON gdpr_consents FOR SELECT
+--  TO authenticated
+--  USING (user_id = auth.uid());
 
-CREATE POLICY "Users can update their own consent"
-  ON gdpr_consents FOR UPDATE
-  TO authenticated
-  USING (user_id = auth.uid());
+--CREATE POLICY "Users can update their own consent"
+--  ON gdpr_consents FOR UPDATE
+--  TO authenticated
+--  USING (user_id = auth.uid());
 
-CREATE POLICY "Users can insert their own consent"
-  ON gdpr_consents FOR INSERT
-  TO authenticated
-  WITH CHECK (user_id = auth.uid());
+--CREATE POLICY "Users can insert their own consent"
+--  ON gdpr_consents FOR INSERT
+--  TO authenticated
+--  WITH CHECK (user_id = auth.uid());
 
 -- Create policies for data_requests
-CREATE POLICY "Users can view their own data requests"
-  ON data_requests FOR SELECT
-  TO authenticated
-  USING (user_id = auth.uid());
+--CREATE POLICY "Users can view their own data requests"
+--  ON data_requests FOR SELECT
+--  TO authenticated
+--  USING (user_id = auth.uid());
 
-CREATE POLICY "Users can create their own data requests"
-  ON data_requests FOR INSERT
-  TO authenticated
-  WITH CHECK (user_id = auth.uid());
+--CREATE POLICY "Users can create their own data requests"
+--  ON data_requests FOR INSERT
+--  TO authenticated
+--  WITH CHECK (user_id = auth.uid());
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_gdpr_consents_user_id ON gdpr_consents(user_id);
@@ -96,10 +96,10 @@ END;
 $$ language 'plpgsql';
 
 -- Create trigger for updating timestamp
-CREATE TRIGGER update_gdpr_consents_updated_at
-BEFORE UPDATE ON gdpr_consents
-FOR EACH ROW
-EXECUTE FUNCTION update_gdpr_consents_updated_at();
+--CREATE TRIGGER update_gdpr_consents_updated_at
+--BEFORE UPDATE ON gdpr_consents
+--FOR EACH ROW
+--EXECUTE FUNCTION update_gdpr_consents_updated_at();
 
 -- Create function to log consent changes for audit purposes
 CREATE OR REPLACE FUNCTION log_consent_change()
@@ -162,7 +162,7 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for audit logging
-CREATE TRIGGER log_gdpr_consents_changes
-AFTER INSERT OR UPDATE OR DELETE ON gdpr_consents
-FOR EACH ROW
-EXECUTE FUNCTION log_consent_change();
+--CREATE TRIGGER log_gdpr_consents_changes
+--AFTER INSERT OR UPDATE OR DELETE ON gdpr_consents
+--FOR EACH ROW
+--EXECUTE FUNCTION log_consent_change();

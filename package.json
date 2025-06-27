@@ -10,14 +10,31 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.470.0",
+    "@aws-sdk/s3-request-presigner": "^3.470.0",
+    "@nivo/core": "^0.99.0",
+    "@nivo/geo": "^0.99.0",
+    "@nivo/line": "^0.99.0",
     "@supabase/supabase-js": "^2.39.0",
+    "cors": "^2.8.5",
+    "d3-geo": "^3.1.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "framer-motion": "^12.19.1",
+    "gsap": "^3.13.0",
+    "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.344.0",
+    "multer": "^2.0.1",
+    "ogl": "^1.0.11",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.22.0"
+    "react-responsive": "^10.0.1",
+    "react-router-dom": "^6.22.0",
+    "recharts": "^3.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@types/lodash.debounce": "^4.0.9",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

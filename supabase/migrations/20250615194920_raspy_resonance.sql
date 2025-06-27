@@ -3,6 +3,9 @@
 -- Copy and paste this ENTIRE script into Supabase SQL Editor
 -- ========================================
 
+DROP FUNCTION IF EXISTS delete_conversation_with_messages(uuid);
+DROP FUNCTION IF EXISTS check_conversation_deletion_permissions(uuid);
+
 -- Step 1: Create the main deletion function
 CREATE OR REPLACE FUNCTION delete_conversation_with_messages(conversation_id uuid)
 RETURNS jsonb
@@ -48,7 +51,7 @@ BEGIN
   
   -- Step 1: Delete all messages in the conversation first
   DELETE FROM messages 
-  WHERE conversation_id = conversation_record.id;
+  WHERE messages.conversation_id = conversation_record.id;
   
   GET DIAGNOSTICS deleted_messages_count = ROW_COUNT;
   
@@ -101,7 +104,7 @@ BEGIN
   SELECT * INTO conversation_record FROM conversations WHERE id = conversation_id;
   
   -- Count messages in conversation
-  SELECT COUNT(*) INTO messages_count FROM messages WHERE conversation_id = conversation_id;
+  SELECT COUNT(*) INTO messages_count FROM messages WHERE messages.conversation_id = conversation_id;
   
   -- Build comprehensive result
   result := jsonb_build_object(
