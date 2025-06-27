@@ -278,7 +278,7 @@ export const jobService = {
     job_id: string; 
     applicant_id: string; 
     cover_letter?: string | null; 
-    resume: File; 
+    resume: string;
   }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -296,7 +296,7 @@ export const jobService = {
       console.log('🔍 DEBUG: Applicant ID from application:', application.applicant_id);
 
       // Simulate resume upload (replace with actual storage logic)
-      const resumeUrl = `placeholder_resume_url_${application.resume.name}`; // Replace with Supabase storage upload
+      const resumeUrl = application.resume; // S3 URL is now passed in
 
       const applicationData = {
         job_id: application.job_id,

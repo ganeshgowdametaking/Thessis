@@ -8,6 +8,7 @@ import { useMediaQuery } from 'react-responsive';
 import './JobsPage.css';
 import LoadingSpinner from './LoadingSpinner';
 import debounce from 'lodash.debounce';
+import { uploadFileToS3PresignedUrl } from '../services/s3Service';
 
 type Job = Database['public']['Tables']['jobs']['Row'];
 type ApplicationInsert = Database['public']['Tables']['applications']['Insert'];
@@ -323,29 +324,37 @@ const JobsPage: React.FC = () => {
 
     try {
       setApplicationError(null);
-      
-      console.log('🔍 DEBUG: User ID:', user.id);
-      console.log('🔍 DEBUG: Job ID:', selectedJob.id);
-      console.log('🔍 DEBUG: Email:', applicationForm.email);
-      console.log('🔍 DEBUG: Resume file:', applicationForm.resume);
-      
+      const file = applicationForm.resume as File;
+      // 1. Get a pre-signed upload URL from your backend
+      const fileKey = `resumes/${user.id}/${Date.now()}_${file.name}`;
+      const presignedRes = await fetch('http://localhost:3001/generate-upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: fileKey,
+          contentType: file.type,
+        }),
+      });
+      if (!presignedRes.ok) throw new Error('Failed to get S3 upload URL');
+      const { url: presignedUrl } = await presignedRes.json();
+
+      // 2. Upload the file to S3 using the pre-signed URL
+      const s3Url = await uploadFileToS3PresignedUrl(file, presignedUrl);
+
+      // 3. Save the S3 URL in your application data (not the file itself)
       const applicationData = {
         job_id: selectedJob.id,
         applicant_id: user.id,
-        resume: applicationForm.resume,
+        resume: s3Url,
+        email: applicationForm.email,
+        // ...other fields as needed
       };
 
-      console.log('🔍 DEBUG: Application data being sent:', applicationData);
-
+      // 4. Call your jobService or Supabase to save the application
       await jobService.createApplication(applicationData);
-      
       setApplicationStep(2); // Go to success step
-      
-      // Refresh applied jobs and job list immediately
       await loadUserApplications();
       await loadJobs();
-
-      // Close modal after 3 seconds
       setTimeout(() => {
         setShowApplicationModal(false);
         setApplicationStep(1);
@@ -509,9 +518,10 @@ const JobsPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-end mb-6 gap-4">
                 <button
                   onClick={() => navigate('/create-referral')}
-                  className="bg-slate-900 text-white px-6 py-3 rounded-lg hover:bg-slate-800 transition-colors flex items-center space-x-2 font-medium"
+                  className="bg-slate-900 text-white w-full py-2.5 rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center space-x-2 font-medium text-lg shadow-sm"
+                  style={{maxWidth: '100%'}}
                 >
-                  <Plus className="h-5 w-5" />
+                  <Plus className="h-6 w-6" />
                   <span>Create Referral</span>
                 </button>
               </div>
@@ -778,9 +788,9 @@ const JobsPage: React.FC = () => {
                           type="button"
                           disabled
                           className="self-start px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 bg-slate-300 text-slate-500 cursor-not-allowed select-none"
+                          style={{ width: 'fit-content', minWidth: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px 20px' }}
                         >
-                          <Briefcase className="h-4 w-4" />
-                          <span>Applied</span>
+                          <span style={{ width: '100%', textAlign: 'center' }}>Applied</span>
                         </button>
                       ) : (
                         <button
@@ -946,9 +956,9 @@ const JobsPage: React.FC = () => {
                         type="button"
                         disabled
                         className="self-start px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 bg-slate-300 text-slate-500 cursor-not-allowed select-none"
+                        style={{ width: 'fit-content', minWidth: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px 20px' }}
                       >
-                        <Briefcase className="h-4 w-4" />
-                        <span>Applied</span>
+                        <span style={{ width: '100%', textAlign: 'center' }}>Applied</span>
                       </button>
                     ) : (
                       <button

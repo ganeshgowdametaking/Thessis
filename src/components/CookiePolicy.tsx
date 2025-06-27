@@ -22,6 +22,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
             <button
               onClick={handleBack}
               className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+              aria-label="Go back"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>

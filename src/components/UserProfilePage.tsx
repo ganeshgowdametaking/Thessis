@@ -422,10 +422,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
           <div className="flex justify-start p-4">
             <button
               onClick={onBack}
-              className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all px-3 py-2"
+              className="flex items-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all px-3 py-2"
+              aria-label="Go back"
             >
               <ArrowLeft className="h-5 w-5" />
-              <span>Back</span>
             </button>
           </div>
 

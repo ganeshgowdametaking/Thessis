@@ -25,6 +25,7 @@ import { LoadingProvider } from './contexts/LoadingContext';
 import { supabase } from './lib/supabase';
 import { useMediaQuery } from 'react-responsive';
 import LoadingSpinner from './components/LoadingSpinner';
+import AnalyticsPage from './components/AnalyticsPage';
 
 // Wrapper component for ApplicationsPage to handle React Router integration
 function ApplicationsPageWrapper() {
@@ -221,7 +222,10 @@ function App() {
   return (
     <LoadingProvider>
       <Router>
-        <AppContent />
+        <Routes>
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/*" element={<AppContent />} />
+        </Routes>
       </Router>
     </LoadingProvider>
   );
@@ -282,6 +286,7 @@ function AppContent() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
               <Route path="/settings" element={<SettingsPageWrapper />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="*" element={<Navigate to="/jobs" />} />
             </>
           ) : (

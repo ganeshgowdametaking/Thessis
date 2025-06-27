@@ -1,0 +1,14 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "id": "USA", "properties": { "name": "United States" }, "geometry": { "type": "Polygon", "coordinates": [[[ -100, 40 ], [ -90, 40 ], [ -90, 30 ], [ -100, 30 ], [ -100, 40 ]]] } },
+    { "type": "Feature", "id": "IND", "properties": { "name": "India" }, "geometry": { "type": "Polygon", "coordinates": [[[ 75, 20 ], [ 85, 20 ], [ 85, 10 ], [ 75, 10 ], [ 75, 20 ]]] } },
+    { "type": "Feature", "id": "BRA", "properties": { "name": "Brazil" }, "geometry": { "type": "Polygon", "coordinates": [[[ -60, -10 ], [ -50, -10 ], [ -50, -20 ], [ -60, -20 ], [ -60, -10 ]]] } },
+    { "type": "Feature", "id": "FRA", "properties": { "name": "France" }, "geometry": { "type": "Polygon", "coordinates": [[[ 0, 50 ], [ 10, 50 ], [ 10, 40 ], [ 0, 40 ], [ 0, 50 ]]] } },
+    { "type": "Feature", "id": "RUS", "properties": { "name": "Russia" }, "geometry": { "type": "Polygon", "coordinates": [[[ 40, 60 ], [ 60, 60 ], [ 60, 50 ], [ 40, 50 ], [ 40, 60 ]]] } },
+    { "type": "Feature", "id": "AUS", "properties": { "name": "Australia" }, "geometry": { "type": "Polygon", "coordinates": [[[ 130, -20 ], [ 150, -20 ], [ 150, -40 ], [ 130, -40 ], [ 130, -20 ]]] } },
+    { "type": "Feature", "id": "ZAF", "properties": { "name": "South Africa" }, "geometry": { "type": "Polygon", "coordinates": [[[ 20, -30 ], [ 30, -30 ], [ 30, -35 ], [ 20, -35 ], [ 20, -30 ]]] } },
+    { "type": "Feature", "id": "CAN", "properties": { "name": "Canada" }, "geometry": { "type": "Polygon", "coordinates": [[[ -120, 60 ], [ -80, 60 ], [ -80, 50 ], [ -120, 50 ], [ -120, 60 ]]] } },
+    { "type": "Feature", "id": "GBR", "properties": { "name": "United Kingdom" }, "geometry": { "type": "Polygon", "coordinates": [[[ -5, 55 ], [ 2, 55 ], [ 2, 50 ], [ -5, 50 ], [ -5, 55 ]]] } }
+  ]
+} 

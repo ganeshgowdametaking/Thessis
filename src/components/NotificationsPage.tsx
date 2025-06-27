@@ -353,7 +353,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Notifications</h1>
                 <p className="text-slate-600 text-sm sm:text-base">
-                  {unreadCount > 0 ? `${unreadCount} new notifications` : 'All caught up!'}
+                  {unreadCount > 0 ? `${unreadCount} new notifications` : ''}
                 </p>
               </div>
             </div>
@@ -592,12 +592,6 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
                 <Bell className="h-8 w-8 text-slate-400" />
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">No notifications found</h3>
-              <p className="text-slate-600 mb-4 text-sm sm:text-base">
-                {filter === 'all' 
-                  ? 'You\'re all caught up! Check back later for new notifications.' 
-                  : `No ${filter} notifications at the moment.`
-                }
-              </p>
             </div>
           )}
         </div>

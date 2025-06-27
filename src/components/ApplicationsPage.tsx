@@ -28,6 +28,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [currentApplication, setCurrentApplication] = useState<any>(null);
   const [sortOrder, setSortOrder] = useState<'latest' | 'earliest'>('latest');
+  const [resumeLoading, setResumeLoading] = useState(false);
 
   // Load applications when component mounts
   useEffect(() => {
@@ -81,9 +82,21 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
     }
   };
 
-  // Helper function to get profile picture with fallback
+  // Helper function to format time ago
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Helper function to get profile picture
   const getProfilePicture = (applicant: any) => {
-    // Check if user has uploaded a profile picture (not the default placeholder)
     if (applicant?.avatar && applicant.avatar !== '/default-avatar.png') {
       return applicant.avatar;
     }
@@ -107,24 +120,6 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
     `;
     
     return `data:image/svg+xml;base64,${btoa(svg)}`;
-  };
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
-    
-    const diffInWeeks = Math.floor(diffInDays / 7);
-    if (diffInWeeks < 4) return `${diffInWeeks} week${diffInWeeks > 1 ? 's' : ''} ago`;
-    
-    const diffInMonths = Math.floor(diffInDays / 30);
-    return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
   };
 
   const handleShortlist = async (applicationId: number) => {
@@ -169,6 +164,61 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
   const handleViewProfile = (applicantId: string) => {
     console.log('Navigating to profile for applicant ID:', applicantId);
     onViewProfile(applicantId);
+  };
+
+  // NEW: Get pre-signed download URL for resume
+  const getResumeDownloadUrl = async (resumeUrl: string) => {
+    try {
+      setResumeLoading(true);
+      
+      // Extract the key from the S3 URL
+      const url = new URL(resumeUrl);
+      const key = url.pathname.substring(1); // Remove leading slash
+      
+      const response = await fetch('http://localhost:3001/generate-download-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate download URL');
+      }
+      
+      const { url: downloadUrl } = await response.json();
+      return downloadUrl;
+    } catch (error) {
+      console.error('Error generating download URL:', error);
+      throw error;
+    } finally {
+      setResumeLoading(false);
+    }
+  };
+
+  // NEW: Handle resume view/download with pre-signed URLs
+  const handleResumeAction = async (action: 'view' | 'download') => {
+    if (!currentApplication?.resumeUrl) return;
+    
+    try {
+      setResumeLoading(true);
+      const downloadUrl = await getResumeDownloadUrl(currentApplication.resumeUrl);
+      
+      if (action === 'view') {
+        window.open(downloadUrl, '_blank');
+      } else if (action === 'download') {
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `${currentApplication.applicant.name}_Resume.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Error handling resume action:', error);
+      alert('Failed to access resume. Please try again.');
+    } finally {
+      setResumeLoading(false);
+    }
   };
 
   // UPDATED: Sort applications with shortlisted at the top, and by sortOrder
@@ -484,25 +534,28 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
                     </p>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3">
                       <button
-                        onClick={() => window.open(currentApplication.resumeUrl, '_blank')}
-                        className="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                        onClick={() => handleResumeAction('view')}
+                        disabled={resumeLoading}
+                        className="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Eye className="h-4 w-4" />
-                        <span>View Resume</span>
+                        {resumeLoading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                        <span>{resumeLoading ? 'Loading...' : 'View Resume'}</span>
                       </button>
                       <button
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = currentApplication.resumeUrl;
-                          link.download = `${currentApplication.applicant.name}_Resume.pdf`;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                        }}
-                        className="bg-slate-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-slate-700 transition-colors flex items-center justify-center space-x-2"
+                        onClick={() => handleResumeAction('download')}
+                        disabled={resumeLoading}
+                        className="bg-slate-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-slate-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Download className="h-4 w-4" />
-                        <span>Download Resume</span>
+                        {resumeLoading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                        <span>{resumeLoading ? 'Loading...' : 'Download Resume'}</span>
                       </button>
                     </div>
                   </>

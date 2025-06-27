@@ -78,38 +78,64 @@ const CreateReferralPage: React.FC = () => {
   }
   `;
 
-  // Add the Uiverse.io back button styles
-  const uiverseBackBtnStyles = `
-  .uiverse-back-btn {
-    display: flex;
-    height: 3em;
-    width: 100px;
-    align-items: center;
-    justify-content: center;
-    background-color: #eeeeee4b;
-    border-radius: 3px;
-    letter-spacing: 1px;
-    transition: all 0.2s linear;
+  // Add the Uiverse.io checkbox styles
+  const uiverseCheckboxStyles = `
+  /* From Uiverse.io by SelfMadeSystem */ 
+  /* Hide the default checkbox */
+  .container input {
+    display: none;
+  }
+
+  .container {
+    display: block;
+    position: relative;
     cursor: pointer;
-    border: none;
-    background: #fff;
-  }
-
-  .uiverse-back-btn > svg {
-    margin-right: 5px;
-    margin-left: 5px;
     font-size: 20px;
-    transition: all 0.4s ease-in;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  .uiverse-back-btn:hover > svg {
-    font-size: 1.2em;
-    transform: translateX(-5px);
+  /* Create a custom checkbox */
+  .checkmark {
+    position: relative;
+    top: 0;
+    left: 0;
+    height: 1.3em;
+    width: 1.3em;
+    background-color: #2196F300;
+    border-radius: 0.25em;
+    transition: all 0.25s;
   }
 
-  .uiverse-back-btn:hover {
-    box-shadow: 9px 9px 33px #d1d1d1, -9px -9px 33px #ffffff;
-    transform: translateY(-2px);
+  /* When the checkbox is checked, add a blue background */
+  .container input:checked ~ .checkmark {
+    background-color: #2196F3;
+  }
+
+  /* Create the checkmark/indicator (hidden when not checked) */
+  .checkmark:after {
+    content: "";
+    position: absolute;
+    transform: rotate(0deg);
+    border: 0.1em solid black;
+    left: 0;
+    top: 0;
+    width: 1.05em;
+    height: 1.05em;
+    border-radius: 0.25em;
+    transition: all 0.25s, border-width 0.1s;
+  }
+
+  /* Show the checkmark when checked */
+  .container input:checked ~ .checkmark:after {
+    left: 0.45em;
+    top: 0.25em;
+    width: 0.25em;
+    height: 0.5em;
+    border-color: #fff0 white white #fff0;
+    border-width: 0 0.15em 0.15em 0;
+    border-radius: 0em;
+    transform: rotate(45deg);
   }
   `;
 
@@ -361,7 +387,7 @@ const CreateReferralPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <style>{uiverseApplyNowBtnStyles}</style>
-      <style>{uiverseBackBtnStyles}</style>
+      <style>{uiverseCheckboxStyles}</style>
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -369,10 +395,10 @@ const CreateReferralPage: React.FC = () => {
             <div className="flex items-center">
               <button 
                 onClick={() => window.history.back()}
-                className="uiverse-back-btn"
+                className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
+                aria-label="Go back"
               >
                 <ArrowLeft className="h-5 w-5" />
-                Back
               </button>
               <h1 className="text-xl font-semibold text-gray-900">Create Job Referral</h1>
             </div>
@@ -592,26 +618,26 @@ const CreateReferralPage: React.FC = () => {
                 {/* Additional Options */}
                 <div className="space-y-3">
                   <div className="border rounded-md p-3">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
+                    <label className="container flex flex-row items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
                         checked={formData.remote_available}
                         onChange={(e) => handleInputChange('remote_available', e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Remote work available</span>
+                      <div className="checkmark"></div>
+                      <span className="text-sm text-gray-700">Remote work available</span>
                     </label>
                   </div>
                   
                   <div className="border rounded-md p-3">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
+                    <label className="container flex flex-row items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
                         checked={formData.urgent_hiring}
                         onChange={(e) => handleInputChange('urgent_hiring', e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Urgent hiring</span>
+                      <div className="checkmark"></div>
+                      <span className="text-sm text-gray-700">Urgent hiring</span>
                     </label>
                   </div>
                 </div>
