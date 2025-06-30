@@ -6,6 +6,7 @@ import { profileService } from '../services/profileService'
 interface AuthContextType {
   user: User | null
   profile: any | null
+  isAdmin: boolean
   loading: boolean
   error: string | null
   signUp: (email: string, password: string, userData: any) => Promise<any>
@@ -84,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     profile,
+    isAdmin: profile?.role === 'admin',
     loading: authLoading || loading,
     error: combinedError,
     signUp,

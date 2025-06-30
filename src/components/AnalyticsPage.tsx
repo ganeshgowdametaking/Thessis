@@ -2,6 +2,9 @@ import React from 'react';
 import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveChoropleth } from '@nivo/geo';
 import worldCountries from './world_countries.json';
+import { useAuthContext } from '../contexts/AuthContext';
+import { Navigate } from 'react-router-dom';
+import LoadingSpinner from './LoadingSpinner';
 
 // Mock data for the world map (country codes and user counts)
 const mapData = [
@@ -93,8 +96,22 @@ const bounceLineData = [
 ];
 
 const AnalyticsPage: React.FC = () => {
+  const { user, profile, isAdmin, loading } = useAuthContext();
+
+  if (loading) {
+    return <LoadingSpinner text="Loading dashboard..." />;
+  }
+
+  if (!user || !profile) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (profile.role !== 'admin') {
+    return <Navigate to="/jobs" replace />;
+  }
+
   return (
-    <div className="min-h-screen bg-[#18181b] text-gray-100 p-4">
+    <div className="text-gray-100 p-4">
       <div className="max-w-7xl mx-auto">
         {/* User Distribution Map */}
         <div className="bg-[#23272f] rounded-xl p-6 mb-8 shadow">
