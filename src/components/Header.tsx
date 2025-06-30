@@ -93,7 +93,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
       await fetchCounts();
     };
     safeFetch();
-    const interval = setInterval(safeFetch, 30000); // Poll every 30s
+    const interval = setInterval(safeFetch, 120000); // Poll every 2 minutes
     // Expose global refresh for other components
     window.refreshUnreadCounts = fetchCounts;
     return () => { isMounted = false; clearInterval(interval); window.refreshUnreadCounts = undefined; };
