@@ -19,7 +19,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
-  const { user, signOut } = useAuthContext();
+  const { user, signOut, profile } = useAuthContext();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -93,7 +93,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
       await fetchCounts();
     };
     safeFetch();
-    const interval = setInterval(safeFetch, 30000); // Poll every 30s
+    const interval = setInterval(safeFetch, 120000); // Poll every 2 minutes
     // Expose global refresh for other components
     window.refreshUnreadCounts = fetchCounts;
     return () => { isMounted = false; clearInterval(interval); window.refreshUnreadCounts = undefined; };
@@ -209,6 +209,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   }
 
   const navLinks = [
+    ...(profile?.role === 'admin' ? [{ href: '/analytics', label: 'Analytics', icon: Briefcase }] : []),
     { href: '/jobs', label: 'Jobs', icon: Briefcase },
     { href: '/messages', label: 'Messages', icon: MessageSquare },
     { href: '/notifications', label: 'Notifications', icon: Bell },

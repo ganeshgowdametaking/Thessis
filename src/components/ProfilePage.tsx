@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { User, MapPin, Briefcase, GraduationCap, Award, Users, MessageCircle, Edit3, Camera, Plus, X, Calendar, Building, Trash2 } from 'lucide-react';
+import debounce from 'lodash.debounce';
 import { profileService } from '../services/profileService';
 import { postService } from '../services/postService';
 import { connectionService } from '../services/connectionService';
@@ -71,6 +72,13 @@ const ProfilePage: React.FC = () => {
     connections: 0,
   });
 
+  // Location autocomplete state
+  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [locationTouched, setLocationTouched] = useState(false);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+
   useEffect(() => {
     if (profile) {
       setEditForm({
@@ -85,9 +93,68 @@ const ProfilePage: React.FC = () => {
         skills: profile.skills || [],
         achievements: profile.achievements || [],
       });
+      setLocationQuery(profile.location || '');
     }
     loadRealCounts();
   }, [profile]);
+
+  // Debounced fetch for location suggestions
+  const fetchLocationSuggestions = useCallback(
+    debounce(async (query: string) => {
+      if (!query) {
+        setLocationSuggestions([]);
+        return;
+      }
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=8`
+        );
+        const data = await response.json();
+        setLocationSuggestions(data);
+      } catch (error) {
+        setLocationSuggestions([]);
+      }
+    }, 300),
+    []
+  );
+
+  const handleLocationInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocationQuery(value);
+    setLocationError('');
+    setShowLocationSuggestions(true);
+    if (value) {
+      fetchLocationSuggestions(value);
+    } else {
+      setLocationSuggestions([]);
+    }
+  };
+
+  const handleLocationSelect = (suggestion: any) => {
+    setLocationQuery(suggestion.display_name);
+    setEditForm({ ...editForm, location: suggestion.display_name });
+    setLocationSuggestions([]);
+    setShowLocationSuggestions(false);
+    setLocationError('');
+  };
+
+  const validateLocation = () => {
+    if (!locationQuery.trim()) {
+      setLocationError('Location is required');
+      return false;
+    }
+    setLocationError('');
+    return true;
+  };
+
+  const validateExperienceLocations = () => {
+    for (const exp of editForm.experiences) {
+      if (exp.location && exp.location.trim().length < 2) {
+        return false;
+      }
+    }
+    return true;
+  };
 
   const loadRealCounts = async () => {
     try {
@@ -142,6 +209,18 @@ const ProfilePage: React.FC = () => {
       setSaveError('You must be logged in to update your profile.');
       return;
     }
+
+    // Validate location
+    if (!validateLocation()) {
+      return;
+    }
+
+    // Validate experience locations
+    if (!validateExperienceLocations()) {
+      setSaveError('Please enter valid locations for all experience entries.');
+      return;
+    }
+
     setIsSaving(true);
     setSaveError(null);
     try {
@@ -509,15 +588,38 @@ const ProfilePage: React.FC = () => {
                     disabled={isSaving}
                   />
                 </div>
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
                   <input
                     type="text"
-                    value={editForm.location}
-                    onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={locationQuery}
+                    onChange={handleLocationInput}
+                    onBlur={() => {
+                      setLocationTouched(true);
+                      setTimeout(() => setShowLocationSuggestions(false), 200);
+                    }}
+                    onFocus={() => setShowLocationSuggestions(true)}
+                    className={`w-full px-4 py-2 border ${locationError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    placeholder="Type a city, state, or country..."
                     disabled={isSaving}
+                    autoComplete="off"
                   />
+                  {showLocationSuggestions && locationSuggestions.length > 0 && (
+                    <ul className="absolute z-10 bg-white border border-slate-200 rounded-lg mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
+                      {locationSuggestions.map((suggestion, idx) => (
+                        <li
+                          key={suggestion.place_id}
+                          className="px-4 py-2 cursor-pointer hover:bg-blue-100"
+                          onMouseDown={() => handleLocationSelect(suggestion)}
+                        >
+                          {suggestion.display_name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {locationError && locationTouched && (
+                    <p className="text-red-600 text-xs mt-1">{locationError}</p>
+                  )}
                 </div>
               </div>
               <div>
@@ -556,6 +658,9 @@ const ProfilePage: React.FC = () => {
                     <span>Add</span>
                   </button>
                 </div>
+                <p className="text-xs text-slate-500 mb-4">
+                  💡 Tip: Enter real city, state, or country names for locations (e.g., "San Francisco, CA" or "London, UK")
+                </p>
                 {editForm.experiences.map((exp) => (
                   <div key={exp.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
                     <button
@@ -587,14 +692,16 @@ const ProfilePage: React.FC = () => {
                           disabled={isSaving}
                         />
                       </div>
-                      <div>
+                      <div className="relative">
                         <label className="block text-xs font-medium text-slate-700 mb-1">Location</label>
                         <input
                           type="text"
                           value={exp.location}
                           onChange={(e) => updateItem('experiences', exp.id, { ...exp, location: e.target.value })}
                           className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Type a city, state, or country..."
                           disabled={isSaving}
+                          autoComplete="off"
                         />
                       </div>
                       <div>

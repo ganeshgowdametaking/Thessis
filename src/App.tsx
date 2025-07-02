@@ -223,7 +223,6 @@ function App() {
     <LoadingProvider>
       <Router>
         <Routes>
-          <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/*" element={<AppContent />} />
         </Routes>
       </Router>
@@ -232,11 +231,18 @@ function App() {
 }
 
 function AppContent() {
-  const { user, loading } = useAuthContext();
+  const { user, loading, isAdmin } = useAuthContext();
   const location = useLocation();
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchParams] = useSearchParams();
   const isResetFlow = searchParams.get('reset') === 'true';
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && user && isAdmin && (location.pathname === '/' || location.pathname === '')) {
+      navigate('/analytics', { replace: true });
+    }
+  }, [user, isAdmin, loading, location.pathname, navigate]);
 
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password' }>({
     isOpen: false,
@@ -277,6 +283,7 @@ function AppContent() {
         <Routes>
           {user ? (
             <>
+              <Route path="/analytics" element={isAdmin ? <AnalyticsPage /> : <Navigate to="/jobs" replace />} />
               <Route path="/jobs" element={<JobsPage />} />
               <Route path="/create-referral" element={<CreateReferralPage />} />
               <Route path="/applications/:referralId" element={<ApplicationsPageWrapper />} />
@@ -286,7 +293,6 @@ function AppContent() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
               <Route path="/settings" element={<SettingsPageWrapper />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="*" element={<Navigate to="/jobs" />} />
             </>
           ) : (

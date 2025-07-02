@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Plus, Share2, Trash2, Briefcase, Users, MapPin, Clock, Calendar, Eye } from 'lucide-react';
+import { ArrowLeft, Plus, Share2, Trash2, Briefcase, Users, MapPin, Clock, Calendar, Eye, Edit, X } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Database } from '../lib/database.types';
 import { useNavigate } from 'react-router-dom';
 import { jobService } from '../services/jobService';
 import LoadingSpinner from './LoadingSpinner';
+import SecondaryEmailVerificationModal from './SecondaryEmailVerificationModal';
 import debounce from 'lodash.debounce';
 
 type Job = Database['public']['Tables']['jobs']['Row'];
@@ -166,6 +167,37 @@ const CreateReferralPage: React.FC = () => {
   const [locationError, setLocationError] = useState('');
   const [locationTouched, setLocationTouched] = useState(false);
 
+  // Edit functionality state
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState<JobInsert>({
+    title: '',
+    company: '',
+    department: '',
+    location: '',
+    job_type: 'Full-time',
+    description: '',
+    skills: [],
+    benefits: [],
+    remote_available: false,
+    urgent_hiring: false,
+    experience_level: 'Mid-level',
+    application_deadline: '',
+    contact_email: '',
+    created_by: user?.id || '',
+    status: 'active'
+  });
+  const [editSkillInput, setEditSkillInput] = useState('');
+  const [editBenefitInput, setEditBenefitInput] = useState('');
+  const [editLocationQuery, setEditLocationQuery] = useState('');
+  const [editLocationSuggestions, setEditLocationSuggestions] = useState<any[]>([]);
+  const [editLocationError, setEditLocationError] = useState('');
+  const [editLocationTouched, setEditLocationTouched] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+
+  // Secondary email verification modal state
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+
   // Fetch user's jobs (acting as referrals)
   const fetchMyReferrals = useCallback(async () => {
     if (!user?.id) return;
@@ -278,9 +310,28 @@ const CreateReferralPage: React.FC = () => {
     return true;
   };
 
+  const checkSecondaryEmailVerification = () => {
+    if (!profile?.secondary_email_verified) {
+      setShowVerificationModal(true);
+      return false;
+    }
+    return true;
+  };
+
+  const handleNavigateToSettings = () => {
+    setShowVerificationModal(false);
+    navigate('/settings');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
+    
+    // Check secondary email verification
+    if (!checkSecondaryEmailVerification()) {
+      return;
+    }
+    
     setLocationTouched(true);
     if (!validateLocation()) return;
     setLoading(true);
@@ -382,6 +433,189 @@ const CreateReferralPage: React.FC = () => {
       day: 'numeric',
       year: 'numeric'
     });
+  };
+
+  // Edit functionality functions
+  const handleEditJob = (job: Job) => {
+    setEditingJob(job);
+    setEditFormData({
+      title: job.title,
+      company: job.company,
+      department: job.department || '',
+      location: job.location,
+      job_type: job.job_type,
+      description: job.description,
+      skills: job.skills || [],
+      benefits: job.benefits || [],
+      remote_available: job.remote_available || false,
+      urgent_hiring: job.urgent_hiring || false,
+      experience_level: job.experience_level,
+      application_deadline: job.application_deadline || '',
+      contact_email: job.contact_email || '',
+      created_by: user?.id || '',
+      status: job.status
+    });
+    setEditLocationQuery(job.location);
+    setShowEditModal(true);
+  };
+
+  const handleEditInputChange = (field: keyof JobInsert, value: any) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const addEditSkill = () => {
+    if (editSkillInput.trim() && !editFormData.skills?.includes(editSkillInput.trim())) {
+      setEditFormData(prev => ({
+        ...prev,
+        skills: [...(prev.skills || []), editSkillInput.trim()]
+      }));
+      setEditSkillInput('');
+    }
+  };
+
+  const removeEditSkill = (skillToRemove: string) => {
+    setEditFormData(prev => ({
+      ...prev,
+      skills: prev.skills?.filter(skill => skill !== skillToRemove) || []
+    }));
+  };
+
+  const addEditBenefit = () => {
+    if (editBenefitInput.trim() && !editFormData.benefits?.includes(editBenefitInput.trim())) {
+      setEditFormData(prev => ({
+        ...prev,
+        benefits: [...(prev.benefits || []), editBenefitInput.trim()]
+      }));
+      setEditBenefitInput('');
+    }
+  };
+
+  const removeEditBenefit = (benefitToRemove: string) => {
+    setEditFormData(prev => ({
+      ...prev,
+      benefits: prev.benefits?.filter(benefit => benefit !== benefitToRemove) || []
+    }));
+  };
+
+  const handleEditLocationInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEditLocationQuery(value);
+    setEditLocationError('');
+    if (value) {
+      fetchLocationSuggestions(value);
+    } else {
+      setEditLocationSuggestions([]);
+    }
+  };
+
+  const handleEditLocationSelect = (suggestion: any) => {
+    setEditLocationQuery(suggestion.display_name);
+    setEditFormData(prev => ({ ...prev, location: suggestion.display_name }));
+    setEditLocationSuggestions([]);
+    setEditLocationError('');
+  };
+
+  const validateEditLocation = () => {
+    if (!editLocationQuery.trim()) {
+      setEditLocationError('Location is required');
+      return false;
+    }
+    setEditLocationError('');
+    return true;
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingJob) return;
+
+    if (!validateEditLocation()) {
+      return;
+    }
+
+    setEditLoading(true);
+    try {
+      const updateData = {
+        title: editFormData.title.trim(),
+        company: editFormData.company.trim(),
+        department: editFormData.department?.trim() || null,
+        location: editFormData.location.trim(),
+        job_type: editFormData.job_type,
+        description: editFormData.description.trim(),
+        skills: editFormData.skills || [],
+        benefits: editFormData.benefits || [],
+        remote_available: editFormData.remote_available,
+        urgent_hiring: editFormData.urgent_hiring,
+        experience_level: editFormData.experience_level,
+        application_deadline: editFormData.application_deadline || null,
+        contact_email: editFormData.contact_email?.trim() || null,
+        status: editFormData.status
+      };
+
+      await jobService.updateJob(editingJob.id, updateData);
+      
+      // Refresh the referrals list
+      await fetchMyReferrals();
+      
+      // Close modal and reset state
+      setShowEditModal(false);
+      setEditingJob(null);
+      setEditFormData({
+        title: '',
+        company: '',
+        department: '',
+        location: '',
+        job_type: 'Full-time',
+        description: '',
+        skills: [],
+        benefits: [],
+        remote_available: false,
+        urgent_hiring: false,
+        experience_level: 'Mid-level',
+        application_deadline: '',
+        contact_email: '',
+        created_by: user?.id || '',
+        status: 'active'
+      });
+      setEditLocationQuery('');
+      setEditSkillInput('');
+      setEditBenefitInput('');
+    } catch (error: any) {
+      console.error('Error updating job:', error);
+      alert(error.message || 'Failed to update referral');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingJob(null);
+    setEditFormData({
+      title: '',
+      company: '',
+      department: '',
+      location: '',
+      job_type: 'Full-time',
+      description: '',
+      skills: [],
+      benefits: [],
+      remote_available: false,
+      urgent_hiring: false,
+      experience_level: 'Mid-level',
+      application_deadline: '',
+      contact_email: '',
+      created_by: user?.id || '',
+      status: 'active'
+    });
+    setEditLocationQuery('');
+    setEditSkillInput('');
+    setEditBenefitInput('');
+    setEditLocationSuggestions([]);
+    setEditLocationError('');
   };
 
   return (
@@ -679,12 +913,22 @@ const CreateReferralPage: React.FC = () => {
                         <h3 className="font-medium text-gray-900 text-sm leading-tight">
                           {job.title}
                         </h3>
-                        <button
-                          onClick={() => deleteReferral(job.id)}
-                          className="text-gray-400 hover:text-red-600 ml-2"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => handleEditJob(job)}
+                            className="text-gray-400 hover:text-blue-600"
+                            title="Edit referral"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteReferral(job.id)}
+                            className="text-gray-400 hover:text-red-600"
+                            title="Delete referral"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                       
                       <p className="text-sm text-gray-600 mb-2">{job.company}</p>
@@ -744,6 +988,262 @@ const CreateReferralPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Edit Referral</h2>
+              <button
+                onClick={closeEditModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-6">
+              {/* Basic Information */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center mb-4">
+                  <Briefcase className="h-5 w-5 text-blue-600 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Job Title *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editFormData.title}
+                      onChange={(e) => handleEditInputChange('title', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g. Senior Software Engineer"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Company *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editFormData.company}
+                      onChange={(e) => handleEditInputChange('company', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g. Google, Microsoft, Startup Inc."
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Department
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.department || ''}
+                      onChange={(e) => handleEditInputChange('department', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g. Engineering, Marketing, Sales"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Location *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editLocationQuery}
+                      onChange={handleEditLocationInput}
+                      onBlur={() => setEditLocationTouched(true)}
+                      className={`w-full px-3 py-2 border ${editLocationError ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      placeholder="Type a city, state, or country..."
+                      autoComplete="off"
+                    />
+                    {editLocationSuggestions.length > 0 && (
+                      <ul className="absolute z-10 bg-white border border-gray-200 rounded-md mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
+                        {editLocationSuggestions.map((suggestion, idx) => (
+                          <li
+                            key={suggestion.place_id}
+                            className="px-4 py-2 cursor-pointer hover:bg-blue-100"
+                            onMouseDown={() => handleEditLocationSelect(suggestion)}
+                          >
+                            {suggestion.display_name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {editLocationError && editLocationTouched && (
+                      <p className="text-red-600 text-xs mt-1">{editLocationError}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Job Details */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center mb-4">
+                  <Users className="h-5 w-5 text-blue-600 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Job Details</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Job Type *
+                    </label>
+                    <select
+                      required
+                      value={editFormData.job_type}
+                      onChange={(e) => handleEditInputChange('job_type', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="Full-time">Full-time</option>
+                      <option value="Part-time">Part-time</option>
+                      <option value="Contract">Contract</option>
+                      <option value="Internship">Internship</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Experience Level *
+                    </label>
+                    <select
+                      required
+                      value={editFormData.experience_level}
+                      onChange={(e) => handleEditInputChange('experience_level', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="Entry-level">Entry-level</option>
+                      <option value="Mid-level">Mid-level</option>
+                      <option value="Senior-level">Senior-level</option>
+                      <option value="Executive">Executive</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Job Description *
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={editFormData.description}
+                    onChange={(e) => handleEditInputChange('description', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Describe the role, responsibilities, and requirements..."
+                  />
+                </div>
+
+                {/* Skills */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Required Skills
+                  </label>
+                  <div className="flex mb-2">
+                    <input
+                      type="text"
+                      value={editSkillInput}
+                      onChange={(e) => setEditSkillInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addEditSkill())}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g. JavaScript, React, Python"
+                    />
+                    <button
+                      type="button"
+                      onClick={addEditSkill}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {editFormData.skills?.map((skill, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                      >
+                        {skill}
+                        <button
+                          type="button"
+                          onClick={() => removeEditSkill(skill)}
+                          className="ml-2 text-blue-600 hover:text-blue-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Additional Options */}
+                <div className="space-y-3">
+                  <div className="border rounded-md p-3">
+                    <label className="container flex flex-row items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={editFormData.remote_available}
+                        onChange={(e) => handleEditInputChange('remote_available', e.target.checked)}
+                      />
+                      <div className="checkmark"></div>
+                      <span className="text-sm text-gray-700">Remote work available</span>
+                    </label>
+                  </div>
+                  
+                  <div className="border rounded-md p-3">
+                    <label className="container flex flex-row items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={editFormData.urgent_hiring}
+                        onChange={(e) => handleEditInputChange('urgent_hiring', e.target.checked)}
+                      />
+                      <div className="checkmark"></div>
+                      <span className="text-sm text-gray-700">Urgent hiring</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="my-button font-medium flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ width: 'fit-content', minWidth: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <span style={{ width: '100%', textAlign: 'center' }}>
+                    {editLoading ? 'Updating...' : 'Update Referral'}
+                  </span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Secondary Email Verification Modal */}
+      <SecondaryEmailVerificationModal
+        isOpen={showVerificationModal}
+        onClose={() => setShowVerificationModal(false)}
+        onNavigateToSettings={handleNavigateToSettings}
+      />
     </div>
   );
 };

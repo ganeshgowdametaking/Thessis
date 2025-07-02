@@ -24,6 +24,9 @@ export interface Database {
           followers_count: number
           posts_count: number
           verified: boolean
+          secondary_email: string | null
+          secondary_email_verified: boolean
+          secondary_email_verified_at: string | null
           created_at: string
           updated_at: string
         }
@@ -41,6 +44,9 @@ export interface Database {
           followers_count?: number
           posts_count?: number
           verified?: boolean
+          secondary_email?: string | null
+          secondary_email_verified?: boolean
+          secondary_email_verified_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -58,6 +64,9 @@ export interface Database {
           followers_count?: number
           posts_count?: number
           verified?: boolean
+          secondary_email?: string | null
+          secondary_email_verified?: boolean
+          secondary_email_verified_at?: string | null
           created_at?: string
           updated_at?: string
         }
