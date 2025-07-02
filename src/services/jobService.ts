@@ -20,11 +20,21 @@ export const jobService = {
       try {
         console.log(`🔍 Attempt ${attempt + 1} - Executing query...`);
         
+        // Get current user to exclude their own jobs
+        const { data: { user } } = await supabase.auth.getUser();
+        const currentUserId = user?.id;
+        
         let query = supabase
           .from('jobs')
           .select('*')
           .eq('status', 'active' as any)
           .order('created_at', { ascending: false });
+
+        // Exclude jobs created by the current user
+        if (currentUserId) {
+          console.log(`🔍 Excluding jobs created by user: ${currentUserId}`);
+          query = query.neq('created_by', currentUserId);
+        }
 
         // FIX: Only apply filters if they have a non-empty value
         if (filters?.location && filters.location.trim() !== '') {

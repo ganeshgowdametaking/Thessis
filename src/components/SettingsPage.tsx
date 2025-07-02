@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Settings, User, Shield, LogOut, ChevronRight, Trash2, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+import { profileService } from '../services/profileService';
 
 interface SettingsPageProps {
   currentSection: string;
 }
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
-  const { user, signOut } = useAuthContext();
+  const { user, profile, signOut, updateProfile } = useAuthContext();
   const [activeSection, setActiveSection] = useState(currentSection === 'settings' ? 'account-settings' : currentSection);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [otp, setOtp] = useState('');
@@ -23,10 +25,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
   const [changePasswordSuccess, setChangePasswordSuccess] = useState('');
   
   // Secondary email verification states
-  const [secondaryEmail, setSecondaryEmail] = useState('');
+  const [secondaryEmail, setSecondaryEmail] = useState(profile?.secondary_email || '');
   const [secondaryEmailOtp, setSecondaryEmailOtp] = useState('');
   const [secondaryEmailOtpSent, setSecondaryEmailOtpSent] = useState(false);
-  const [secondaryEmailVerified, setSecondaryEmailVerified] = useState(false);
+  const [secondaryEmailVerified, setSecondaryEmailVerified] = useState(profile?.secondary_email_verified || false);
   const [secondaryEmailLoading, setSecondaryEmailLoading] = useState(false);
   const [secondaryEmailError, setSecondaryEmailError] = useState('');
   const [secondaryEmailSuccess, setSecondaryEmailSuccess] = useState('');
@@ -60,18 +62,33 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
     setSecondaryEmailLoading(true);
     
     try {
-      // In a real implementation, this would call an API to send OTP to the secondary email
-      console.log('Sending OTP to secondary email:', secondaryEmail);
+      const { data, error } = await supabase.functions.invoke('send-secondary-email-otp', {
+        body: { secondaryEmail }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       setSecondaryEmailOtpSent(true);
-      setSecondaryEmailSuccess('Verification code sent to your organization email.');
       
-      // Simulate API delay
-      setTimeout(() => {
-        setSecondaryEmailLoading(false);
-      }, 1000);
-    } catch (error) {
+      // For development: show OTP in success message if available
+      let successMessage = data.message || 'Verification code sent to your organization email.';
+      if (data.otp) {
+        successMessage += ` (Debug: OTP is ${data.otp})`;
+      }
+      if (data.debug) {
+        successMessage += ` (Debug: ${data.debug})`;
+      }
+      setSecondaryEmailSuccess(successMessage);
+    } catch (error: any) {
       console.error('Error sending secondary email OTP:', error);
-      setSecondaryEmailError('Failed to send verification code. Please try again.');
+      setSecondaryEmailError(error.message || 'Failed to send verification code. Please try again.');
+    } finally {
       setSecondaryEmailLoading(false);
     }
   };
@@ -86,18 +103,35 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
     setSecondaryEmailLoading(true);
     
     try {
-      // In a real implementation, this would verify the OTP with the backend
-      console.log('Verifying secondary email OTP:', secondaryEmailOtp);
+      const { data, error } = await supabase.functions.invoke('verify-secondary-email-otp', {
+        body: { 
+          secondaryEmail,
+          otp: secondaryEmailOtp
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Update local state to reflect the verification
+      setSecondaryEmailVerified(true);
+      setSecondaryEmailSuccess(data.message || 'Organization email verified successfully!');
       
-      // Simulate verification delay
-      setTimeout(() => {
-        setSecondaryEmailVerified(true);
-        setSecondaryEmailSuccess('Organization email verified successfully!');
-        setSecondaryEmailLoading(false);
-      }, 1000);
-    } catch (error) {
+      // Refresh the profile to get updated data
+      const updatedProfile = await profileService.getCurrentProfile();
+      if (updatedProfile) {
+        // Update the profile in the context
+        // Note: This will trigger a re-render with the updated profile
+      }
+    } catch (error: any) {
       console.error('Error verifying secondary email OTP:', error);
-      setSecondaryEmailError('Failed to verify code. Please try again.');
+      setSecondaryEmailError(error.message || 'Failed to verify code. Please try again.');
+    } finally {
       setSecondaryEmailLoading(false);
     }
   };
