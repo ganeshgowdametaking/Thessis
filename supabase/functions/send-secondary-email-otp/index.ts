@@ -56,6 +56,28 @@ serve(async (req) => {
       )
     }
 
+    // Check if the secondary email is already used and verified by another user
+    const { data: existingProfile, error: existingProfileError } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('secondary_email', secondaryEmail)
+      .eq('secondary_email_verified', true)
+      .neq('id', user.id)
+      .maybeSingle();
+
+    if (existingProfileError) {
+      return new Response(
+        JSON.stringify({ error: 'Failed to check existing secondary email' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (existingProfile) {
+      return new Response(
+        JSON.stringify({ error: 'This organization email is already verified by another user.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Generate a 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
 
