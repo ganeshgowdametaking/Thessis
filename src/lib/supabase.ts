@@ -187,6 +187,33 @@ export const auth = {
       console.error('❌ Network error during password reset:', error)
       return { data: null, error: { message: 'Network connection failed. Please check your internet connection and try again.' } }
     }
+  },
+
+  signInWithGoogle: async () => {
+    console.log('🔐 Attempting Google sign in...')
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        }
+      })
+      
+      if (error) {
+        console.error('❌ Google sign in error:', error)
+        return { data: null, error }
+      } else {
+        console.log('✅ Google sign in initiated successfully')
+        return { data, error: null }
+      }
+    } catch (error) {
+      console.error('❌ Network error during Google sign in:', error)
+      return { data: null, error: { message: 'Network connection failed. Please check your internet connection and try again.' } }
+    }
   }
 }
 

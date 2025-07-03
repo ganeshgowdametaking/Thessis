@@ -12,9 +12,11 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.470.0",
     "@aws-sdk/s3-request-presigner": "^3.470.0",
+    "@nivo/bar": "^0.99.0",
     "@nivo/core": "^0.99.0",
     "@nivo/geo": "^0.99.0",
     "@nivo/line": "^0.99.0",
+    "@nivo/pie": "^0.99.0",
     "@supabase/supabase-js": "^2.39.0",
     "cors": "^2.8.5",
     "d3-geo": "^3.1.1",

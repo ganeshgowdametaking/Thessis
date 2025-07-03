@@ -109,6 +109,11 @@ const Footer: React.FC = () => {
                 </span>
               </a>
             </div>
+            <div className="flex flex-wrap justify-end mt-4 space-x-4">
+              <a href="/privacy-policy" className="text-gray-400 hover:text-white mx-2">Privacy Policy</a>
+              <a href="/terms" className="text-gray-400 hover:text-white mx-2">Terms</a>
+              <a href="/data-request" className="text-gray-400 hover:text-white mx-2">Data Request</a>
+            </div>
           </div>
         </div>
       </div>

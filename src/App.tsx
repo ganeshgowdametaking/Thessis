@@ -26,6 +26,8 @@ import { supabase } from './lib/supabase';
 import { useMediaQuery } from 'react-responsive';
 import LoadingSpinner from './components/LoadingSpinner';
 import AnalyticsPage from './components/AnalyticsPage';
+import GDPRBanner from './components/GDPRBanner';
+import AuthCallback from './components/AuthCallback';
 
 // Wrapper component for ApplicationsPage to handle React Router integration
 function ApplicationsPageWrapper() {
@@ -278,9 +280,13 @@ function AppContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-100">
+      <GDPRBanner />
       <Header onSignIn={() => handleOpenAuthModal('signin')} onJoinNow={() => handleOpenAuthModal('signup')} />
       <main className="flex-grow">
         <Routes>
+          {/* Auth callback route - accessible to all users */}
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          
           {user ? (
             <>
               <Route path="/analytics" element={isAdmin ? <AnalyticsPage /> : <Navigate to="/jobs" replace />} />
