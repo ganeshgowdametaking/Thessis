@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { X, Mail, Lock, User, Eye, EyeOff } from 'lucide-react'
 import { useAuthContext } from '../contexts/AuthContext'
+import GoogleSignInButton from './GoogleSignInButton'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -114,6 +115,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
   }
 
   const passwordStrength = getPasswordStrength(formData.password)
+
+  const handleGoogleSignInSuccess = () => {
+    console.log('Google sign in successful!')
+    onClose()
+  }
+
+  const handleGoogleSignInError = (error: string) => {
+    console.error('Google sign in error:', error)
+    setError(error)
+  }
 
   // Add the Uiverse.io button styles scoped to .uiverse-signin-btn
   const uiverseBtnStyles = `
@@ -413,6 +424,30 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
               mode === 'forgot-password' ? 'Send Reset Link' :
               'Verify Email'}
           </button>
+
+          {/* Google Sign In Button */}
+          {(mode === 'signin' || mode === 'signup') && (
+            <>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-slate-500">Or continue with</span>
+                </div>
+              </div>
+
+              <GoogleSignInButton
+                variant="outline"
+                size="md"
+                onSuccess={handleGoogleSignInSuccess}
+                onError={handleGoogleSignInError}
+                className="w-full"
+              >
+                {mode === 'signin' ? 'Sign in with Google' : 'Sign up with Google'}
+              </GoogleSignInButton>
+            </>
+          )}
         </form>
 
         {mode !== 'verify-email' && mode !== 'forgot-password' && (

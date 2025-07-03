@@ -11,6 +11,7 @@ interface AuthContextType {
   error: string | null
   signUp: (email: string, password: string, userData: any) => Promise<any>
   signIn: (email: string, password: string) => Promise<any>
+  signInWithGoogle: () => Promise<any>
   signOut: () => Promise<any>
   verifyOTP: (email: string, token: string) => Promise<any>
   resendOTP: (email: string) => Promise<any>
@@ -21,7 +22,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { user, loading: authLoading, error: authError, signUp, signIn, signOut, verifyOTP, resendOTP, resetPassword } = useAuth()
+  const { user, loading: authLoading, error: authError, signUp, signIn, signInWithGoogle, signOut, verifyOTP, resendOTP, resetPassword } = useAuth()
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,11 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             // Profile doesn't exist, create it
             const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+            const isEU = localStorage.getItem('is_eu_user') === 'true';
             try {
               const newProfile = await profileService.createProfile({
                 id: user.id,
                 email: user.email!,
-                full_name: fullName
+                full_name: fullName,
+                is_eu_user: isEU
               })
               setProfile(newProfile)
             } catch (createError: any) {
@@ -90,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     error: combinedError,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
     verifyOTP,
     resendOTP,

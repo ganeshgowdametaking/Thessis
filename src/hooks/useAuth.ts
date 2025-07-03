@@ -137,6 +137,19 @@ export function useAuth() {
     }
   }
 
+  const signInWithGoogle = async () => {
+    try {
+      setError(null)
+      const { data, error } = await auth.signInWithGoogle()
+      if (error) setError(error.message)
+      return { data, error }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Google sign in failed'
+      setError(errorMessage)
+      return { data: null, error: { message: errorMessage } }
+    }
+  }
+
   return {
     user,
     loading,
@@ -146,6 +159,7 @@ export function useAuth() {
     signOut,
     verifyOTP,
     resendOTP,
-    resetPassword
+    resetPassword,
+    signInWithGoogle
   }
 }
