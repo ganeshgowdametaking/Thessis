@@ -614,6 +614,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type a message..."
                     className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    inputMode="text"
+                    style={{ fontSize: '16px' }}
                   />
                   {/* Emoji button and picker: Only show on desktop */}
                   {!isMobile && (

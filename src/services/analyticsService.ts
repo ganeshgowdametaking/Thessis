@@ -199,15 +199,20 @@ export const analyticsService = {
         avgLikesPerPost: posts.length > 0 ? Number((posts.reduce((sum, post) => sum + (post.likes_count || 0), 0) / posts.length).toFixed(1)) : 0,
       };
 
-      // Get geographic data (mock for now, would need location data in profiles)
-      const geographicData = [
-        { country: 'USA', count: Math.floor(userStats.totalUsers * 0.4) },
-        { country: 'IND', count: Math.floor(userStats.totalUsers * 0.25) },
-        { country: 'GBR', count: Math.floor(userStats.totalUsers * 0.15) },
-        { country: 'DEU', count: Math.floor(userStats.totalUsers * 0.1) },
-        { country: 'FRA', count: Math.floor(userStats.totalUsers * 0.05) },
-        { country: 'CAN', count: Math.floor(userStats.totalUsers * 0.05) },
-      ];
+      // Get geographic data (real aggregation by country_code)
+      const { data: allCountries, error: allCountriesError } = await supabase
+        .from('profiles')
+        .select('country_code');
+      if (allCountriesError) throw allCountriesError;
+      // Aggregate counts by country_code in JS
+      const countryCountMap: Record<string, number> = {};
+      (allCountries || []).forEach(row => {
+        if (row.country_code && row.country_code.length === 3) {
+          const code = row.country_code.toUpperCase();
+          countryCountMap[code] = (countryCountMap[code] || 0) + 1;
+        }
+      });
+      const geographicData = Object.entries(countryCountMap).map(([country, count]) => ({ country, count }));
 
       // Get time series data for the last 30 days
       const timeSeriesData = {

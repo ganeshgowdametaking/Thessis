@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Lock, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -14,6 +14,25 @@ const PasswordResetPage: React.FC = () => {
     password: '',
     confirmPassword: ''
   })
+  const [sessionReady, setSessionReady] = useState(false)
+
+  useEffect(() => {
+    // Extract access_token and refresh_token from URL hash (if present)
+    const hash = window.location.hash
+    if (hash) {
+      const params = new URLSearchParams(hash.replace('#', ''))
+      const access_token = params.get('access_token')
+      const refresh_token = params.get('refresh_token') || ''
+      if (access_token) {
+        supabase.auth.setSession({ access_token, refresh_token })
+          .then(() => setSessionReady(true))
+          .catch(() => setSessionReady(true)) // allow form to show even if session fails
+        return
+      }
+    }
+    // If no token, allow form to show (for other flows)
+    setSessionReady(true)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,6 +82,10 @@ const PasswordResetPage: React.FC = () => {
   }
 
   const passwordStrength = getPasswordStrength(formData.password)
+
+  if (!sessionReady) {
+    return <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-slate-100 to-indigo-100 animate-fadeIn"><div>Loading...</div></div>
+  }
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-slate-100 to-indigo-100 animate-fadeIn">
