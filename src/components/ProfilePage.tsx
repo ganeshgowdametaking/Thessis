@@ -8,6 +8,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import ConnectionsModal from './ConnectionsModal';
 import PostsModal from './PostsModal';
 import LoadingSpinner from './LoadingSpinner';
+import CountryPicker from './CountryPicker';
 
 interface Experience {
   id: number;
@@ -65,6 +66,7 @@ const ProfilePage: React.FC = () => {
     education: [] as Education[],
     skills: [] as Skill[],
     achievements: [] as Achievement[],
+    country_code: '',
   });
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [realCounts, setRealCounts] = useState({
@@ -92,6 +94,7 @@ const ProfilePage: React.FC = () => {
         education: profile.education || [],
         skills: profile.skills || [],
         achievements: profile.achievements || [],
+        country_code: profile.country_code || '',
       });
       setLocationQuery(profile.location || '');
     }
@@ -234,6 +237,7 @@ const ProfilePage: React.FC = () => {
         education: editForm.education,
         skills: editForm.skills,
         achievements: editForm.achievements,
+        country_code: editForm.country_code,
       };
 
       // Handle profile picture file
@@ -291,6 +295,7 @@ const ProfilePage: React.FC = () => {
         education: profile.education || [],
         skills: profile.skills || [],
         achievements: profile.achievements || [],
+        country_code: profile.country_code || '',
       });
     }
   };
@@ -586,6 +591,14 @@ const ProfilePage: React.FC = () => {
                     onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     disabled={isSaving}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Country</label>
+                  <CountryPicker
+                    value={editForm.country_code}
+                    onChange={val => setEditForm({ ...editForm, country_code: val })}
+                    required
                   />
                 </div>
                 <div className="relative">

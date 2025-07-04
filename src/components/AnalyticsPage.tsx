@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveLine } from '@nivo/line';
-import { ResponsiveChoropleth } from '@nivo/geo';
 import { ResponsivePie } from '@nivo/pie';
 import { ResponsiveBar } from '@nivo/bar';
-import worldCountries from './world_countries.json';
+import worldCountriesRaw from './world_countries.json';
 import { useAuthContext } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import LoadingSpinner from './LoadingSpinner';
 import { analyticsService } from '../services/analyticsService';
+import type { Feature, FeatureCollection } from 'geojson';
 
 interface AnalyticsData {
   userStats: {
@@ -38,6 +38,12 @@ interface AnalyticsData {
     applications: Array<{ date: string; count: number }>;
   };
 }
+
+// Debug logs to diagnose blank map
+console.log('worldCountries', worldCountriesRaw);
+console.log('worldCountries.features', (worldCountriesRaw as any).features?.length);
+
+const worldCountries = worldCountriesRaw as FeatureCollection;
 
 const AnalyticsPage: React.FC = () => {
   const { user, profile, isAdmin, loading } = useAuthContext();
@@ -130,6 +136,9 @@ const AnalyticsPage: React.FC = () => {
     value: item.count
   }));
 
+  // Debug log for map data
+  console.log('geographicMapData', geographicMapData);
+
   const companyData = analyticsData.jobStats.topCompanies.map(item => ({
     company: item.company,
     jobs: item.count
@@ -174,14 +183,6 @@ const AnalyticsPage: React.FC = () => {
           </div>
           
           <div className="bg-[#23272f] rounded-xl p-6 shadow">
-            <div className="text-3xl font-bold text-purple-400">{analyticsData.engagementStats.totalPosts.toLocaleString()}</div>
-            <div className="text-gray-400">Total Posts</div>
-            <div className="text-sm text-yellow-400 mt-2">
-              {analyticsData.engagementStats.avgLikesPerPost} avg likes
-            </div>
-          </div>
-          
-          <div className="bg-[#23272f] rounded-xl p-6 shadow">
             <div className="text-3xl font-bold text-orange-400">{analyticsData.jobStats.totalApplications.toLocaleString()}</div>
             <div className="text-gray-400">Applications</div>
             <div className="text-sm text-green-400 mt-2">
@@ -190,26 +191,55 @@ const AnalyticsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* User Distribution Map */}
-        <div className="bg-[#23272f] rounded-xl p-6 mb-8 shadow">
+        {/* User Distribution by Country - Horizontal Bar Graph */}
+        <div className="bg-[#181b23] rounded-xl p-6 mb-8 shadow">
           <h2 className="text-2xl font-bold mb-4">User Distribution by Country</h2>
-          <div className="h-72">
-            <ResponsiveChoropleth
-              data={geographicMapData}
-              features={worldCountries.features}
-              margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-              colors="YlOrBr"
-              domain={[0, Math.max(...geographicMapData.map(d => d.value))]}
-              unknownColor="#22223b"
-              label="properties.name"
-              valueFormat=".0f"
-              projectionScale={90}
-              projectionTranslation={[0.5, 0.5]}
-              projectionRotation={[0, 0, 0]}
-              borderWidth={0.5}
-              borderColor="#18181b"
-              legends={[]}
-            />
+          <div className="h-[500px] w-full">
+            {geographicMapData.length === 0 ? (
+              <div className="text-gray-400 text-center mt-20">No country data available.</div>
+            ) : (
+              <ResponsiveBar
+                data={geographicMapData.sort((a, b) => b.value - a.value)}
+                keys={["value"]}
+                indexBy="id"
+                layout="horizontal"
+                margin={{ top: 20, right: 40, bottom: 40, left: 80 }}
+                padding={0.3}
+                colors={{ scheme: 'category10' }}
+                borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                axisTop={null}
+                axisRight={null}
+                axisBottom={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: 0,
+                  legend: 'Users',
+                  legendPosition: 'middle',
+                  legendOffset: 32
+                }}
+                axisLeft={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: 0,
+                  legend: 'Country',
+                  legendPosition: 'middle',
+                  legendOffset: -60
+                }}
+                labelSkipWidth={12}
+                labelSkipHeight={12}
+                labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                theme={{
+                  axis: { ticks: { text: { fill: '#fff' } } },
+                  tooltip: { container: { background: '#23272f', color: '#fff' } },
+                  labels: { text: { fill: '#fff' } },
+                }}
+                tooltip={({ id, value }) => (
+                  <div style={{ background: '#23272f', color: '#fff', padding: '6px 12px', borderRadius: 6, fontSize: 14 }}>
+                    <strong>{id}</strong>: {value} user{value !== 1 ? 's' : ''}
+                  </div>
+                )}
+              />
+            )}
           </div>
         </div>
 
@@ -220,17 +250,18 @@ const AnalyticsPage: React.FC = () => {
             <div className="h-56">
               <ResponsiveLine
                 data={userGrowthData}
-                margin={{ top: 20, right: 20, bottom: 40, left: 50 }}
+                margin={{ top: 20, right: 20, bottom: 60, left: 50 }}
                 xScale={{ type: 'point' }}
                 yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false, reverse: false }}
-                axisBottom={{ 
-                  tickSize: 5, 
-                  tickPadding: 5, 
-                  tickRotation: 0, 
-                  legend: '', 
-                  legendOffset: 36, 
+                axisBottom={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: -45,
+                  legend: '',
+                  legendOffset: 40,
                   legendPosition: 'middle',
-                  tickValues: 'every 5 days'
+                  tickValues: userGrowthData[0].data.filter((_, i) => i % 4 === 0).map(d => d.x),
+                  format: (value) => value,
                 }}
                 axisLeft={{ tickSize: 5, tickPadding: 5, tickRotation: 0, legend: '', legendOffset: -40, legendPosition: 'middle' }}
                 colors={{ scheme: 'category10' }}
@@ -256,17 +287,18 @@ const AnalyticsPage: React.FC = () => {
             <div className="h-56">
               <ResponsiveLine
                 data={jobGrowthData}
-                margin={{ top: 20, right: 20, bottom: 40, left: 50 }}
+                margin={{ top: 20, right: 20, bottom: 60, left: 50 }}
                 xScale={{ type: 'point' }}
                 yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false, reverse: false }}
-                axisBottom={{ 
-                  tickSize: 5, 
-                  tickPadding: 5, 
-                  tickRotation: 0, 
-                  legend: '', 
-                  legendOffset: 36, 
+                axisBottom={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: -45,
+                  legend: '',
+                  legendOffset: 40,
                   legendPosition: 'middle',
-                  tickValues: 'every 5 days'
+                  tickValues: jobGrowthData[0].data.filter((_, i) => i % 4 === 0).map(d => d.x),
+                  format: (value) => value,
                 }}
                 axisLeft={{ tickSize: 5, tickPadding: 5, tickRotation: 0, legend: '', legendOffset: -40, legendPosition: 'middle' }}
                 colors={{ scheme: 'category10' }}
@@ -358,26 +390,13 @@ const AnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Engagement Metrics */}
+          {/* EU Users */}
           <div className="bg-[#23272f] rounded-xl p-6 shadow">
-            <h2 className="text-lg font-bold mb-4">Engagement Overview</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Total Likes</span>
-                <span className="text-xl font-bold text-pink-400">{analyticsData.engagementStats.totalLikes.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Total Comments</span>
-                <span className="text-xl font-bold text-blue-400">{analyticsData.engagementStats.totalComments.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Total Connections</span>
-                <span className="text-xl font-bold text-green-400">{analyticsData.engagementStats.totalConnections.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">EU Users</span>
-                <span className="text-xl font-bold text-yellow-400">{analyticsData.userStats.euUsers.toLocaleString()}</span>
-              </div>
+            <h2 className="text-lg font-bold mb-4">EU Users</h2>
+            <div className="flex flex-col items-center justify-center h-48">
+              <span className="text-4xl font-bold text-yellow-400">{analyticsData.userStats.euUsers.toLocaleString()}</span>
+              <span className="text-gray-400 mt-2">EU Users</span>
+              <span className="text-sm text-gray-500 mt-1">{((analyticsData.userStats.euUsers / analyticsData.userStats.totalUsers) * 100).toFixed(1)}% of all users</span>
             </div>
           </div>
         </div>

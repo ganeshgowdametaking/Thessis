@@ -67,7 +67,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
       });
 
       if (error) {
-        throw error;
+        // Try to extract a user-friendly message from the error response
+        let errorMsg = error?.message || error?.error_description || error?.error || 'Failed to send verification code. Please try again.';
+        if (error instanceof Response) {
+          try {
+            const data = await error.json();
+            errorMsg = data.error || data.message || errorMsg;
+          } catch {}
+        }
+        throw new Error(errorMsg);
       }
 
       if (data.error) {
@@ -75,7 +83,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
       }
 
       setSecondaryEmailOtpSent(true);
-      
       // For development: show OTP in success message if available
       let successMessage = data.message || 'Verification code sent to your organization email.';
       if (data.otp) {
@@ -87,7 +94,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
       setSecondaryEmailSuccess(successMessage);
     } catch (error: any) {
       console.error('Error sending secondary email OTP:', error);
-      setSecondaryEmailError(error.message || 'Failed to send verification code. Please try again.');
+      let errorMsg = error?.message || error?.error_description || error?.error || 'Failed to send verification code. Please try again.';
+      if (error instanceof Response) {
+        try {
+          const data = await error.json();
+          errorMsg = data.error || data.message || errorMsg;
+        } catch {}
+      }
+      setSecondaryEmailError(errorMsg);
     } finally {
       setSecondaryEmailLoading(false);
     }
@@ -111,7 +125,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
       });
 
       if (error) {
-        throw error;
+        let errorMsg = error?.message || error?.error_description || error?.error || 'Failed to verify code. Please try again.';
+        if (error instanceof Response) {
+          try {
+            const data = await error.json();
+            errorMsg = data.error || data.message || errorMsg;
+          } catch {}
+        }
+        throw new Error(errorMsg);
       }
 
       if (data.error) {
@@ -121,7 +142,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
       // Update local state to reflect the verification
       setSecondaryEmailVerified(true);
       setSecondaryEmailSuccess(data.message || 'Organization email verified successfully!');
-      
       // Refresh the profile to get updated data
       const updatedProfile = await profileService.getCurrentProfile();
       if (updatedProfile) {
@@ -130,7 +150,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
       }
     } catch (error: any) {
       console.error('Error verifying secondary email OTP:', error);
-      setSecondaryEmailError(error.message || 'Failed to verify code. Please try again.');
+      let errorMsg = error?.message || error?.error_description || error?.error || 'Failed to verify code. Please try again.';
+      if (error instanceof Response) {
+        try {
+          const data = await error.json();
+          errorMsg = data.error || data.message || errorMsg;
+        } catch {}
+      }
+      setSecondaryEmailError(errorMsg);
     } finally {
       setSecondaryEmailLoading(false);
     }
