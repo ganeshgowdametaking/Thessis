@@ -6,7 +6,6 @@ import { Database } from '../lib/database.types';
 import { useNavigate } from 'react-router-dom';
 import { jobService } from '../services/jobService';
 import LoadingSpinner from './LoadingSpinner';
-import SecondaryEmailVerificationModal from './SecondaryEmailVerificationModal';
 import debounce from 'lodash.debounce';
 
 type Job = Database['public']['Tables']['jobs']['Row'];
@@ -195,9 +194,6 @@ const CreateReferralPage: React.FC = () => {
   const [editLocationTouched, setEditLocationTouched] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
 
-  // Secondary email verification modal state
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
-
   // Fetch user's jobs (acting as referrals)
   const fetchMyReferrals = useCallback(async () => {
     if (!user?.id) return;
@@ -310,27 +306,9 @@ const CreateReferralPage: React.FC = () => {
     return true;
   };
 
-  const checkSecondaryEmailVerification = () => {
-    if (!profile?.secondary_email_verified) {
-      setShowVerificationModal(true);
-      return false;
-    }
-    return true;
-  };
-
-  const handleNavigateToSettings = () => {
-    setShowVerificationModal(false);
-    navigate('/settings');
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
-    
-    // Check secondary email verification
-    if (!checkSecondaryEmailVerification()) {
-      return;
-    }
     
     setLocationTouched(true);
     if (!validateLocation()) return;
@@ -1237,13 +1215,6 @@ const CreateReferralPage: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Secondary Email Verification Modal */}
-      <SecondaryEmailVerificationModal
-        isOpen={showVerificationModal}
-        onClose={() => setShowVerificationModal(false)}
-        onNavigateToSettings={handleNavigateToSettings}
-      />
     </div>
   );
 };

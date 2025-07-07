@@ -9,6 +9,7 @@ import './JobsPage.css';
 import LoadingSpinner from './LoadingSpinner';
 import debounce from 'lodash.debounce';
 import { uploadFileToS3PresignedUrl } from '../services/s3Service';
+import SecondaryEmailVerificationModal from './SecondaryEmailVerificationModal';
 
 type Job = Database['public']['Tables']['jobs']['Row'];
 type ApplicationInsert = Database['public']['Tables']['applications']['Insert'];
@@ -21,7 +22,7 @@ interface ApplicationFormData {
 }
 
 const JobsPage: React.FC = () => {
-  const { user } = useAuthContext();
+  const { user, profile } = useAuthContext();
   const navigate = useNavigate();
   
   // Debug logging
@@ -65,6 +66,7 @@ const JobsPage: React.FC = () => {
   const [locationQuery, setLocationQuery] = useState(filters.location);
   const [locationError, setLocationError] = useState('');
   const [locationTouched, setLocationTouched] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   // Height of the header (adjust if your header height changes)
   const HEADER_HEIGHT = 80; // px (h-20 = 5rem = 80px)
@@ -483,6 +485,23 @@ const JobsPage: React.FC = () => {
   }
   `;
 
+  const handleNavigateToSettings = () => {
+    setShowVerificationModal(false);
+    navigate('/settings');
+  };
+
+  const handleCreateReferralClick = () => {
+    if (!user) {
+      navigate('/create-referral');
+      return;
+    }
+    if (!profile?.secondary_email_verified) {
+      setShowVerificationModal(true);
+      return;
+    }
+    navigate('/create-referral');
+  };
+
   if (loading) {
     return <LoadingSpinner text="Loading jobs..." />;
   }
@@ -517,7 +536,7 @@ const JobsPage: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-end mb-6 gap-4">
                 <button
-                  onClick={() => navigate('/create-referral')}
+                  onClick={handleCreateReferralClick}
                   className="bg-slate-900 text-white w-full py-2.5 rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center space-x-2 font-medium text-lg shadow-sm"
                   style={{maxWidth: '100%'}}
                 >
@@ -1127,6 +1146,13 @@ const JobsPage: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Secondary Email Verification Modal */}
+        <SecondaryEmailVerificationModal
+          isOpen={showVerificationModal}
+          onClose={() => setShowVerificationModal(false)}
+          onNavigateToSettings={handleNavigateToSettings}
+        />
       </div>
     </div>
   );
