@@ -35,6 +35,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
 
   const [openAccountSubsection, setOpenAccountSubsection] = useState<'secondary-email' | 'change-password' | null>('secondary-email');
 
+  const [showInviteAdminModal, setShowInviteAdminModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteStatus, setInviteStatus] = useState<'idle'|'sending'|'success'|'error'>('idle');
+  const [inviteError, setInviteError] = useState('');
+
   const menuItems = [
     { id: 'account-settings', label: 'Account Settings', icon: User },
     { id: 'privacy-policy', label: 'Privacy Settings', icon: Shield },
@@ -268,6 +273,25 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
     }
   };
 
+  const handleSendAdminInvite = async () => {
+    setInviteStatus('sending');
+    setInviteError('');
+    try {
+      const { data, error } = await supabase.functions.invoke('send-admin-invite', {
+        body: { email: inviteEmail }
+      });
+      if (error || data?.error) {
+        setInviteStatus('error');
+        setInviteError(data?.error || error?.message || 'Failed to send invitation.');
+        return;
+      }
+      setInviteStatus('success');
+    } catch (err: any) {
+      setInviteStatus('error');
+      setInviteError(err.message || 'Failed to send invitation.');
+    }
+  };
+
   const renderContent = () => {
     switch (activeSection) {
       case 'account-settings':
@@ -496,6 +520,60 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
                   </div>
                 )}
               </div>
+              {/* Admin Invite Section */}
+              {profile?.role === 'admin' && (
+                <div className="border-t border-slate-200 pt-6 mb-6">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2 flex items-center">
+                    <Mail className="h-5 w-5 mr-2 text-blue-600" /> Invite Administrator
+                  </h3>
+                  <p className="text-slate-600 text-sm mb-4">Invite an existing TankTide user to become an administrator. They will receive an email with an invitation link.</p>
+                  <button
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    onClick={() => setShowInviteAdminModal(true)}
+                  >
+                    Invite Administrator
+                  </button>
+                  {/* Modal */}
+                  {showInviteAdminModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                      <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+                        <h4 className="text-lg font-bold mb-2">Send Admin Invitation</h4>
+                        <input
+                          type="email"
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg mb-3"
+                          placeholder="Enter user's email"
+                          value={inviteEmail}
+                          onChange={e => setInviteEmail(e.target.value)}
+                          disabled={inviteStatus === 'sending' || inviteStatus === 'success'}
+                        />
+                        {inviteError && <div className="text-red-600 text-sm mb-2">{inviteError}</div>}
+                        {inviteStatus === 'success' && <div className="text-green-600 text-sm mb-2">Invitation sent successfully!</div>}
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                            onClick={handleSendAdminInvite}
+                            disabled={inviteStatus === 'sending' || !inviteEmail}
+                          >
+                            {inviteStatus === 'sending' ? 'Sending...' : 'Send Invitation'}
+                          </button>
+                          <button
+                            className="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition-colors text-sm font-medium"
+                            onClick={() => {
+                              setShowInviteAdminModal(false);
+                              setInviteEmail('');
+                              setInviteStatus('idle');
+                              setInviteError('');
+                            }}
+                            disabled={inviteStatus === 'sending'}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );
