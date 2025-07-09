@@ -30,6 +30,7 @@ import GDPRBanner from './components/GDPRBanner';
 import AuthCallback from './components/AuthCallback';
 import TrackingProvider from './components/TrackingProvider';
 import CompanyLandingPage from './components/CompanyLandingPage';
+import AcceptAdminInvitePage from './components/AcceptAdminInvitePage';
 
 // Wrapper component for ApplicationsPage to handle React Router integration
 function ApplicationsPageWrapper() {
@@ -306,6 +307,7 @@ function AppContent() {
                 <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
                 <Route path="/settings" element={<SettingsPageWrapper />} />
                 <Route path="/companies" element={<CompanyLandingPage />} />
+                <Route path="/accept-admin-invite" element={<AcceptAdminInvitePage />} />
                 <Route path="*" element={<Navigate to="/jobs" />} />
               </>
             ) : (
