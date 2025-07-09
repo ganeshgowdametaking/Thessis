@@ -857,7 +857,7 @@ const JobsPage: React.FC = () => {
                   </div>
                   <div className="mb-4">
                     <h3 className="font-medium text-slate-900 mb-2">Job Description</h3>
-                    <p className="text-slate-600 text-sm">{selectedJob.description}</p>
+                    <div className="text-slate-600 text-sm whitespace-pre-line">{selectedJob.description}</div>
                   </div>
                   {selectedJob.skills && selectedJob.skills.length > 0 && (
                     <div className="mb-4">
@@ -1025,7 +1025,7 @@ const JobsPage: React.FC = () => {
                 </div>
                 <div className="mb-4">
                   <h3 className="font-medium text-slate-900 mb-2">Job Description</h3>
-                  <p className="text-slate-600 text-sm">{selectedJob.description}</p>
+                  <div className="text-slate-600 text-sm whitespace-pre-line">{selectedJob.description}</div>
                 </div>
                 {selectedJob.skills && selectedJob.skills.length > 0 && (
                   <div className="mb-4">

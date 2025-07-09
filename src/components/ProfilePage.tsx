@@ -9,6 +9,7 @@ import ConnectionsModal from './ConnectionsModal';
 import PostsModal from './PostsModal';
 import LoadingSpinner from './LoadingSpinner';
 import CountryPicker from './CountryPicker';
+import { iso2ToIso3 } from '../utils/countryMapping';
 
 interface Experience {
   id: number;
@@ -97,6 +98,20 @@ const ProfilePage: React.FC = () => {
         country_code: profile.country_code || '',
       });
       setLocationQuery(profile.location || '');
+      // If country_code is missing, try to auto-detect
+      if (!profile.country_code) {
+        fetch('https://ipapi.co/json/')
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.country_code) {
+              const iso3 = iso2ToIso3(data.country_code);
+              if (iso3) {
+                setEditForm(form => ({ ...form, country_code: iso3 }));
+              }
+            }
+          })
+          .catch(() => {});
+      }
     }
     loadRealCounts();
   }, [profile]);
