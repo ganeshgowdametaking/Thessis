@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { useAuth } from '../hooks/useAuth'
 import { profileService } from '../services/profileService'
+import { analyticsService } from '../services/analyticsService'
+import { iso2ToIso3 } from '../utils/countryMapping'
 
 interface AuthContextType {
   user: User | null
@@ -42,14 +44,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Profile doesn't exist, create it
             const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
             const isEU = localStorage.getItem('is_eu_user') === 'true';
+            
+            // Auto-detect country for new users
+            let countryCode = null;
+            try {
+              const response = await fetch('https://ipapi.co/json/');
+              const data = await response.json();
+              if (data && data.country_code) {
+                countryCode = iso2ToIso3(data.country_code);
+              }
+            } catch (error) {
+              console.log('Could not detect country:', error);
+            }
+            
             try {
               const newProfile = await profileService.createProfile({
                 id: user.id,
                 email: user.email!,
                 full_name: fullName,
-                is_eu_user: isEU
+                is_eu_user: isEU,
+                country_code: countryCode
               })
               setProfile(newProfile)
+              
+              // Track EU signup for GDPR-compliant analytics
+              if (isEU) {
+                analyticsService.trackEUSignup();
+              }
             } catch (createError: any) {
               console.error('Error creating profile:', createError)
               setError('Failed to create user profile')

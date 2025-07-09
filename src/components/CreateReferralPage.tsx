@@ -911,6 +911,9 @@ const CreateReferralPage: React.FC = () => {
                       
                       <p className="text-sm text-gray-600 mb-2">{job.company}</p>
                       
+                      {/* Render job description with line breaks preserved */}
+                      <div className="text-sm text-gray-700 whitespace-pre-line mb-2">{job.description}</div>
+                      
                       <div className="flex items-center text-xs text-gray-500 space-x-3 mb-2">
                         <div className="flex items-center">
                           <MapPin className="h-3 w-3 mr-1" />

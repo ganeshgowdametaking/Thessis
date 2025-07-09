@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import './index.css';
 import { analyticsService } from './services/analyticsService.ts';
 import { gdprService } from './services/gdprService.ts';
+import './utils/trackingTestUtils.ts';
 
 // Only initialize analytics for non-EU users, or for EU users after consent
 const isEU = localStorage.getItem('is_eu_user') === 'true';
@@ -14,20 +15,31 @@ if (!isEU || consent === 'true') {
 }
 
 // Track page views when URL changes
-const trackPageView = () => {
+const trackPageView = async () => {
   const isEU = localStorage.getItem('is_eu_user') === 'true';
   const consent = localStorage.getItem('gdpr_consent');
   if (!isEU || consent === 'true') {
     const path = window.location.pathname;
-    analyticsService.trackPageView(path);
+    await analyticsService.trackPageView(path);
   }
 };
 
-// Listen for URL changes to track page views
-window.addEventListener('popstate', trackPageView);
-
-// Initial page view tracking
+// Track initial page view
 trackPageView();
+
+// Track page views on navigation
+let currentPath = window.location.pathname;
+const observer = new MutationObserver(() => {
+  if (window.location.pathname !== currentPath) {
+    currentPath = window.location.pathname;
+    trackPageView();
+  }
+});
+
+observer.observe(document.body, {
+  childList: true,
+  subtree: true
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

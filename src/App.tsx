@@ -28,6 +28,8 @@ import LoadingSpinner from './components/LoadingSpinner';
 import AnalyticsPage from './components/AnalyticsPage';
 import GDPRBanner from './components/GDPRBanner';
 import AuthCallback from './components/AuthCallback';
+import TrackingProvider from './components/TrackingProvider';
+import CompanyLandingPage from './components/CompanyLandingPage';
 
 // Wrapper component for ApplicationsPage to handle React Router integration
 function ApplicationsPageWrapper() {
@@ -279,46 +281,52 @@ function AppContent() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-100">
-      <GDPRBanner />
-      <Header onSignIn={() => handleOpenAuthModal('signin')} onJoinNow={() => handleOpenAuthModal('signup')} />
-      <main className="flex-grow">
-        <Routes>
-          {/* Auth callback route - accessible to all users */}
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          
-          {user ? (
-            <>
-              <Route path="/analytics" element={isAdmin ? <AnalyticsPage /> : <Navigate to="/jobs" replace />} />
-              <Route path="/jobs" element={<JobsPage />} />
-              <Route path="/create-referral" element={<CreateReferralPage />} />
-              <Route path="/applications/:referralId" element={<ApplicationsPageWrapper />} />
-              <Route path="/search-results" element={<SearchResultsPageWrapper key={location.search} />} />
-              <Route path="/messages" element={<MessagesPageWrapper />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
-              <Route path="/settings" element={<SettingsPageWrapper />} />
-              <Route path="*" element={<Navigate to="/jobs" />} />
-            </>
-          ) : (
-            <>
-              <Route
-                path="/"
-                element={<HomePageWrapper />}
-              />
-              <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
-              <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
-              <Route path="/terms" element={<TermsOfServiceWrapper />} />
-              <Route path="/data-request" element={<DataRequestFormWrapper />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </>
-          )}
-        </Routes>
-      </main>
-      {!(isMobile && location.pathname === '/messages') && <Footer />}
-      <AuthModal isOpen={authModal.isOpen} onClose={handleCloseAuthModal} mode={authModal.mode} onModeChange={handleAuthModeChange} />
-    </div>
+    <TrackingProvider>
+      <div className="flex min-h-screen flex-col bg-slate-100">
+        <GDPRBanner />
+        {/* Hide Header on /companies route */}
+        {location.pathname !== '/companies' && (
+          <Header onSignIn={() => handleOpenAuthModal('signin')} onJoinNow={() => handleOpenAuthModal('signup')} />
+        )}
+        <main className="flex-grow">
+          <Routes>
+            {/* Auth callback route - accessible to all users */}
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            
+            {user ? (
+              <>
+                <Route path="/analytics" element={isAdmin ? <AnalyticsPage /> : <Navigate to="/jobs" replace />} />
+                <Route path="/jobs" element={<JobsPage />} />
+                <Route path="/create-referral" element={<CreateReferralPage />} />
+                <Route path="/applications/:referralId" element={<ApplicationsPageWrapper />} />
+                <Route path="/search-results" element={<SearchResultsPageWrapper key={location.search} />} />
+                <Route path="/messages" element={<MessagesPageWrapper />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
+                <Route path="/settings" element={<SettingsPageWrapper />} />
+                <Route path="/companies" element={<CompanyLandingPage />} />
+                <Route path="*" element={<Navigate to="/jobs" />} />
+              </>
+            ) : (
+              <>
+                <Route
+                  path="/"
+                  element={<HomePageWrapper />}
+                />
+                <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
+                <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
+                <Route path="/terms" element={<TermsOfServiceWrapper />} />
+                <Route path="/data-request" element={<DataRequestFormWrapper />} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </>
+            )}
+          </Routes>
+        </main>
+        {!(isMobile && location.pathname === '/messages') && <Footer />}
+        <AuthModal isOpen={authModal.isOpen} onClose={handleCloseAuthModal} mode={authModal.mode} onModeChange={handleAuthModeChange} />
+      </div>
+    </TrackingProvider>
   );
 }
 

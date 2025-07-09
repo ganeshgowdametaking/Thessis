@@ -28,6 +28,7 @@ export interface Database {
           secondary_email_verified: boolean
           secondary_email_verified_at: string | null
           is_eu_user: boolean
+          country_code: string | null
           created_at: string
           updated_at: string
         }
@@ -49,6 +50,7 @@ export interface Database {
           secondary_email_verified?: boolean
           secondary_email_verified_at?: string | null
           is_eu_user?: boolean
+          country_code?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -70,6 +72,7 @@ export interface Database {
           secondary_email_verified?: boolean
           secondary_email_verified_at?: string | null
           is_eu_user?: boolean
+          country_code?: string | null
           created_at?: string
           updated_at?: string
         }
