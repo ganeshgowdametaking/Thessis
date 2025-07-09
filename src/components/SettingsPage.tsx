@@ -277,9 +277,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
     setInviteStatus('sending');
     setInviteError('');
     try {
-      const { data, error } = await supabase.functions.invoke('send-admin-invite', {
-        body: { email: inviteEmail }
-      });
+      const { data, error } = await fetch('https://fvprdknorvuqggwxfqly.supabase.co/functions/v1/send-admin-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail })
+      }).then(res => res.json());
       if (error || data?.error) {
         setInviteStatus('error');
         setInviteError(data?.error || error?.message || 'Failed to send invitation.');

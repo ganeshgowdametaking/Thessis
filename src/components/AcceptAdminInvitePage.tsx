@@ -14,7 +14,7 @@ const AcceptAdminInvitePage: React.FC = () => {
       setMessage('Invalid invitation link.');
       return;
     }
-    fetch('https://fvprdknorvuggwxfqly.supabase.co/functions/v1/accept-admin-user', {
+    fetch('https://fvprdknorvuqggwxfqly.supabase.co/functions/v1/accept-admin-invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
