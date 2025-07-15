@@ -298,7 +298,10 @@ function AppContent() {
     <TrackingProvider>
       <div className="flex min-h-screen flex-col bg-slate-100">
         <GDPRBanner />
-        <Header />
+        <Header 
+          onSignIn={() => handleOpenAuthModal('signin')} 
+          onJoinNow={() => handleOpenAuthModal('signup')} 
+        />
         <main className="flex-grow">
           <Routes>
             {/* Auth callback route - accessible to all users */}
@@ -323,9 +326,11 @@ function AppContent() {
                 <Route path="/company-settings/help" element={<div>Help & Support (Docs, Chat)</div>} />
                 <Route path="/company-dashboard/activity" element={<div>Recent Activity Feed</div>} />
                 <Route path="/company-dashboard/actions" element={<div>Quick Actions (Post Job, Invite Partner)</div>} />
-                <Route path="*" element={<Navigate to="/company-dashboard" replace />} />
               </>
-            ) : user ? (
+            ) : null}
+            
+            {/* Regular user routes - for all authenticated users (including company users) */}
+            {user ? (
               <>
                 <Route path="/analytics" element={isAdmin ? <AnalyticsPage /> : <Navigate to="/jobs" replace />} />
                 <Route path="/jobs" element={<JobsPage />} />
@@ -337,9 +342,17 @@ function AppContent() {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
                 <Route path="/settings" element={<SettingsPageWrapper />} />
+                <Route path="/" element={<HomePageWrapper />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
+                <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
+                <Route path="/terms" element={<TermsOfServiceWrapper />} />
+                <Route path="/data-request" element={<DataRequestFormWrapper />} />
                 <Route path="*" element={<Navigate to="/jobs" />} />
               </>
-            ) : (
+            ) : null}
+            
+            {/* Public routes - for non-authenticated users */}
+            {!user && (
               <>
                 <Route path="/companies" element={<CompanyLandingPage />} />
                 <Route path="/company-signup" element={<CompanySignupPage />} />
@@ -358,6 +371,14 @@ function AppContent() {
           </Routes>
         </main>
         {!(isMobile && location.pathname === '/messages') && <Footer />}
+        
+        {/* Auth Modal */}
+        <AuthModal
+          isOpen={authModal.isOpen}
+          onClose={handleCloseAuthModal}
+          mode={authModal.mode}
+          onModeChange={handleAuthModeChange}
+        />
       </div>
     </TrackingProvider>
   );

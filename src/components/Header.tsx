@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Briefcase, MessageSquare, Bell, User, Settings, Search, LogOut, Share2, Building } from 'lucide-react';
+import { Menu, X, Briefcase, MessageSquare, Bell, User, Settings, Search, LogOut } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { searchService } from '../services/searchService';
 import { messageService } from '../services/messageService';
@@ -13,8 +13,13 @@ declare global {
   }
 }
 
-const Header: React.FC = () => {
-  const { user, signOut, profile } = useAuthContext();
+interface HeaderProps {
+  onSignIn?: () => void;
+  onJoinNow?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
+  const { user, signOut, profile, loading } = useAuthContext();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -179,27 +184,43 @@ const Header: React.FC = () => {
     ) : null
   );
 
-  // Helper to check if user is a company user
-  const isCompanyUser = user && (user.user_metadata?.user_type === 'company' || user.user_metadata?.user_type === 'employer');
+  // Debug: Log user status
+  console.log('Header Debug - User:', user);
+  console.log('Header Debug - Loading:', loading);
+  console.log('Header Debug - Profile:', profile);
 
-  let navLinks = [];
-  if (isCompanyUser) {
-    navLinks = [
-      { href: '/company-dashboard', label: 'Dashboard', icon: Briefcase },
-      { href: '/company-hiring/jobs', label: 'Hiring', icon: Briefcase },
-      { href: '/company-referrals/incoming', label: 'Referrals', icon: Share2 },
-      { href: '/company-profile/branding', label: 'Company', icon: Building },
-      // Settings is handled separately as a dropdown/button
-    ];
-  } else {
-    navLinks = [
-      ...(profile?.role === 'admin' ? [{ href: '/analytics', label: 'Analytics', icon: Briefcase }] : []),
-      { href: '/jobs', label: 'Jobs', icon: Briefcase },
-      { href: '/messages', label: 'Messages', icon: MessageSquare },
-      { href: '/notifications', label: 'Notifications', icon: Bell },
-      { href: '/profile', label: 'Profile', icon: User },
-    ];
+  if (!user) {
+    console.log('Header Debug - Showing simple header (no user)');
+    return (
+      <header className="sticky top-0 z-40 bg-slate-900 text-white">
+        <div className="w-full">
+          <div className="flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
+            <div className="flex-shrink-0">
+              <Link to="/" className="flex-shrink-0">
+                <img className="h-10 w-auto" src="/new-logo.png" alt="TankTide" />
+              </Link>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button onClick={onSignIn} className="sign-in-btn">
+                Sign In
+              </button>
+              <button onClick={onJoinNow} className="join-now-btn">
+                Join Now
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
   }
+
+  const navLinks = [
+    ...(profile?.role === 'admin' ? [{ href: '/analytics', label: 'Analytics', icon: Briefcase }] : []),
+    { href: '/jobs', label: 'Jobs', icon: Briefcase },
+    { href: '/messages', label: 'Messages', icon: MessageSquare },
+    { href: '/notifications', label: 'Notifications', icon: Bell },
+    { href: '/profile', label: 'Profile', icon: User },
+  ];
 
   const NavLink = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string }) => {
     const isActive = location.pathname === href;
@@ -221,23 +242,6 @@ const Header: React.FC = () => {
       </Link>
     );
   };
-
-  if (!user) {
-    return (
-      <header className="sticky top-0 z-40 bg-slate-900 text-white">
-        <div className="w-full">
-          <div className="flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
-            <div className="flex-shrink-0">
-              <Link to="/" className="flex-shrink-0">
-                <img className="h-10 w-auto" src="/new-logo.png" alt="TankTide" />
-              </Link>
-            </div>
-            {/* Removed Sign In and Join Now buttons */}
-          </div>
-        </div>
-      </header>
-    );
-  }
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900 text-white">
@@ -274,7 +278,7 @@ const Header: React.FC = () => {
             <div className="mx-8 hidden max-w-2xl flex-1 md:block">
               <form onSubmit={handleSearch} className="relative">
                 <div className="absolute left-3 top-1/2 flex h-5 w-5 -translate-y-1/2 transform items-center justify-center">
-                  <Search className="h-5 w-5 stroke-2 text-slate-400" />
+                  <Search className="h-5 w-5 stroke-2" />
                 </div>
                 <input
                   type="text"
