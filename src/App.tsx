@@ -30,6 +30,17 @@ import GDPRBanner from './components/GDPRBanner';
 import AuthCallback from './components/AuthCallback';
 import TrackingProvider from './components/TrackingProvider';
 import CompanyLandingPage from './components/CompanyLandingPage';
+import CompanySignupPage from './components/CompanySignupPage';
+import CompanyLoginPage from './components/CompanyLoginPage';
+import CompanyDashboardPage from './components/CompanyDashboardPage';
+import CompanyConfirmationPage from './components/CompanyConfirmationPage';
+import CompanyOnboardingPage from './components/CompanyOnboardingPage';
+import CompanyJobSuccessPage from './components/CompanyJobSuccessPage';
+import CompanyJobsPage from './components/CompanyJobsPage';
+import CompanyNewJobPage from './components/CompanyNewJobPage';
+import CompanyApplicantsPage from './components/CompanyApplicantsPage';
+import CompanyIncomingReferralsPage from './components/CompanyIncomingReferralsPage';
+import CompanyProfileBrandingPage from './components/CompanyProfileBrandingPage';
 
 // Wrapper component for ApplicationsPage to handle React Router integration
 function ApplicationsPageWrapper() {
@@ -235,7 +246,7 @@ function App() {
 }
 
 function AppContent() {
-  const { user, loading, isAdmin } = useAuthContext();
+  const { user, loading, isAdmin, profile } = useAuthContext();
   const location = useLocation();
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchParams] = useSearchParams();
@@ -280,20 +291,41 @@ function AppContent() {
     );
   }
 
+  // Helper to check if user is a company user
+  const isCompanyUser = user && (user.user_metadata?.user_type === 'company' || user.user_metadata?.user_type === 'employer');
+
   return (
     <TrackingProvider>
       <div className="flex min-h-screen flex-col bg-slate-100">
         <GDPRBanner />
-        {/* Hide Header on /companies route */}
-        {location.pathname !== '/companies' && (
-          <Header onSignIn={() => handleOpenAuthModal('signin')} onJoinNow={() => handleOpenAuthModal('signup')} />
-        )}
+        <Header />
         <main className="flex-grow">
           <Routes>
             {/* Auth callback route - accessible to all users */}
             <Route path="/auth/callback" element={<AuthCallback />} />
-            
-            {user ? (
+            {/* Company routes - only for company users */}
+            {isCompanyUser ? (
+              <>
+                <Route path="/company-dashboard" element={<CompanyDashboardPage />} />
+                <Route path="/company-hiring/jobs" element={<CompanyJobsPage />} />
+                <Route path="/company-hiring/new" element={<CompanyNewJobPage />} />
+                <Route path="/company-hiring/applicants" element={<CompanyApplicantsPage />} />
+                <Route path="/company-referrals/incoming" element={<CompanyIncomingReferralsPage />} />
+                <Route path="/company-referrals/outgoing" element={<div>Outgoing Invites</div>} />
+                <Route path="/company-referrals/partners" element={<div>My Partners</div>} />
+                <Route path="/company-referrals/invite" element={<div>Invite Partner</div>} />
+                <Route path="/company-profile/branding" element={<CompanyProfileBrandingPage />} />
+                <Route path="/company-profile/careers" element={<div>Careers Page Preview</div>} />
+                <Route path="/company-profile/team" element={<div>Team & Access</div>} />
+                <Route path="/company-profile/integrations" element={<div>Integrations & API Keys</div>} />
+                <Route path="/company-settings/account" element={<div>Account (Email, Password, 2FA)</div>} />
+                <Route path="/company-settings/notifications" element={<div>Notifications & Digests</div>} />
+                <Route path="/company-settings/help" element={<div>Help & Support (Docs, Chat)</div>} />
+                <Route path="/company-dashboard/activity" element={<div>Recent Activity Feed</div>} />
+                <Route path="/company-dashboard/actions" element={<div>Quick Actions (Post Job, Invite Partner)</div>} />
+                <Route path="*" element={<Navigate to="/company-dashboard" replace />} />
+              </>
+            ) : user ? (
               <>
                 <Route path="/analytics" element={isAdmin ? <AnalyticsPage /> : <Navigate to="/jobs" replace />} />
                 <Route path="/jobs" element={<JobsPage />} />
@@ -305,15 +337,17 @@ function AppContent() {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
                 <Route path="/settings" element={<SettingsPageWrapper />} />
-                <Route path="/companies" element={<CompanyLandingPage />} />
                 <Route path="*" element={<Navigate to="/jobs" />} />
               </>
             ) : (
               <>
-                <Route
-                  path="/"
-                  element={<HomePageWrapper />}
-                />
+                <Route path="/companies" element={<CompanyLandingPage />} />
+                <Route path="/company-signup" element={<CompanySignupPage />} />
+                <Route path="/company-login" element={<CompanyLoginPage />} />
+                <Route path="/company-confirmation" element={<CompanyConfirmationPage />} />
+                <Route path="/company-onboarding" element={<CompanyOnboardingPage />} />
+                <Route path="/company-job-success" element={<CompanyJobSuccessPage />} />
+                <Route path="/" element={<HomePageWrapper />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
                 <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
                 <Route path="/terms" element={<TermsOfServiceWrapper />} />
@@ -324,7 +358,6 @@ function AppContent() {
           </Routes>
         </main>
         {!(isMobile && location.pathname === '/messages') && <Footer />}
-        <AuthModal isOpen={authModal.isOpen} onClose={handleCloseAuthModal} mode={authModal.mode} onModeChange={handleAuthModeChange} />
       </div>
     </TrackingProvider>
   );

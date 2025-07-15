@@ -105,62 +105,23 @@ serve(async (req) => {
     // For development/testing, log the OTP to console
     console.log(`OTP for ${secondaryEmail}: ${otp}`)
     
-    // Send email using SendGrid
+    // Send email using Supabase's built-in email system (which uses your Mailgun SMTP)
     try {
-      const sendGridResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('SENDGRID_API_KEY')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          personalizations: [
-            {
-              to: [{ email: secondaryEmail }],
-              subject: 'Verify your organization email - TankTide'
-            }
-          ],
-          from: {
-            email: 'info@tanktide.com', // Your verified sender email
-            name: 'TankTide Verification'
-          },
-          content: [
-            {
-              type: 'text/html',
-              value: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
-                  <div style="text-align: center; margin-bottom: 30px;">
-                    <h1 style="color: #2563eb; margin: 0;">TankTide</h1>
-                  </div>
-                  
-                  <div style="background-color: #f8fafc; padding: 30px; border-radius: 8px; margin-bottom: 20px;">
-                    <h2 style="color: #1e293b; margin-top: 0;">Verify Your Organization Email</h2>
-                    <p style="color: #64748b; line-height: 1.6;">Hello,</p>
-                    <p style="color: #64748b; line-height: 1.6;">You're verifying your organization email address for your TankTide account. This helps ensure the quality and authenticity of job postings.</p>
-                    
-                    <div style="background-color: #ffffff; padding: 25px; text-align: center; margin: 25px 0; border-radius: 8px; border: 2px solid #e2e8f0;">
-                      <p style="color: #64748b; margin: 0 0 10px 0; font-size: 14px;">Your verification code is:</p>
-                      <h1 style="color: #2563eb; font-size: 36px; margin: 0; letter-spacing: 6px; font-weight: bold;">${otp}</h1>
-                    </div>
-                    
-                    <p style="color: #64748b; line-height: 1.6; font-size: 14px;">This code will expire in 15 minutes.</p>
-                    <p style="color: #64748b; line-height: 1.6; font-size: 14px;">If you didn't request this verification, please ignore this email.</p>
-                  </div>
-                  
-                  <div style="text-align: center; padding-top: 20px; border-top: 1px solid #e2e8f0;">
-                    <p style="color: #94a3b8; font-size: 12px; margin: 0;">Best regards,<br>The TankTide Team</p>
-                  </div>
-                </div>
-              `
-            }
-          ]
-        })
+      // Use Supabase's signInWithOtp to send email through the configured SMTP
+      const { error: emailError } = await supabaseClient.auth.signInWithOtp({
+        email: secondaryEmail,
+        options: {
+          shouldCreateUser: false, // Don't create a new user
+          data: {
+            otp: otp,
+            type: 'secondary-email-verification'
+          }
+        }
       });
 
-      if (!sendGridResponse.ok) {
-        const errorData = await sendGridResponse.text();
-        console.error('SendGrid error:', errorData);
-        throw new Error(`SendGrid API error: ${sendGridResponse.status}`);
+      if (emailError) {
+        console.error('Supabase email error:', emailError);
+        throw emailError;
       }
 
       // Email sent successfully
@@ -180,7 +141,7 @@ serve(async (req) => {
           success: true, 
           message: 'Verification code sent to your organization email',
           otp: otp, // Remove this in production
-          debug: `Email sending error: ${emailError}. OTP: ${otp}. Check SendGrid API key and sender verification.`
+          debug: `Email sending error: ${emailError}. OTP: ${otp}. Check Supabase email configuration.`
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )

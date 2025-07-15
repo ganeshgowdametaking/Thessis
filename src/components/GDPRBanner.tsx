@@ -26,12 +26,12 @@ const GDPRBanner: React.FC = () => {
       <span className="mb-2 md:mb-0">
         We use cookies and similar technologies to enhance your experience. By clicking “Accept”, you consent to the use of cookies as described in our <a href="/privacy-policy" className="underline">Privacy Policy</a>.
       </span>
-      <button
+              <button
         onClick={handleAccept}
         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-semibold ml-0 md:ml-4 mt-2 md:mt-0"
       >
         Accept
-      </button>
+              </button>
     </div>
   );
 };

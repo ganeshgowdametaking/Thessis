@@ -899,13 +899,13 @@ const CreateReferralPage: React.FC = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => deleteReferral(job.id)}
+                        <button
+                          onClick={() => deleteReferral(job.id)}
                             className="text-gray-400 hover:text-red-600"
                             title="Delete referral"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                         </div>
                       </div>
                       
