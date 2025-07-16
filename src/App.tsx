@@ -343,12 +343,12 @@ function AppContent() {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
                 <Route path="/settings" element={<SettingsPageWrapper />} />
-                <Route path="/" element={<HomePageWrapper />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
                 <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
                 <Route path="/terms" element={<TermsOfServiceWrapper />} />
                 <Route path="/data-request" element={<DataRequestFormWrapper />} />
                 <Route path="/accept-admin-invite" element={<AcceptAdminInvitePage />} />
+                <Route path="/" element={<Navigate to="/jobs" replace />} />
                 <Route path="*" element={<Navigate to="/jobs" />} />
               </>
             ) : null}
