@@ -147,7 +147,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
       }
 
       // Update local state to reflect the verification
-      setSecondaryEmailVerified(true);
+        setSecondaryEmailVerified(true);
       setSecondaryEmailSuccess(data.message || 'Organization email verified successfully!');
       // Refresh the profile to get updated data
       const updatedProfile = await profileService.getCurrentProfile();
@@ -315,143 +315,143 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
                 {openAccountSubsection === 'secondary-email' && (
                   <div className="pl-2 pr-2 pb-6">
                     <div className="flex items-start space-x-2 mb-4">
-                      <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <div className="text-sm text-blue-800">
-                        <p className="font-medium mb-1">Why verify your organization email?</p>
-                        <p>This helps us verify your professional identity and provides additional security for your account.</p>
-                      </div>
+                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium mb-1">Why verify your organization email?</p>
+                      <p>This helps us verify your professional identity and provides additional security for your account.</p>
+                  </div>
+                </div>
+
+                {secondaryEmailError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                    <div className="flex items-center space-x-2">
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                      <span className="text-red-800 text-sm">{secondaryEmailError}</span>
+                    </div>
+                  </div>
+                )}
+
+                {secondaryEmailSuccess && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-green-800 text-sm">{secondaryEmailSuccess}</span>
+                    </div>
+                  </div>
+                )}
+
+                {!secondaryEmailVerified ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Organization Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={secondaryEmail}
+                        onChange={(e) => setSecondaryEmail(e.target.value)}
+                        placeholder="your.name@company.com"
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        disabled={secondaryEmailOtpSent}
+                        required
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Please use your organization email (not Gmail)
+                      </p>
                     </div>
 
-                    {secondaryEmailError && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                        <div className="flex items-center space-x-2">
-                          <AlertCircle className="h-4 w-4 text-red-600" />
-                          <span className="text-red-800 text-sm">{secondaryEmailError}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {secondaryEmailSuccess && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-green-800 text-sm">{secondaryEmailSuccess}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {!secondaryEmailVerified ? (
+                    {!secondaryEmailOtpSent ? (
+                      <button
+                        onClick={handleSendSecondaryEmailOTP}
+                        disabled={secondaryEmailLoading || !secondaryEmail}
+                        className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                      >
+                        {secondaryEmailLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>Sending...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="h-4 w-4" />
+                            <span>Send Verification Code</span>
+                          </>
+                        )}
+                      </button>
+                    ) : (
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Organization Email Address <span className="text-red-500">*</span>
+                            Verification Code <span className="text-red-500">*</span>
                           </label>
                           <input
-                            type="email"
-                            value={secondaryEmail}
-                            onChange={(e) => setSecondaryEmail(e.target.value)}
-                            placeholder="your.name@company.com"
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                            disabled={secondaryEmailOtpSent}
+                            type="text"
+                            value={secondaryEmailOtp}
+                            onChange={(e) => setSecondaryEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            placeholder="Enter 6-digit code"
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base text-center tracking-widest"
+                            maxLength={6}
                             required
                           />
-                          <p className="text-xs text-slate-500 mt-1">
-                            Please use your organization email (not Gmail)
-                          </p>
                         </div>
-
-                        {!secondaryEmailOtpSent ? (
+                        <div className="flex flex-col sm:flex-row gap-3">
                           <button
-                            onClick={handleSendSecondaryEmailOTP}
-                            disabled={secondaryEmailLoading || !secondaryEmail}
-                            className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                            onClick={handleVerifySecondaryEmailOTP}
+                            disabled={secondaryEmailLoading || secondaryEmailOtp.length !== 6}
+                            className="bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                           >
                             {secondaryEmailLoading ? (
                               <>
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                <span>Sending...</span>
+                                <span>Verifying...</span>
                               </>
                             ) : (
                               <>
-                                <Mail className="h-4 w-4" />
-                                <span>Send Verification Code</span>
+                                <CheckCircle className="h-4 w-4" />
+                                <span>Verify Email</span>
                               </>
                             )}
                           </button>
-                        ) : (
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Verification Code <span className="text-red-500">*</span>
-                              </label>
-                              <input
-                                type="text"
-                                value={secondaryEmailOtp}
-                                onChange={(e) => setSecondaryEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                placeholder="Enter 6-digit code"
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base text-center tracking-widest"
-                                maxLength={6}
-                                required
-                              />
-                            </div>
-                            <div className="flex flex-col sm:flex-row gap-3">
-                              <button
-                                onClick={handleVerifySecondaryEmailOTP}
-                                disabled={secondaryEmailLoading || secondaryEmailOtp.length !== 6}
-                                className="bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                              >
-                                {secondaryEmailLoading ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    <span>Verifying...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="h-4 w-4" />
-                                    <span>Verify Email</span>
-                                  </>
-                                )}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSecondaryEmailOtpSent(false);
-                                  setSecondaryEmailOtp('');
-                                  setSecondaryEmailError('');
-                                  setSecondaryEmailSuccess('');
-                                }}
-                                className="bg-slate-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-slate-700 transition-colors text-sm sm:text-base"
-                              >
-                                Change Email
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                          <div>
-                            <p className="text-green-800 font-medium">Organization Email Verified</p>
-                            <p className="text-green-700 text-sm">{secondaryEmail}</p>
-                          </div>
+                          <button
+                            onClick={() => {
+                              setSecondaryEmailOtpSent(false);
+                              setSecondaryEmailOtp('');
+                              setSecondaryEmailError('');
+                              setSecondaryEmailSuccess('');
+                            }}
+                            className="bg-slate-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-slate-700 transition-colors text-sm sm:text-base"
+                          >
+                            Change Email
+                          </button>
                         </div>
-                        <button
-                          onClick={() => {
-                            setSecondaryEmailVerified(false);
-                            setSecondaryEmailOtpSent(false);
-                            setSecondaryEmail('');
-                            setSecondaryEmailOtp('');
-                            setSecondaryEmailError('');
-                            setSecondaryEmailSuccess('');
-                          }}
-                          className="mt-3 text-green-700 hover:text-green-800 text-sm font-medium"
-                        >
-                          Change Email
-                        </button>
                       </div>
                     )}
                   </div>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="text-green-800 font-medium">Organization Email Verified</p>
+                        <p className="text-green-700 text-sm">{secondaryEmail}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSecondaryEmailVerified(false);
+                        setSecondaryEmailOtpSent(false);
+                        setSecondaryEmail('');
+                        setSecondaryEmailOtp('');
+                        setSecondaryEmailError('');
+                        setSecondaryEmailSuccess('');
+                      }}
+                      className="mt-3 text-green-700 hover:text-green-800 text-sm font-medium"
+                    >
+                      Change Email
+                    </button>
+                  </div>
+                )}
+              </div>
                 )}
                 {/* Subheading: Change Password */}
                 <button
@@ -464,61 +464,61 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentSection }) => {
                 </button>
                 {openAccountSubsection === 'change-password' && (
                   <div className="pl-2 pr-2 pb-6">
-                    <form onSubmit={handleChangePassword} className="space-y-6">
-                      <div className="border-t border-slate-200 pt-6">
-                        <h3 className="text-lg font-semibold text-slate-900 mb-4">Change Password</h3>
-                        {changePasswordError && <div className="text-red-600 text-sm mb-2">{changePasswordError}</div>}
-                        {changePasswordSuccess && <div className="text-green-600 text-sm mb-2">{changePasswordSuccess}</div>}
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Current Password</label>
-                            <input
-                              type="password"
-                              value={currentPassword}
-                              onChange={e => setCurrentPassword(e.target.value)}
-                              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">New Password</label>
-                            <input
-                              type="password"
-                              value={newPassword}
-                              onChange={e => setNewPassword(e.target.value)}
-                              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Confirm New Password</label>
-                            <input
-                              type="password"
-                              value={confirmPassword}
-                              onChange={e => setConfirmPassword(e.target.value)}
-                              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                              required
-                            />
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <button
-                              type="button"
-                              onClick={() => setShowForgotPassword(true)}
-                              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                            >
-                              Forgot Password?
-                            </button>
-                            <button
-                              type="submit"
-                              className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-                              disabled={changePasswordLoading}
-                            >
-                              {changePasswordLoading ? 'Updating...' : 'Update Password'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </form>
+              <form onSubmit={handleChangePassword} className="space-y-6">
+                <div className="border-t border-slate-200 pt-6">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Change Password</h3>
+                  {changePasswordError && <div className="text-red-600 text-sm mb-2">{changePasswordError}</div>}
+                  {changePasswordSuccess && <div className="text-green-600 text-sm mb-2">{changePasswordSuccess}</div>}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Current Password</label>
+                      <input
+                        type="password"
+                        value={currentPassword}
+                        onChange={e => setCurrentPassword(e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">New Password</label>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Confirm New Password</label>
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        required
+                      />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      >
+                        Forgot Password?
+                      </button>
+                      <button
+                        type="submit"
+                        className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+                        disabled={changePasswordLoading}
+                      >
+                        {changePasswordLoading ? 'Updating...' : 'Update Password'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
                   </div>
                 )}
               </div>

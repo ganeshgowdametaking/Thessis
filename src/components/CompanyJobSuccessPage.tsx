@@ -1,0 +1,203 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { CheckCircle, Share2, Copy, Twitter, Mail, Link, ArrowRight, Building } from 'lucide-react';
+
+const CompanyJobSuccessPage: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [jobData, setJobData] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
+  const [jobUrl, setJobUrl] = useState('');
+
+  useEffect(() => {
+    if (location.state?.jobData) {
+      setJobData(location.state.jobData);
+      // Generate a mock job URL
+      setJobUrl(`${window.location.origin}/jobs/${Math.random().toString(36).substr(2, 9)}`);
+    }
+  }, [location]);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(jobUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+    }
+  };
+
+  const handleShareTwitter = () => {
+    const text = `We're hiring! ${jobData?.title || 'Join our team'} at TankTide. Apply now: ${jobUrl}`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    window.open(twitterUrl, '_blank');
+  };
+
+  const handleShareEmail = () => {
+    const subject = `We're hiring: ${jobData?.title || 'Join our team'}`;
+    const body = `Hi there!
+
+We're hiring for a ${jobData?.title || 'new position'} at our company. I thought you might know someone who would be a great fit.
+
+Here's the job posting: ${jobUrl}
+
+Thanks for your help!
+
+Best regards,
+[Your Name]`;
+    
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoUrl);
+  };
+
+  const handleViewJob = () => {
+    window.open(jobUrl, '_blank');
+  };
+
+  const handleGoToDashboard = () => {
+    navigate('/company-dashboard');
+  };
+
+  if (!jobData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-700 to-green-400">
+      {/* Header */}
+      <div className="flex items-center justify-between p-6">
+        <div className="flex items-center space-x-2 text-white">
+          <Building className="h-8 w-8" />
+          <span className="text-xl font-bold">TankTide</span>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex items-center justify-center px-4 py-12">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full text-center">
+          {/* Success Icon */}
+          <div className="flex justify-center mb-6">
+            <div className="bg-green-100 p-4 rounded-full">
+              <CheckCircle className="h-16 w-16 text-green-600" />
+            </div>
+          </div>
+
+          {/* Success Message */}
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Your job is live! 🎉
+          </h1>
+          
+          <p className="text-xl text-gray-600 mb-8">
+            Your job posting has been successfully published and is now visible to candidates.
+          </p>
+
+          {/* Job Details */}
+          <div className="bg-gray-50 rounded-lg p-6 mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {jobData.title || 'Software Engineer'}
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {jobData.location || 'Remote'} • {jobData.employmentType?.replace('-', ' ') || 'Full-time'}
+            </p>
+            <div className="flex items-center justify-center space-x-2">
+              <Link className="h-4 w-4 text-blue-600" />
+              <span className="text-blue-600 font-medium">Direct link to job</span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-4 mb-8">
+            <button
+              onClick={handleViewJob}
+              className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+            >
+              <span>View Your Job Posting</span>
+              <ArrowRight className="h-5 w-5" />
+            </button>
+
+            <button
+              onClick={handleCopyLink}
+              className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
+            >
+              <Copy className="h-5 w-5" />
+              <span>{copied ? 'Link Copied!' : 'Copy Link'}</span>
+            </button>
+          </div>
+
+          {/* Share Options */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Share Your Job
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <button
+                onClick={handleShareTwitter}
+                className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                <Twitter className="h-5 w-5" />
+                <span>Tweet this</span>
+              </button>
+
+              <button
+                onClick={handleShareEmail}
+                className="flex items-center justify-center space-x-2 px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                <Mail className="h-5 w-5" />
+                <span>Share via email</span>
+              </button>
+
+              <button
+                onClick={handleCopyLink}
+                className="flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Share2 className="h-5 w-5" />
+                <span>Copy link</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Next Steps */}
+          <div className="mt-8 p-6 bg-blue-50 rounded-lg">
+            <h3 className="text-lg font-semibold text-blue-900 mb-2">
+              What's Next?
+            </h3>
+            <div className="space-y-2 text-sm text-blue-800">
+              <p>• Your job will be visible to candidates for 30 days</p>
+              <p>• You'll receive notifications when candidates apply</p>
+              <p>• Share with 5+ contacts to auto-renew your posting</p>
+            </div>
+          </div>
+
+          {/* Dashboard Button */}
+          <div className="mt-8">
+            <button
+              onClick={handleGoToDashboard}
+              className="text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Go to Dashboard →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="border-t border-green-600">
+        <div className="max-w-4xl mx-auto px-4 py-8 text-center text-green-100">
+          <p className="text-sm">
+            © 2024 TankTide. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CompanyJobSuccessPage; 

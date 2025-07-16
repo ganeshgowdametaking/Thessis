@@ -19,7 +19,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
-  const { user, signOut, profile } = useAuthContext();
+  const { user, signOut, profile, loading } = useAuthContext();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -184,7 +184,13 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
     ) : null
   );
 
+  // Debug: Log user status
+  console.log('Header Debug - User:', user);
+  console.log('Header Debug - Loading:', loading);
+  console.log('Header Debug - Profile:', profile);
+
   if (!user) {
+    console.log('Header Debug - Showing simple header (no user)');
     return (
       <header className="sticky top-0 z-40 bg-slate-900 text-white">
         <div className="w-full">
@@ -272,7 +278,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
             <div className="mx-8 hidden max-w-2xl flex-1 md:block">
               <form onSubmit={handleSearch} className="relative">
                 <div className="absolute left-3 top-1/2 flex h-5 w-5 -translate-y-1/2 transform items-center justify-center">
-                  <Search className="h-5 w-5 stroke-2 text-slate-400" />
+                  <Search className="h-5 w-5 stroke-2" />
                 </div>
                 <input
                   type="text"

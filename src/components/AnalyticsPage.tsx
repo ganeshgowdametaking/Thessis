@@ -311,7 +311,7 @@ const AnalyticsPage: React.FC = () => {
             <Globe className="w-4 h-4" />
             <span>EU Visitors</span>
           </button>
-        </div>
+            </div>
 
                 {/* Overview Tab */}
         {activeTab === 'overview' && (
@@ -324,17 +324,17 @@ const AnalyticsPage: React.FC = () => {
                   <div className="text-gray-400">Total Users</div>
                   <div className="text-sm text-green-400 mt-2">
                     +{analyticsData.userStats.newUsersThisMonth} this month
-                  </div>
-                </div>
+            </div>
+          </div>
                 
                 <div className="bg-[#23272f] rounded-xl p-6 shadow">
                   <div className="text-3xl font-bold text-green-400">{analyticsData.jobStats.totalJobs.toLocaleString()}</div>
                   <div className="text-gray-400">Total Jobs</div>
                   <div className="text-sm text-blue-400 mt-2">
                     {analyticsData.jobStats.activeJobs} active
-                  </div>
-                </div>
-                
+          </div>
+        </div>
+
                 <div className="bg-[#23272f] rounded-xl p-6 shadow">
                   <div className="text-3xl font-bold text-orange-400">{analyticsData.jobStats.totalApplications.toLocaleString()}</div>
                   <div className="text-gray-400">Applications</div>
@@ -412,14 +412,14 @@ const AnalyticsPage: React.FC = () => {
 
               {/* Growth Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                <div className="bg-[#23272f] rounded-xl p-6 shadow">
+          <div className="bg-[#23272f] rounded-xl p-6 shadow">
                   <h2 className="text-lg font-bold mb-4">User Growth (Last 30 Days)</h2>
-                  <div className="h-56">
-                    <ResponsiveLine
+            <div className="h-56">
+              <ResponsiveLine
                       data={userGrowthData}
                       margin={{ top: 20, right: 20, bottom: 60, left: 50 }}
-                      xScale={{ type: 'point' }}
-                      yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false, reverse: false }}
+                xScale={{ type: 'point' }}
+                yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false, reverse: false }}
                       axisBottom={{
                         tickSize: 5,
                         tickPadding: 5,
@@ -430,33 +430,33 @@ const AnalyticsPage: React.FC = () => {
                         tickValues: userGrowthData[0]?.data.filter((_, i) => i % 4 === 0).map(d => d.x) || [],
                         format: (value) => value,
                       }}
-                      axisLeft={{ tickSize: 5, tickPadding: 5, tickRotation: 0, legend: '', legendOffset: -40, legendPosition: 'middle' }}
-                      colors={{ scheme: 'category10' }}
-                      pointSize={8}
-                      pointColor={{ theme: 'background' }}
-                      pointBorderWidth={2}
-                      pointBorderColor={{ from: 'serieColor' }}
-                      enableGridX={false}
-                      enableGridY={true}
-                      theme={{
-                        axis: { ticks: { text: { fill: '#fff' } } },
-                        grid: { line: { stroke: '#444', strokeDasharray: '2 2' } },
-                        tooltip: { container: { background: '#23272f', color: '#fff' } },
-                      }}
-                      useMesh={true}
-                      legends={[]}
-                    />
-                  </div>
-                </div>
+                axisLeft={{ tickSize: 5, tickPadding: 5, tickRotation: 0, legend: '', legendOffset: -40, legendPosition: 'middle' }}
+                colors={{ scheme: 'category10' }}
+                pointSize={8}
+                pointColor={{ theme: 'background' }}
+                pointBorderWidth={2}
+                pointBorderColor={{ from: 'serieColor' }}
+                enableGridX={false}
+                enableGridY={true}
+                theme={{
+                  axis: { ticks: { text: { fill: '#fff' } } },
+                  grid: { line: { stroke: '#444', strokeDasharray: '2 2' } },
+                  tooltip: { container: { background: '#23272f', color: '#fff' } },
+                }}
+                useMesh={true}
+                legends={[]}
+              />
+            </div>
+          </div>
                 
-                <div className="bg-[#23272f] rounded-xl p-6 shadow">
+          <div className="bg-[#23272f] rounded-xl p-6 shadow">
                   <h2 className="text-lg font-bold mb-4">Job Growth (Last 30 Days)</h2>
-                  <div className="h-56">
-                    <ResponsiveLine
+            <div className="h-56">
+              <ResponsiveLine
                       data={jobGrowthData}
                       margin={{ top: 20, right: 20, bottom: 60, left: 50 }}
-                      xScale={{ type: 'point' }}
-                      yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false, reverse: false }}
+                xScale={{ type: 'point' }}
+                yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false, reverse: false }}
                       axisBottom={{
                         tickSize: 5,
                         tickPadding: 5,
@@ -467,25 +467,25 @@ const AnalyticsPage: React.FC = () => {
                         tickValues: jobGrowthData[0]?.data.filter((_, i) => i % 4 === 0).map(d => d.x) || [],
                         format: (value) => value,
                       }}
-                      axisLeft={{ tickSize: 5, tickPadding: 5, tickRotation: 0, legend: '', legendOffset: -40, legendPosition: 'middle' }}
-                      colors={{ scheme: 'category10' }}
-                      pointSize={8}
-                      pointColor={{ theme: 'background' }}
-                      pointBorderWidth={2}
-                      pointBorderColor={{ from: 'serieColor' }}
-                      enableGridX={false}
-                      enableGridY={true}
-                      theme={{
-                        axis: { ticks: { text: { fill: '#fff' } } },
-                        grid: { line: { stroke: '#444', strokeDasharray: '2 2' } },
-                        tooltip: { container: { background: '#23272f', color: '#fff' } },
-                      }}
-                      useMesh={true}
-                      legends={[]}
-                    />
-                  </div>
-                </div>
-              </div>
+                axisLeft={{ tickSize: 5, tickPadding: 5, tickRotation: 0, legend: '', legendOffset: -40, legendPosition: 'middle' }}
+                colors={{ scheme: 'category10' }}
+                pointSize={8}
+                pointColor={{ theme: 'background' }}
+                pointBorderWidth={2}
+                pointBorderColor={{ from: 'serieColor' }}
+                enableGridX={false}
+                enableGridY={true}
+                theme={{
+                  axis: { ticks: { text: { fill: '#fff' } } },
+                  grid: { line: { stroke: '#444', strokeDasharray: '2 2' } },
+                  tooltip: { container: { background: '#23272f', color: '#fff' } },
+                }}
+                useMesh={true}
+                legends={[]}
+              />
+            </div>
+          </div>
+        </div>
 
               {/* Detailed Analytics */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
