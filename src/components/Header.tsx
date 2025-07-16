@@ -394,4 +394,4 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   );
 };
 
-export default Header;  
+export default Header;    

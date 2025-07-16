@@ -42,6 +42,7 @@ import CompanyNewJobPage from './components/CompanyNewJobPage';
 import CompanyApplicantsPage from './components/CompanyApplicantsPage';
 import CompanyIncomingReferralsPage from './components/CompanyIncomingReferralsPage';
 import CompanyProfileBrandingPage from './components/CompanyProfileBrandingPage';
+import CompanyLayout from './components/CompanyLayout';
 
 // Wrapper component for ApplicationsPage to handle React Router integration
 function ApplicationsPageWrapper() {
@@ -307,26 +308,27 @@ function AppContent() {
           <Routes>
             {/* Auth callback route - accessible to all users */}
             <Route path="/auth/callback" element={<AuthCallback />} />
-            {/* Company routes - only for company users */}
+            
+            {/* Company routes - only for company users with separate layout */}
             {isCompanyUser ? (
               <>
-                <Route path="/company-dashboard" element={<CompanyDashboardPage />} />
-                <Route path="/company-hiring/jobs" element={<CompanyJobsPage />} />
-                <Route path="/company-hiring/new" element={<CompanyNewJobPage />} />
-                <Route path="/company-hiring/applicants" element={<CompanyApplicantsPage />} />
-                <Route path="/company-referrals/incoming" element={<CompanyIncomingReferralsPage />} />
-                <Route path="/company-referrals/outgoing" element={<div>Outgoing Invites</div>} />
-                <Route path="/company-referrals/partners" element={<div>My Partners</div>} />
-                <Route path="/company-referrals/invite" element={<div>Invite Partner</div>} />
-                <Route path="/company-profile/branding" element={<CompanyProfileBrandingPage />} />
-                <Route path="/company-profile/careers" element={<div>Careers Page Preview</div>} />
-                <Route path="/company-profile/team" element={<div>Team & Access</div>} />
-                <Route path="/company-profile/integrations" element={<div>Integrations & API Keys</div>} />
-                <Route path="/company-settings/account" element={<div>Account (Email, Password, 2FA)</div>} />
-                <Route path="/company-settings/notifications" element={<div>Notifications & Digests</div>} />
-                <Route path="/company-settings/help" element={<div>Help & Support (Docs, Chat)</div>} />
-                <Route path="/company-dashboard/activity" element={<div>Recent Activity Feed</div>} />
-                <Route path="/company-dashboard/actions" element={<div>Quick Actions (Post Job, Invite Partner)</div>} />
+                <Route path="/company-dashboard" element={<CompanyLayout><CompanyDashboardPage /></CompanyLayout>} />
+                <Route path="/company-hiring/jobs" element={<CompanyLayout><CompanyJobsPage /></CompanyLayout>} />
+                <Route path="/company-hiring/new" element={<CompanyLayout><CompanyNewJobPage /></CompanyLayout>} />
+                <Route path="/company-hiring/applicants" element={<CompanyLayout><CompanyApplicantsPage /></CompanyLayout>} />
+                <Route path="/company-referrals/incoming" element={<CompanyLayout><CompanyIncomingReferralsPage /></CompanyLayout>} />
+                <Route path="/company-referrals/outgoing" element={<CompanyLayout><div>Outgoing Invites</div></CompanyLayout>} />
+                <Route path="/company-referrals/partners" element={<CompanyLayout><div>My Partners</div></CompanyLayout>} />
+                <Route path="/company-referrals/invite" element={<CompanyLayout><div>Invite Partner</div></CompanyLayout>} />
+                <Route path="/company-profile/branding" element={<CompanyLayout><CompanyProfileBrandingPage /></CompanyLayout>} />
+                <Route path="/company-profile/careers" element={<CompanyLayout><div>Careers Page Preview</div></CompanyLayout>} />
+                <Route path="/company-profile/team" element={<CompanyLayout><div>Team & Access</div></CompanyLayout>} />
+                <Route path="/company-profile/integrations" element={<CompanyLayout><div>Integrations & API Keys</div></CompanyLayout>} />
+                <Route path="/company-settings/account" element={<CompanyLayout><div>Account (Email, Password, 2FA)</div></CompanyLayout>} />
+                <Route path="/company-settings/notifications" element={<CompanyLayout><div>Notifications & Digests</div></CompanyLayout>} />
+                <Route path="/company-settings/help" element={<CompanyLayout><div>Help & Support (Docs, Chat)</div></CompanyLayout>} />
+                <Route path="/company-dashboard/activity" element={<CompanyLayout><div>Recent Activity Feed</div></CompanyLayout>} />
+                <Route path="/company-dashboard/actions" element={<CompanyLayout><div>Quick Actions (Post Job, Invite Partner)</div></CompanyLayout>} />
               </>
             ) : null}
             
@@ -343,12 +345,12 @@ function AppContent() {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
                 <Route path="/settings" element={<SettingsPageWrapper />} />
-                <Route path="/" element={<HomePageWrapper />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
                 <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
                 <Route path="/terms" element={<TermsOfServiceWrapper />} />
                 <Route path="/data-request" element={<DataRequestFormWrapper />} />
                 <Route path="/accept-admin-invite" element={<AcceptAdminInvitePage />} />
+                <Route path="/" element={<Navigate to="/jobs" replace />} />
                 <Route path="*" element={<Navigate to="/jobs" />} />
               </>
             ) : null}
@@ -386,4 +388,4 @@ function AppContent() {
   );
 }
 
-export default App;
+export default App;    
