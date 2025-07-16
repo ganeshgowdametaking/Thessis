@@ -8,7 +8,7 @@ import { useMediaQuery } from 'react-responsive';
 import './JobsPage.css';
 import LoadingSpinner from './LoadingSpinner';
 import debounce from 'lodash.debounce';
-import { uploadFileToS3PresignedUrl } from '../services/s3Service';
+
 import SecondaryEmailVerificationModal from './SecondaryEmailVerificationModal';
 
 type Job = Database['public']['Tables']['jobs']['Row'];
@@ -327,32 +327,24 @@ const JobsPage: React.FC = () => {
     try {
       setApplicationError(null);
       const file = applicationForm.resume as File;
-      // 1. Get a pre-signed upload URL from your backend
-      const fileKey = `resumes/${user.id}/${Date.now()}_${file.name}`;
-      const presignedRes = await fetch('http://localhost:3001/generate-upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          key: fileKey,
-          contentType: file.type,
-        }),
+      
+      // For development: Convert file to base64 instead of uploading to S3
+      const fileReader = new FileReader();
+      const fileData = await new Promise<string>((resolve, reject) => {
+        fileReader.onload = () => resolve(fileReader.result as string);
+        fileReader.onerror = reject;
+        fileReader.readAsDataURL(file);
       });
-      if (!presignedRes.ok) throw new Error('Failed to get S3 upload URL');
-      const { url: presignedUrl } = await presignedRes.json();
 
-      // 2. Upload the file to S3 using the pre-signed URL
-      const s3Url = await uploadFileToS3PresignedUrl(file, presignedUrl);
-
-      // 3. Save the S3 URL in your application data (not the file itself)
+      // Create application data with base64 file data
       const applicationData = {
         job_id: selectedJob.id,
         applicant_id: user.id,
-        resume: s3Url,
-        email: applicationForm.email,
-        // ...other fields as needed
+        resume: fileData, // Store base64 data as resume
+        email: applicationForm.email
       };
 
-      // 4. Call your jobService or Supabase to save the application
+      // Call jobService to save the application
       await jobService.createApplication(applicationData);
       setApplicationStep(2); // Go to success step
       await loadUserApplications();

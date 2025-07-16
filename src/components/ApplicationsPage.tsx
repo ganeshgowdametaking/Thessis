@@ -171,22 +171,14 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, 
     try {
       setResumeLoading(true);
       
-      // Extract the key from the S3 URL
-      const url = new URL(resumeUrl);
-      const key = url.pathname.substring(1); // Remove leading slash
-      
-      const response = await fetch('http://localhost:3001/generate-download-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to generate download URL');
+      // For development: resumeUrl is now base64 data
+      if (resumeUrl.startsWith('data:')) {
+        return resumeUrl; // Return the base64 data directly
       }
       
-      const { url: downloadUrl } = await response.json();
-      return downloadUrl;
+      // Fallback for S3 URLs (if any exist) - disabled for production
+      console.warn('S3 download not available in production');
+      throw new Error('Resume download not available');
     } catch (error) {
       console.error('Error generating download URL:', error);
       throw error;
