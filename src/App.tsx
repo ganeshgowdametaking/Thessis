@@ -30,6 +30,7 @@ import GDPRBanner from './components/GDPRBanner';
 import AuthCallback from './components/AuthCallback';
 import TrackingProvider from './components/TrackingProvider';
 import CompanyLandingPage from './components/CompanyLandingPage';
+import AcceptAdminInvitePage from './components/AcceptAdminInvitePage';
 import CompanySignupPage from './components/CompanySignupPage';
 import CompanyLoginPage from './components/CompanyLoginPage';
 import CompanyDashboardPage from './components/CompanyDashboardPage';
@@ -347,6 +348,7 @@ function AppContent() {
                 <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
                 <Route path="/terms" element={<TermsOfServiceWrapper />} />
                 <Route path="/data-request" element={<DataRequestFormWrapper />} />
+                <Route path="/accept-admin-invite" element={<AcceptAdminInvitePage />} />
                 <Route path="*" element={<Navigate to="/jobs" />} />
               </>
             ) : null}
