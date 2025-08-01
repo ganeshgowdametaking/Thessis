@@ -175,7 +175,7 @@ The application will be available at `http://localhost:5173`
 
 ### Email Configuration
 
-The platform uses Supabase's built-in email system with Mailgun SMTP:
+The platform uses Supabase's built-in email system with Mailgun SMTP;
 
 1. **Supabase Email Settings**:
    - Go to Authentication > Settings in Supabase dashboard
