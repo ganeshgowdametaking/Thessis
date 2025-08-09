@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 const AcceptAdminInvitePage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -16,7 +17,11 @@ const AcceptAdminInvitePage: React.FC = () => {
     }
     fetch('https://fvprdknorvuqggwxfqly.supabase.co/functions/v1/accept-admin-invite', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+      },
       body: JSON.stringify({ token }),
     })
       .then(res => res.json())

@@ -77,7 +77,21 @@ serve(async (req) => {
       );
     }
 
-    // Send email (Mailgun or SendGrid)
+    // Send email via Mailgun
+    // @ts-expect-error: Deno.env is available in Supabase Edge Functions
+    const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
+    // @ts-expect-error: Deno.env is available in Supabase Edge Functions
+    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN');
+    // @ts-expect-error: Deno.env is available in Supabase Edge Functions
+    const mailgunFromEmail = Deno.env.get('MAILGUN_FROM_EMAIL');
+    
+    if (!mailgunApiKey || !mailgunDomain) {
+      return new Response(
+        JSON.stringify({ error: 'Mailgun configuration missing' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
     const inviteLink = `${Deno.env.get('FRONTEND_URL') || 'https://tanktide.com'}/accept-admin-invite?token=${token}`;
     const emailBody = `
@@ -89,35 +103,24 @@ serve(async (req) => {
         <p style="margin-top:20px;color:#64748b;font-size:14px;">This link will expire in 24 hours. If you did not expect this invitation, you can ignore this email.</p>
       </div>
     `;
-    // Example: SendGrid
-    const sendGridRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
+
+    // Send via Mailgun (EU region)
+    const mailgunRes = await fetch(`https://api.eu.mailgun.net/v3/${mailgunDomain}/messages`, {
       method: 'POST',
       headers: {
-        // @ts-expect-error: Deno.env is available in Supabase Edge Functions
-        'Authorization': `Bearer ${Deno.env.get('SENDGRID_API_KEY')}`,
-        'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + btoa(`api:${mailgunApiKey}`),
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
-        personalizations: [
-          {
-            to: [{ email }],
-            subject: 'You are invited to become a TankTide Administrator',
-          },
-        ],
-        from: {
-          email: 'info@tanktide.com',
-          name: 'TankTide Team',
-        },
-        content: [
-          {
-            type: 'text/html',
-            value: emailBody,
-          },
-        ],
+      body: new URLSearchParams({
+        from: `TankTide Team <${mailgunFromEmail || 'noreply@tanktide.com'}>`,
+        to: email,
+        subject: 'You are invited to become a TankTide Administrator',
+        html: emailBody,
       }),
     });
-    if (!sendGridRes.ok) {
-      const errorData = await sendGridRes.text();
+
+    if (!mailgunRes.ok) {
+      const errorData = await mailgunRes.text();
       return new Response(
         JSON.stringify({ error: 'Failed to send invitation email', details: errorData }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

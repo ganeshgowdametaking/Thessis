@@ -294,11 +294,57 @@ npm run build
 - [ ] Performance optimization implemented
 - [ ] Error monitoring configured
 
+## Admin System
+
+### Admin Invitation and Promotion System
+The platform includes a comprehensive admin system for managing administrator access:
+
+#### Features
+- **Admin Invitations**: Send email invitations to promote existing users to admin status
+- **Mailgun Integration**: Email delivery via Mailgun (EU region supported)
+- **Token-based Security**: Secure invitation tokens with 24-hour expiration
+- **Analytics Access**: Admin users can access the analytics dashboard at `/analytics`
+
+#### Setup Requirements
+
+1. **Mailgun Configuration** (Supabase Edge Functions Environment Variables):
+   ```bash
+   MAILGUN_API_KEY=key-your-private-api-key
+   MAILGUN_DOMAIN=tanktide.com
+   MAILGUN_FROM_EMAIL=no-reply@tanktide.com
+   FRONTEND_URL=https://tanktide.com
+   ```
+
+2. **Database Tables**:
+   - `admin_invites`: Stores invitation tokens and metadata
+   - `profiles.role`: User role column ('user' or 'admin')
+
+3. **RLS Policies**:
+   ```sql
+   -- Enable RLS and create service role policies
+   ALTER TABLE admin_invites ENABLE ROW LEVEL SECURITY;
+   CREATE POLICY "admin_invites_service_role_access" 
+   ON admin_invites FOR ALL TO service_role USING (true) WITH CHECK (true);
+   
+   CREATE POLICY "Service role can update profiles" 
+   ON profiles FOR ALL TO service_role USING (true) WITH CHECK (true);
+   ```
+
+#### Usage
+1. **Send Invitation**: Admin users can invite others via Settings page
+2. **Email Delivery**: Automatic email with secure invitation link
+3. **Accept Invitation**: Users click link to be promoted to admin
+4. **Analytics Access**: New admins can access analytics dashboard
+
+#### Edge Functions
+- `send-admin-invite`: Creates invitation and sends email via Mailgun
+- `accept-admin-invite`: Validates token and promotes user to admin
+
 ## Database Schema
 
 The application uses the following main database tables:
 
-- **profiles**: User profile information and preferences
+- **profiles**: User profile information and preferences (includes `role` for admin system)
 - **jobs**: Job postings and referral opportunities
 - **applications**: Job applications with status tracking
 - **posts**: Social media feed posts and content
@@ -307,6 +353,7 @@ The application uses the following main database tables:
 - **messages**: Direct messaging system
 - **conversations**: Message conversation management
 - **notifications**: User notification system
+- **admin_invites**: Admin invitation tokens and metadata
 
 ## Security Features
 

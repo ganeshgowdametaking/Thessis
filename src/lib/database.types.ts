@@ -29,6 +29,7 @@ export interface Database {
           secondary_email_verified_at: string | null
           is_eu_user: boolean
           country_code: string | null
+          role: string
           created_at: string
           updated_at: string
         }
@@ -51,6 +52,7 @@ export interface Database {
           secondary_email_verified_at?: string | null
           is_eu_user?: boolean
           country_code?: string | null
+          role?: string
           created_at?: string
           updated_at?: string
         }
@@ -73,6 +75,7 @@ export interface Database {
           secondary_email_verified_at?: string | null
           is_eu_user?: boolean
           country_code?: string | null
+          role?: string
           created_at?: string
           updated_at?: string
         }
@@ -358,6 +361,38 @@ export interface Database {
           priority?: string
           metadata?: Json | null
           created_at?: string
+        }
+      }
+      admin_invites: {
+        Row: {
+          id: string
+          email: string
+          token: string
+          expires_at: string
+          accepted: boolean
+          accepted_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          token: string
+          expires_at: string
+          accepted?: boolean
+          accepted_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          token?: string
+          expires_at?: string
+          accepted?: boolean
+          accepted_at?: string | null
+          created_at?: string
+          updated_at?: string
         }
       }
     }
