@@ -128,7 +128,7 @@ serve(async (req) => {
       <td style="padding: 10px 30px 30px 30px; text-align: center;">
         <p style="font-size: 15px; margin: 20px 0;">This invitation link will expire in 24 hours for your security.</p>
         <p style="font-size: 13px; color: #777; margin-bottom: 30px;">Didn't expect this invitation? No problem—you can safely ignore this email.</p>
-        <p style="font-size: 15px; color: #555;"><em>Welcome to the team!<br/>— The Tanktide Team</em></p>
+        <p style="font-size: 15px; color: #555;"><em>— The Tanktide Team</em></p>
       </td>
     </tr>
 
