@@ -95,13 +95,54 @@ serve(async (req) => {
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
     const inviteLink = `${Deno.env.get('FRONTEND_URL') || 'https://tanktide.com'}/accept-admin-invite?token=${token}`;
     const emailBody = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
-        <h2 style="color: #2563eb;">TankTide Admin Invitation</h2>
-        <p>You have been invited to become an administrator on TankTide.</p>
-        <p>Click the button below to accept the invitation and elevate your account:</p>
-        <a href="${inviteLink}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold;">Accept Invitation</a>
-        <p style="margin-top:20px;color:#64748b;font-size:14px;">This link will expire in 24 hours. If you did not expect this invitation, you can ignore this email.</p>
-      </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tanktide - Admin Invitation</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f8fb; font-family: 'Segoe UI', sans-serif; color: #333;">
+
+  <table align="center" width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(0,0,0,0.1);">
+    
+    <!-- Header -->
+    <tr>
+      <td style="background-color: #003e66; padding: 40px 30px; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Admin Invitation from <span style="color: #00c2ff;">Tanktide</span> 🌊</h1>
+        <p style="color: #d3eafd; margin-top: 10px;">You've been invited to join our admin team!</p>
+      </td>
+    </tr>
+
+    <!-- Invitation Section -->
+    <tr>
+      <td style="padding: 30px; text-align: center;">
+        <p style="font-size: 16px; margin: 0 0 20px;">You have been invited to become an administrator on TankTide.</p>
+        <p style="font-size: 16px; margin: 0 0 30px;">Click the button below to accept the invitation and elevate your account:</p>
+        <a href="${inviteLink}" style="display: inline-block; background-color: #00c2ff; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; margin: 20px 0;">Accept Admin Invitation</a>
+      </td>
+    </tr>
+
+    <!-- Info Section -->
+    <tr>
+      <td style="padding: 10px 30px 30px 30px; text-align: center;">
+        <p style="font-size: 15px; margin: 20px 0;">This invitation link will expire in 24 hours for your security.</p>
+        <p style="font-size: 13px; color: #777; margin-bottom: 30px;">Didn't expect this invitation? No problem—you can safely ignore this email.</p>
+        <p style="font-size: 15px; color: #555;"><em>Welcome to the team!<br/>— The Tanktide Team</em></p>
+      </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+      <td style="background-color: #f0f4f8; text-align: center; padding: 20px; font-size: 12px; color: #999;">
+        <p style="margin: 0;">&copy; 2025 Tanktide, Inc. All rights reserved.</p>
+      </td>
+    </tr>
+    
+  </table>
+
+</body>
+</html>
     `;
 
     // Send via Mailgun (EU region)
