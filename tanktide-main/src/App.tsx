@@ -1,3 +1,4 @@
+// TankTide v2.0 - Enhanced UI/UX and Smart Messaging System
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import Header from './components/Header';
