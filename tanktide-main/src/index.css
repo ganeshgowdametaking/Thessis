@@ -1,0 +1,353 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sage & Stone Design System */
+:root {
+  --primary: #5f7261; /* Sage */
+  --stone-bg: #F9F9F7; /* Stone */
+  --background-light: #F9F9F7;
+  --background-dark: #181a18;
+  --slate-text: #334155;
+  --slate-light: #64748b;
+}
+
+body {
+  font-family: 'Manrope', sans-serif;
+}
+
+/* Material Symbols Filled Variant */
+.material-symbols-outlined.filled {
+  font-variation-settings: 'FILL' 1;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Hide scrollbar for no-scrollbar class */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Line clamp utilities */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Analytics Page Animations */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chart-gradient-sage {
+  background: linear-gradient(180deg, rgba(95, 114, 97, 0.2) 0%, rgba(95, 114, 97, 0) 100%);
+}
+
+.message-wallpaper {
+  position: relative;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  overflow: hidden;
+}
+
+.message-wallpaper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/new-logo.png');
+  background-repeat: repeat;
+  background-size: 75px 75px;
+  opacity: 0.06;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .message-wallpaper::before {
+    background-size: 45px 45px;
+  }
+}
+
+/* Custom Join Now Button from Uiverse.io by niat786 */
+.join-now-btn {
+  border-radius: .25rem;
+  text-transform: uppercase;
+  font-style: normal;
+  font-weight: 400;
+  padding-left: 25px;
+  padding-right: 25px;
+  color: #fff;
+  -webkit-clip-path: polygon(0 0,0 0,100% 0,100% 0,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 100%);
+  clip-path: polygon(0 0,0 0,100% 0,100% 0,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 100%);
+  height: 40px;
+  font-size: 0.7rem;
+  line-height: 14px;
+  letter-spacing: 1.2px;
+  transition: .2s .1s;
+  background-image: linear-gradient(90deg,#2563eb,#60a5fa);
+  border: 0 solid;
+  overflow: hidden;
+}
+
+.join-now-btn:hover {
+  cursor: pointer;
+  transition: all .3s ease-in;
+  padding-right: 30px;
+  padding-left: 30px;
+}
+
+/* Custom Sign In Button from Uiverse.io by mrhyddenn */
+.sign-in-btn {
+  position: relative;
+  padding: 10px 20px;
+  border-radius: 7px;
+  border: 1px solid rgb(61, 106, 255);
+  font-size: 14px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 2px;
+  background: transparent;
+  color: #fff;
+  overflow: hidden;
+  box-shadow: 0 0 0 0 transparent;
+  -webkit-transition: all 0.2s ease-in;
+  -moz-transition: all 0.2s ease-in;
+  transition: all 0.2s ease-in;
+}
+
+.sign-in-btn:hover {
+  background: rgb(61, 106, 255);
+  box-shadow: 0 0 30px 5px rgba(0, 142, 236, 0.815);
+  -webkit-transition: all 0.2s ease-out;
+  -moz-transition: all 0.2s ease-out;
+  transition: all 0.2s ease-out;
+}
+
+.sign-in-btn:hover::before {
+  -webkit-animation: sh02 0.5s 0s linear;
+  -moz-animation: sh02 0.5s 0s linear;
+  animation: sh02 0.5s 0s linear;
+}
+
+.sign-in-btn::before {
+  content: '';
+  display: block;
+  width: 0px;
+  height: 86%;
+  position: absolute;
+  top: 7%;
+  left: 0%;
+  opacity: 0;
+  background: #fff;
+  box-shadow: 0 0 50px 30px #fff;
+  -webkit-transform: skewX(-20deg);
+  -moz-transform: skewX(-20deg);
+  -ms-transform: skewX(-20deg);
+  -o-transform: skewX(-20deg);
+  transform: skewX(-20deg);
+}
+
+@keyframes sh02 {
+  from {
+    opacity: 0;
+    left: 0%;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+    left: 100%;
+  }
+}
+
+.sign-in-btn:active {
+  box-shadow: 0 0 0 0 transparent;
+  -webkit-transition: box-shadow 0.2s ease-in;
+  -moz-transition: box-shadow 0.2s ease-in;
+  transition: box-shadow 0.2s ease-in;
+}
+
+/* Loading Spinner Styles */
+.loader {
+  height: 5px;
+  width: 1px;
+  position: absolute;
+  animation: rotate0234 3.5s linear infinite;
+}
+
+.loader .dot {
+  top: 30px;
+  height: 7px;
+  width: 7px;
+  background: #5f7261;
+  border-radius: 50%;
+  position: relative;
+}
+
+.text {
+  position: absolute;
+  bottom: -85px;
+  font-size: 25px;
+  font-weight: 400;
+  color: #5f7261;
+}
+
+@keyframes rotate0234 {
+  30% {
+    transform: rotate(220deg);
+  }
+
+  40% {
+    transform: rotate(450deg);
+    opacity: 1;
+  }
+
+  75% {
+    transform: rotate(720deg);
+    opacity: 1;
+  }
+
+  76% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 0;
+    transform: rotate(0deg);
+  }
+}
+
+.loader:nth-child(1) {
+  animation-delay: 0.15s;
+}
+
+.loader:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.loader:nth-child(3) {
+  animation-delay: 0.45s;
+}
+
+.loader:nth-child(4) {
+  animation-delay: 0.6s;
+}
+
+.loader:nth-child(5) {
+  animation-delay: 0.75s;
+}
+
+.loader:nth-child(6) {
+  animation-delay: 0.9s;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .text {
+    font-size: 20px;
+    bottom: -70px;
+  }
+  
+  .loader .dot {
+    top: 25px;
+    height: 6px;
+    width: 6px;
+  }
+}/* Custom scrollbar for cookie policy table */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Cracked Earth Background Effect */
+.cracked-wrapper {
+  position: relative;
+}
+
+.cracked-earth {
+  position: absolute;
+  inset: 0;
+  background-color: #191919;
+  filter: url(#cracks);
+  opacity: 0.35;
+  border-radius: 20px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Remove default focus outline from specific inputs (not filter inputs) */
+input:focus:not([data-filter-input]),
+textarea:focus,
+select:focus:not([data-filter-select]) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Custom focus styles for search inputs (not filter inputs) */
+input[type="text"]:focus:not([data-filter-input]),
+input[type="search"]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove borders from specific inputs only (not filter inputs) */
+input:not([data-filter-input]),
+textarea,
+select:not([data-filter-select]) {
+  border: none !important;
+  outline: none !important;
+}

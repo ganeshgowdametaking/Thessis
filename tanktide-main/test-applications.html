@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Applications Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #5f7261;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-links {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .test-link {
+            display: block;
+            padding: 15px 20px;
+            background: #5f7261;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .test-link:hover {
+            background: #4b5c4d;
+        }
+        .info {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .info h3 {
+            margin: 0 0 10px 0;
+            color: #0369a1;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #dcfce7;
+            color: #166534;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Sage & Stone Applications Page <span class="status">✅ Ready</span></h1>
+        
+        <div class="info">
+            <h3>📋 Implementation Status</h3>
+            <p><strong>✅ Completed:</strong> New Applications page with Sage & Stone design</p>
+            <p><strong>🎨 Design:</strong> Modern card-based layout with sage green (#5f7261) color scheme</p>
+            <p><strong>📱 Features:</strong> Responsive grid, search, filtering, resume modal</p>
+        </div>
+
+        <div class="test-links">
+            <a href="http://localhost:5173" class="test-link">
+                🏠 Open Main Website (localhost:5173)
+            </a>
+            
+            <a href="http://localhost:5173/applications/test-job-id" class="test-link">
+                📄 Test Applications Page (with sample ID)
+            </a>
+            
+            <a href="http://localhost:5173/jobs" class="test-link">
+                💼 View Jobs Page (to find real job IDs)
+            </a>
+        </div>
+
+        <div class="info" style="margin-top: 30px;">
+            <h3>🧪 How to Test</h3>
+            <ol>
+                <li><strong>Start the dev server:</strong> Make sure <code>npm run dev</code> is running</li>
+                <li><strong>Open the main site:</strong> Click "Open Main Website" above</li>
+                <li><strong>Sign in:</strong> Create an account or sign in to access protected routes</li>
+                <li><strong>Navigate to Jobs:</strong> Go to the Jobs page to see available positions</li>
+                <li><strong>View Applications:</strong> Click on a job to see its applications (if any exist)</li>
+            </ol>
+        </div>
+
+        <div class="info" style="background: #fef3c7; border-color: #f59e0b;">
+            <h3 style="color: #92400e;">⚠️ Note</h3>
+            <p>The Applications page requires authentication and a valid job ID. You'll need to:</p>
+            <ul>
+                <li>Sign up/login to the platform first</li>
+                <li>Navigate through the Jobs page to access applications</li>
+                <li>Or use a real job ID from your database</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
