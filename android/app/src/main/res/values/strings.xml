@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TankTide</string>
+    <string name="title_activity_main">TankTide</string>
+    <string name="package_name">com.tanktide.app</string>
+    <string name="custom_url_scheme">com.tanktide.app</string>
+</resources>

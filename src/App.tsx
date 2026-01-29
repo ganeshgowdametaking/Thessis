@@ -43,6 +43,7 @@ import CompanyApplicantsPage from './components/CompanyApplicantsPage';
 import CompanyIncomingReferralsPage from './components/CompanyIncomingReferralsPage';
 import CompanyProfileBrandingPage from './components/CompanyProfileBrandingPage';
 import CompanyLayout from './components/CompanyLayout';
+import MobileFooter from './components/MobileFooter';
 
 // Wrapper component for ApplicationsPage to handle React Router integration
 function ApplicationsPageWrapper() {
@@ -50,18 +51,18 @@ function ApplicationsPageWrapper() {
   const navigate = useNavigate();
   const [referralTitle, setReferralTitle] = useState('Job Referral');
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     const fetchJobTitle = async () => {
       if (!referralId) return;
-      
+
       try {
         const { data, error } = await supabase
           .from('jobs')
           .select('title')
           .eq('id', referralId as any)
           .single();
-        
+
         if (error) throw error;
         if (data) {
           setReferralTitle((data as any).title);
@@ -72,36 +73,36 @@ function ApplicationsPageWrapper() {
         setLoading(false);
       }
     };
-    
+
     fetchJobTitle();
   }, [referralId]);
-  
+
   const handleBack = () => {
     navigate(-1);
   };
-  
+
   const handleMessage = (applicantId: number) => {
     // Navigate to messages page and pass applicantId as state, always include a unique timestamp
     navigate('/messages', { state: { selectedApplicant: applicantId, msgNavTs: Date.now() } });
   };
-  
+
   const handleViewProfile = (userId: string) => {
     navigate(`/user/${userId}`);
   };
-  
+
   if (!referralId) {
     return <Navigate to="/jobs" />;
   }
-  
+
   if (loading) {
     return <LoadingSpinner text="Loading job details..." />;
   }
-  
+
   return (
-    <ApplicationsPage 
+    <ApplicationsPage
       referralId={referralId}
       referralTitle={referralTitle}
-      onBack={handleBack} 
+      onBack={handleBack}
       onMessage={handleMessage}
       onViewProfile={handleViewProfile}
     />
@@ -112,24 +113,24 @@ function ApplicationsPageWrapper() {
 function UserProfilePageWrapper() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  
+
   const handleBack = () => {
     navigate(-1);
   };
-  
+
   const handleViewProfile = (newUserId: string) => {
     navigate(`/user/${newUserId}`);
   };
-  
+
   if (!userId) {
     return <Navigate to="/jobs" />;
   }
-  
+
   return (
-    <UserProfilePage 
-      userId={userId} 
-      onBack={handleBack} 
-      onViewProfile={handleViewProfile} 
+    <UserProfilePage
+      userId={userId}
+      onBack={handleBack}
+      onViewProfile={handleViewProfile}
     />
   );
 }
@@ -138,26 +139,26 @@ function UserProfilePageWrapper() {
 function SearchResultsPageWrapper() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
+
   const searchQuery = searchParams.get('q') || '';
-  
+
   const handleBack = () => {
     navigate(-1);
   };
-  
+
   const handleViewProfile = (userId: string) => {
     navigate(`/user/${userId}`);
   };
-  
+
   if (!searchQuery) {
     return <Navigate to="/jobs" />;
   }
-  
+
   return (
-    <SearchResultsPage 
+    <SearchResultsPage
       searchQuery={searchQuery}
-      onBack={handleBack} 
-      onViewProfile={handleViewProfile} 
+      onBack={handleBack}
+      onViewProfile={handleViewProfile}
     />
   );
 }
@@ -170,44 +171,44 @@ function SettingsPageWrapper() {
 // Wrapper component for PrivacyPolicy
 function PrivacyPolicyWrapper() {
   const navigate = useNavigate();
-  
+
   const handleBack = () => {
     navigate('/');
   };
-  
+
   return <PrivacyPolicy onBack={handleBack} />;
 }
 
 // Wrapper component for CookiePolicy
 function CookiePolicyWrapper() {
   const navigate = useNavigate();
-  
+
   const handleBack = () => {
     navigate('/');
   };
-  
+
   return <CookiePolicy onBack={handleBack} />;
 }
 
 // Wrapper component for TermsOfService
 function TermsOfServiceWrapper() {
   const navigate = useNavigate();
-  
+
   const handleBack = () => {
     navigate('/');
   };
-  
+
   return <TermsOfService onBack={handleBack} />;
 }
 
 // Wrapper component for DataRequestForm
 function DataRequestFormWrapper() {
   const navigate = useNavigate();
-  
+
   const handleBack = () => {
     navigate('/');
   };
-  
+
   return <DataRequestForm onBack={handleBack} />;
 }
 
@@ -215,11 +216,11 @@ function DataRequestFormWrapper() {
 function HomePageWrapper() {
   const [searchParams] = useSearchParams();
   const isResetFlow = searchParams.get('reset') === 'true';
-  
+
   if (isResetFlow) {
     return <PasswordResetPage />;
   }
-  
+
   return (
     <>
       <Hero /> <Services /> <About />
@@ -298,17 +299,17 @@ function AppContent() {
 
   return (
     <TrackingProvider>
-    <div className="flex min-h-screen flex-col bg-slate-100">
+      <div className="flex min-h-screen flex-col bg-slate-100 pb-16 md:pb-0">
         <GDPRBanner />
-        <Header 
-          onSignIn={() => handleOpenAuthModal('signin')} 
-          onJoinNow={() => handleOpenAuthModal('signup')} 
+        <Header
+          onSignIn={() => handleOpenAuthModal('signin')}
+          onJoinNow={() => handleOpenAuthModal('signup')}
         />
-      <main className="flex-grow">
-        <Routes>
+        <main className="flex-grow">
+          <Routes>
             {/* Auth callback route - accessible to all users */}
             <Route path="/auth/callback" element={<AuthCallback />} />
-            
+
             {/* Company routes - only for company users with separate layout */}
             {isCompanyUser ? (
               <>
@@ -331,20 +332,20 @@ function AppContent() {
                 <Route path="/company-dashboard/actions" element={<CompanyLayout><div>Quick Actions (Post Job, Invite Partner)</div></CompanyLayout>} />
               </>
             ) : null}
-            
+
             {/* Regular user routes - for all authenticated users (including company users) */}
-          {user ? (
-            <>
-              <Route path="/analytics" element={isAdmin ? <AnalyticsPage /> : <Navigate to="/jobs" replace />} />
-              <Route path="/jobs" element={<JobsPage />} />
-              <Route path="/create-referral" element={<CreateReferralPage />} />
-              <Route path="/applications/:referralId" element={<ApplicationsPageWrapper />} />
-              <Route path="/search-results" element={<SearchResultsPageWrapper key={location.search} />} />
-              <Route path="/messages" element={<MessagesPageWrapper />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
-              <Route path="/settings" element={<SettingsPageWrapper />} />
+            {user ? (
+              <>
+                <Route path="/analytics" element={isAdmin ? <AnalyticsPage /> : <Navigate to="/jobs" replace />} />
+                <Route path="/jobs" element={<JobsPage />} />
+                <Route path="/create-referral" element={<CreateReferralPage />} />
+                <Route path="/applications/:referralId" element={<ApplicationsPageWrapper />} />
+                <Route path="/search-results" element={<SearchResultsPageWrapper key={location.search} />} />
+                <Route path="/messages" element={<MessagesPageWrapper />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
+                <Route path="/settings" element={<SettingsPageWrapper />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
                 <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
                 <Route path="/terms" element={<TermsOfServiceWrapper />} />
@@ -354,7 +355,7 @@ function AppContent() {
                 <Route path="*" element={<Navigate to="/jobs" />} />
               </>
             ) : null}
-            
+
             {/* Public routes - for non-authenticated users */}
             {!user && (
               <>
@@ -365,17 +366,17 @@ function AppContent() {
                 <Route path="/company-onboarding" element={<CompanyOnboardingPage />} />
                 <Route path="/company-job-success" element={<CompanyJobSuccessPage />} />
                 <Route path="/" element={<HomePageWrapper />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
-              <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
-              <Route path="/terms" element={<TermsOfServiceWrapper />} />
-              <Route path="/data-request" element={<DataRequestFormWrapper />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </>
-          )}
-        </Routes>
-      </main>
-      {!(isMobile && location.pathname === '/messages') && <Footer />}
-        
+                <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
+                <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
+                <Route path="/terms" element={<TermsOfServiceWrapper />} />
+                <Route path="/data-request" element={<DataRequestFormWrapper />} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </>
+            )}
+          </Routes>
+        </main>
+        {!(isMobile && location.pathname === '/messages') && <Footer />}
+
         {/* Auth Modal */}
         <AuthModal
           isOpen={authModal.isOpen}
@@ -383,7 +384,8 @@ function AppContent() {
           mode={authModal.mode}
           onModeChange={handleAuthModeChange}
         />
-    </div>
+        <MobileFooter />
+      </div>
     </TrackingProvider>
   );
 }
