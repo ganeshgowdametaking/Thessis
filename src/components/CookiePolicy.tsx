@@ -1,150 +1,173 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 interface CookiePolicyProps {
   onBack: () => void;
 }
 
 const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
-  const navigate = useNavigate();
-  
-  const handleBack = () => {
-    onBack();
-    navigate('/');
-  };
-
   return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex items-center space-x-4 mb-6">
-            <button
-              onClick={handleBack}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
-              aria-label="Go back"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Cookie Policy</h1>
-          </div>
+    <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8 md:p-12 lg:p-16">
+      <div className="flex justify-start mb-8">
+        <button 
+          onClick={onBack}
+          className="group flex items-center justify-center rounded-lg h-10 pr-4 text-slate-500 gap-2 text-sm font-bold leading-normal tracking-[0.015em] transition-all hover:text-sage"
+        >
+          <span className="material-symbols-outlined text-xl transition-transform group-hover:-translate-x-1">arrow_back</span>
+          <span className="truncate">Back to Settings</span>
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-4 mb-10 border-b border-slate-200 pb-8">
+        <h1 className="text-slate-900 text-4xl md:text-5xl font-extrabold leading-tight tracking-[-0.033em]">Cookie Policy</h1>
+        <p className="text-slate-500 text-base font-medium">Last updated: October 24, 2023</p>
+      </div>
+
+      <div className="space-y-10">
+        <section>
+          <h2 className="text-slate-900 text-2xl font-bold leading-tight mb-4">1. What are Cookies?</h2>
+          <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed">
+            Cookies are small text files that are placed on your computer or mobile device when you visit a website. 
+            They are widely used to make websites work more efficiently, as well as to provide information to the owners of the site. 
+            At TankTide, we use cookies to improve your experience, ensuring our platform is secure and easy to use.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-slate-900 text-2xl font-bold leading-tight mb-4">2. How TankTide Uses Cookies</h2>
+          <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-4">
+            We use both session cookies (which expire once you close your web browser) and persistent cookies 
+            (which stay on your device for a set period of time or until you delete them). We use these technologies for the following purposes:
+          </p>
+          <ul className="list-disc pl-6 space-y-2 text-slate-700 text-base md:text-lg leading-relaxed marker:text-sage">
+            <li>To recognize you when you sign in to use our services.</li>
+            <li>To keep track of your specified preferences (such as language or time zone).</li>
+            <li>To prevent fraudulent activity and improve security.</li>
+            <li>To analyze how our services are performing.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-slate-900 text-2xl font-bold leading-tight mb-6">3. Cookie Categories</h2>
+          <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-6">
+            The table below explains the cookies we use and why.
+          </p>
           
-          <div className="prose prose-slate max-w-none">
-            <p className="text-slate-600">
-              Last updated: June 15, 2025
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">1. Introduction</h2>
-            <p className="text-slate-700">
-              This Cookie Policy explains how TankTide ("we", "our", or "us") uses cookies and similar technologies to recognize you when you visit our website. It explains what these technologies are and why we use them, as well as your rights to control our use of them.
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">2. What Are Cookies?</h2>
-            <p className="text-slate-700">
-              Cookies are small data files that are placed on your computer or mobile device when you visit a website. Cookies are widely used by website owners to make their websites work, or to work more efficiently, as well as to provide reporting information.
-            </p>
-            <p className="text-slate-700">
-              Cookies set by the website owner (in this case, TankTide) are called "first-party cookies". Cookies set by parties other than the website owner are called "third-party cookies". Third-party cookies enable third-party features or functionality to be provided on or through the website (e.g., advertising, interactive content, and analytics).
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">3. Types of Cookies We Use</h2>
-            
-            <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-3">3.1 Necessary Cookies</h3>
-            <p className="text-slate-700">
-              These cookies are essential for the website to function properly. They enable core functionality such as security, network management, and account access. You may disable these by changing your browser settings, but this may affect how the website functions.
-            </p>
-            <p className="text-slate-700">
-              Examples:
-            </p>
-            <ul className="list-disc pl-6 text-slate-700 space-y-1">
-              <li>Authentication cookies</li>
-              <li>Security cookies</li>
-              <li>Load balancing cookies</li>
-            </ul>
-            
-            <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-3">3.2 Functional Cookies</h3>
-            <p className="text-slate-700">
-              These cookies enable the website to provide enhanced functionality and personalization. They may be set by us or by third-party providers whose services we have added to our pages.
-            </p>
-            <p className="text-slate-700">
-              Examples:
-            </p>
-            <ul className="list-disc pl-6 text-slate-700 space-y-1">
-              <li>Language preference cookies</li>
-              <li>Region preference cookies</li>
-              <li>User interface customization cookies</li>
-            </ul>
-            
-            <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-3">3.3 Analytics Cookies</h3>
-            <p className="text-slate-700">
-              These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site.
-            </p>
-            <p className="text-slate-700">
-              Examples:
-            </p>
-            <ul className="list-disc pl-6 text-slate-700 space-y-1">
-              <li>Google Analytics cookies</li>
-              <li>Performance monitoring cookies</li>
-              <li>Traffic analysis cookies</li>
-            </ul>
-            
-            <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-3">3.4 Marketing Cookies</h3>
-            <p className="text-slate-700">
-              These cookies track your browsing habits to enable us to show advertising which is more likely to be of interest to you. They are also used to limit the number of times you see an advertisement and help measure the effectiveness of advertising campaigns.
-            </p>
-            <p className="text-slate-700">
-              Examples:
-            </p>
-            <ul className="list-disc pl-6 text-slate-700 space-y-1">
-              <li>Behavioral advertising cookies</li>
-              <li>Social media cookies</li>
-              <li>Ad delivery and measurement cookies</li>
-            </ul>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">4. How Can You Control Cookies?</h2>
-            <p className="text-slate-700">
-              You have the right to decide whether to accept or reject cookies. You can exercise your cookie preferences through our cookie consent banner that appears when you first visit our site.
-            </p>
-            <p className="text-slate-700">
-              You can also set or amend your web browser controls to accept or refuse cookies. If you choose to reject cookies, you may still use our website though your access to some functionality and areas of our website may be restricted.
-            </p>
-            <p className="text-slate-700">
-              Most web browsers allow some control of most cookies through the browser settings. To find out more about cookies, including how to see what cookies have been set, visit <a href="https://www.aboutcookies.org" className="text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer">www.aboutcookies.org</a> or <a href="https://www.allaboutcookies.org" className="text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer">www.allaboutcookies.org</a>.
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">5. Specific Browser Instructions</h2>
-            <p className="text-slate-700">
-              Find out how to manage cookies on popular browsers:
-            </p>
-            <ul className="list-disc pl-6 text-slate-700 space-y-2">
-              <li><a href="https://support.google.com/chrome/answer/95647" className="text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer">Google Chrome</a></li>
-              <li><a href="https://support.mozilla.org/en-US/kb/enhanced-tracking-protection-firefox-desktop" className="text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer">Mozilla Firefox</a></li>
-              <li><a href="https://support.apple.com/guide/safari/manage-cookies-and-website-data-sfri11471/mac" className="text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer">Apple Safari</a></li>
-              <li><a href="https://support.microsoft.com/en-us/microsoft-edge/delete-cookies-in-microsoft-edge-63947406-40ac-c3b8-57b9-2a946a29ae09" className="text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer">Microsoft Edge</a></li>
-            </ul>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">6. Third-Party Cookies</h2>
-            <p className="text-slate-700">
-              We may use third-party services that use cookies on our website, including:
-            </p>
-            <ul className="list-disc pl-6 text-slate-700 space-y-2">
-              <li><strong>Google Analytics:</strong> We use Google Analytics to analyze the use of our website. Google Analytics gathers information about website use by means of cookies. The information gathered is used to create reports about the use of our website. Google's privacy policy is available at: <a href="https://policies.google.com/privacy" className="text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer">https://policies.google.com/privacy</a></li>
-              <li><strong>Social Media:</strong> We use social media buttons and/or plugins on this site that allow you to connect with your social network in various ways. For these to work, social media sites will set cookies through our site which may be used to enhance your profile on their site or contribute to the data they hold for various purposes outlined in their respective privacy policies.</li>
-            </ul>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">7. Updates to This Cookie Policy</h2>
-            <p className="text-slate-700">
-              We may update this Cookie Policy from time to time in order to reflect, for example, changes to the cookies we use or for other operational, legal, or regulatory reasons. Please therefore revisit this Cookie Policy regularly to stay informed about our use of cookies and related technologies.
-            </p>
-            <p className="text-slate-700">
-              The date at the top of this Cookie Policy indicates when it was last updated.
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">8. Contact Us</h2>
-            <p className="text-slate-700">
-              If you have any questions about our use of cookies or other technologies, please email us at <a href="mailto:privacy@tanktide.com" className="text-blue-600 hover:text-blue-800">privacy@tanktide.com</a>.
-            </p>
+          <div className="w-full overflow-hidden rounded-lg border border-slate-200">
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[600px]">
+                <thead>
+                  <tr className="bg-stone-off border-b border-slate-200">
+                    <th className="p-4 text-sm font-bold text-slate-900 uppercase tracking-wider w-1/4">Category</th>
+                    <th className="p-4 text-sm font-bold text-slate-900 uppercase tracking-wider w-1/4">Name</th>
+                    <th className="p-4 text-sm font-bold text-slate-900 uppercase tracking-wider w-1/3">Purpose</th>
+                    <th className="p-4 text-sm font-bold text-slate-900 uppercase tracking-wider w-1/6">Expiration</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  <tr className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 text-sm font-semibold text-slate-900 align-top">Strictly Necessary</td>
+                    <td className="p-4 text-sm text-slate-600 font-mono align-top">auth_token</td>
+                    <td className="p-4 text-sm text-slate-600 align-top">
+                      Used to authenticate users, prevent fraud, and protect user data from unauthorized access.
+                    </td>
+                    <td className="p-4 text-sm text-slate-600 align-top">Session</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 text-sm font-semibold text-slate-900 align-top">Performance</td>
+                    <td className="p-4 text-sm text-slate-600 font-mono align-top">_ga</td>
+                    <td className="p-4 text-sm text-slate-600 align-top">
+                      Used by Google Analytics to distinguish users and allow us to analyze site usage.
+                    </td>
+                    <td className="p-4 text-sm text-slate-600 align-top">2 years</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 text-sm font-semibold text-slate-900 align-top">Functional</td>
+                    <td className="p-4 text-sm text-slate-600 font-mono align-top">pref_lang</td>
+                    <td className="p-4 text-sm text-slate-600 align-top">
+                      Stores the user's preferred language for the interface.
+                    </td>
+                    <td className="p-4 text-sm text-slate-600 align-top">1 year</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 text-sm font-semibold text-slate-900 align-top">Targeting</td>
+                    <td className="p-4 text-sm text-slate-600 font-mono align-top">ads_r_1</td>
+                    <td className="p-4 text-sm text-slate-600 align-top">
+                      Used to deliver advertisements more relevant to you and your interests.
+                    </td>
+                    <td className="p-4 text-sm text-slate-600 align-top">90 days</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
+        </section>
+
+        <section>
+          <h2 className="text-slate-900 text-2xl font-bold leading-tight mb-4">4. Managing Your Preferences</h2>
+          <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-6">
+            You can change your cookie preferences at any time by changing your browser settings. 
+            Please note that if you disable cookies, some features of the TankTide platform may not function correctly.
+          </p>
+          <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-4">
+            Find out how to manage cookies on popular browsers:
+          </p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <a 
+              className="flex items-center p-3 rounded-lg border border-stone-border hover:border-sage/50 hover:bg-sage/5 transition-all group" 
+              href="https://support.google.com/chrome/answer/95647" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <span className="material-symbols-outlined text-slate-400 group-hover:text-sage mr-3">public</span>
+              <span className="text-sm font-semibold text-slate-900 group-hover:text-sage">Google Chrome</span>
+              <span className="material-symbols-outlined text-slate-400 group-hover:text-sage ml-auto text-sm">open_in_new</span>
+            </a>
+            <a 
+              className="flex items-center p-3 rounded-lg border border-stone-border hover:border-sage/50 hover:bg-sage/5 transition-all group" 
+              href="https://support.apple.com/guide/safari/manage-cookies-and-website-data-sfri11471/mac" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <span className="material-symbols-outlined text-slate-400 group-hover:text-sage mr-3">explore</span>
+              <span className="text-sm font-semibold text-slate-900 group-hover:text-sage">Apple Safari</span>
+              <span className="material-symbols-outlined text-slate-400 group-hover:text-sage ml-auto text-sm">open_in_new</span>
+            </a>
+            <a 
+              className="flex items-center p-3 rounded-lg border border-stone-border hover:border-sage/50 hover:bg-sage/5 transition-all group" 
+              href="https://support.mozilla.org/en-US/kb/enhanced-tracking-protection-firefox-desktop" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <span className="material-symbols-outlined text-slate-400 group-hover:text-sage mr-3">language</span>
+              <span className="text-sm font-semibold text-slate-900 group-hover:text-sage">Mozilla Firefox</span>
+              <span className="material-symbols-outlined text-slate-400 group-hover:text-sage ml-auto text-sm">open_in_new</span>
+            </a>
+            <a 
+              className="flex items-center p-3 rounded-lg border border-stone-border hover:border-sage/50 hover:bg-sage/5 transition-all group" 
+              href="https://support.microsoft.com/en-us/microsoft-edge/delete-cookies-in-microsoft-edge-63947406-40ac-c3b8-57b9-2a946a29ae09" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <span className="material-symbols-outlined text-slate-400 group-hover:text-sage mr-3">window</span>
+              <span className="text-sm font-semibold text-slate-900 group-hover:text-sage">Microsoft Edge</span>
+              <span className="material-symbols-outlined text-slate-400 group-hover:text-sage ml-auto text-sm">open_in_new</span>
+            </a>
+          </div>
+        </section>
+
+        <div className="mt-8 p-6 bg-stone-off rounded-lg border border-slate-200">
+          <h3 className="text-lg font-bold text-slate-900 mb-2">Have questions about this policy?</h3>
+          <p className="text-slate-600 text-sm mb-4">
+            If you have any questions about our use of cookies or other technologies, please email us at
+          </p>
+          <a 
+            className="inline-flex items-center text-sage font-bold hover:underline" 
+            href="mailto:privacy@tanktide.com"
+          >
+            <span className="material-symbols-outlined text-lg mr-2">mail</span>
+            privacy@tanktide.com
+          </a>
         </div>
       </div>
     </div>

@@ -102,18 +102,18 @@ export const auth = {
   getCurrentUser: async () => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser()
-      
+
       if (error && error.message !== 'Auth session missing!') {
         console.error('❌ Get user error:', error)
         return { user: null, error }
       }
-      
+
       if (!user) {
         console.log('ℹ️ No authenticated user session')
       } else {
         console.log('✅ User session found:', user.email)
       }
-      
+
       return { user, error: null }
     } catch (error) {
       console.error('❌ Network error getting user:', error)
@@ -123,20 +123,20 @@ export const auth = {
 
   verifyOTP: async (email: string, token: string) => {
     console.log('🔐 Verifying OTP for:', email)
-    
+
     try {
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token,
-        type: 'email'
+        type: 'signup'
       })
-      
+
       if (error) {
         console.error('❌ OTP verification error:', error)
       } else {
         console.log('✅ OTP verification successful')
       }
-      
+
       return { data, error }
     } catch (error) {
       console.error('❌ Network error during OTP verification:', error)
@@ -146,21 +146,19 @@ export const auth = {
 
   resendOTP: async (email: string) => {
     console.log('🔐 Resending OTP for:', email)
-    
+
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false
-        }
+      const { data, error } = await supabase.auth.resend({
+        type: 'signup',
+        email
       })
-      
+
       if (error) {
         console.error('❌ Resend OTP error:', error)
       } else {
         console.log('✅ OTP resent successfully')
       }
-      
+
       return { data, error }
     } catch (error) {
       console.error('❌ Network error during OTP resend:', error)
@@ -170,18 +168,18 @@ export const auth = {
 
   resetPassword: async (email: string) => {
     console.log('🔐 Sending password reset for:', email)
-    
+
     try {
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/?reset=true`
       })
-      
+
       if (error) {
         console.error('❌ Password reset error:', error)
       } else {
         console.log('✅ Password reset email sent successfully')
       }
-      
+
       return { data, error }
     } catch (error) {
       console.error('❌ Network error during password reset:', error)
@@ -202,7 +200,7 @@ export const auth = {
           },
         }
       })
-      
+
       if (error) {
         console.error('❌ Google sign in error:', error)
         return { data: null, error }

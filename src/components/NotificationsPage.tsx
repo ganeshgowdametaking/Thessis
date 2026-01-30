@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Users, Briefcase, Heart, MessageCircle, UserPlus, CheckCircle, Calendar, MapPin, Star, Filter, Search, Download, Eye, Mail, Phone, X, RefreshCw } from 'lucide-react';
+import { Bell, Users, Briefcase, Heart, MessageCircle, UserPlus, CheckCircle, TrendingUp, DollarSign, AlertTriangle, Rocket, ChevronRight, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { notificationService } from '../services/notificationService';
 import { connectionService } from '../services/connectionService';
 import { profileService } from '../services/profileService';
 import { postService } from '../services/postService';
+import { blockingService } from '../services/blockingService';
 import { useAuthContext } from '../contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 
@@ -96,6 +97,10 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
           dedupedNotifications.push(notif);
         }
       }
+      
+      // TODO: Re-implement notification filtering with proper user identification
+      // For now, disable filtering to restore notification functionality
+      // const filteredNotifications = await blockingService.filterBlockedUsers(dedupedNotifications || []);
       setNotifications(dedupedNotifications || []);
     } catch (error) {
       console.error('❌ Error loading notifications:', error);
@@ -163,16 +168,22 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'connection':
-        return <UserPlus className="h-5 w-5 text-blue-600" />;
+        return <UserPlus className="h-5 w-5" />;
       case 'job':
       case 'referral':
-        return <Briefcase className="h-5 w-5 text-green-600" />;
+        return <Rocket className="h-5 w-5" />;
       case 'like':
-        return <Heart className="h-5 w-5 text-red-600" />;
+        return <Heart className="h-5 w-5" />;
       case 'comment':
-        return <MessageCircle className="h-5 w-5 text-purple-600" />;
+        return <MessageCircle className="h-5 w-5" />;
+      case 'payout':
+        return <DollarSign className="h-5 w-5" />;
+      case 'analytics':
+        return <TrendingUp className="h-5 w-5" />;
+      case 'warning':
+        return <AlertTriangle className="h-5 w-5" />;
       default:
-        return <Bell className="h-5 w-5 text-slate-600" />;
+        return <Bell className="h-5 w-5" />;
     }
   };
 
@@ -331,271 +342,369 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading notifications...</p>
-        </div>
+      <div className="bg-stone font-display text-slate-body transition-colors duration-200 min-h-screen flex items-center justify-center">
+        <LoadingSpinner text="Loading notifications..." />
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 space-y-4 sm:space-y-0">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center">
-                <Bell className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Notifications</h1>
-                <p className="text-slate-600 text-sm sm:text-base">
-                  {unreadCount > 0 ? `${unreadCount} new notifications` : ''}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              {/* Refresh Button */}
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="bg-slate-200 text-slate-700 px-3 sm:px-4 py-2 rounded-lg hover:bg-slate-300 transition-colors flex items-center space-x-2 disabled:opacity-50 text-sm"
-              >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Refresh</span>
-              </button>
-              
-              {unreadCount > 0 && (
-                <button
-                  onClick={handleMarkAllAsRead}
-                  className="bg-slate-900 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center space-x-2 font-medium text-sm"
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  <span className="hidden sm:inline">Mark all as read</span>
-                  <span className="sm:hidden">Mark all</span>
-                </button>
-              )}
-            </div>
-          </div>
+  // Group notifications by date
+  const groupNotificationsByDate = (notifications: any[]) => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const lastWeek = new Date(today);
+    lastWeek.setDate(lastWeek.getDate() - 7);
 
-          {/* Filter Tabs - FIXED for mobile */}
-          <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-lg overflow-x-auto">
-            {filterOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setFilter(option.value)}
-                className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center space-x-1 sm:space-x-2 flex-shrink-0 ${
-                  filter === option.value
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-                }`}
-              >
-                <option.icon className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">{option.label}</span>
-                <span className="sm:hidden">{option.label.slice(0, 3)}</span>
-                {option.count > 0 && (
-                  <span className={`text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-bold ${
-                    filter === option.value
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-300 text-slate-600'
-                  }`}>
-                    {option.count}
-                  </span>
-                )}
-              </button>
-            ))}
+    const groups: { [key: string]: any[] } = {
+      today: [],
+      yesterday: [],
+      lastWeek: [],
+      older: []
+    };
+
+    notifications.forEach(notification => {
+      const notifDate = new Date(notification.created_at);
+      const isToday = notifDate.toDateString() === today.toDateString();
+      const isYesterday = notifDate.toDateString() === yesterday.toDateString();
+      const isLastWeek = notifDate >= lastWeek && !isToday && !isYesterday;
+
+      if (isToday) {
+        groups.today.push(notification);
+      } else if (isYesterday) {
+        groups.yesterday.push(notification);
+      } else if (isLastWeek) {
+        groups.lastWeek.push(notification);
+      } else {
+        groups.older.push(notification);
+      }
+    });
+
+    return groups;
+  };
+
+  const groupedNotifications = groupNotificationsByDate(filteredNotifications);
+
+  return (
+    <div className="bg-stone font-display text-slate-body transition-colors duration-200 min-h-screen flex flex-col">
+      <main className="flex-1 w-full max-w-[800px] mx-auto px-4 py-8 md:py-12">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">Notifications</h1>
+            <p className="text-slate-500 font-medium">
+              You have <span className="text-slate-900 font-bold">{unreadCount} unread</span> messages requiring attention.
+            </p>
+          </div>
+          <button 
+            onClick={handleMarkAllAsRead}
+            className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-stone-header text-sm font-bold text-slate-900 hover:bg-stone-50 hover:border-slate-300 transition-all shadow-sm"
+          >
+            <CheckCircle className="text-[18px] text-slate-500 group-hover:text-sage transition-colors" />
+            <span>Mark all as read</span>
+          </button>
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="mb-8 border-b border-stone-header">
+          <div className="flex gap-6 overflow-x-auto pb-[1px]">
+            <button 
+              onClick={() => setFilter('all')}
+              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${
+                filter === 'all' 
+                  ? 'text-sage border-b-2 border-sage' 
+                  : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
+              }`}
+            >
+              All
+            </button>
+            <button 
+              onClick={() => setFilter('unread')}
+              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${
+                filter === 'unread' 
+                  ? 'text-sage border-b-2 border-sage' 
+                  : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
+              }`}
+            >
+              Unread
+              {unreadCount > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center bg-stone-off text-slate-500 text-[10px] h-5 min-w-5 px-1.5 rounded-full">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            <button 
+              onClick={() => setFilter('connection')}
+              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${
+                filter === 'connection' 
+                  ? 'text-sage border-b-2 border-sage' 
+                  : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
+              }`}
+            >
+              Referrals
+            </button>
+            <button 
+              onClick={() => setFilter('job')}
+              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${
+                filter === 'job' 
+                  ? 'text-sage border-b-2 border-sage' 
+                  : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
+              }`}
+            >
+              System
+            </button>
           </div>
         </div>
 
-        {/* Notifications List */}
-        <div className="space-y-4">
-          {filteredNotifications.length > 0 ? (
-            filteredNotifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 transition-all relative ${
-                  !notification.read ? `border-l-4 ${getPriorityColor(notification.priority)} bg-slate-50` : ''
-                }`}
-              >
-                {/* Delete Button - Positioned at top-right */}
-                <button
-                  onClick={() => handleDeleteNotification(notification.id)}
-                  className="absolute top-3 right-3 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-red-600 transition-colors z-10"
-                  aria-label="Delete notification"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-
-                <div className="flex items-start space-x-3 sm:space-x-4">
-                  {/* Profile Picture or Icon */}
-                  <div className="flex-shrink-0">
-                    {notification.actorProfile ? (
-                      <img
-                        src={getProfilePicture(notification.actorProfile)}
-                        alt={notification.actorProfile.full_name}
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
-                        onClick={() => handleProfileClick(notification.actorProfile.id)}
-                      />
-                    ) : (
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 rounded-full flex items-center justify-center border-2 border-slate-200">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1 flex-wrap">
-                          {notification.actorProfile ? (
-                            <div className="flex items-center space-x-2 flex-wrap">
-                              <h3 
-                                className={`font-bold cursor-pointer hover:text-blue-600 transition-colors text-sm sm:text-base ${!notification.read ? 'text-slate-900' : 'text-slate-700'}`}
-                                onClick={() => handleProfileClick(notification.actorProfile.id)}
-                              >
-                                {notification.actorProfile.full_name}
-                              </h3>
-                              {notification.type === 'like' && (
-                                <span className="text-slate-600 text-sm">liked your post:</span>
-                              )}
-                              {notification.type === 'comment' && (
-                                <span className="text-slate-600 text-sm">commented on your post:</span>
-                              )}
-                            </div>
-                          ) : (
-                            <h3 className={`font-bold text-sm sm:text-base ${!notification.read ? 'text-slate-900' : 'text-slate-700'}`}>
-                              {notification.title}
-                            </h3>
-                          )}
-                          {notification.priority === 'high' && (
-                            <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium flex-shrink-0">
-                              High Priority
-                            </span>
-                          )}
-                        </div>
-                        
-                        {/* Enhanced message display for likes and comments */}
-                        {notification.actorProfile && (notification.type === 'like' || notification.type === 'comment') ? (
-                          <div className="mb-3">
-                            <p className="text-slate-600 leading-relaxed text-sm">
-                              {notification.type === 'like' && (
-                                <>
-                                  <span className="font-medium">"{notification.message.split(': "')[1]?.replace('"', '') || 'your post'}"</span>
-                                </>
-                              )}
-                              {notification.type === 'comment' && (
-                                <>
-                                  <span className="font-medium">"{notification.message.split(': "')[1]?.replace('"', '') || 'your post'}"</span>
-                                </>
-                              )}
-                            </p>
-                            
-                            {/* FIXED: Functional Like Button for Like Notifications */}
-                            {notification.type === 'like' && notification.metadata?.post_id && (
-                              <div className="mt-3 flex items-center space-x-2">
-                                <button
-                                  onClick={() => handleLikeToggle(notification.metadata.post_id)}
-                                  className={`flex items-center space-x-1 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                                    likedPosts.has(notification.metadata.post_id)
-                                      ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                  }`}
-                                >
-                                  <Heart 
-                                    className={`h-4 w-4 ${
-                                      likedPosts.has(notification.metadata.post_id) 
-                                        ? 'fill-current text-red-600' 
-                                        : 'text-slate-400'
-                                    }`} 
-                                  />
-                                  <span>
-                                    {likedPosts.has(notification.metadata.post_id) ? 'Liked' : 'Like back'}
-                                  </span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <p className="text-slate-600 mb-3 leading-relaxed text-sm">{notification.message}</p>
-                        )}
-                        
-                        <div className="flex items-center space-x-4 flex-wrap">
-                          <span className="text-xs sm:text-sm text-slate-500 font-medium">
-                            {new Date(notification.created_at).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                          {!notification.read && (
-                            <button
-                              onClick={() => handleMarkAsRead(notification.id)}
-                              className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium"
-                            >
-                              Mark as read
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Notification Status Indicator */}
-                      <div className="flex items-center space-x-2 flex-shrink-0">
-                        {!notification.read && (
-                          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    {notification.actionable && notification.type === 'connection' && (
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mt-4">
-                        <button
-                          onClick={() => handleAcceptConnection(notification.id, notification.metadata?.connection_id)}
-                          className="bg-slate-900 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium"
-                        >
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => handleDeclineConnection(notification.id, notification.metadata?.connection_id)}
-                          className="bg-slate-200 text-slate-700 px-4 sm:px-6 py-2 rounded-lg hover:bg-slate-300 transition-colors text-sm font-medium"
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    )}
-
-                    {notification.actionable && (notification.type === 'job' || notification.type === 'referral') && (
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mt-4">
-                        <button className="bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
-                          View Job
-                        </button>
-                        <button 
-                          onClick={() => handleMarkAsRead(notification.id)}
-                          className="bg-slate-200 text-slate-700 px-4 sm:px-6 py-2 rounded-lg hover:bg-slate-300 transition-colors text-sm font-medium"
-                        >
-                          Dismiss
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+        {/* Notifications */}
+        <div className="flex flex-col gap-8">
+          {/* Today */}
+          {groupedNotifications.today.length > 0 && (
+            <section>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 pl-1">Today</h3>
+              <div className="flex flex-col gap-3">
+                {groupedNotifications.today.map((notification) => (
+                  <NotificationCard 
+                    key={notification.id} 
+                    notification={notification} 
+                    onAcceptConnection={handleAcceptConnection}
+                    onDeclineConnection={handleDeclineConnection}
+                    onMarkAsRead={handleMarkAsRead}
+                    onProfileClick={handleProfileClick}
+                    onDeleteNotification={handleDeleteNotification}
+                    onLikeToggle={handleLikeToggle}
+                    likedPosts={likedPosts}
+                    getProfilePicture={getProfilePicture}
+                    getNotificationIcon={getNotificationIcon}
+                  />
+                ))}
               </div>
-            ))
-          ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 sm:p-12 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            </section>
+          )}
+
+          {/* Yesterday */}
+          {groupedNotifications.yesterday.length > 0 && (
+            <section>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 pl-1">Yesterday</h3>
+              <div className="flex flex-col gap-3">
+                {groupedNotifications.yesterday.map((notification) => (
+                  <NotificationCard 
+                    key={notification.id} 
+                    notification={notification} 
+                    onAcceptConnection={handleAcceptConnection}
+                    onDeclineConnection={handleDeclineConnection}
+                    onMarkAsRead={handleMarkAsRead}
+                    onProfileClick={handleProfileClick}
+                    onDeleteNotification={handleDeleteNotification}
+                    onLikeToggle={handleLikeToggle}
+                    likedPosts={likedPosts}
+                    getProfilePicture={getProfilePicture}
+                    getNotificationIcon={getNotificationIcon}
+                    isRead={true}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Last Week */}
+          {groupedNotifications.lastWeek.length > 0 && (
+            <section>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 pl-1">Last Week</h3>
+              <div className="flex flex-col gap-3">
+                {groupedNotifications.lastWeek.map((notification) => (
+                  <NotificationCard 
+                    key={notification.id} 
+                    notification={notification} 
+                    onAcceptConnection={handleAcceptConnection}
+                    onDeclineConnection={handleDeclineConnection}
+                    onMarkAsRead={handleMarkAsRead}
+                    onProfileClick={handleProfileClick}
+                    onDeleteNotification={handleDeleteNotification}
+                    onLikeToggle={handleLikeToggle}
+                    likedPosts={likedPosts}
+                    getProfilePicture={getProfilePicture}
+                    getNotificationIcon={getNotificationIcon}
+                    isRead={true}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Empty State */}
+          {filteredNotifications.length === 0 && (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-stone-off rounded-full flex items-center justify-center mx-auto mb-4">
                 <Bell className="h-8 w-8 text-slate-400" />
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">No notifications found</h3>
+              <p className="text-slate-500">You're all caught up!</p>
             </div>
           )}
         </div>
+
+        {/* End of notifications */}
+        {filteredNotifications.length > 0 && (
+          <div className="h-20 flex items-center justify-center mt-8">
+            <p className="text-slate-500 text-sm font-medium">End of notifications</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+// Notification Card Component
+interface NotificationCardProps {
+  notification: any;
+  onAcceptConnection: (notificationId: string, connectionId?: string) => void;
+  onDeclineConnection: (notificationId: string, connectionId?: string) => void;
+  onMarkAsRead: (notificationId: string) => void;
+  onProfileClick: (userId: string) => void;
+  onDeleteNotification: (notificationId: string) => void;
+  onLikeToggle: (postId: string) => void;
+  likedPosts: Set<string>;
+  getProfilePicture: (profile: any) => string;
+  getNotificationIcon: (type: string) => JSX.Element;
+  isRead?: boolean;
+}
+
+const NotificationCard: React.FC<NotificationCardProps> = ({
+  notification,
+  onAcceptConnection,
+  onDeclineConnection,
+  onMarkAsRead,
+  onProfileClick,
+  onDeleteNotification,
+  onLikeToggle,
+  likedPosts,
+  getProfilePicture,
+  getNotificationIcon,
+  isRead = false
+}) => {
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const notifDate = new Date(dateString);
+    const diffInMinutes = Math.floor((now.getTime() - notifDate.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} mins ago`;
+    } else if (diffInMinutes < 1440) {
+      const hours = Math.floor(diffInMinutes / 60);
+      return `${hours} hours ago`;
+    } else {
+      return notifDate.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  };
+
+  const isUnread = !notification.read && !isRead;
+
+  return (
+    <div className={`group relative flex items-start gap-4 p-5 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:border-sage/30 transition-all duration-300 cursor-pointer ${
+      isUnread ? 'opacity-100' : 'opacity-80 hover:opacity-100'
+    }`}>
+      {/* Unread indicator */}
+      {isUnread && (
+        <div className="absolute left-0 top-6 w-1 h-8 bg-sage rounded-r-full"></div>
+      )}
+
+      {/* Avatar or Icon */}
+      <div className="shrink-0 relative">
+        {notification.actorProfile ? (
+          <>
+            <img 
+              className="size-12 rounded-full object-cover border border-stone-off" 
+              src={getProfilePicture(notification.actorProfile)}
+              alt={notification.actorProfile.full_name}
+              onClick={() => onProfileClick(notification.actorProfile.id)}
+            />
+            {notification.type === 'connection' && (
+              <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
+                <div className="bg-stone-off rounded-full p-0.5">
+                  <UserPlus className="text-sage text-[16px]" />
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex items-center justify-center size-12 rounded-full bg-stone-off text-slate-500">
+            {getNotificationIcon(notification.type)}
+          </div>
+        )}
       </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0 pt-0.5">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1">
+          <p className="text-slate-900 text-base leading-snug">
+            {notification.actorProfile ? (
+              <>
+                <span className="font-bold">{notification.actorProfile.full_name}</span>
+                {notification.type === 'connection' && ' accepted your referral for '}
+                {notification.type === 'like' && ' liked your post'}
+                {notification.type === 'comment' && ' commented on your post'}
+                {notification.type === 'connection' && (
+                  <span className="font-bold">Senior UX Designer</span>
+                )}
+              </>
+            ) : (
+              <span className="font-medium">{notification.message || notification.title}</span>
+            )}
+          </p>
+          <span className="shrink-0 text-xs font-medium text-slate-500 whitespace-nowrap">
+            {formatTimeAgo(notification.created_at)}
+          </span>
+        </div>
+
+        {/* Description */}
+        {(notification.message || notification.actorProfile) && (
+          <p className="text-slate-body text-sm mt-1 line-clamp-2">
+            {notification.type === 'connection' && notification.actorProfile 
+              ? "Great news! Sarah has moved to the screening stage. You can now track her progress in your dashboard."
+              : notification.message
+            }
+          </p>
+        )}
+
+        {/* Action Buttons */}
+        <div className="mt-3 flex items-center gap-4">
+          {notification.actionable && notification.type === 'connection' ? (
+            <>
+              <button
+                onClick={() => onAcceptConnection(notification.id, notification.metadata?.connection_id)}
+                className="text-sm font-bold text-sage hover:text-sage-olive transition-colors"
+              >
+                Accept
+              </button>
+              <button
+                onClick={() => onDeclineConnection(notification.id, notification.metadata?.connection_id)}
+                className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors"
+              >
+                Decline
+              </button>
+            </>
+          ) : (
+            <button className="text-sm font-bold text-sage hover:text-sage-olive transition-colors">
+              {notification.type === 'connection' ? 'View Application' : 
+               notification.type === 'analytics' ? 'Review Matches' :
+               notification.type === 'payout' ? 'View Details' : 'View'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Chevron for older notifications */}
+      {isRead && (
+        <div className="shrink-0 self-center hidden sm:block">
+          <ChevronRight className="text-slate-300 group-hover:text-slate-500 transition-colors" />
+        </div>
+      )}
     </div>
   );
 };

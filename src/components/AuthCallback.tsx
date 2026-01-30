@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from './LoadingSpinner';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +16,7 @@ const AuthCallback: React.FC = () => {
 
         // Get the session from the URL
         const { data, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           console.error('Auth callback error:', error);
           setError('Authentication failed. Please try again.');
@@ -48,10 +47,9 @@ const AuthCallback: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner text="Completing sign in..." />
-          <p className="text-white mt-4 text-lg">Please wait while we complete your sign in...</p>
         </div>
       </div>
     );

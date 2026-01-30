@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,6 +16,85 @@ body {
   .pb-safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+}
+
+/* Sage & Stone Design System */
+:root {
+  --primary: #5f7261;
+  /* Sage */
+  --stone-bg: #F9F9F7;
+  /* Stone */
+  --background-light: #F9F9F7;
+  --background-dark: #181a18;
+  --slate-text: #334155;
+  --slate-light: #64748b;
+}
+
+body {
+  font-family: 'Manrope', sans-serif;
+}
+
+/* Material Symbols Filled Variant */
+.material-symbols-outlined.filled {
+  font-variation-settings: 'FILL' 1;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Hide scrollbar for no-scrollbar class */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Line clamp utilities */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Analytics Page Animations */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chart-gradient-sage {
+  background: linear-gradient(180deg, rgba(95, 114, 97, 0.2) 0%, rgba(95, 114, 97, 0) 100%);
 }
 
 .message-wallpaper {
@@ -52,14 +133,14 @@ body {
   padding-left: 25px;
   padding-right: 25px;
   color: #fff;
-  -webkit-clip-path: polygon(0 0,0 0,100% 0,100% 0,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 100%);
-  clip-path: polygon(0 0,0 0,100% 0,100% 0,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 100%);
+  -webkit-clip-path: polygon(0 0, 0 0, 100% 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 15px 100%, 0 100%);
+  clip-path: polygon(0 0, 0 0, 100% 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 15px 100%, 0 100%);
   height: 40px;
   font-size: 0.7rem;
   line-height: 14px;
   letter-spacing: 1.2px;
   transition: .2s .1s;
-  background-image: linear-gradient(90deg,#2563eb,#60a5fa);
+  background-image: linear-gradient(90deg, #2563eb, #60a5fa);
   border: 0 solid;
   overflow: hidden;
 }
@@ -157,7 +238,7 @@ body {
   top: 30px;
   height: 7px;
   width: 7px;
-  background: #268fe4;
+  background: #5f7261;
   border-radius: 50%;
   position: relative;
 }
@@ -167,7 +248,7 @@ body {
   bottom: -85px;
   font-size: 25px;
   font-weight: 400;
-  color: #26aee4;
+  color: #5f7261;
 }
 
 @keyframes rotate0234 {
@@ -225,10 +306,59 @@ body {
     font-size: 20px;
     bottom: -70px;
   }
-  
+
   .loader .dot {
     top: 25px;
     height: 6px;
     width: 6px;
   }
+}
+
+/* Custom scrollbar for cookie policy table */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Cracked Earth Background Effect */
+.cracked-wrapper {
+  position: relative;
+}
+
+.cracked-earth {
+  position: absolute;
+  inset: 0;
+  background-color: #191919;
+  filter: url(#cracks);
+  opacity: 0.35;
+  border-radius: 20px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Remove default focus outline from specific inputs (not filter inputs) */
+input:focus:not([data-filter-input]),
+textarea:focus,
+select:focus:not([data-filter-select]) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Custom focus styles for search inputs (not filter inputs) */
+input[type="text"]:focus:not([data-filter-input]),
+input[type="search"]:focus {
+  outline: none !important;
+  box-shadow: none !important;
 }

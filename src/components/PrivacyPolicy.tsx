@@ -7,11 +7,11 @@ interface PrivacyPolicyProps {
 }
 
 const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
-  const navigate = useNavigate();
+  console.log('PrivacyPolicy mounted');
   
   const handleBack = () => {
+    console.log('BACK CLICKED');
     onBack();
-    navigate('/');
   };
 
   return (

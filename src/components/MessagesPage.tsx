@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, MoreHorizontal, Send, Smile, Circle, MessageSquare, Trash2, X } from 'lucide-react';
+import { Search, Send, Smile, MessageSquare, Trash2, X, Image, MoreVertical, PlusCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { messageService } from '../services/messageService';
 import { profileService } from '../services/profileService';
+import { blockingService } from '../services/blockingService';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useMediaQuery } from 'react-responsive';
+import LoadingSpinner from './LoadingSpinner';
 
 interface MessagesPageProps {
-  selectedApplicant?: number | null;
+  selectedApplicant?: string | null;
   onViewProfile?: (userId: string) => void;
 }
 
@@ -37,7 +39,9 @@ const emojiData: { [key: string]: string[] } = {
 const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewProfile }) => {
   const { user } = useAuthContext();
   const isMobile = useMediaQuery({ maxWidth: 767 });
-  const [selectedChat, setSelectedChat] = useState<number | null>(null);
+  const [selectedChat, setSelectedChat] = useState<string | null>(null);
+  const [pendingChatUserId, setPendingChatUserId] = useState<string | null>(null); // New state for pending chats
+  const [isSettingUpPendingChat, setIsSettingUpPendingChat] = useState(false); // Flag to prevent auto-selection
   const [newMessage, setNewMessage] = useState('');
   const [conversations, setConversations] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
@@ -66,27 +70,33 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
   useEffect(() => {
     if (selectedApplicant) {
-      console.log('Opening chat for applicant ID:', selectedApplicant);
-      // Create or get conversation with the selected applicant
-      const openConversationWithApplicant = async () => {
-        try {
-          const conversation = await messageService.createOrGetConversation(selectedApplicant.toString());
-          setSelectedChat(conversation.id);
-          setShowConversationsList(false); // Hide conversations list on mobile when chat is selected
-          // Reload conversations to include the new one if it was created
-          await loadConversations();
-        } catch (error) {
-          console.error('Error opening conversation with applicant:', error);
-          alert('Failed to open conversation. Please try again.');
-        }
-      };
-      openConversationWithApplicant();
+      console.log('🔍 Opening chat for applicant ID:', selectedApplicant);
+      console.log('🔍 Setting pendingChatUserId to:', selectedApplicant);
+      console.log('🔍 Current showConversationsList:', showConversationsList);
+      console.log('🔍 Current selectedChat (will be cleared):', selectedChat);
+      
+      // Set flag to prevent auto-selection
+      setIsSettingUpPendingChat(true);
+      
+      // Instead of creating conversation immediately, set up pending chat
+      setPendingChatUserId(selectedApplicant);
+      setSelectedChat(null); // Clear any existing chat - this is important!
+      setMessages([]); // Clear messages
+      setShowConversationsList(false); // Hide conversations list on mobile when chat is selected
+      console.log('🔍 Set showConversationsList to false and cleared selectedChat');
+      
+      // Clear the flag after a short delay to allow the pending chat to be set up
+      setTimeout(() => {
+        setIsSettingUpPendingChat(false);
+      }, 500);
+    } else {
+      console.log('🔍 No selectedApplicant provided');
     }
   }, [selectedApplicant, msgNavTs]);
 
   useEffect(() => {
     if (selectedChat) {
-      loadMessages(selectedChat.toString());
+      loadMessages(selectedChat);
     }
   }, [selectedChat]);
 
@@ -142,11 +152,31 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     try {
       setLoading(true);
       const userConversations = await messageService.getConversations();
-      setConversations(userConversations || []);
       
-      // Only auto-select first conversation on desktop (not mobile)
-      if (userConversations && userConversations.length > 0 && !selectedChat && !isMobile) {
-        setSelectedChat(userConversations[0].id);
+      // Filter out conversations that have no messages
+      const conversationsWithMessages = (userConversations || []).filter(conversation => 
+        conversation.messages && conversation.messages.length > 0
+      );
+      
+      // TODO: Re-implement conversation filtering with proper field mapping
+      // For now, disable filtering to restore message functionality
+      // const filteredConversations = await blockingService.filterBlockedUsers(conversationsWithMessages);
+      setConversations(conversationsWithMessages);
+      
+      // Only auto-select first conversation on desktop (not mobile) and only if no pending chat or selectedApplicant
+      console.log('🔍 Auto-selection check:', {
+        hasConversations: conversationsWithMessages && conversationsWithMessages.length > 0,
+        selectedChat,
+        isMobile,
+        pendingChatUserId,
+        selectedApplicant,
+        isSettingUpPendingChat,
+        shouldAutoSelect: conversationsWithMessages && conversationsWithMessages.length > 0 && !selectedChat && !isMobile && !pendingChatUserId && !selectedApplicant && !isSettingUpPendingChat
+      });
+      
+      if (conversationsWithMessages && conversationsWithMessages.length > 0 && !selectedChat && !isMobile && !pendingChatUserId && !selectedApplicant && !isSettingUpPendingChat) {
+        console.log('🔍 Auto-selecting first conversation:', conversationsWithMessages[0].id);
+        setSelectedChat(conversationsWithMessages[0].id);
         setShowConversationsList(false); // Auto-hide on desktop when conversation is loaded
       }
     } catch (error) {
@@ -184,7 +214,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       console.log('🗑️ User confirmed deletion, starting process...');
       
       // Call the messageService delete function
-      const result = await messageService.deleteConversation(selectedChat.toString());
+      const result = await messageService.deleteConversation(selectedChat);
       
       console.log('✅ Delete result:', result);
       
@@ -240,6 +270,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     try {
       const conversation = await messageService.createOrGetConversation(userId);
       setSelectedChat(conversation.id);
+      setPendingChatUserId(null); // Clear pending chat when creating new conversation
+      setPendingUserInfo(null); // Clear pending user info
       setSearchQuery('');
       setSearchSuggestions([]);
       setShowConversationsList(false); // Hide conversations list when new chat starts (both mobile and desktop)
@@ -252,19 +284,65 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   };
 
   const currentConversation = conversations.find(conv => conv.id === selectedChat);
+  
+  // For pending chats, we need to get user info
+  const [pendingUserInfo, setPendingUserInfo] = useState<any>(null);
+  
+  useEffect(() => {
+    const fetchPendingUserInfo = async () => {
+      console.log('🔍 fetchPendingUserInfo check:', {
+        pendingChatUserId,
+        selectedChat,
+        shouldFetch: pendingChatUserId && !selectedChat
+      });
+      
+      if (pendingChatUserId && !selectedChat) {
+        console.log('🔍 Fetching pending user info for:', pendingChatUserId);
+        try {
+          // Fetch user profile for pending chat
+          const userProfile = await profileService.getProfile(pendingChatUserId);
+          console.log('✅ Pending user profile fetched:', userProfile);
+          setPendingUserInfo(userProfile);
+        } catch (error) {
+          console.error('❌ Error fetching pending user info:', error);
+          setPendingUserInfo(null);
+        }
+      } else {
+        console.log('🔍 Clearing pending user info. pendingChatUserId:', pendingChatUserId, 'selectedChat:', selectedChat);
+        setPendingUserInfo(null);
+      }
+    };
+    
+    fetchPendingUserInfo();
+  }, [pendingChatUserId, selectedChat]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() && selectedChat) {
-      try {
-        await messageService.sendMessage(selectedChat.toString(), newMessage);
+    if (!newMessage.trim()) return;
+
+    try {
+      let conversationId = selectedChat;
+      
+      // If we have a pending chat (no existing conversation), create it now
+      if (pendingChatUserId && !selectedChat) {
+        console.log('Creating conversation for pending chat with user:', pendingChatUserId);
+        const conversation = await messageService.createOrGetConversation(pendingChatUserId);
+        conversationId = conversation.id;
+        setSelectedChat(conversationId);
+        setPendingChatUserId(null); // Clear pending state
+        // Reload conversations to include the new one
+        await loadConversations();
+      }
+      
+      if (conversationId) {
+        await messageService.sendMessage(conversationId, newMessage);
         setNewMessage('');
         // Reload messages
-        await loadMessages(selectedChat.toString());
-      } catch (error) {
-        console.error('Error sending message:', error);
-        alert('Failed to send message. Please try again.');
+        await loadMessages(conversationId);
       }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Failed to send message. Please try again.');
     }
   };
 
@@ -279,6 +357,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const handleBackToConversations = () => {
     setShowConversationsList(true);
     setSelectedChat(null);
+    setPendingChatUserId(null); // Clear pending chat
+    setPendingUserInfo(null); // Clear pending user info
   };
 
   // Helper function to get profile picture with fallback
@@ -342,56 +422,42 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
   if (loading) {
     return (
-      <div className="h-screen bg-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading messages...</p>
-        </div>
+      <div className="bg-stone text-slate-900 font-display w-full flex items-center justify-center overflow-hidden" style={{height: 'calc(100vh - 5rem)'}}>
+        <LoadingSpinner text="Loading messages..." />
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-slate-100 flex flex-col md:flex-row">
-      {/* Conversations Sidebar - Mobile responsive */}
-      <div className={`${showConversationsList ? 'flex' : 'hidden'} md:flex md:w-1/3 bg-white border-r border-slate-200 flex-col`}>
-        {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-slate-200 bg-slate-50">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-4">Messages</h1>
-          {selectedApplicant && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800 font-medium">
-                💼 Messaging about job application
-              </p>
-            </div>
-          )}
-          
-          {/* UPDATED: Enhanced search with user suggestions */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search people to message..."
-              className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
-            />
-            {searchLoading && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+    <div className="bg-stone text-slate-900 font-display w-full flex flex-col overflow-hidden" style={{height: 'calc(100vh - 5rem)'}}>
+      <div className="flex flex-1 min-h-0 w-full relative">{/* Sidebar */}
+        <div className={`${showConversationsList ? 'flex' : 'hidden'} md:flex w-80 md:w-96 flex-shrink-0 flex-col bg-stone-off border-r border-stone-border z-10`}>
+          {/* Sidebar Header */}
+          <div className="p-4 border-b border-stone-border">
+            <h2 className="text-2xl font-bold mb-4 px-2 text-slate-900">Messages</h2>
+            <div className="relative w-full">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                <Search className="text-[20px]" />
               </div>
-            )}
+              <input 
+                className="block w-full rounded-lg border-none bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-sage shadow-sm" 
+                placeholder="Search messages..." 
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
             
             {/* Search Suggestions Dropdown */}
             {searchSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
+              <div className="absolute top-full left-4 right-4 mt-2 bg-white border border-stone-border rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
                 <div className="p-2">
                   <div className="text-xs text-slate-500 mb-2 px-2">People</div>
                   {searchSuggestions.map((suggestion) => (
                     <button
                       key={suggestion.id}
                       onClick={() => handleStartConversation(suggestion.id)}
-                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-50 transition-colors text-left"
+                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-stone-off transition-colors text-left"
                     >
                       <img
                         src={getProfilePicture(suggestion)}
@@ -408,310 +474,336 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
               </div>
             )}
           </div>
-        </div>
 
-        {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto">
-          {conversations.length > 0 ? (
-            conversations.map((conversation) => {
-              const otherParticipant = getOtherParticipant(conversation);
-              if (!otherParticipant) return null;
+          {/* Conversations List */}
+          <div className="flex-1 min-h-0 overflow-y-auto">{conversations.length > 0 ? (
+              conversations.map((conversation) => {
+                const otherParticipant = getOtherParticipant(conversation);
+                if (!otherParticipant) return null;
 
-              return (
-                <div
-                  key={conversation.id}
-                  onClick={() => {
-                    setSelectedChat(conversation.id);
-                    setShowConversationsList(false); // Hide conversations list on mobile
-                  }}
-                  className={`p-4 cursor-pointer transition-colors border-b border-slate-100 hover:bg-slate-50 ${
-                    selectedChat === conversation.id ? 'bg-blue-50 border-r-4 border-r-blue-600' : ''
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <img
-                        src={getProfilePicture(otherParticipant)}
-                        alt={otherParticipant.full_name}
-                        className="w-12 h-12 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleProfileClick(otherParticipant.id);
-                        }}
-                      />
-                      {otherParticipant.verified && (
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 
-                          className="font-bold text-slate-900 truncate cursor-pointer hover:text-blue-600 transition-colors text-sm sm:text-base"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleProfileClick(otherParticipant.id);
-                          }}
-                        >
-                          {otherParticipant.full_name}
-                        </h3>
-                        {/* UPDATED: Display relative time */}
-                        <span className="text-xs text-slate-500 flex-shrink-0">
+                const isSelected = selectedChat === conversation.id;
+                const hasUnreadMessages = conversation.unread_count > 0;
+
+                return (
+                  <div
+                    key={conversation.id}
+                    onClick={() => {
+                      setSelectedChat(conversation.id);
+                      setPendingChatUserId(null); // Clear pending chat when selecting real conversation
+                      setPendingUserInfo(null); // Clear pending user info
+                      setShowConversationsList(false);
+                    }}
+                    className={`cursor-pointer p-4 hover:bg-stone-border/50 transition-colors border-l-4 ${
+                      isSelected 
+                        ? 'bg-white border-sage' 
+                        : 'border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="relative flex-shrink-0">
+                          <div 
+                            className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-12 w-12 object-cover"
+                            style={{backgroundImage: `url("${getProfilePicture(otherParticipant)}")`}}
+                          ></div>
+                          {otherParticipant.verified && (
+                            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></span>
+                          )}
+                        </div>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <p className={`text-sm truncate ${isSelected ? 'text-slate-900 font-semibold' : 'text-slate-900 font-medium'}`}>
+                            {otherParticipant.full_name}
+                          </p>
+                          <p className={`text-xs truncate text-slate-500 ${hasUnreadMessages ? 'font-medium' : ''}`}>
+                            {conversation.messages?.[0]?.content || 'Start a conversation...'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+                        <span className="text-slate-500 text-xs whitespace-nowrap">
                           {formatRelativeTime(conversation.last_message_at)}
                         </span>
+                        {hasUnreadMessages && (
+                          <span className="h-2 w-2 rounded-full bg-sage"></span>
+                        )}
                       </div>
-                      <p className="text-sm text-slate-600 truncate mb-1 font-medium">
-                        {otherParticipant.title || 'Professional'}
-                      </p>
-                      <p className="text-sm text-slate-500 truncate">
-                        {conversation.messages?.[0]?.content || 'Start a conversation...'}
-                      </p>
                     </div>
                   </div>
+                );
+              })
+            ) : (
+              <div className="flex-1 flex items-center justify-center p-8">
+                <div className="text-center">
+                  <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">No conversations yet</h3>
+                  <p className="text-slate-600 text-sm">
+                    Start networking and connecting with professionals to begin conversations.
+                  </p>
                 </div>
-              );
-            })
-          ) : (
-            <div className="flex-1 flex items-center justify-center p-8">
-              <div className="text-center">
-                <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">No conversations yet</h3>
-                <p className="text-slate-600 text-sm">
-                  Start networking and connecting with professionals to begin conversations.
-                </p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Chat Area - Mobile responsive */}
-      <div className={`${!showConversationsList ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-white relative h-screen md:h-auto`}>
-        {currentConversation ? (
-          <>
-            {/* Chat Header */}
-            <div className="p-4 sm:p-6 border-b border-slate-200 bg-slate-50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
+        {/* Main Chat Area */}
+        <main className={`${!showConversationsList ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-white min-h-0 relative max-h-full`}>
+          {currentConversation || pendingUserInfo || pendingChatUserId ? (
+            <>
+              {/* Chat Header */}
+              <header className="h-20 shrink-0 border-b border-stone-border flex items-center justify-between px-6 bg-white z-10">
+                <div className="flex items-center gap-4">
                   {/* Back button for mobile */}
                   <button
                     onClick={handleBackToConversations}
-                    className="md:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="md:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-stone-off rounded-lg transition-colors"
                   >
                     <X className="h-5 w-5" />
                   </button>
-                  
+
                   <div className="relative">
                     {(() => {
-                      const otherParticipant = getOtherParticipant(currentConversation);
+                      const otherParticipant = currentConversation ? getOtherParticipant(currentConversation) : pendingUserInfo;
                       return (
-                        <img
-                          src={getProfilePicture(otherParticipant)}
-                          alt={otherParticipant?.full_name}
-                          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+                        <div 
+                          className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10 object-cover cursor-pointer bg-slate-200 flex items-center justify-center"
+                          style={{backgroundImage: otherParticipant ? `url("${getProfilePicture(otherParticipant)}")` : 'none'}}
                           onClick={() => otherParticipant && handleProfileClick(otherParticipant.id)}
-                        />
+                        >
+                          {!otherParticipant && (
+                            <span className="text-slate-500 font-medium text-sm">
+                              {pendingChatUserId ? '?' : 'U'}
+                            </span>
+                          )}
+                        </div>
                       );
                     })()}
+                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-white"></span>
                   </div>
                   <div>
                     {(() => {
-                      const otherParticipant = getOtherParticipant(currentConversation);
+                      const otherParticipant = currentConversation ? getOtherParticipant(currentConversation) : pendingUserInfo;
                       return (
                         <>
-                          <h2 
-                            className="font-bold text-slate-900 text-base sm:text-lg cursor-pointer hover:text-blue-600 transition-colors"
+                          <h3 
+                            className="text-lg font-bold text-slate-900 leading-tight cursor-pointer hover:text-sage transition-colors"
                             onClick={() => otherParticipant && handleProfileClick(otherParticipant.id)}
                           >
                             {otherParticipant?.full_name || 'User'}
-                          </h2>
-                          <p className="text-sm text-slate-600 font-medium">
+                          </h3>
+                          <p className="text-sm text-slate-500">
                             {otherParticipant?.title || 'Professional'}
                           </p>
-                          <div className="flex items-center space-x-1 mt-1">
-                            <Circle className="h-2 w-2 text-green-500 fill-current" />
-                            <span className="text-xs text-green-600 font-medium">Online now</span>
-                          </div>
                         </>
                       );
                     })()}
                   </div>
                 </div>
-                
-                {/* ENHANCED: 3-dot menu with loading state */}
-                <div className="relative" ref={actionsMenuRef}>
-                  <button
-                    onClick={() => setShowActionsMenu(!showActionsMenu)}
-                    disabled={deleteLoading}
-                    className="p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    <MoreHorizontal className="h-5 w-5" />
-                  </button>
-                  
-                  {/* Actions Menu */}
-                  {showActionsMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 overflow-hidden">
-                      <div className="py-2">
-                        <button
-                          onClick={handleDeleteConversation}
-                          disabled={deleteLoading}
-                          className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition-colors text-sm flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span>{deleteLoading ? 'Deleting...' : 'Delete Conversation'}</span>
-                        </button>
+                <div className="flex items-center gap-2">
+                  <div className="relative" ref={actionsMenuRef}>
+                    <button 
+                      className="p-2 text-slate-500 hover:text-slate-700 rounded-full hover:bg-stone-off transition-colors"
+                      onClick={() => setShowActionsMenu(!showActionsMenu)}
+                      disabled={deleteLoading}
+                    >
+                      <MoreVertical className="text-[24px]" />
+                    </button>
+                    
+                    {/* Actions Menu */}
+                    {showActionsMenu && (
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-stone-border rounded-lg shadow-xl z-50 overflow-hidden">
+                        <div className="py-2">
+                          <button
+                            onClick={handleDeleteConversation}
+                            disabled={deleteLoading}
+                            className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition-colors text-sm flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span>{deleteLoading ? 'Deleting...' : 'Delete Conversation'}</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
+              </header>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 message-wallpaper pb-28 md:pb-0">
-              {messages.length > 0 ? (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex relative z-10 ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`max-w-xs lg:max-w-md ${message.sender_id === user?.id ? 'order-2' : 'order-1'}`}>
-                      <div className={`px-4 py-3 rounded-2xl shadow-sm ${
-                        message.sender_id === user?.id
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-white text-slate-900 border border-slate-200'
-                      }`}>
-                        <p className="text-sm leading-relaxed">{message.content}</p>
+              {/* Messages Area */}
+              <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-8 flex flex-col bg-white">{/* Date Separator */}
+                <div className="flex justify-center">
+                  <span className="text-xs font-medium text-slate-500 bg-stone-off px-3 py-1 rounded-full">Today</span>
+                </div>
+
+                {messages.length > 0 ? (
+                  messages.map((message, index) => {
+                    const isOwnMessage = message.sender_id === user?.id;
+                    const otherParticipant = getOtherParticipant(currentConversation);
+                    
+                    return (
+                      <div key={message.id} className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+                        {!isOwnMessage && (
+                          <div 
+                            className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-8 w-8 object-cover mt-1 shrink-0"
+                            style={{backgroundImage: `url("${getProfilePicture(otherParticipant)}")`}}
+                          ></div>
+                        )}
+                        <div className={`flex flex-col gap-1 max-w-[70%] ${isOwnMessage ? 'items-end' : ''}`}>
+                          <div className={`flex items-baseline gap-2 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+                            {!isOwnMessage && (
+                              <span className="text-sm font-semibold text-slate-900">{otherParticipant?.full_name}</span>
+                            )}
+                            <span className="text-xs text-slate-500">
+                              {new Date(message.created_at).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              })}
+                            </span>
+                          </div>
+                          <div className={`p-3 rounded-2xl text-sm leading-relaxed ${
+                            isOwnMessage 
+                              ? 'bg-sage rounded-tr-none shadow-sm text-white' 
+                              : 'bg-stone-off rounded-tl-none text-slate-900'
+                          }`}>
+                            <p>{message.content}</p>
+                          </div>
+                        </div>
                       </div>
-                      <p className={`text-xs mt-2 ${
-                        message.sender_id === user?.id ? 'text-slate-500 text-right' : 'text-slate-500'
-                      }`}>
-                        {new Date(message.created_at).toLocaleTimeString()}
+                    );
+                  })
+                ) : (
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-slate-900 mb-2">Start a conversation</h3>
+                      <p className="text-slate-600">
+                        Send a message to begin chatting with {currentConversation ? getOtherParticipant(currentConversation)?.full_name : pendingUserInfo?.full_name}
                       </p>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center">
-                    <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-slate-900 mb-2">Start a conversation</h3>
-                    <p className="text-slate-600">
-                      Send a message to begin chatting with {getOtherParticipant(currentConversation)?.full_name}
-                    </p>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                )}
 
-            {/* Message Input */}
-            <div className="md:static fixed bottom-0 left-0 right-0 z-40 w-full bg-white p-4 sm:p-6 border-t border-slate-200">
-              <form onSubmit={handleSendMessage} className="flex items-center space-x-4">
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <div className="shrink-0 p-4 pt-2 pb-4 bg-white border-t border-stone-border">
+                <div className="relative flex items-end gap-2 bg-white rounded-lg p-1.5 shadow-sm border border-stone-border focus-within:ring-2 focus-within:ring-sage focus-within:border-transparent transition-all">
+                  <button className="p-1.5 text-slate-500 hover:text-sage transition-colors rounded-lg h-8 w-8 flex items-center justify-center shrink-0">
+                    <PlusCircle className="text-[20px]" />
+                  </button>
+                  <textarea 
+                    className="block w-full resize-none border-0 bg-transparent py-1.5 px-0 text-slate-900 placeholder:text-slate-500 focus:ring-0 sm:text-sm sm:leading-6 max-h-24" 
+                    placeholder="Type a message..." 
+                    rows={1}
+                    style={{minHeight: '32px'}}
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    inputMode="text"
-                    style={{ fontSize: '16px' }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage(e);
+                      }
+                    }}
                   />
-                  {/* Emoji button and picker: Only show on desktop */}
-                  {!isMobile && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <button
-                        type="button"
-                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        className="text-slate-400 hover:text-slate-600 transition-colors"
-                      >
-                        <Smile className="h-4 w-4" />
-                      </button>
-                      {/* Emoji Picker */}
-                      {showEmojiPicker && (
-                        <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 rounded-lg shadow-xl p-0 z-50 min-w-[320px] max-w-[360px] w-full">
-                          {/* Search bar */}
-                          <div className="p-2 border-b border-slate-100 flex items-center">
-                            <input
-                              type="text"
-                              value={emojiSearch}
-                              onChange={e => setEmojiSearch(e.target.value)}
-                              placeholder="Search emojis..."
-                              className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none text-sm"
-                              autoFocus
-                            />
-                            <button
-                              className="ml-2 text-slate-400 hover:text-slate-600"
-                              onClick={() => setShowEmojiPicker(false)}
-                              type="button"
-                              aria-label="Close emoji picker"
-                            >
-                              <X className="h-5 w-5" />
-                            </button>
-                          </div>
-                          {/* Category row */}
-                          <div className="flex overflow-x-auto no-scrollbar px-2 py-1 space-x-2 border-b border-slate-100 bg-slate-50">
-                            {emojiCategories.map(cat => (
-                              <button
-                                key={cat.key}
-                                className={`text-xl px-2 py-1 rounded-full transition-colors ${activeCategory === cat.key ? 'bg-slate-200' : 'hover:bg-slate-100'}`}
-                                onClick={() => setActiveCategory(cat.key)}
-                                type="button"
-                              >
-                                {cat.label}
-                              </button>
-                            ))}
-                          </div>
-                          {/* Emoji grid */}
-                          <div className="max-h-64 overflow-y-auto p-3">
-                            <div className="grid grid-cols-8 gap-2">
-                              {(emojiSearch
-                                ? Object.values(emojiData).flat().filter((e: string) => e.includes(emojiSearch))
-                                : emojiData[activeCategory]
-                              ).slice(0, 80).map((emoji: string, index: number) => (
-                                <button
-                                  key={index}
-                                  type="button"
-                                  onClick={() => handleEmojiSelect(emoji)}
-                                  className="min-w-[36px] min-h-[36px] flex items-center justify-center text-xl hover:bg-slate-100 rounded transition-colors"
-                                >
-                                  {emoji}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button 
+                      type="button"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className="p-1.5 text-slate-500 hover:text-sage transition-colors rounded-lg h-8 w-8 flex items-center justify-center"
+                    >
+                      <Smile className="text-[18px]" />
+                    </button>
+                    <button className="p-1.5 text-slate-500 hover:text-sage transition-colors rounded-lg h-8 w-8 flex items-center justify-center">
+                      <Image className="text-[18px]" />
+                    </button>
+                    <button 
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim()}
+                      className="ml-1 bg-sage hover:bg-sage-dark text-white p-1.5 rounded-lg h-8 w-8 flex items-center justify-center shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Send className="text-[18px]" />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="submit"
-                  disabled={!newMessage.trim()}
-                  className="bg-slate-900 text-white p-3 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </form>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center bg-slate-50">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="h-8 w-8 text-slate-400" />
+                <div className="text-center mt-1">
+                  <p className="text-[10px] text-slate-500">Press Enter to send, Shift + Enter for new line</p>
+                </div>
+
+                {/* Emoji Picker */}
+                {showEmojiPicker && (
+                  <div className="absolute bottom-full right-6 mb-2 bg-white border border-stone-border rounded-lg shadow-xl p-0 z-50 min-w-[320px] max-w-[360px] w-full">
+                    {/* Search bar */}
+                    <div className="p-2 border-b border-stone-border flex items-center">
+                      <input
+                        type="text"
+                        value={emojiSearch}
+                        onChange={e => setEmojiSearch(e.target.value)}
+                        placeholder="Search emojis..."
+                        className="w-full px-3 py-2 border border-stone-border rounded focus:outline-none text-sm"
+                        autoFocus
+                      />
+                      <button
+                        className="ml-2 text-slate-400 hover:text-slate-600"
+                        onClick={() => setShowEmojiPicker(false)}
+                        type="button"
+                        aria-label="Close emoji picker"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    {/* Category row */}
+                    <div className="flex overflow-x-auto no-scrollbar px-2 py-1 space-x-2 border-b border-stone-border bg-stone-off">
+                      {emojiCategories.map(cat => (
+                        <button
+                          key={cat.key}
+                          className={`text-xl px-2 py-1 rounded-full transition-colors ${activeCategory === cat.key ? 'bg-stone-border' : 'hover:bg-stone-border/50'}`}
+                          onClick={() => setActiveCategory(cat.key)}
+                          type="button"
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Emoji grid */}
+                    <div className="max-h-64 overflow-y-auto p-3">
+                      <div className="grid grid-cols-8 gap-2">
+                        {(emojiSearch
+                          ? Object.values(emojiData).flat().filter((e: string) => e.includes(emojiSearch))
+                          : emojiData[activeCategory]
+                        ).slice(0, 80).map((emoji: string, index: number) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleEmojiSelect(emoji)}
+                            className="min-w-[36px] min-h-[36px] flex items-center justify-center text-xl hover:bg-stone-off rounded transition-colors"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Select a conversation</h3>
-              <p className="text-slate-600">Choose a conversation to start messaging</p>
-              <button
-                onClick={() => setShowConversationsList(true)}
-                className="mt-4 md:hidden bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                View Conversations
-              </button>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center bg-white">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-stone-off rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageSquare className="h-8 w-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">Select a conversation</h3>
+                <p className="text-slate-600">Choose a conversation to start messaging</p>
+                <button
+                  onClick={() => setShowConversationsList(true)}
+                  className="mt-4 md:hidden bg-sage text-white px-6 py-2 rounded-lg hover:bg-sage-dark transition-colors"
+                >
+                  View Conversations
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </main>
       </div>
     </div>
   );

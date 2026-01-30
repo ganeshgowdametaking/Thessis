@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Lock, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 const PasswordResetPage: React.FC = () => {
@@ -46,8 +46,8 @@ const PasswordResetPage: React.FC = () => {
         throw new Error('Passwords do not match')
       }
 
-      if (formData.password.length < 6) {
-        throw new Error('Password must be at least 6 characters long')
+      if (formData.password.length < 8) {
+        throw new Error('Password must be at least 8 characters long')
       }
 
       // Update the user's password
@@ -74,144 +74,157 @@ const PasswordResetPage: React.FC = () => {
   }
 
   const getPasswordStrength = (password: string) => {
-    if (password.length === 0) return { strength: 0, text: '', color: '' }
-    if (password.length < 6) return { strength: 1, text: 'Too short', color: 'text-red-500' }
-    if (password.length < 8) return { strength: 2, text: 'Weak', color: 'text-orange-500' }
-    if (password.length < 12) return { strength: 3, text: 'Good', color: 'text-yellow-500' }
-    return { strength: 4, text: 'Strong', color: 'text-green-500' }
+    if (password.length === 0) return { strength: 0, text: '', color: '', width: '0%' }
+    if (password.length < 6) return { strength: 1, text: 'Too short', color: 'text-red-500', width: '25%' }
+    if (password.length < 8) return { strength: 2, text: 'Weak', color: 'text-orange-500', width: '50%' }
+    if (password.length < 12) return { strength: 3, text: 'Good', color: 'text-btn-sage', width: '75%' }
+    return { strength: 4, text: 'Strong', color: 'text-green-600', width: '100%' }
   }
 
   const passwordStrength = getPasswordStrength(formData.password)
+  const hasMinLength = formData.password.length >= 8
 
   if (!sessionReady) {
-    return <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-slate-100 to-indigo-100 animate-fadeIn"><div>Loading...</div></div>
+    return (
+      <div className="bg-page min-h-screen flex items-center justify-center p-4">
+        <div className="text-body-slate">Loading...</div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-slate-100 to-indigo-100 animate-fadeIn">
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: none; }
-        }
-        .animate-fadeIn { animation: fadeIn 0.7s cubic-bezier(.4,0,.2,1) both; }
-      `}</style>
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-8 sm:p-10 transition-all duration-300 animate-fadeIn">
-        <div className="flex flex-col items-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">Set New Password</h2>
-          <p className="text-slate-600 text-sm text-center">
-            Enter your new password below to complete the reset process.
-          </p>
+    <div className="bg-page min-h-screen flex items-center justify-center p-4 font-display">
+      <div className="w-full max-w-[480px] flex flex-col gap-6">
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <img 
+            src="/logo2.png" 
+            alt="TankTide Logo" 
+            className="w-16 h-16 object-contain"
+          />
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {error}
+        {/* Main Card */}
+        <div className="bg-card border border-card-border rounded-xl shadow-subtle overflow-hidden p-8 flex flex-col gap-6">
+          {/* Header */}
+          <div className="text-center space-y-2">
+            <h1 className="text-title-slate text-2xl font-bold leading-tight">Reset Password</h1>
+            <p className="text-body-slate text-base font-normal leading-normal">
+              Please choose a new password for your account.
+            </p>
           </div>
-        )}
 
-        {success && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-            {success}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              New Password <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter new password"
-                required
-                minLength={6}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+          {/* Error/Success Messages */}
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
             </div>
-            {formData.password && (
-              <div className="mt-2">
-                <div className="flex items-center space-x-2">
-                  <div className="flex-1 bg-slate-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        passwordStrength.strength === 1 ? 'bg-red-500 w-1/4' :
-                        passwordStrength.strength === 2 ? 'bg-orange-500 w-2/4' :
-                        passwordStrength.strength === 3 ? 'bg-yellow-500 w-3/4' :
-                        passwordStrength.strength === 4 ? 'bg-green-500 w-full' : 'w-0'
-                      }`}
-                    />
-                  </div>
-                  <span className={`text-xs font-medium ${passwordStrength.color}`}>
-                    {passwordStrength.text}
-                  </span>
+          )}
+
+          {success && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              {success}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {/* New Password Field */}
+            <label className="flex flex-col w-full group">
+              <p className="text-label-slate text-sm font-medium leading-normal pb-2">New Password</p>
+              <div className="flex w-full items-stretch rounded-lg transition-colors focus-within:ring-2 focus-within:ring-btn-sage/20 shadow-sm">
+                <input
+                  className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-lg text-title-slate focus:outline-0 focus:ring-0 border border-input-border bg-white focus:border-btn-sage h-12 placeholder:text-slate-400 p-4 text-base font-normal leading-normal"
+                  placeholder="Enter at least 8 characters..."
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  required
+                  minLength={8}
+                />
+                <div 
+                  className="text-slate-400 flex border border-l-0 border-input-border bg-white items-center justify-center px-4 rounded-r-lg cursor-pointer hover:text-btn-sage transition-colors group-focus-within:border-btn-sage group-focus-within:text-btn-sage"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="text-[24px]" /> : <Eye className="text-[24px]" />}
                 </div>
               </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Confirm New Password <span className="text-red-500">*</span>
             </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
-                  formData.confirmPassword && formData.password !== formData.confirmPassword
-                    ? 'border-red-300 focus:ring-red-500'
-                    : 'border-slate-300 focus:ring-blue-500'
-                }`}
-                placeholder="Confirm new password"
-                required
-              />
+
+            {/* Password Strength Indicator */}
+            {formData.password && (
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-6 justify-between items-center">
+                  <p className="text-label-slate text-xs font-medium uppercase tracking-wider">Password Strength</p>
+                  <p className="text-title-slate text-xs font-bold">{passwordStrength.text}</p>
+                </div>
+                <div className="rounded-full bg-slate-100 h-1.5 w-full overflow-hidden">
+                  <div 
+                    className="h-full rounded-full bg-btn-sage transition-all duration-300 ease-out" 
+                    style={{ width: passwordStrength.width }}
+                  ></div>
+                </div>
+                {hasMinLength && (
+                  <div className="flex gap-1 text-xs text-label-slate items-center mt-1">
+                    <CheckCircle className="text-[16px] text-btn-sage" />
+                    <span>Contains at least 8 characters</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Confirm Password Field */}
+            <label className="flex flex-col w-full group">
+              <p className="text-label-slate text-sm font-medium leading-normal pb-2">Confirm New Password</p>
+              <div className="flex w-full items-stretch rounded-lg transition-colors focus-within:ring-2 focus-within:ring-btn-sage/20 shadow-sm">
+                <input
+                  className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-lg text-title-slate focus:outline-0 focus:ring-0 border border-input-border bg-white focus:border-btn-sage h-12 placeholder:text-slate-400 p-4 text-base font-normal leading-normal"
+                  placeholder="Re-enter new password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                  required
+                />
+                <div 
+                  className="text-slate-400 flex border border-l-0 border-input-border bg-white items-center justify-center px-4 rounded-r-lg cursor-pointer hover:text-btn-sage transition-colors group-focus-within:border-btn-sage group-focus-within:text-btn-sage"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="text-[24px]" /> : <Eye className="text-[24px]" />}
+                </div>
+              </div>
+              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <p className="text-red-500 text-xs mt-1">Passwords do not match</p>
+              )}
+              {formData.confirmPassword && formData.password === formData.confirmPassword && formData.confirmPassword.length > 0 && (
+                <p className="text-green-600 text-xs mt-1">Passwords match ✓</p>
+              )}
+            </label>
+
+            {/* Submit Button and Back Link */}
+            <div className="flex flex-col gap-4 pt-2">
+              <button
+                type="submit"
+                disabled={loading || formData.password !== formData.confirmPassword || !hasMinLength}
+                className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-btn-sage hover:bg-btn-sage-hover text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Updating Password...' : 'Update Password'}
+              </button>
+              
               <button
                 type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                onClick={() => navigate('/jobs')}
+                className="text-footer-slate hover:text-footer-hover text-sm font-medium leading-normal text-center transition-colors flex items-center justify-center gap-2 group"
               >
-                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                <ArrowLeft className="text-[18px] transition-transform group-hover:-translate-x-1" />
+                Back to Dashboard
               </button>
             </div>
-            {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-              <p className="text-red-500 text-xs mt-1">Passwords do not match</p>
-            )}
-            {formData.confirmPassword && formData.password === formData.confirmPassword && formData.confirmPassword.length > 0 && (
-              <p className="text-green-500 text-xs mt-1">Passwords match ✓</p>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || formData.password !== formData.confirmPassword}
-            className="w-full bg-slate-900 text-white py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-          >
-            {loading ? 'Updating Password...' : 'Update Password'}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => navigate('/jobs')}
-            className="text-slate-600 hover:text-slate-800 text-sm"
-          >
-            ← Back to Dashboard
-          </button>
+          </form>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-copyright-slate text-xs">
+          © 2024 Sage & Stone. All rights reserved.
+        </p>
       </div>
     </div>
   )

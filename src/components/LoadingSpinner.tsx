@@ -6,7 +6,7 @@ interface LoadingSpinnerProps {
 }
 
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
-  text = "Loading...", 
+  text, 
   size = 'medium' 
 }) => {
   const sizeClasses = {
@@ -37,7 +37,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
           <div className="dot"></div>
         </div>
       </div>
-      <div className="text">{text}</div>
+      {text && <div className="text">{text}</div>}
     </div>
   );
 };

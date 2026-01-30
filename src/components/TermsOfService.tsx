@@ -1,121 +1,224 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 interface TermsOfServiceProps {
   onBack: () => void;
 }
 
 const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
-  const navigate = useNavigate();
-  
-  const handleBack = () => {
-    onBack();
-    navigate('/');
-  };
-
   return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex items-center space-x-4 mb-6">
-            <button
-              onClick={handleBack}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
-              aria-label="Go back"
+    <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8 md:p-12 lg:p-16">
+      <div className="mb-8">
+        <button 
+          onClick={onBack}
+          className="group flex items-center gap-2 rounded-lg py-2 pr-4 text-sm font-bold text-slate-600 transition-colors hover:text-slate-900"
+        >
+          <span className="material-symbols-outlined text-[20px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+          <span>Back to Settings</span>
+        </button>
+      </div>
+
+      <div className="mb-12 border-b border-slate-200 pb-8">
+        <h1 className="mb-3 text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">Terms of Service</h1>
+        <p className="text-base font-medium text-slate-500">Last updated: October 24, 2023</p>
+      </div>
+
+      <div className="space-y-12">
+        <div className="prose prose-slate max-w-none">
+          <p className="text-lg leading-relaxed text-slate-700">
+            Welcome to TankTide. These Terms of Service ("Terms") govern your access to and use of the TankTide platform, 
+            website, and services (collectively, the "Services"). By accessing or using our Services, you agree to be bound 
+            by these Terms. If you do not agree to these Terms, please do not use our Services.
+          </p>
+        </div>
+
+        <section>
+          <h2 className="mb-4 flex items-center text-xl font-bold text-slate-900">
+            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">1</span>
+            Introduction
+          </h2>
+          <p className="pl-[44px] leading-relaxed text-slate-700">
+            TankTide provides a premium professional networking and job referral platform designed to connect high-caliber 
+            professionals with exclusive opportunities. These Terms constitute a legally binding agreement between you and TankTide, Inc.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 flex items-center text-xl font-bold text-slate-900">
+            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">2</span>
+            Definitions
+          </h2>
+          <ul className="ml-[44px] list-disc space-y-2 pl-4 text-slate-700 marker:text-sage">
+            <li className="pl-1">
+              <strong>"Platform"</strong> refers to the TankTide website, mobile applications, and underlying technology.
+            </li>
+            <li className="pl-1">
+              <strong>"User"</strong> or <strong>"You"</strong> refers to any individual who accesses or uses the Services.
+            </li>
+            <li className="pl-1">
+              <strong>"Member"</strong> refers to a registered User who has an active account.
+            </li>
+            <li className="pl-1">
+              <strong>"Content"</strong> refers to text, images, data, and other materials posted or transmitted through the Platform.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="mb-4 flex items-center text-xl font-bold text-slate-900">
+            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">3</span>
+            Eligibility
+          </h2>
+          <p className="pl-[44px] leading-relaxed text-slate-700">
+            The Services are intended solely for users who are eighteen (18) years of age or older. By using the Services, 
+            you represent and warrant that you are of legal age to form a binding contract and meet all eligibility requirements. 
+            If you are using the Services on behalf of an entity, you represent that you are authorized to bind that entity to these Terms.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 flex items-center text-xl font-bold text-slate-900">
+            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">4</span>
+            Account Registration
+          </h2>
+          <p className="pl-[44px] leading-relaxed text-slate-700">
+            To access certain features, you must register for an account. You agree to provide accurate, current, and complete 
+            information during the registration process and to update such information to keep it accurate, current, and complete. 
+            You are responsible for safeguarding your password and for all activities that occur under your account.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 flex items-center text-xl font-bold text-slate-900">
+            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">5</span>
+            User Conduct
+          </h2>
+          <div className="pl-[44px]">
+            <p className="mb-3 text-slate-700">You agree not to engage in any of the following prohibited activities:</p>
+            <ul className="list-disc space-y-2 pl-4 text-slate-700 marker:text-sage">
+              <li className="pl-1">Using the Services for any illegal purpose or in violation of any local, state, national, or international law.</li>
+              <li className="pl-1">Harassing, threatening, or defrauding other users.</li>
+              <li className="pl-1">Posting content that is infringing, libelous, defamatory, obscene, or otherwise objectionable.</li>
+              <li className="pl-1">Attempting to interfere with, compromise the system integrity or security, or decipher any transmissions to or from the servers running the Platform.</li>
+              <li className="pl-1">Using any robot, spider, crawler, scraper, or other automated means to access the Services for any purpose without our express written permission.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="mb-4 flex items-center text-xl font-bold text-slate-900">
+            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">6</span>
+            Content Ownership & License
+          </h2>
+          <p className="pl-[44px] leading-relaxed text-slate-700">
+            You retain all ownership rights to the Content you post on TankTide. However, by posting Content, you grant us a 
+            non-exclusive, worldwide, royalty-free, transferable license to use, reproduce, modify, distribute, and display 
+            such Content in connection with operating and providing the Services.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 flex items-center text-xl font-bold text-slate-900">
+            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">7</span>
+            Fees and Payment
+          </h2>
+          <p className="pl-[44px] leading-relaxed text-slate-700">
+            Certain aspects of the Services may be provided for a fee. If you elect to use paid aspects of the Services, 
+            you agree to the pricing and payment terms as we may update them from time to time. All fees are non-refundable 
+            except as required by law.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 flex items-center text-xl font-bold text-slate-900">
+            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">8</span>
+            Privacy Policy
+          </h2>
+          <p className="pl-[44px] leading-relaxed text-slate-700">
+            Your privacy is important to us. Please read our{' '}
+            <a 
+              className="font-semibold text-sage underline decoration-sage/30 underline-offset-2 transition-colors hover:text-sage-dark hover:decoration-sage" 
+              href="#"
             >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Terms of Service</h1>
-          </div>
-          
-          <div className="prose prose-slate max-w-none">
-            <p className="text-slate-600">
-              Last updated: June 15, 2025
+              Privacy Policy
+            </a>{' '}
+            carefully for information relating to our collection, use, storage, and disclosure of your personal information. 
+            The Privacy Policy is incorporated by reference into these Terms.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 flex items-center text-xl font-bold text-slate-900">
+            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">9</span>
+            Third-Party Links and Services
+          </h2>
+          <p className="pl-[44px] leading-relaxed text-slate-700">
+            The Services may contain links to third-party websites or services that are not owned or controlled by TankTide. 
+            We have no control over, and assume no responsibility for, the content, privacy policies, or practices of any 
+            third-party websites or services. Accessing them is at your own risk.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 flex items-center text-xl font-bold text-slate-900">
+            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">10</span>
+            Termination
+          </h2>
+          <div className="pl-[44px]">
+            <p className="mb-3 text-slate-700">
+              We may terminate or suspend your account and access to the Services immediately, without prior notice or liability, 
+              for any reason whatsoever, including without limitation if you breach the Terms. Upon termination:
             </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">1. Introduction</h2>
-            <p className="text-slate-700">
-              Welcome to TankTide. These Terms of Service ("Terms") govern your access to and use of the TankTide platform, including any content, functionality, and services offered on or through tanktide.com (the "Platform").
-            </p>
-            <p className="text-slate-700">
-              Please read these Terms carefully before you start to use the Platform. By using the Platform, you accept and agree to be bound and abide by these Terms and our Privacy Policy. If you do not agree to these Terms, you must not access or use the Platform.
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">2. Eligibility</h2>
-            <p className="text-slate-700">
-              The Platform is intended for users who are at least 16 years of age. By using the Platform, you represent and warrant that you are of legal age to form a binding contract with TankTide and meet all of the foregoing eligibility requirements. If you do not meet all of these requirements, you must not access or use the Platform.
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">3. Account Registration</h2>
-            <p className="text-slate-700">
-              To access certain features of the Platform, you may be required to register for an account. When you register, you must provide accurate and complete information and keep this information updated. You are solely responsible for the activity that occurs on your account, and you must keep your account password secure.
-            </p>
-            <p className="text-slate-700">
-              You must notify us immediately of any breach of security or unauthorized use of your account. We will not be liable for any losses caused by any unauthorized use of your account.
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">4. User Content</h2>
-            <p className="text-slate-700">
-              Our Platform allows you to post, link, store, share and otherwise make available certain information, text, graphics, videos, or other material ("User Content"). You are responsible for the User Content that you post on or through the Platform, including its legality, reliability, and appropriateness.
-            </p>
-            <p className="text-slate-700">
-              By posting User Content on or through the Platform, you represent and warrant that:
-            </p>
-            <ul className="list-disc pl-6 text-slate-700 space-y-2">
-              <li>The User Content is yours or you have the right to use it and grant us the rights and license as provided in these Terms.</li>
-              <li>The posting of your User Content on or through the Platform does not violate the privacy rights, publicity rights, copyrights, contract rights, or any other rights of any person.</li>
+            <ul className="list-disc space-y-2 pl-4 text-slate-700 marker:text-sage">
+              <li className="pl-1">Your right to use the Services will immediately cease.</li>
+              <li className="pl-1">Any data associated with your account may be deleted.</li>
+              <li className="pl-1">All provisions of the Terms which by their nature should survive termination shall survive, including ownership provisions, warranty disclaimers, indemnity, and limitations of liability.</li>
             </ul>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">5. Intellectual Property Rights</h2>
-            <p className="text-slate-700">
-              The Platform and its entire contents, features, and functionality (including but not limited to all information, software, text, displays, images, video, and audio, and the design, selection, and arrangement thereof) are owned by TankTide, its licensors, or other providers of such material and are protected by copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws.
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">6. Prohibited Uses</h2>
-            <p className="text-slate-700">
-              You may use the Platform only for lawful purposes and in accordance with these Terms. You agree not to use the Platform:
-            </p>
-            <ul className="list-disc pl-6 text-slate-700 space-y-2">
-              <li>In any way that violates any applicable federal, state, local, or international law or regulation.</li>
-              <li>To transmit, or procure the sending of, any advertising or promotional material, including any "junk mail," "chain letter," "spam," or any other similar solicitation.</li>
-              <li>To impersonate or attempt to impersonate TankTide, a TankTide employee, another user, or any other person or entity.</li>
-              <li>To engage in any other conduct that restricts or inhibits anyone's use or enjoyment of the Platform, or which, as determined by us, may harm TankTide or users of the Platform, or expose them to liability.</li>
-            </ul>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">7. Termination</h2>
-            <p className="text-slate-700">
-              We may terminate or suspend your account and bar access to the Platform immediately, without prior notice or liability, under our sole discretion, for any reason whatsoever and without limitation, including but not limited to a breach of the Terms.
-            </p>
-            <p className="text-slate-700">
-              If you wish to terminate your account, you may simply discontinue using the Platform, or contact us to request account deletion.
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">8. Limitation of Liability</h2>
-            <p className="text-slate-700">
-              In no event will TankTide, its affiliates, or their licensors, service providers, employees, agents, officers, or directors be liable for damages of any kind, under any legal theory, arising out of or in connection with your use, or inability to use, the Platform, any websites linked to it, any content on the Platform or such other websites, including any direct, indirect, special, incidental, consequential, or punitive damages.
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">9. Governing Law</h2>
-            <p className="text-slate-700">
-              These Terms shall be governed by and defined following the laws of the United States and the State of California. TankTide and yourself irrevocably consent that the courts of California shall have exclusive jurisdiction to resolve any dispute which may arise in connection with these Terms.
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">10. EU Users</h2>
-            <p className="text-slate-700">
-              If you are a user from the European Union, you agree that any disputes arising under these Terms will be resolved in accordance with the laws of your country of residence to the extent required by applicable EU law.
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">11. Changes to Terms</h2>
-            <p className="text-slate-700">
-              We may revise these Terms at any time by amending this page. Please check this page regularly to take notice of any changes, as they are binding on you.
-            </p>
-            
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">12. Contact Us</h2>
-            <p className="text-slate-700">
-              If you have any questions about these Terms, please contact us at <a href="mailto:legal@tanktide.com" className="text-blue-600 hover:text-blue-800">legal@tanktide.com</a>.
-            </p>
           </div>
+        </section>
+
+        <section>
+          <h2 className="mb-4 flex items-center text-xl font-bold text-slate-900">
+            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">11</span>
+            Disclaimer of Warranties & Limitation of Liability
+          </h2>
+          <p className="pl-[44px] leading-relaxed text-slate-700">
+            The Services are provided "AS IS" and "AS AVAILABLE" without warranties of any kind, whether express or implied. 
+            In no event shall TankTide, its directors, employees, partners, agents, suppliers, or affiliates, be liable for 
+            any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, 
+            data, use, goodwill, or other intangible losses.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 flex items-center text-xl font-bold text-slate-900">
+            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">12</span>
+            Contact Information
+          </h2>
+          <p className="pl-[44px] leading-relaxed text-slate-700">
+            If you have any questions about these Terms, please contact us at:
+          </p>
+          <div className="mt-4 pl-[44px]">
+            <div className="rounded-lg bg-white p-6 shadow-sm border border-slate-100">
+              <p className="font-bold text-slate-900">TankTide Legal Team</p>
+              <p className="mt-1 text-slate-700">123 Innovation Drive, Suite 400</p>
+              <p className="text-slate-700">San Francisco, CA 94103</p>
+              <a 
+                className="mt-3 block font-medium text-sage hover:underline" 
+                href="mailto:legal@tanktide.com"
+              >
+                legal@tanktide.com
+              </a>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-20 border-t border-slate-200 pt-8 text-center">
+        <p className="text-sm text-slate-500">© 2023 TankTide, Inc. All rights reserved.</p>
+        <div className="mt-4 flex justify-center gap-6 text-sm font-medium text-sage">
+          <a className="hover:text-sage-dark" href="#">Privacy Policy</a>
+          <a className="hover:text-sage-dark" href="#">Cookie Policy</a>
+          <a className="hover:text-sage-dark" href="#">Support</a>
         </div>
       </div>
     </div>

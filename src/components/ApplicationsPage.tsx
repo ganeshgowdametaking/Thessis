@@ -1,569 +1,626 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, User, FileText, MessageCircle, CheckCircle, Calendar, MapPin, Briefcase, Filter, Search, Download, Eye, Mail, Phone, X } from 'lucide-react';
-import { applicationService } from '../services/applicationService';
-import { useAuthContext } from '../contexts/AuthContext';
-import { jobService } from '../services/jobService';
-import { Database } from '../lib/database.types';
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import LoadingSpinner from './LoadingSpinner';
 
-type Job = Database['public']['Tables']['jobs']['Row'];
-
-interface ApplicationsPageProps {
-  onBack: () => void;
-  onMessage: (applicantId: number) => void;
-  onViewProfile: (userId: string) => void;
-  referralId: string;
-  referralTitle: string;
+interface Application {
+  id: string;
+  applicant_id: string;
+  job_id: string;
+  status: string;
+  applied_at: string;
+  updated_at: string;
+  cover_letter?: string;
+  resume_url?: string;
+  rating?: number | null;
+  shortlisted?: boolean;
+  notes?: string | null;
+  // Mapped fields for compatibility
+  user_id?: string;
+  created_at?: string;
+  user_profile?: {
+    id: string;
+    full_name: string;
+    email: string;
+    avatar_url?: string;
+    current_company?: string;
+    current_position?: string;
+    location?: string;
+    linkedin_url?: string;
+    phone?: string;
+    skills?: string[];
+    // Original profile fields
+    company?: string;
+    title?: string;
+  };
 }
 
-const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onBack, onMessage, onViewProfile, referralId, referralTitle }) => {
-  const { user } = useAuthContext();
-  
-  const [applications, setApplications] = useState<any[]>([]);
+interface ApplicationsPageProps {
+  referralId: string;
+  referralTitle: string;
+  onBack: () => void;
+  onMessage: (applicantId: string) => void;
+  onViewProfile: (userId: string) => void;
+}
+
+export default function ApplicationsPage({ 
+  referralId, 
+  referralTitle, 
+  onBack, 
+  onMessage, 
+  onViewProfile 
+}: ApplicationsPageProps) {
+  const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState('all');
-  const [showResumeModal, setShowResumeModal] = useState(false);
-  const [currentApplication, setCurrentApplication] = useState<any>(null);
-  const [sortOrder, setSortOrder] = useState<'latest' | 'earliest'>('latest');
-  const [resumeLoading, setResumeLoading] = useState(false);
 
-  // Load applications when component mounts
   useEffect(() => {
-    loadApplications();
+    fetchApplications();
   }, [referralId]);
 
-  const loadApplications = async () => {
+  const fetchApplications = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('Loading applications for job ID:', referralId);
-      
-      const applicationsData = await applicationService.getJobApplications(referralId);
-      
-      console.log('Raw applications data:', applicationsData);
-      
-      // Transform the data to match the expected format
-      const transformedApplications = applicationsData.map((app: any) => ({
-        id: app.id,
-        applicantId: app.applicant_id,
-        status: app.status,
-        appliedDate: formatTimeAgo(app.applied_at),
-        coverLetter: app.cover_letter,
-        resumeUrl: app.resume_url,
-        shortlisted: app.shortlisted,
-        rating: app.rating,
-        notes: app.notes,
-        // Applicant data from the join
-        applicant: {
-          id: app.applicant?.id,
-          name: app.applicant?.full_name || 'Unknown Applicant',
-          email: app.applicant?.email || '',
-          title: app.applicant?.title || 'No Title',
-          company: app.applicant?.company || 'No Company',
-          location: app.applicant?.location || 'No Location',
-          avatar: app.applicant?.avatar_url || '/default-avatar.png',
-          bio: app.applicant?.bio || 'No bio available'
-        },
-        // Education/background info (using bio as fallback)
-        education: app.applicant?.bio || 'No background information available'
-      }));
-      
-      console.log('Transformed applications:', transformedApplications);
-      setApplications(transformedApplications);
-    } catch (error: any) {
-      console.error('Error loading applications:', error);
-      setError(error.message || 'Failed to load applications. Please try again.');
+      const { data, error } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          user_profile:profiles!applications_applicant_id_fkey (
+            id,
+            full_name,
+            email,
+            avatar_url,
+            company,
+            title,
+            location
+          )
+        `)
+        .eq('job_id', referralId)
+        .order('applied_at', { ascending: false });
+
+      if (error) {
+        console.error('Database error:', error);
+        setError('Failed to load applications');
+        setApplications([]);
+      } else {
+        // Map the data to match the expected interface
+        const mappedData = (data || []).map(app => ({
+          ...app,
+          user_id: app.applicant_id,
+          created_at: app.applied_at,
+          user_profile: app.user_profile ? {
+            ...app.user_profile,
+            current_company: app.user_profile.company,
+            current_position: app.user_profile.title
+          } : null
+        }));
+        setApplications(mappedData);
+      }
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      setError('Failed to load applications');
+      setApplications([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper function to format time ago
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) return 'just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    return date.toLocaleDateString();
-  };
-
-  // Helper function to get profile picture
-  const getProfilePicture = (applicant: any) => {
-    if (applicant?.avatar && applicant.avatar !== '/default-avatar.png') {
-      return applicant.avatar;
+  const handleViewResume = (application: Application) => {
+    if (!application.resume_url) {
+      alert('No resume available for this application.');
+      return;
     }
     
-    // Create a simple colored background based on user ID
-    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
-    const colorIndex = applicant?.id ? applicant.id.charCodeAt(0) % colors.length : 0;
-    const backgroundColor = colors[colorIndex];
-    
-    // Get initials
-    const initials = applicant?.name
-      ? applicant.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-      : 'U';
-    
-    // Return a simple SVG data URL
-    const svg = `
-      <svg width="150" height="150" xmlns="http://www.w3.org/2000/svg">
-        <rect width="150" height="150" fill="${backgroundColor}"/>
-        <text x="75" y="85" font-family="Arial, sans-serif" font-size="60" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
-      </svg>
-    `;
-    
-    return `data:image/svg+xml;base64,${btoa(svg)}`;
-  };
-
-  const handleShortlist = async (applicationId: number) => {
     try {
-      console.log('Shortlisting application:', applicationId);
-      
-      await applicationService.shortlistApplication(applicationId.toString());
-      
-      // Update local state
-      setApplications(applications.map(app => 
-        app.id === applicationId 
-          ? { ...app, shortlisted: true, status: 'shortlisted' }
-          : app
-      ));
-      
-      // Show success notification
-      const applicant = applications.find(app => app.id === applicationId);
-      if (applicant) {
-        alert(`✅ ${applicant.applicant.name} has been shortlisted! They will be notified via email.`);
+      // If it's a base64 data URL, open it in a new tab
+      if (application.resume_url.startsWith('data:')) {
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head><title>Resume - ${application.user_profile?.full_name}</title></head>
+              <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f5f5f5;">
+                <embed src="${application.resume_url}" width="100%" height="100%" type="application/pdf" />
+              </body>
+            </html>
+          `);
+        }
+      } else {
+        // If it's a URL, open it directly
+        window.open(application.resume_url, '_blank');
       }
     } catch (error) {
-      console.error('Error shortlisting application:', error);
-      alert('Failed to shortlist application. Please try again.');
+      console.error('Error viewing resume:', error);
+      alert('Unable to view resume. Please try downloading instead.');
     }
   };
 
-  const handleViewResume = (applicationId: number) => {
-    const application = applications.find(app => app.id === applicationId);
-    if (application) {
-      setCurrentApplication(application);
-      setShowResumeModal(true);
+  const handleDownloadResume = (application: Application) => {
+    if (!application.resume_url) {
+      alert('No resume available for this application.');
+      return;
     }
-  };
-
-  const handleMessage = (application: any) => {
-    // Pass the actual applicant ID instead of application ID
-    console.log('Opening message for applicant:', application.applicantId);
-    onMessage(application.applicantId);
-  };
-
-  // UPDATED: Handle profile navigation
-  const handleViewProfile = (applicantId: string) => {
-    console.log('Navigating to profile for applicant ID:', applicantId);
-    onViewProfile(applicantId);
-  };
-
-  // NEW: Get pre-signed download URL for resume
-  const getResumeDownloadUrl = async (resumeUrl: string) => {
-    try {
-      setResumeLoading(true);
-      
-      // For development: resumeUrl is now base64 data
-      if (resumeUrl.startsWith('data:')) {
-        return resumeUrl; // Return the base64 data directly
-      }
-      
-      // Fallback for S3 URLs (if any exist) - disabled for production
-      console.warn('S3 download not available in production');
-      throw new Error('Resume download not available');
-    } catch (error) {
-      console.error('Error generating download URL:', error);
-      throw error;
-    } finally {
-      setResumeLoading(false);
-    }
-  };
-
-  // NEW: Handle resume view/download with pre-signed URLs
-  const handleResumeAction = async (action: 'view' | 'download') => {
-    if (!currentApplication?.resumeUrl) return;
     
     try {
-      setResumeLoading(true);
-      const downloadUrl = await getResumeDownloadUrl(currentApplication.resumeUrl);
+      const fileName = `${application.user_profile?.full_name?.replace(/\s+/g, '_') || 'Resume'}_${new Date().getFullYear()}.pdf`;
       
-      if (action === 'view') {
-        window.open(downloadUrl, '_blank');
-      } else if (action === 'download') {
+      if (application.resume_url.startsWith('data:')) {
+        // Handle base64 data
         const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = `${currentApplication.applicant.name}_Resume.pdf`;
+        link.href = application.resume_url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // Handle URL
+        const link = document.createElement('a');
+        link.href = application.resume_url;
+        link.download = fileName;
+        link.target = '_blank';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       }
     } catch (error) {
-      console.error('Error handling resume action:', error);
-      alert('Failed to access resume. Please try again.');
-    } finally {
-      setResumeLoading(false);
+      console.error('Error downloading resume:', error);
+      alert('Unable to download resume. Please try again.');
     }
   };
 
-  // UPDATED: Sort applications with shortlisted at the top, and by sortOrder
-  const filteredApplications = applications
-    .filter(app => {
-      const matchesFilter = selectedFilter === 'all' || 
-                           (selectedFilter === 'pending' && app.status === 'pending') ||
-                           (selectedFilter === 'shortlisted' && app.status === 'shortlisted');
-      const matchesSearch = app.applicant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           app.applicant.title.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch;
-    })
-    .sort((a, b) => {
-      // Sort by shortlisted status first (shortlisted at top)
-      if (a.shortlisted && !b.shortlisted) return -1;
-      if (!a.shortlisted && b.shortlisted) return 1;
-      // Then by applied_at
-      if (sortOrder === 'earliest') {
-        return new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime();
-      } else {
-        return new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime();
-      }
-    });
+  const handleStatusUpdate = async (applicationId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({ status: newStatus })
+        .eq('id', applicationId);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'shortlisted': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-slate-100 text-slate-800';
+      if (error) throw error;
+
+      setApplications(prev => 
+        prev.map(app => 
+          app.id === applicationId 
+            ? { ...app, status: newStatus }
+            : app
+        )
+      );
+    } catch (error) {
+      console.error('Error updating application status:', error);
     }
   };
 
-  // UPDATED: Remove "rejected" filter from filter options
-  const filterOptions = [
-    { value: 'all', label: 'All Applications', count: applications.length },
-    { value: 'pending', label: 'Pending', count: applications.filter(a => a.status === 'pending').length },
-    { value: 'shortlisted', label: 'Shortlisted', count: applications.filter(a => a.status === 'shortlisted').length }
-  ];
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffHours < 24) {
+      if (diffHours < 1) return 'Just now';
+      return `${diffHours} hours ago`;
+    }
+    if (diffDays === 1) return 'Applied yesterday';
+    if (diffDays < 7) return `Applied ${diffDays} days ago`;
+    return `Applied ${date.toLocaleDateString()}`;
+  };
+
+  const filteredApplications = applications.filter(app => {
+    const matchesTab = activeTab === 'all' || app.status === activeTab;
+    const matchesSearch = !searchQuery || 
+      app.user_profile?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.user_profile?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.user_profile?.current_company?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesTab && matchesSearch;
+  });
+
+  const getStatusCounts = () => {
+    const counts = {
+      all: applications.length,
+      pending: applications.filter(app => app.status === 'pending').length,
+      shortlisted: applications.filter(app => app.status === 'shortlisted').length,
+    };
+    return counts;
+  };
+
+  const statusCounts = getStatusCounts();
 
   if (loading) {
     return <LoadingSpinner text="Loading applications..." />;
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-slate-100">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-12 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="h-8 w-8 text-red-400" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Error Loading Applications</h3>
-            <p className="text-slate-600 mb-4">{error}</p>
-            <button
-              onClick={loadApplications}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 mb-6">
-          <div className="flex items-center space-x-4 mb-4">
-            <button
-              onClick={onBack}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Applications</h1>
-              <p className="text-slate-600 mt-1 truncate">
-                {referralTitle} • {filteredApplications.length} applications
+    <div className="min-h-screen bg-[#F9F9F7] flex flex-col overflow-hidden">
+      {/* Page Header */}
+      <header className="bg-[#F9F9F7] pt-8 pb-4 px-8 shrink-0 z-10">
+        <div className="max-w-7xl mx-auto w-full flex flex-col gap-6">
+          <div 
+            className="flex items-center gap-2 text-slate-500 hover:text-[#5f7261] transition-colors cursor-pointer w-fit"
+            onClick={onBack}
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+            <span className="text-sm font-medium">Back to Referrals</span>
+          </div>
+          
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Applications</h1>
+                <span className="bg-white border border-slate-200 text-slate-600 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                  Active
+                </span>
+              </div>
+              <p className="text-slate-500 font-medium">
+                {referralTitle} • <span className="text-[#5f7261] font-semibold">{applications.length} Total Applicants</span>
               </p>
             </div>
-          </div>
-
-          {/* Search and Filter Button */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, title, or skills..."
-                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-              />
-            </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center justify-center space-x-2 px-4 sm:px-6 py-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-medium text-slate-700"
-            >
-              <Filter className="h-4 w-4" />
-              <span>Filter</span>
-            </button>
-          </div>
-
-          {/* Filter Options (shown when filter button is clicked) */}
-          {showFilters && (
-            <div className="mt-4 flex flex-wrap items-center gap-2 bg-slate-100 p-2 rounded-lg">
-              {filterOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setSelectedFilter(option.value)}
-                  className={`px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 whitespace-nowrap ${
-                    selectedFilter === option.value
-                      ? 'bg-slate-900 text-white shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-                  }`}
-                >
-                  <span>{option.label}</span>
-                  <span className={`text-xs px-2 py-1 rounded-full font-bold ${
-                    selectedFilter === option.value
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-300 text-slate-600'
-                  }`}>
-                    {option.count}
-                  </span>
-                </button>
-              ))}
-              {/* Add earliest first sort button */}
-              <button
-                onClick={() => setSortOrder(sortOrder === 'earliest' ? 'latest' : 'earliest')}
-                className={`px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 whitespace-nowrap ${
-                  sortOrder === 'earliest'
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-                }`}
-              >
-                <span>Earliest First</span>
+            
+            <div className="flex gap-3">
+              <button className="bg-[#5f7261] hover:bg-[#4b5c4d] text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px]">add</span>
+                Add Candidate
               </button>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Applications List */}
-        <div className="space-y-4">
-          {filteredApplications.length > 0 ? (
-            filteredApplications.map((application) => (
-              <div
-                key={application.id}
-                className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 hover:shadow-md transition-shadow"
+          {/* Tabs and Filters */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mt-2 border-b border-slate-200 pb-1">
+            <div className="flex gap-6 overflow-x-auto no-scrollbar">
+              <button 
+                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${
+                  activeTab === 'all' 
+                    ? 'border-[#5f7261] text-[#5f7261]' 
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                } transition-all`}
+                onClick={() => setActiveTab('all')}
               >
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between space-y-4 lg:space-y-0">
-                  <div className="flex items-start space-x-4 min-w-0 flex-1">
-                    {/* UPDATED: Make profile picture clickable */}
-                    <img
-                      src={getProfilePicture(application.applicant)}
-                      alt={application.applicant.name}
-                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all flex-shrink-0"
-                      onClick={() => onViewProfile(application.applicant.id)}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 mb-2">
-                        {/* UPDATED: Make username clickable */}
-                        <h3 
-                          className="text-lg sm:text-xl font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-colors truncate"
-                          onClick={() => onViewProfile(application.applicant.id)}
-                        >
-                          {application.applicant.name}
+                <span className="font-bold text-sm">All</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  activeTab === 'all' 
+                    ? 'bg-[#5f7261] text-white' 
+                    : 'bg-slate-200 text-slate-600'
+                }`}>
+                  {statusCounts.all}
+                </span>
+              </button>
+              
+              <button 
+                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${
+                  activeTab === 'pending' 
+                    ? 'border-[#5f7261] text-[#5f7261]' 
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                } transition-all`}
+                onClick={() => setActiveTab('pending')}
+              >
+                <span className="font-medium text-sm">Pending</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  activeTab === 'pending' 
+                    ? 'bg-[#5f7261] text-white' 
+                    : 'bg-slate-200 text-slate-600'
+                }`}>
+                  {statusCounts.pending}
+                </span>
+              </button>
+              
+              <button 
+                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${
+                  activeTab === 'shortlisted' 
+                    ? 'border-[#5f7261] text-[#5f7261]' 
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                } transition-all`}
+                onClick={() => setActiveTab('shortlisted')}
+              >
+                <span className="font-medium text-sm">Shortlisted</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  activeTab === 'shortlisted' 
+                    ? 'bg-[#5f7261] text-white' 
+                    : 'bg-slate-200 text-slate-600'
+                }`}>
+                  {statusCounts.shortlisted}
+                </span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 pb-2 w-full lg:w-auto">
+              <div className="relative w-full lg:w-64">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+                <input 
+                  className="w-full h-10 pl-10 pr-4 rounded-lg border-none bg-white text-sm text-slate-700 placeholder:text-slate-400 focus:ring-1 focus:ring-[#5f7261] shadow-sm"
+                  placeholder="Search applicants..."
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="h-6 w-px bg-slate-200 mx-1"></div>
+              <button className="h-10 px-4 rounded-lg bg-white border border-transparent hover:border-slate-200 text-slate-600 flex items-center gap-2 text-sm font-semibold shadow-sm transition-all whitespace-nowrap">
+                <span className="material-symbols-outlined text-[20px]">sort</span>
+                Earliest First
+              </button>
+              <button className="h-10 px-4 rounded-lg bg-white border border-transparent hover:border-slate-200 text-slate-600 flex items-center gap-2 text-sm font-semibold shadow-sm transition-all">
+                <span className="material-symbols-outlined text-[20px]">filter_list</span>
+                Filter
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Applications Grid */}
+      <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="max-w-7xl mx-auto">
+          {filteredApplications.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-slate-500 text-lg">
+                {searchQuery ? 'No applicants match your search' : 'No applications yet'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+              {filteredApplications.map((application) => (
+                <div
+                  key={application.id}
+                  className="bg-white rounded-lg p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-shadow border border-slate-100 flex flex-col h-full group relative"
+                >
+                  {/* Profile Header */}
+                  <div className="flex justify-between items-start mb-4">
+                    <button 
+                      className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                      onClick={() => onViewProfile(application.user_id)}
+                    >
+                      <div className="h-12 w-12 rounded-full bg-cover bg-center bg-slate-200 flex items-center justify-center">
+                        {application.user_profile?.avatar_url ? (
+                          <img
+                            src={application.user_profile.avatar_url}
+                            alt={application.user_profile.full_name}
+                            className="h-12 w-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-slate-500 font-medium text-lg">
+                            {application.user_profile?.full_name?.charAt(0) || 'U'}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-base leading-tight">
+                          {application.user_profile?.full_name || 'Unknown User'}
                         </h3>
-                        <span className={`text-xs px-3 py-1 rounded-full font-medium mt-1 sm:mt-0 self-start ${getStatusColor(application.status)}`}>
-                          {application.status}
-                        </span>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {application.user_profile?.current_position || 'No position listed'}
+                        </p>
                       </div>
-                      <p className="text-base sm:text-lg text-slate-600 font-medium mb-1 truncate">{application.applicant.title}</p>
-                      <p className="text-slate-500 mb-2 truncate">{application.applicant.company}</p>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 text-sm text-slate-500 space-y-1 sm:space-y-0">
-                        <div className="flex items-center space-x-1">
-                          <MapPin className="h-4 w-4 flex-shrink-0" />
-                          <span className="truncate">{application.applicant.location}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="h-4 w-4 flex-shrink-0" />
-                          <span>Applied {application.appliedDate}</span>
-                        </div>
-                      </div>
+                    </button>
+                    <button className="text-slate-300 hover:text-red-500 transition-colors p-1">
+                      <span className="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                  </div>
+
+                  {/* Details */}
+                  <div className="flex flex-col gap-2 mb-4">
+                    <div className="flex items-center gap-2 text-slate-500 text-xs">
+                      <span className="material-symbols-outlined text-[16px]">apartment</span>
+                      <span>{application.user_profile?.current_company || 'No company'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-500 text-xs">
+                      <span className="material-symbols-outlined text-[16px]">location_on</span>
+                      <span>{application.user_profile?.location || 'Location not specified'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-500 text-xs">
+                      <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                      <span>{formatDate(application.created_at)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-500 text-xs mt-1 pt-2 border-t border-slate-100">
+                      <span className="material-symbols-outlined text-[16px]">mail</span>
+                      <span className="truncate">{application.user_profile?.email || 'No email'}</span>
+                    </div>
+                  </div>
+
+                  {/* Cover Letter Preview */}
+                  {application.cover_letter && (
+                    <div className="mb-5 bg-[#f2f1ec] p-3 rounded-md">
+                      <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed italic">
+                        "{application.cover_letter}"
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="mt-auto flex flex-col gap-2">
+                    <button 
+                      className="w-full bg-[#5f7261] hover:bg-[#4b5c4d] text-white py-2 rounded-md text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+                      onClick={() => handleStatusUpdate(application.id, 'shortlisted')}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                      Shortlist
+                    </button>
+                    <div className="flex gap-2">
+                      <button 
+                        className="flex-1 bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
+                        onClick={() => setSelectedApplication(application)}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">person</span>
+                        View Details
+                      </button>
+                      <button 
+                        className="flex-1 bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
+                        onClick={() => handleViewResume(application)}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">description</span>
+                        Resume
+                      </button>
+                      <button 
+                        className="flex-1 bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
+                        onClick={() => onMessage(application.applicant_id)}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">chat_bubble</span>
+                        Message
+                      </button>
                     </div>
                   </div>
                 </div>
-
-                {/* Education */}
-                <div className="mt-4 sm:mt-6">
-                  {application.coverLetter && (
-                    <div>
-                      <h4 className="font-medium text-slate-900 mb-1">Cover Letter</h4>
-                      <p className="text-slate-600 text-sm">{application.coverLetter}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mt-4 sm:mt-6">
-                  {application.shortlisted ? (
-                    <div className="bg-green-100 text-green-800 px-4 sm:px-6 py-2 rounded-lg flex items-center justify-center space-x-2 font-medium">
-                      <CheckCircle className="h-4 w-4" />
-                      <span>Shortlisted</span>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleShortlist(application.id)}
-                      className="bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 font-medium"
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                      <span>Shortlist</span>
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleViewResume(application.id)}
-                    className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 font-medium"
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span>View Resume</span>
-                  </button>
-                  <button
-                    onClick={() => handleMessage(application)}
-                    className="bg-slate-900 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center space-x-2 font-medium"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    <span>Message</span>
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 sm:p-12 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User className="h-8 w-8 text-slate-400" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">No applications found</h3>
-              <p className="text-slate-600">
-                {searchQuery || selectedFilter !== 'all' 
-                  ? 'Try adjusting your search or filter criteria.' 
-                  : 'No applications have been submitted for this referral yet.'
-                }
-              </p>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Enhanced Resume Modal */}
-      {showResumeModal && currentApplication && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="p-4 sm:p-6 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4 min-w-0 flex-1">
-                  <img
-                    src={getProfilePicture(currentApplication.applicant)}
-                    alt={currentApplication.applicant.name}
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex-shrink-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-lg sm:text-xl font-bold text-slate-900 truncate">{currentApplication.applicant.name}</h3>
-                    <p className="text-slate-600 truncate">{currentApplication.applicant.title}</p>
-                  </div>
+      {/* Resume Modal */}
+      {selectedApplication && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-full bg-cover bg-center bg-slate-200 flex items-center justify-center">
+                  {selectedApplication.user_profile?.avatar_url ? (
+                    <img
+                      src={selectedApplication.user_profile.avatar_url}
+                      alt={selectedApplication.user_profile.full_name}
+                      className="h-16 w-16 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-slate-500 font-medium text-2xl">
+                      {selectedApplication.user_profile?.full_name?.charAt(0) || 'U'}
+                    </span>
+                  )}
                 </div>
-                <button
-                  onClick={() => setShowResumeModal(false)}
-                  className="text-slate-400 hover:text-slate-600 transition-colors p-2 flex-shrink-0"
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">
+                    {selectedApplication.user_profile?.full_name || 'Unknown User'}
+                  </h2>
+                  <p className="text-slate-500 text-sm">
+                    {selectedApplication.user_profile?.current_position} at {selectedApplication.user_profile?.current_company}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  className="p-2 text-slate-400 hover:bg-[#f2f1ec] rounded-lg transition-colors"
+                  onClick={() => handleDownloadResume(selectedApplication)}
                 >
-                  <X className="h-5 w-5" />
+                  <span className="material-symbols-outlined">download</span>
+                </button>
+                <button 
+                  className="p-2 text-slate-400 hover:bg-[#f2f1ec] rounded-lg transition-colors"
+                  onClick={() => setSelectedApplication(null)}
+                >
+                  <span className="material-symbols-outlined">close</span>
                 </button>
               </div>
             </div>
             
-            <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              {/* Contact Information */}
-              <div className="mb-6 p-4 bg-slate-50 rounded-lg">
-                <h4 className="font-bold text-slate-900 mb-3">Contact Information</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Mail className="h-4 w-4 text-slate-500 flex-shrink-0" />
-                    <span className="text-slate-700 truncate">{currentApplication.applicant.email}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4 text-slate-500 flex-shrink-0" />
-                    <span className="text-slate-700 truncate">{currentApplication.applicant.location}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Briefcase className="h-4 w-4 text-slate-500 flex-shrink-0" />
-                    <span className="text-slate-700 truncate">{currentApplication.applicant.company}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Cover Letter */}
-              {currentApplication.coverLetter && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-bold text-slate-900 mb-3">Cover Letter</h4>
-                  <p className="text-slate-700 leading-relaxed">{currentApplication.coverLetter}</p>
-                </div>
-              )}
-
-              {/* Resume Section */}
-              <div className="bg-slate-50 rounded-lg p-6 sm:p-8 text-center">
-                <FileText className="h-12 w-12 sm:h-16 sm:w-16 text-slate-400 mx-auto mb-4" />
-                <h4 className="text-lg font-bold text-slate-900 mb-2">Resume Document</h4>
-                {currentApplication.resumeUrl ? (
-                  <>
-                    <p className="text-slate-600 mb-4">
-                      Resume file: {currentApplication.resumeUrl.split('/').pop()}
-                    </p>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3">
-                      <button
-                        onClick={() => handleResumeAction('view')}
-                        disabled={resumeLoading}
-                        className="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {resumeLoading ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                        <span>{resumeLoading ? 'Loading...' : 'View Resume'}</span>
-                      </button>
-                      <button
-                        onClick={() => handleResumeAction('download')}
-                        disabled={resumeLoading}
-                        className="bg-slate-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-slate-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {resumeLoading ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        ) : (
-                          <Download className="h-4 w-4" />
-                        )}
-                        <span>{resumeLoading ? 'Loading...' : 'Download Resume'}</span>
-                      </button>
+            <div className="flex-1 overflow-y-auto p-8">
+              <div className="grid grid-cols-3 gap-8">
+                <div className="col-span-1 flex flex-col gap-6 border-r border-slate-100 pr-8">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Contact</h4>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-3 text-slate-600 text-sm">
+                        <span className="material-symbols-outlined text-[#5f7261]">mail</span>
+                        <span>{selectedApplication.user_profile?.email}</span>
+                      </div>
+                      {selectedApplication.user_profile?.phone && (
+                        <div className="flex items-center gap-3 text-slate-600 text-sm">
+                          <span className="material-symbols-outlined text-[#5f7261]">phone</span>
+                          <span>{selectedApplication.user_profile.phone}</span>
+                        </div>
+                      )}
+                      {selectedApplication.user_profile?.linkedin_url && (
+                        <div className="flex items-center gap-3 text-slate-600 text-sm">
+                          <span className="material-symbols-outlined text-[#5f7261]">link</span>
+                          <a className="text-[#5f7261] hover:underline" href={selectedApplication.user_profile.linkedin_url} target="_blank" rel="noopener noreferrer">
+                            LinkedIn Profile
+                          </a>
+                        </div>
+                      )}
                     </div>
-                  </>
-                ) : (
-                  <div className="text-slate-500">
-                    <p className="mb-4">No resume file uploaded</p>
-                    <p className="text-sm">The applicant did not upload a resume file with their application.</p>
                   </div>
-                )}
+                  
+                  {selectedApplication.user_profile?.skills && (
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Skills</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedApplication.user_profile.skills.map((skill, index) => (
+                          <span key={index} className="bg-[#f2f1ec] text-slate-600 text-xs px-2 py-1 rounded-md">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="col-span-2 flex flex-col gap-8">
+                  {selectedApplication.cover_letter && (
+                    <section>
+                      <h3 className="text-lg font-bold text-slate-900 mb-2">Cover Letter</h3>
+                      <p className="text-slate-600 text-sm leading-relaxed">
+                        {selectedApplication.cover_letter}
+                      </p>
+                    </section>
+                  )}
+                  
+                  <section>
+                    <h3 className="text-lg font-bold text-slate-900 mb-3">Resume</h3>
+                    <div className="bg-[#f2f1ec] border border-slate-200 rounded-lg p-4 flex items-center justify-between gap-4 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-10 bg-red-100 rounded flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-900">
+                            {selectedApplication.user_profile?.full_name?.replace(' ', '_')}_Resume_2024.pdf
+                          </p>
+                          <p className="text-xs text-slate-500">2.4 MB • {formatDate(selectedApplication.created_at)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors"
+                          onClick={() => handleViewResume(selectedApplication)}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">visibility</span>
+                          View
+                        </button>
+                        <button 
+                          className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors"
+                          onClick={() => handleDownloadResume(selectedApplication)}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">download</span>
+                          Download
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+                </div>
               </div>
+            </div>
+            
+            <div className="p-4 border-t border-slate-100 bg-[#f2f1ec]/50 flex justify-end gap-3 shrink-0">
+              <button 
+                className="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-white transition-colors"
+                onClick={() => setSelectedApplication(null)}
+              >
+                Dismiss
+              </button>
+              <button 
+                className="px-5 py-2.5 rounded-lg bg-[#5f7261] text-white text-sm font-semibold hover:bg-[#4b5c4d] transition-colors flex items-center gap-2"
+                onClick={() => {
+                  handleStatusUpdate(selectedApplication.id, 'shortlisted');
+                  setSelectedApplication(null);
+                }}
+              >
+                <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                Shortlist Candidate
+              </button>
             </div>
           </div>
         </div>
       )}
     </div>
   );
-};
-
-export default ApplicationsPage;
+}

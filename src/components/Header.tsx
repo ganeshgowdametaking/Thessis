@@ -102,13 +102,20 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      setShowSuggestions(false);
       navigate(`/search-results?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
     }
   };
 
   const handleSearchKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleSearch(e);
+      e.preventDefault();
+      if (searchQuery.trim()) {
+        setShowSuggestions(false);
+        navigate(`/search-results?q=${encodeURIComponent(searchQuery.trim())}`);
+        setSearchQuery('');
+      }
     }
   };
 
@@ -192,20 +199,25 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   if (!user) {
     console.log('Header Debug - Showing simple header (no user)');
     return (
-      <header className="sticky top-0 z-40 bg-slate-900 text-white">
-        <div className="w-full">
-          <div className="flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
-            <div className="flex-shrink-0">
-              <Link to="/" className="flex-shrink-0">
-                <img className="h-10 w-auto" src="/new-logo.png" alt="TankTide" />
+      <header className="w-full border-b border-slate-200/60 bg-stone/90 backdrop-blur-md sticky top-0 z-50 h-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center">
+              <Link to="/" className="block">
+                <img 
+                  src="/logo2.png" 
+                  alt="TankTide Logo" 
+                  className="h-12 w-12 object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                />
               </Link>
             </div>
-            <div className="flex items-center space-x-4">
-              <button onClick={onSignIn} className="sign-in-btn">
-                Sign In
+            <nav className="hidden md:flex items-center gap-8"></nav>
+            <div className="flex items-center gap-3">
+              <button onClick={onSignIn} className="hidden sm:flex h-9 items-center justify-center rounded-lg px-4 text-sm font-bold text-slate-700 hover:bg-black/5 transition-colors">
+                Login
               </button>
-              <button onClick={onJoinNow} className="join-now-btn">
-                Join Now
+              <button onClick={onJoinNow} className="flex h-9 items-center justify-center rounded-lg bg-sage px-4 text-sm font-bold text-white shadow-sm hover:bg-sage-dark transition-all">
+                Signup
               </button>
             </div>
           </div>
@@ -244,150 +256,171 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-slate-900 text-white">
-      <div className="w-full">
-        <div className="flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo - Absolute left position */}
-          <div className="flex-shrink-0">
-            <Link to="/jobs" className="flex-shrink-0">
-              <img className="h-10 w-auto" src="/new-logo.png" alt="TankTide" />
+    <header className="bg-white border-b border-stone-200 h-20 shrink-0 flex items-center justify-between px-6 lg:px-10 z-40 relative">
+      <div className="flex items-center gap-6 xl:gap-10 w-full lg:w-auto">
+        <div className="flex items-center shrink-0">
+          <Link to="/jobs" className="block">
+            <img 
+              src="/logo2.png" 
+              alt="TankTide Logo" 
+              className="h-16 w-16 object-contain rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
+            />
+          </Link>
+        </div>
+        
+        <div className="hidden lg:flex items-center bg-[#f2f1ec] rounded-full px-5 py-2.5 w-[360px] border border-[#e6e5e0] transition-colors focus-within:border-primary/50 focus-within:bg-[#efeee9] shadow-sm">
+          <span className="material-symbols-outlined text-slate-500 text-[22px]">search</span>
+          <form onSubmit={handleSearch} className="flex-1">
+            <input 
+              className="bg-transparent border-none p-0 ml-3 w-full text-slate-700 placeholder:text-slate-500 focus:ring-0 text-[15px] font-medium" 
+              placeholder="Search..." 
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
+              onKeyDown={handleInputKeyDown}
+              onKeyPress={handleSearchKeyPress}
+            />
+          </form>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-8 xl:gap-12 shrink-0">
+        <nav className="hidden xl:flex items-center gap-10">
+          {profile?.role === 'admin' && (
+            <Link className="text-[#354038] font-semibold text-[17px] hover:text-primary transition-colors flex items-center h-10" to="/analytics">
+              Dashboard
             </Link>
-          </div>
-
-          {/* Search Bar - Always visible on mobile, wide on desktop */}
-          <div className="flex-1 mx-4">
-            <form onSubmit={handleSearch} className="relative block md:hidden">
-              <div className="absolute left-3 top-1/2 flex h-5 w-5 -translate-y-1/2 transform items-center justify-center">
-                <Search className="h-5 w-5 stroke-2 text-slate-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search people, companies..."
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
-                onKeyDown={handleInputKeyDown}
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2 pl-10 pr-4 text-white placeholder-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-                autoComplete="off"
-              />
-              {searchLoading && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-            </form>
-            <div className="mx-8 hidden max-w-2xl flex-1 md:block">
-              <form onSubmit={handleSearch} className="relative">
-                <div className="absolute left-3 top-1/2 flex h-5 w-5 -translate-y-1/2 transform items-center justify-center">
-                  <Search className="h-5 w-5 stroke-2" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search people, companies..."
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
-                  onKeyDown={handleInputKeyDown}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2 pl-10 pr-4 text-white placeholder-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  autoComplete="off"
+          )}
+          <Link className="text-[#354038] font-semibold text-[17px] hover:text-primary transition-colors flex items-center h-10" to="/jobs">
+            Jobs
+          </Link>
+          <Link className="text-[#354038] font-semibold text-[17px] hover:text-primary transition-colors flex items-center h-10" to="/messages">
+            Messages
+          </Link>
+        </nav>
+        
+        <div className="flex items-center gap-6">
+          <Link to="/notifications" className="relative text-[#354038] hover:text-primary transition-colors p-1 group flex items-center justify-center h-10 w-10">
+            <span className="material-symbols-outlined text-[28px] filled group-hover:opacity-80 transition-opacity">notifications</span>
+            {unreadNotifications > 0 && (
+              <span className="absolute top-1 right-1.5 w-2.5 h-2.5 bg-[#ef4444] rounded-full border-2 border-white"></span>
+            )}
+          </Link>
+          
+          <Link className="block relative group" to="/profile">
+            <div className="h-10 w-10 rounded-full bg-cover bg-center border-[1.5px] border-[#e2e8f0] shadow-sm group-hover:border-primary/50 transition-colors">
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.full_name || 'Profile'}
+                  className="h-10 w-10 rounded-full object-cover"
                 />
-                {searchLoading && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                )}
-              </form>
-            </div>
-          </div>
-
-          {/* Desktop Navigation - Consistent icon sizes */}
-          <div className="hidden items-center space-x-2 md:flex">
-            {navLinks.map((link) => (
-              <NavLink key={link.href} {...link} />
-            ))}
-            <div className="relative" ref={settingsDropdownRef}>
-              <button
-                onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-                className={`flex min-w-[70px] flex-col items-center space-y-1 rounded-lg p-2 transition-colors ${
-                  location.pathname === '/settings' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <div className="flex h-5 w-5 items-center justify-center">
-                  <Settings className="h-5 w-5 stroke-2" />
-                </div>
-                <span className="text-xs font-medium">Settings</span>
-              </button>
-              {showSettingsDropdown && (
-                <div className="absolute right-0 z-50 mt-2 w-48 rounded-md bg-slate-800 py-1 shadow-lg">
-                  <Link to="/settings" className="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700" onClick={() => setShowSettingsDropdown(false)}>
-                    Settings
-                  </Link>
-                  <button
-                    onClick={() => {
-                      signOut();
-                      setShowSettingsDropdown(false);
-                    }}
-                    className="block w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-slate-700"
-                  >
-                    Logout
-                  </button>
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-[#5f7261] flex items-center justify-center">
+                  <span className="text-white font-medium text-sm">
+                    {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                  </span>
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Mobile Menu Button - FIXED: Now h-5 w-5 */}
-          <div className="md:hidden">
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-1">
-              <div className="flex h-5 w-5 items-center justify-center">
-                {isMenuOpen ? <X className="h-5 w-5 stroke-2" /> : <Menu className="h-5 w-5 stroke-2" />}
-              </div>
+          </Link>
+          
+          <div className="relative" ref={settingsDropdownRef}>
+            <button 
+              className="text-[#354038] hover:text-primary transition-colors p-1 group flex items-center justify-center h-10 w-10"
+              onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
+            >
+              <span className="material-symbols-outlined text-[28px] filled group-hover:opacity-80 transition-opacity">settings</span>
             </button>
+            
+            {showSettingsDropdown && (
+              <div className="absolute right-0 z-50 mt-2 w-48 rounded-md bg-white border border-slate-200 shadow-lg py-1">
+                <Link 
+                  to="/settings" 
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-[#f2f1ec]" 
+                  onClick={() => setShowSettingsDropdown(false)}
+                >
+                  Settings
+                </Link>
+                <button
+                  onClick={() => {
+                    signOut();
+                    setShowSettingsDropdown(false);
+                  }}
+                  className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-[#f2f1ec]"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
+      {/* Mobile Menu Button */}
+      <div className="xl:hidden">
+        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-1 text-[#354038]">
+          <div className="flex h-6 w-6 items-center justify-center">
+            {isMenuOpen ? (
+              <span className="material-symbols-outlined text-[24px]">close</span>
+            ) : (
+              <span className="material-symbols-outlined text-[24px]">menu</span>
+            )}
+          </div>
+        </button>
+      </div>
+
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden">
-          <div className="space-y-1 px-2 pb-3 pt-2 sm:px-3">
-            {navLinks.map((link) => {
-              let badgeCount = 0;
-              if (link.label === 'Messages') badgeCount = unreadMessages;
-              if (link.label === 'Notifications') badgeCount = unreadNotifications;
-              return (
-                <Link
-                  key={link.href}
-                  to={link.href}
-                  className="flex items-center space-x-3 rounded-md px-3 py-2 text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <div className="relative flex h-5 w-5 items-center justify-center">
-                    <link.icon className="h-5 w-5 stroke-2" />
-                    <Badge count={badgeCount} />
-                  </div>
-                  <span>{link.label}</span>
-                </Link>
-              );
-            })}
+        <div className="absolute top-full left-0 right-0 bg-white border-b border-stone-200 xl:hidden">
+          <div className="px-6 py-4 space-y-3">
             <Link
-              to="/settings"
-              className="flex items-center space-x-3 rounded-md px-3 py-2 text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
+              to="/jobs"
+              className="block text-[#354038] font-semibold text-[16px] hover:text-primary transition-colors py-2"
               onClick={() => setIsMenuOpen(false)}
             >
-              <div className="flex h-5 w-5 items-center justify-center">
-                <Settings className="h-5 w-5 stroke-2" />
-              </div>
-              <span>Settings</span>
+              Dashboard
+            </Link>
+            <Link
+              to="/jobs"
+              className="block text-[#354038] font-semibold text-[16px] hover:text-primary transition-colors py-2"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Jobs
+            </Link>
+            <Link
+              to="/messages"
+              className="block text-[#354038] font-semibold text-[16px] hover:text-primary transition-colors py-2"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Messages
+            </Link>
+            <Link
+              to="/settings"
+              className="block text-[#354038] font-semibold text-[16px] hover:text-primary transition-colors py-2"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Settings
             </Link>
             <button
               onClick={() => { setIsMenuOpen(false); signOut(); }}
-              className="flex w-full items-center space-x-3 rounded-md px-3 py-2 text-left text-base font-medium text-red-400 hover:bg-slate-800"
+              className="block w-full text-left text-red-600 font-semibold text-[16px] py-2"
             >
-              <div className="flex h-5 w-5 items-center justify-center">
-                <LogOut className="h-5 w-5 stroke-2" />
-              </div>
-              <span>Logout</span>
+              Logout
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Search Suggestions */}
+      {showSuggestions && suggestions.length > 0 && (
+        <div 
+          ref={suggestionsRef}
+          className="absolute top-full left-6 right-6 lg:left-[200px] lg:right-auto lg:w-[360px] bg-white border border-slate-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50"
+        >
+          {suggestions.map((suggestion, index) => (
+            <SuggestionItem key={index} suggestion={suggestion} index={index} />
+          ))}
         </div>
       )}
     </header>

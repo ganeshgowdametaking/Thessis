@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Download, Trash2, Edit3, Send } from 'lucide-react';
+import { ArrowLeft, Download, Trash2, Edit3, Send, Check, Clock } from 'lucide-react';
 import { gdprService } from '../services/gdprService';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import Check from './Check';
 import LoadingSpinner from './LoadingSpinner';
 
 interface DataRequestFormProps {
@@ -13,7 +12,7 @@ interface DataRequestFormProps {
 const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
   const { user } = useAuthContext();
   const navigate = useNavigate();
-  const [requestType, setRequestType] = useState<'access' | 'delete' | 'correct'>('access');
+  const [requestType, setRequestType] = useState<'access' | 'delete' | 'correct'>('correct');
   const [details, setDetails] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -59,212 +58,227 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
     }
   };
 
-  const getRequestTypeIcon = () => {
+  const getPlaceholderText = () => {
     switch (requestType) {
-      case 'access': return <Download className="h-5 w-5" />;
-      case 'delete': return <Trash2 className="h-5 w-5" />;
-      case 'correct': return <Edit3 className="h-5 w-5" />;
-    }
-  };
-
-  const getRequestTypeTitle = () => {
-    switch (requestType) {
-      case 'access': return 'Data Access Request';
-      case 'delete': return 'Data Deletion Request';
-      case 'correct': return 'Data Correction Request';
-    }
-  };
-
-  const getRequestTypeDescription = () => {
-    switch (requestType) {
-      case 'access': 
-        return 'Request a copy of all personal data we have collected about you.';
-      case 'delete': 
-        return 'Request the deletion of all personal data we have collected about you.';
-      case 'correct': 
-        return 'Request corrections to inaccurate or incomplete personal data we have about you.';
+      case 'access':
+        return 'Please specify what data you would like to access...';
+      case 'delete':
+        return 'Please provide any additional details about your deletion request...';
+      case 'correct':
+        return 'Please provide specific details to help us fulfill your request. For corrections, please specify the old vs. new values...';
+      default:
+        return 'Please provide details for your request...';
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex items-center space-x-4 mb-6">
-            <button
+    <>
+      <style>{`
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        textarea::-webkit-scrollbar {
+          width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        textarea::-webkit-scrollbar-thumb {
+          background-color: #cbd5e1;
+          border-radius: 4px;
+        }
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+      `}</style>
+      
+      <div className="bg-stone-bg font-display min-h-screen flex flex-col justify-center items-center p-6 text-slate-700 transition-colors duration-300">
+        {/* Background Decorations */}
+        <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-sage/5 blur-3xl"></div>
+          <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-blue-prof/5 blur-3xl"></div>
+        </div>
+
+        <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col relative border border-slate-100">
+          {/* Header */}
+          <div className="px-8 pt-8 pb-4 flex items-center gap-4 border-b border-slate-100">
+            <button 
               onClick={handleBack}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
-              aria-label="Go back"
+              className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-100 transition-colors text-slate-900"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="text-[24px]" />
             </button>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">GDPR Data Request</h1>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">GDPR Data Request</h1>
           </div>
-          
-          {success ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="text-lg font-bold text-green-800 mb-2">Request Submitted Successfully</h3>
-              <p className="text-green-700 mb-6">
-                We've received your {requestType} request. Our team will process it and respond within 30 days.
+
+          {/* Main Content */}
+          <div className="px-8 py-6 md:px-12 md:py-8 flex flex-col gap-8">
+            {/* Description */}
+            <div className="max-w-2xl">
+              <p className="text-slate-700 text-lg leading-relaxed">
+                Under the General Data Protection Regulation (GDPR), you have the right to access, delete, or correct your personal data. Please select the type of request you'd like to make.
               </p>
-              <button
+            </div>
+
+            {/* Request Type Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Access Data */}
+              <label className="group cursor-pointer relative">
+                <input 
+                  className="peer sr-only" 
+                  name="request_type" 
+                  type="radio" 
+                  value="access"
+                  checked={requestType === 'access'}
+                  onChange={() => setRequestType('access')}
+                />
+                <div className="h-full p-6 rounded-xl border-2 border-stone-border bg-white hover:bg-blue-wash/30 transition-all duration-200 peer-checked:border-blue-prof peer-checked:bg-white flex flex-col gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-blue-wash text-blue-prof flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <Download className="text-[24px]" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-1 text-slate-900">Access My Data</h3>
+                    <p className="text-sm text-slate-500">Request a copy of your personal data archive.</p>
+                  </div>
+                </div>
+              </label>
+
+              {/* Delete Data */}
+              <label className="group cursor-pointer relative">
+                <input 
+                  className="peer sr-only" 
+                  name="request_type" 
+                  type="radio" 
+                  value="delete"
+                  checked={requestType === 'delete'}
+                  onChange={() => setRequestType('delete')}
+                />
+                <div className="h-full p-6 rounded-xl border-2 border-stone-border bg-white hover:bg-red-wash/30 transition-all duration-200 peer-checked:border-red-prof peer-checked:bg-white flex flex-col gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-red-wash text-red-prof flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <Trash2 className="text-[24px]" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-1 text-slate-900">Delete My Data</h3>
+                    <p className="text-sm text-slate-500">Permanently remove your account and logs.</p>
+                  </div>
+                </div>
+              </label>
+
+              {/* Correct Data */}
+              <label className="group cursor-pointer relative">
+                <input 
+                  className="peer sr-only" 
+                  name="request_type" 
+                  type="radio" 
+                  value="correct"
+                  checked={requestType === 'correct'}
+                  onChange={() => setRequestType('correct')}
+                />
+                <div className="h-full p-6 rounded-xl border-2 border-stone-border bg-white hover:bg-sage-wash/50 transition-all duration-200 peer-checked:border-sage peer-checked:bg-white flex flex-col gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-sage-wash text-sage flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <Edit3 className="text-[24px]" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-1 text-slate-900">Correct My Data</h3>
+                    <p className="text-sm text-slate-500">Update inaccurate profile information.</p>
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            {/* Form Section */}
+            <div className="bg-stone-off rounded-xl p-6 md:p-8 mt-2 transition-all duration-300">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold uppercase tracking-wider text-slate-500" htmlFor="details">
+                    Request Details *
+                  </label>
+                  <textarea
+                    className="w-full min-h-[160px] p-4 rounded-lg border border-stone-border bg-white focus:ring-2 focus:ring-sage focus:border-transparent outline-none resize-none text-slate-700 placeholder-slate-400 transition-shadow"
+                    id="details"
+                    placeholder={getPlaceholderText()}
+                    value={details}
+                    onChange={(e) => setDetails(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between flex-wrap gap-4 pt-2">
+                  <div className="text-xs text-slate-500 max-w-md">
+                    By submitting this form, you acknowledge that we may need to verify your identity before processing the request.
+                  </div>
+                  <button 
+                    className="flex items-center justify-center gap-2 bg-sage hover:bg-sage/90 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <LoadingSpinner size="small" />
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="text-[20px]" />
+                        <span>Submit Request</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Success Overlay */}
+          {success && (
+            <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-10 flex flex-col items-center justify-center text-center p-8 animate-fade-in">
+              <div className="w-20 h-20 rounded-full bg-sage-wash text-sage flex items-center justify-center mb-6">
+                <Check className="text-[40px]" />
+              </div>
+              <h2 className="text-3xl font-bold text-slate-900 mb-3">Request Submitted Successfully</h2>
+              <p className="text-slate-500 max-w-md mb-8">
+                We have received your GDPR data request. A confirmation email has been sent to your registered address with a reference ID.
+              </p>
+              <button 
                 onClick={() => {
                   setSuccess(false);
                   setRequestType('access');
+                  setDetails('');
+                  setError('');
                 }}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                className="bg-transparent border-2 border-sage text-slate-900 hover:bg-sage hover:text-white font-bold py-2 px-6 rounded-lg transition-all duration-200"
               >
                 Submit Another Request
               </button>
             </div>
-          ) : (
-            <>
-              <div className="mb-6">
-                <p className="text-slate-600">
-                  Under the General Data Protection Regulation (GDPR), you have the right to access, delete, or correct your personal data. Please select the type of request you'd like to make.
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <button
-                  onClick={() => setRequestType('access')}
-                  className={`p-4 rounded-lg border transition-colors text-left ${
-                    requestType === 'access' 
-                      ? 'border-blue-300 bg-blue-50' 
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div className={`p-2 rounded-full ${
-                      requestType === 'access' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      <Download className="h-4 w-4" />
-                    </div>
-                    <h3 className="font-medium">Access My Data</h3>
-                  </div>
-                  <p className="text-sm text-slate-600">
-                    Request a copy of all personal data we have collected about you.
-                  </p>
-                </button>
-                
-                <button
-                  onClick={() => setRequestType('delete')}
-                  className={`p-4 rounded-lg border transition-colors text-left ${
-                    requestType === 'delete' 
-                      ? 'border-red-300 bg-red-50' 
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div className={`p-2 rounded-full ${
-                      requestType === 'delete' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      <Trash2 className="h-4 w-4" />
-                    </div>
-                    <h3 className="font-medium">Delete My Data</h3>
-                  </div>
-                  <p className="text-sm text-slate-600">
-                    Request the deletion of all personal data we have collected about you.
-                  </p>
-                </button>
-                
-                <button
-                  onClick={() => setRequestType('correct')}
-                  className={`p-4 rounded-lg border transition-colors text-left ${
-                    requestType === 'correct' 
-                      ? 'border-green-300 bg-green-50' 
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div className={`p-2 rounded-full ${
-                      requestType === 'correct' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      <Edit3 className="h-4 w-4" />
-                    </div>
-                    <h3 className="font-medium">Correct My Data</h3>
-                  </div>
-                  <p className="text-sm text-slate-600">
-                    Request corrections to inaccurate or incomplete personal data we have about you.
-                  </p>
-                </button>
-              </div>
-              
-              <div className="bg-slate-50 p-6 rounded-lg mb-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  {getRequestTypeIcon()}
-                  <h3 className="text-lg font-semibold text-slate-900">{getRequestTypeTitle()}</h3>
-                </div>
-                <p className="text-slate-600 mb-4">{getRequestTypeDescription()}</p>
-                
-                <form onSubmit={handleSubmit}>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Request Details <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      value={details}
-                      onChange={(e) => setDetails(e.target.value)}
-                      rows={5}
-                      placeholder={
-                        requestType === 'access' 
-                          ? 'Please specify what data you would like to access...' 
-                          : requestType === 'delete'
-                          ? 'Please provide any additional details about your deletion request...'
-                          : 'Please specify what data needs to be corrected and how...'
-                      }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                      required
-                    />
-                  </div>
-                  
-                  {error && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                      {error}
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className={`px-6 py-2 rounded-lg transition-colors flex items-center space-x-2 font-medium ${
-                        requestType === 'access' 
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                          : requestType === 'delete'
-                          ? 'bg-red-600 hover:bg-red-700 text-white'
-                          : 'bg-green-600 hover:bg-green-700 text-white'
-                      }`}
-                    >
-                      {loading ? (
-                        <>
-                          <LoadingSpinner size="small" />
-                          <span>Processing...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4" />
-                          <span>Submit Request</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </div>
-              
-              <div className="text-sm text-slate-500">
-                <p>
-                  Note: We will process your request within 30 days as required by the GDPR. We may need to verify your identity before processing your request.
-                </p>
-              </div>
-            </>
           )}
+
+          {/* Footer */}
+          <div className="px-8 py-4 bg-stone-off border-t border-slate-200 text-center md:text-left">
+            <p className="text-xs text-slate-500 flex items-center gap-2 justify-center md:justify-start">
+              <Clock className="text-[16px]" />
+              Processing time: up to 30 days. We may require additional identity verification steps.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

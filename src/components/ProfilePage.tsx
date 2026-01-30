@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { User, MapPin, Briefcase, GraduationCap, Award, Users, MessageCircle, Edit3, Camera, Plus, X, Calendar, Building, Trash2 } from 'lucide-react';
+import { MapPin, Briefcase, GraduationCap, Award, Edit3, Plus, X, Trash2, Share } from 'lucide-react';
 import debounce from 'lodash.debounce';
 import { profileService } from '../services/profileService';
 import { postService } from '../services/postService';
@@ -81,6 +81,8 @@ const ProfilePage: React.FC = () => {
   const [locationError, setLocationError] = useState('');
   const [locationTouched, setLocationTouched] = useState(false);
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -345,218 +347,264 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Profile Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mb-6">
-          <div className="flex justify-end p-4">
-            <button
-              onClick={() => setIsEditing(true)}
-              className="bg-slate-900 text-white px-6 py-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center space-x-2 font-medium"
-            >
-              <Edit3 className="h-4 w-4" />
-              <span>Edit Profile</span>
-            </button>
+    <div className="bg-stone-bg text-text-main font-display min-h-screen flex flex-col overflow-x-hidden antialiased">
+      {/* Main Content */}
+      <main className="flex-1 w-full max-w-[1024px] mx-auto px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8">
+        {/* Profile Header Section */}
+        <section className="w-full bg-white rounded-2xl p-6 md:p-10 border border-slate-border-card shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] flex flex-col items-center relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-sage-green/5 via-sage-green/0 to-transparent pointer-events-none"></div>
+          
+          <div className="relative z-10 flex flex-col items-center gap-6 w-full max-w-2xl">
+            <div className="relative">
+              <div className="absolute -inset-2 rounded-full bg-gradient-to-tr from-sage-green/20 to-transparent blur-xl opacity-50"></div>
+              <div 
+                className="relative bg-center bg-no-repeat aspect-square bg-cover rounded-full h-32 w-32 border-4 border-white shadow-xl" 
+                style={{backgroundImage: `url("${getProfilePicture()}")`}}
+              ></div>
+              <div className="absolute bottom-1 right-1 bg-emerald-500 border-[3px] border-white size-6 rounded-full shadow-sm" title="Online"></div>
+            </div>
+
+            <div className="flex flex-col items-center text-center gap-2">
+              <h1 className="text-text-main text-3xl md:text-4xl font-extrabold leading-tight tracking-tight">
+                {editForm.full_name || 'Your Name'}
+              </h1>
+              <p className="text-text-secondary text-lg md:text-xl font-medium max-w-lg leading-relaxed">
+                {editForm.title || 'Professional Title'} {editForm.company && `at ${editForm.company}`}
+              </p>
+              <div className="flex items-center gap-2 text-slate-meta mt-1 text-sm font-medium">
+                <MapPin className="text-[18px]" />
+                <span>{editForm.location || 'Location'}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-4 md:gap-8 w-full border-y border-slate-border-divider py-5 my-2">
+              <div className="flex flex-col items-center px-4">
+                <span className="text-text-main text-xl font-bold">{realCounts.connections}+</span>
+                <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Connections</span>
+              </div>
+              <div className="w-px bg-slate-border-divider h-10 self-center"></div>
+              <div className="flex flex-col items-center px-4">
+                <span className="text-text-main text-xl font-bold">4.9/5</span>
+                <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Rating</span>
+              </div>
+              <div className="w-px bg-slate-border-divider h-10 self-center"></div>
+              <div className="flex flex-col items-center px-4">
+                <span className="text-text-main text-xl font-bold">8yr</span>
+                <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Exp</span>
+              </div>
+            </div>
+
+            <div className="flex w-full max-w-sm gap-4 mt-2">
+              <button 
+                onClick={() => {
+                  const profileUrl = `${window.location.origin}/user/${user?.id}`;
+                  navigator.clipboard.writeText(profileUrl).then(() => {
+                    setShareSuccess(true);
+                    setShowShareModal(true);
+                    setTimeout(() => {
+                      setShowShareModal(false);
+                      setShareSuccess(false);
+                    }, 2000);
+                  }).catch(() => {
+                    setShareSuccess(false);
+                    setShowShareModal(true);
+                    setTimeout(() => {
+                      setShowShareModal(false);
+                    }, 2000);
+                  });
+                }}
+                className="flex-1 h-11 px-6 rounded-lg bg-sage-green hover:bg-dark-sage active:bg-dark-olive text-white text-sm font-bold tracking-wide transition-all shadow-lg shadow-sage-green/25 hover:shadow-sage-green/40 flex items-center justify-center gap-2"
+              >
+                <Share className="text-[20px]" />
+                Share
+              </button>
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="flex-1 h-11 px-6 rounded-lg border border-stone-border hover:bg-off-stone bg-white text-slate-900 text-sm font-bold tracking-wide transition-all flex items-center justify-center gap-2"
+              >
+                <Edit3 className="text-[20px]" />
+                Edit Profile
+              </button>
+            </div>
+
+            {/* Bio Section */}
+            {editForm.bio && (
+              <div className="mt-4 text-center">
+                <p className="text-slate-700 leading-relaxed max-w-2xl mx-auto whitespace-pre-line">{editForm.bio}</p>
+              </div>
+            )}
           </div>
-          <div className="px-8 pb-12">
-            <div className="flex flex-col items-center mb-8">
-              <div className="relative mb-6">
-                <img
-                  src={getProfilePicture()}
-                  alt={editForm.full_name}
-                  className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
-                />
-                {profile.verified && (
-                  <div className="absolute bottom-2 right-2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center border-2 border-white">
-                    <div className="w-3 h-3 bg-white rounded-full"></div>
+        </section>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 flex flex-col gap-10">
+            {/* Experience Section */}
+            <section>
+              <div className="flex items-center gap-3 mb-6 px-1">
+                <div className="p-1.5 bg-off-stone rounded-md text-slate-meta">
+                  <Briefcase className="text-2xl" />
+                </div>
+                <h2 className="text-text-main text-xl font-bold tracking-tight">Experience</h2>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-border-card p-6 md:p-8 shadow-sm">
+                <div className="relative space-y-12">
+                  {editForm.experiences.length > 0 && (
+                    <div className="absolute left-[27px] top-3 bottom-3 w-0.5 bg-off-stone"></div>
+                  )}
+                  {editForm.experiences.length > 0 ? (
+                    editForm.experiences.map((exp) => (
+                      <div key={exp.id} className="relative flex gap-6 group">
+                        <div className="relative z-10 shrink-0">
+                          <div className="size-[54px] rounded-full bg-white border border-stone-border flex items-center justify-center p-1 group-hover:border-sage-green group-hover:shadow-md transition-all duration-300">
+                            <div 
+                              className="bg-center bg-no-repeat bg-contain rounded-full size-full" 
+                              style={{backgroundImage: `url("${exp.logo}")`}}
+                            ></div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col flex-1 pt-1.5">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 mb-1">
+                            <h3 className="text-text-main text-lg font-bold">{exp.title}</h3>
+                            <span className="text-slate-meta text-sm font-medium">
+                              {formatDate(exp.startDate)} - {exp.current ? 'Present' : formatDate(exp.endDate)}
+                            </span>
+                          </div>
+                          <p className="text-sage-green font-semibold text-sm mb-3">{exp.company}</p>
+                          <p className="text-text-secondary text-base leading-relaxed">{exp.description}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-slate-500">No experiences added yet.</p>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Education Section */}
+            <section>
+              <div className="flex items-center gap-3 mb-6 px-1">
+                <div className="p-1.5 bg-off-stone rounded-md text-slate-meta">
+                  <GraduationCap className="text-2xl" />
+                </div>
+                <h2 className="text-text-main text-xl font-bold tracking-tight">Education</h2>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-border-card p-6 md:p-8 shadow-sm">
+                <div className="relative space-y-10">
+                  {Array.isArray(editForm.education) && editForm.education.length > 0 && (
+                    <div className="absolute left-[27px] top-3 bottom-3 w-0.5 bg-off-stone"></div>
+                  )}
+                  {Array.isArray(editForm.education) && editForm.education.length > 0 ? (
+                    editForm.education.map((edu) => (
+                      <div key={edu.id} className="relative flex gap-6 group">
+                        <div className="relative z-10 shrink-0">
+                          <div className="size-[54px] rounded-full bg-white border border-stone-border flex items-center justify-center text-slate-meta group-hover:text-sage-green group-hover:border-sage-green transition-colors">
+                            <GraduationCap />
+                          </div>
+                        </div>
+                        <div className="flex flex-col flex-1 pt-2">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 mb-1">
+                            <h3 className="text-text-main text-lg font-bold">{edu.degree}</h3>
+                            <span className="text-slate-meta text-sm font-medium">{formatDate(edu.endDate)}</span>
+                          </div>
+                          <p className="text-text-secondary text-base">{edu.school}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-slate-500">No education added yet.</p>
+                  )}
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div className="flex flex-col gap-8">
+            {/* Skills Section */}
+            <section>
+              <div className="flex items-center gap-3 mb-6 px-1">
+                <div className="p-1.5 bg-off-stone rounded-md text-slate-meta">
+                  <Award className="text-2xl" />
+                </div>
+                <h2 className="text-text-main text-xl font-bold tracking-tight">Skills</h2>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-border-card p-6 shadow-sm">
+                <div className="flex flex-wrap gap-2">
+                  {editForm.skills.length > 0 ? (
+                    editForm.skills.map((skill) => (
+                      <span 
+                        key={skill.id}
+                        className="px-3 py-1.5 rounded-md bg-white text-slate-body hover:bg-sage-green/10 hover:text-sage-green cursor-default text-sm font-bold tracking-wide transition-colors border border-stone-border"
+                      >
+                        {skill.name}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-slate-500">No skills added yet.</p>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Achievements Section */}
+            <section>
+              <div className="flex items-center gap-3 mb-6 px-1">
+                <div className="p-1.5 bg-off-stone rounded-md text-slate-meta">
+                  <Award className="text-2xl" />
+                </div>
+                <h2 className="text-text-main text-xl font-bold tracking-tight">Achievements</h2>
+              </div>
+              <div className="flex flex-col gap-4">
+                {Array.isArray(editForm.achievements) && editForm.achievements.length > 0 ? (
+                  editForm.achievements.map((achievement) => (
+                    <div key={achievement.id} className="bg-white rounded-2xl border border-slate-border-card p-5 flex gap-4 items-start hover:border-sage-green/50 hover:shadow-sm transition-all cursor-default shadow-sm">
+                      <div className="bg-off-stone border border-stone-border text-slate-meta p-2.5 rounded-lg shrink-0">
+                        <Award />
+                      </div>
+                      <div>
+                        <h4 className="text-text-main font-bold text-base leading-tight">{achievement.title}</h4>
+                        <p className="text-slate-meta text-xs mt-1 font-bold uppercase tracking-wider">
+                          {achievement.organization} • {formatDate(achievement.date)}
+                        </p>
+                        <p className="text-text-secondary text-sm mt-2 leading-snug">{achievement.description}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="bg-white rounded-2xl border border-slate-border-card p-5 shadow-sm">
+                    <p className="text-slate-500">No achievements added yet.</p>
                   </div>
                 )}
               </div>
-            </div>
-            <div className="text-center space-y-4">
-              <h1 className="text-3xl font-bold text-slate-900">{editForm.full_name}</h1>
-              <p className="text-xl text-slate-600 font-medium">{editForm.title || 'Professional'}</p>
-              <p className="text-lg text-slate-500">{editForm.company || 'Company'}</p>
-              <div className="flex items-center justify-center space-x-6 text-slate-500">
-                <div className="flex items-center space-x-2">
-                  <MapPin className="h-4 w-4" />
-                  <span>{editForm.location || 'Location'}</span>
-                </div>
-              </div>
-              {isEditing ? (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Bio</label>
-                  <textarea
-                    value={editForm.bio}
-                    onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                    rows={4}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                    disabled={isSaving}
-                  />
-                </div>
-              ) : (
-                <div className="mt-4">
-                  {editForm.bio ? (
-                    <p className="text-slate-700 leading-relaxed max-w-2xl mx-auto whitespace-pre-line">{editForm.bio}</p>
-                  ) : (
-                    <button
-                      className="text-blue-600 hover:underline text-sm"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      + Add a bio
-                    </button>
-                  )}
-                </div>
-              )}
-              <div className="flex flex-col items-center justify-center mt-8 mb-4 cursor-pointer hover:bg-slate-50 rounded-lg transition-colors"
-                   onClick={() => setShowConnectionsModal(true)}
-                   role="button"
-                   tabIndex={0}
-                   onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') setShowConnectionsModal(true); }}
-                   aria-label="Show all connections">
-                <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center mb-2">
-                  <Users className="h-6 w-6 text-slate-600" />
-                </div>
-                <div className="text-2xl font-bold text-slate-900">{realCounts.connections}</div>
-                <div className="text-sm text-slate-500 font-medium">Connections</div>
-              </div>
-            </div>
+            </section>
           </div>
         </div>
+      </main>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center space-x-2">
-                <Briefcase className="h-5 w-5 text-slate-600" />
-                <span>Experience</span>
-              </h2>
-              <div className="space-y-6">
-                {editForm.experiences.length > 0 ? (
-                  editForm.experiences.map((exp) => (
-                    <div key={exp.id} className="flex space-x-4">
-                      <img
-                        src={exp.logo}
-                        alt={exp.company}
-                        className="w-12 h-12 rounded-lg object-cover border border-slate-200"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-bold text-slate-900">{exp.title}</h3>
-                        <p className="text-slate-600 font-medium">{exp.company}</p>
-                        <p className="text-sm text-slate-500">
-                          {exp.location} • {formatDate(exp.startDate)} - {exp.current ? 'Present' : formatDate(exp.endDate)}
-                        </p>
-                        <p className="text-slate-700 mt-2 leading-relaxed">{exp.description}</p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-slate-500">No experiences added yet.</p>
-                )}
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center space-x-2">
-                <GraduationCap className="h-5 w-5 text-slate-600" />
-                <span>Education</span>
-              </h2>
-              <div className="space-y-6">
-                {Array.isArray(editForm.education) && editForm.education.length > 0 ? (
-                  editForm.education.map((edu) => (
-                    <div key={edu.id} className="flex space-x-4">
-                      <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200">
-                        <GraduationCap className="h-6 w-6 text-slate-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-slate-900">{edu.degree}</h3>
-                        <p className="text-slate-600 font-medium">{edu.school}</p>
-                        <p className="text-sm text-slate-500">
-                          {formatDate(edu.startDate)} - {formatDate(edu.endDate)}
-                          {edu.gpa && ` • GPA: ${edu.gpa}`}
-                        </p>
-                        <p className="text-slate-700 mt-2">{edu.description}</p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-slate-500">No education added yet.</p>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-6">Skills</h2>
-              <div className="space-y-4">
-                {editForm.skills.length > 0 ? (
-                  editForm.skills.map((skill) => (
-                    <div key={skill.id}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-slate-900">{skill.name}</span>
-                        <span className="text-xs text-slate-500">{skill.level}%</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2">
-                        <div
-                          className="bg-slate-900 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${skill.level}%` }}
-                        ></div>
-                      </div>
-                      <div className="text-xs text-slate-500 mt-1">{skill.category}</div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-slate-500">No skills added yet.</p>
-                )}
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center space-x-2">
-                <Award className="h-5 w-5 text-slate-600" />
-                <span>Achievements</span>
-              </h2>
-              <div className="space-y-4">
-                {Array.isArray(editForm.achievements) && editForm.achievements.length > 0 ? (
-                  editForm.achievements.map((achievement) => (
-                    <div key={achievement.id} className="flex space-x-3">
-                      <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200">
-                        <Award className="h-5 w-5 text-slate-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-slate-900 text-sm">{achievement.title}</h3>
-                        <p className="text-xs text-slate-600">{achievement.organization}</p>
-                        <p className="text-xs text-slate-500">{formatDate(achievement.date)} • {achievement.type}</p>
-                        {achievement.description && (
-                          <p className="text-xs text-slate-700 mt-1">{achievement.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-slate-500">No achievements added yet.</p>
-                )}
-              </div>
-            </div>
-          </div>
+      {/* Footer */}
+      <footer className="w-full border-t border-slate-border-divider bg-white py-8 mt-auto">
+        <div className="max-w-[1024px] mx-auto px-4 text-center">
+          <p className="text-slate-400 text-sm font-medium">© 2024 Sage & Stone. All rights reserved.</p>
         </div>
-      </div>
+      </footer>
 
       {/* Edit Profile Modal */}
       {isEditing && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-slate-200 bg-gray-50">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-900">Edit Profile</h2>
+                <h2 className="text-2xl font-bold text-slate-900">Edit Profile</h2>
                 <button
                   onClick={handleCancel}
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                  className="text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-slate-100 rounded-full"
                   disabled={isSaving}
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-6 w-6" />
                 </button>
               </div>
             </div>
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-8">
+            <form onSubmit={handleEditSubmit} className="p-8 space-y-8">
               {/* Profile Picture */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Profile Picture</label>
@@ -634,7 +682,7 @@ const ProfilePage: React.FC = () => {
                   />
                   {showLocationSuggestions && locationSuggestions.length > 0 && (
                     <ul className="absolute z-10 bg-white border border-slate-200 rounded-lg mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
-                      {locationSuggestions.map((suggestion, idx) => (
+                      {locationSuggestions.map((suggestion) => (
                         <li
                           key={suggestion.place_id}
                           className="px-4 py-2 cursor-pointer hover:bg-blue-100"
@@ -1058,17 +1106,49 @@ const ProfilePage: React.FC = () => {
         </div>
       )}
 
+      {/* Share Success Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 text-center shadow-2xl">
+            <div className="mb-4">
+              {shareSuccess ? (
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </div>
+              ) : (
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </div>
+              )}
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">
+              {shareSuccess ? 'Link Copied!' : 'Copy Failed'}
+            </h3>
+            <p className="text-slate-600 text-sm">
+              {shareSuccess 
+                ? 'Profile link has been copied to your clipboard.' 
+                : 'Failed to copy link. Please try again.'
+              }
+            </p>
+          </div>
+        </div>
+      )}
+
       <ConnectionsModal
         isOpen={showConnectionsModal}
         onClose={() => setShowConnectionsModal(false)}
-        onViewProfile={(userId) => {
+        onViewProfile={() => {
           setShowConnectionsModal(false);
         }}
       />
       <PostsModal
         isOpen={showPostsModal}
         onClose={() => setShowPostsModal(false)}
-        onViewProfile={(userId) => {
+        onViewProfile={() => {
           setShowPostsModal(false);
         }}
       />
