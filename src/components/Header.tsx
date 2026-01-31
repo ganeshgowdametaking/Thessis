@@ -204,9 +204,9 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center">
               <Link to="/" className="block">
-                <img 
-                  src="/logo2.png" 
-                  alt="TankTide Logo" 
+                <img
+                  src="/logo2.png"
+                  alt="TankTide Logo"
                   className="h-12 w-12 object-contain cursor-pointer hover:opacity-80 transition-opacity"
                 />
               </Link>
@@ -242,9 +242,8 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
     return (
       <Link
         to={href}
-        className={`flex min-w-[70px] flex-col items-center space-y-1 rounded-lg p-2 transition-colors ${
-          isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-        }`}
+        className={`flex min-w-[70px] flex-col items-center space-y-1 rounded-lg p-2 transition-colors ${isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+          }`}
       >
         <div className="relative flex h-5 w-5 items-center justify-center">
           <Icon className="h-5 w-5 stroke-2" />
@@ -260,20 +259,20 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
       <div className="flex items-center gap-6 xl:gap-10 w-full lg:w-auto">
         <div className="flex items-center shrink-0">
           <Link to="/jobs" className="block">
-            <img 
-              src="/logo2.png" 
-              alt="TankTide Logo" 
+            <img
+              src="/logo2.png"
+              alt="TankTide Logo"
               className="h-16 w-16 object-contain rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
             />
           </Link>
         </div>
-        
-        <div className="hidden lg:flex items-center bg-[#f2f1ec] rounded-full px-5 py-2.5 w-[360px] border border-[#e6e5e0] transition-colors focus-within:border-primary/50 focus-within:bg-[#efeee9] shadow-sm">
+
+        <div className="hidden lg:flex items-center bg-[#f2f1ec] rounded-full px-5 py-2.5 w-[540px] border border-[#e6e5e0] transition-colors focus-within:border-primary/50 focus-within:bg-[#efeee9] shadow-sm">
           <span className="material-symbols-outlined text-slate-500 text-[22px]">search</span>
           <form onSubmit={handleSearch} className="flex-1">
-            <input 
-              className="bg-transparent border-none p-0 ml-3 w-full text-slate-700 placeholder:text-slate-500 focus:ring-0 text-[15px] font-medium" 
-              placeholder="Search..." 
+            <input
+              className="bg-transparent border-none p-0 ml-3 w-full text-slate-700 placeholder:text-slate-500 focus:ring-0 text-[15px] font-medium"
+              placeholder="Search..."
               type="text"
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
@@ -298,7 +297,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
             Messages
           </Link>
         </nav>
-        
+
         <div className="flex items-center gap-6">
           <Link to="/notifications" className="relative text-[#354038] hover:text-primary transition-colors p-1 group flex items-center justify-center h-10 w-10">
             <span className="material-symbols-outlined text-[28px] filled group-hover:opacity-80 transition-opacity">notifications</span>
@@ -306,7 +305,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
               <span className="absolute top-1 right-1.5 w-2.5 h-2.5 bg-[#ef4444] rounded-full border-2 border-white"></span>
             )}
           </Link>
-          
+
           <Link className="block relative group" to="/profile">
             <div className="h-10 w-10 rounded-full bg-cover bg-center border-[1.5px] border-[#e2e8f0] shadow-sm group-hover:border-primary/50 transition-colors">
               {profile?.avatar_url ? (
@@ -324,20 +323,20 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
               )}
             </div>
           </Link>
-          
+
           <div className="relative" ref={settingsDropdownRef}>
-            <button 
+            <button
               className="text-[#354038] hover:text-primary transition-colors p-1 group flex items-center justify-center h-10 w-10"
               onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
             >
               <span className="material-symbols-outlined text-[28px] filled group-hover:opacity-80 transition-opacity">settings</span>
             </button>
-            
+
             {showSettingsDropdown && (
               <div className="absolute right-0 z-50 mt-2 w-48 rounded-md bg-white border border-slate-200 shadow-lg py-1">
-                <Link 
-                  to="/settings" 
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-[#f2f1ec]" 
+                <Link
+                  to="/settings"
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-[#f2f1ec]"
                   onClick={() => setShowSettingsDropdown(false)}
                 >
                   Settings
@@ -414,9 +413,9 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
 
       {/* Search Suggestions */}
       {showSuggestions && suggestions.length > 0 && (
-        <div 
+        <div
           ref={suggestionsRef}
-          className="absolute top-full left-6 right-6 lg:left-[200px] lg:right-auto lg:w-[360px] bg-white border border-slate-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50"
+          className="absolute top-full left-6 right-6 lg:left-[200px] lg:right-auto lg:w-[540px] bg-white border border-slate-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50"
         >
           {suggestions.map((suggestion, index) => (
             <SuggestionItem key={index} suggestion={suggestion} index={index} />
