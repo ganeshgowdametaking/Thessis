@@ -30,7 +30,14 @@ class AuthManager: NSObject, ObservableObject, ASWebAuthenticationPresentationCo
         Task {
             for await session in client.auth.authStateChanges {
                 await MainActor.run {
+                    let userChanged = self.currentUser?.id != session.session?.user.id
                     self.currentUser = session.session?.user
+                    
+                    if session.session?.user != nil && userChanged {
+                        Task {
+                            await ConnectionService.shared.fetchConnections()
+                        }
+                    }
                 }
             }
         }

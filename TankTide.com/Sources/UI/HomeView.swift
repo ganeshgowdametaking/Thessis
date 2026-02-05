@@ -46,6 +46,7 @@ struct HomeView: View {
         .onAppear {
             Task {
                 await jobService.fetchJobs()
+                await ConnectionService.shared.fetchConnections()
             }
         }
     }
