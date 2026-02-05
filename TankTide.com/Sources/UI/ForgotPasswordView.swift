@@ -65,7 +65,7 @@ struct ForgotPasswordView: View {
                             .foregroundColor(Theme.primary)
                             .padding(.top, 2)
                         
-                        Text("Enter the email address associated with your account and we'll send you a link to reset your password.")
+                        Text("Enter the email address associated with your account and we'll send you a 6-digit code to reset your password.")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(Theme.textSecondary)
                             .lineSpacing(4)
@@ -116,7 +116,7 @@ struct ForgotPasswordView: View {
                     }
                     .disabled(isLoading)
                     .fullScreenCover(isPresented: $showingCheckEmail) {
-                        CheckEmailView()
+                        VerifyResetOTPView(email: email)
                     }
                 }
                 .padding(.horizontal, 24)

@@ -77,15 +77,6 @@ class AuthManager: NSObject, ObservableObject, ASWebAuthenticationPresentationCo
     }
 
     func handleSession(from url: URL) {
-        if url.host == "reset-password" || url.path.contains("reset-password") {
-            print("🔑 AuthManager: Detected password reset link")
-            Task {
-                await MainActor.run {
-                    self.showingResetPassword = true
-                }
-            }
-        }
-        
         Task {
             do {
                 try await client.auth.handle(url)
@@ -97,9 +88,19 @@ class AuthManager: NSObject, ObservableObject, ASWebAuthenticationPresentationCo
     }
     
     func resetPassword(email: String) async throws {
+        // Supabase sends either a link or an OTP based on project settings.
+        // We will now handle this via a 6-digit OTP in the app.
         try await client.auth.resetPasswordForEmail(
             email,
-            redirectTo: URL(string: "https://tanktide.com/reset-password")
+            redirectTo: nil // Not using web redirect anymore
+        )
+    }
+
+    func verifyOTP(email: String, token: String) async throws {
+        try await client.auth.verifyOtp(
+            email: email,
+            token: token,
+            type: .recovery
         )
     }
     
