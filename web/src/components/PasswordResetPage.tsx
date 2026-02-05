@@ -23,11 +23,12 @@ const PasswordResetPage: React.FC = () => {
     initialized.current = true
 
     const initializeSession = async () => {
+      console.log('🚀 [RESET_DIAGNOSTIC] Initializing session...')
       try {
         // Check if we already have a valid session
         const { data: { session: existingSession } } = await supabase.auth.getSession()
         if (existingSession) {
-          console.log('✅ Existing session found, skip setSession')
+          console.log('✅ [RESET_DIAGNOSTIC] Existing session found:', existingSession.user.email)
           setSessionReady(true)
           return
         }
@@ -35,25 +36,37 @@ const PasswordResetPage: React.FC = () => {
         // Extract access_token and refresh_token from URL hash (if present)
         const hash = window.location.hash
         if (hash) {
+          console.log('🔍 [RESET_DIAGNOSTIC] Detected hash fragment')
           const params = new URLSearchParams(hash.replace('#', ''))
           const access_token = params.get('access_token')
           const refresh_token = params.get('refresh_token') || ''
 
           if (access_token) {
-            console.log('🔑 Setting auth session from recovery token...')
+            console.log('🔑 [RESET_DIAGNOSTIC] Attempting to set session with token...')
             const { error } = await supabase.auth.setSession({ access_token, refresh_token })
             if (error) {
-              console.error('❌ Failed to set session:', error.message)
+              console.error('❌ [RESET_DIAGNOSTIC] Failed to set session:', error.message)
               setError('This reset link is invalid or has expired. Please request a new one.')
             } else {
-              console.log('✅ Session set successfully')
-              // Clear hash to prevent re-processing
-              window.history.replaceState(null, '', window.location.pathname + window.location.search)
+              console.log('✅ [RESET_DIAGNOSTIC] Session set successfully via token exchange')
+              // Verify immediately
+              const { data: { user } } = await supabase.auth.getUser()
+              if (user) {
+                console.log('👤 [RESET_DIAGNOSTIC] User verified:', user.email)
+                // Clear hash to prevent re-processing
+                window.history.replaceState(null, '', window.location.pathname + window.location.search)
+              } else {
+                console.warn('⚠️ [RESET_DIAGNOSTIC] Session set but user not found in verification')
+              }
             }
+          } else {
+            console.warn('⚠️ [RESET_DIAGNOSTIC] Hash present but no access_token found')
           }
+        } else {
+          console.warn('⚠️ [RESET_DIAGNOSTIC] No hash fragment detected in URL')
         }
       } catch (err: any) {
-        console.error('❌ Session initialization error:', err.message)
+        console.error('❌ [RESET_DIAGNOSTIC] Initialization exception:', err.message)
       } finally {
         setSessionReady(true)
       }
@@ -78,13 +91,16 @@ const PasswordResetPage: React.FC = () => {
         throw new Error('Password must be at least 8 characters long')
       }
 
-      // Verify we have a session before updating
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      // AUTHORITATIVE CHECK: Verify user directly with server
+      console.log('📡 [RESET_DIAGNOSTIC] Verifying user with server before update...')
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-      if (sessionError || !session) {
-        console.error('❌ Password update failed: No active session', sessionError)
-        throw new Error('Your reset session has expired. Please refresh the page or click the link in your email again.')
+      if (userError || !user) {
+        console.error('❌ [RESET_DIAGNOSTIC] Password update blocked: No verified user found', userError)
+        throw new Error('Verification failed. Your session may have expired. Please click the link in your email again.')
       }
+
+      console.log('💾 [RESET_DIAGNOSTIC] User verified as:', user.email, '. Updating password now...')
 
       // Update the user's password
       const { error } = await supabase.auth.updateUser({
