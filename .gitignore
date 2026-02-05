@@ -1,26 +1,40 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+
+# Production
+build
+dist
+
+# Misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Logs
-logs
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
+# IDEs
 .idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-.env
-.env.backup
+.vscode
+*.swp
+*.swo
+
+# Project specific
+web/node_modules
+mobile/node_modules
+TankTide.com/.DS_Store
+TankTide.com/DerivedData/
+TankTide.com/Build/
+TankTide.com/Index/
+TankTide.com/Logs/
+TankTide.com/xcshareddata/
+TankTide.com/xcuserdata/
