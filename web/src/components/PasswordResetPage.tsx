@@ -25,49 +25,60 @@ const PasswordResetPage: React.FC = () => {
     const initializeSession = async () => {
       console.log('🚀 [RESET_DIAGNOSTIC] Initializing session...')
       try {
-        // Check if we already have a valid session
+        // 1. Check for existing session
         const { data: { session: existingSession } } = await supabase.auth.getSession()
         if (existingSession) {
-          console.log('✅ [RESET_DIAGNOSTIC] Existing session found:', existingSession.user.email)
+          console.log('✅ [RESET_DIAGNOSTIC] Existing session detected immediately:', existingSession.user.email)
           setSessionReady(true)
           return
         }
 
-        // Extract access_token and refresh_token from URL hash (if present)
+        // 2. Set up listener for auth changes (catches Supabase's automatic hash handling)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log('🔄 [RESET_DIAGNOSTIC] Auth state changed:', event, session?.user?.email)
+          if (session) {
+            console.log('✅ [RESET_DIAGNOSTIC] Session received via onAuthStateChange')
+            setSessionReady(true)
+          }
+        })
+
+        // 3. Manual hash parsing as a fallback
         const hash = window.location.hash
         if (hash) {
-          console.log('🔍 [RESET_DIAGNOSTIC] Detected hash fragment')
-          const params = new URLSearchParams(hash.replace('#', ''))
-          const access_token = params.get('access_token')
+          const cleanHash = hash.replace(/^#/, '')
+          const params = new URLSearchParams(cleanHash)
+          const keys = Array.from(params.keys())
+          console.log('🔍 [RESET_DIAGNOSTIC] Hash keys present:', keys)
+
+          const access_token = params.get('access_token') || params.get('#access_token')
           const refresh_token = params.get('refresh_token') || ''
 
           if (access_token) {
-            console.log('🔑 [RESET_DIAGNOSTIC] Attempting to set session with token...')
+            console.log('🔑 [RESET_DIAGNOSTIC] Manual token exchange initiated...')
             const { error } = await supabase.auth.setSession({ access_token, refresh_token })
             if (error) {
-              console.error('❌ [RESET_DIAGNOSTIC] Failed to set session:', error.message)
-              setError('This reset link is invalid or has expired. Please request a new one.')
+              console.error('❌ [RESET_DIAGNOSTIC] Manual setSession failed:', error.message)
+              // Don't set error yet, wait a bit for onAuthStateChange
             } else {
-              console.log('✅ [RESET_DIAGNOSTIC] Session set successfully via token exchange')
-              // Verify immediately
+              console.log('✅ [RESET_DIAGNOSTIC] Manual setSession successful')
               const { data: { user } } = await supabase.auth.getUser()
               if (user) {
-                console.log('👤 [RESET_DIAGNOSTIC] User verified:', user.email)
-                // Clear hash to prevent re-processing
+                console.log('👤 [RESET_DIAGNOSTIC] User verified manually:', user.email)
+                setSessionReady(true)
                 window.history.replaceState(null, '', window.location.pathname + window.location.search)
-              } else {
-                console.warn('⚠️ [RESET_DIAGNOSTIC] Session set but user not found in verification')
               }
             }
-          } else {
-            console.warn('⚠️ [RESET_DIAGNOSTIC] Hash present but no access_token found')
           }
-        } else {
-          console.warn('⚠️ [RESET_DIAGNOSTIC] No hash fragment detected in URL')
         }
+
+        // Wait a small delay to see if onAuthStateChange catches anything before giving up
+        setTimeout(() => {
+          setSessionReady(true)
+          subscription.unsubscribe()
+        }, 2000)
+
       } catch (err: any) {
         console.error('❌ [RESET_DIAGNOSTIC] Initialization exception:', err.message)
-      } finally {
         setSessionReady(true)
       }
     }

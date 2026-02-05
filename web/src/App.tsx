@@ -255,8 +255,15 @@ function AppContent() {
   const location = useLocation();
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchParams] = useSearchParams();
-  const isResetFlow = searchParams.get('reset') === 'true' || location.hash.includes('type=recovery');
+  const [resetFlowActive, setResetFlowActive] = useState(false);
+  const isResetFlow = searchParams.get('reset') === 'true' || location.hash.includes('type=recovery') || resetFlowActive;
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (searchParams.get('reset') === 'true' || location.hash.includes('type=recovery')) {
+      setResetFlowActive(true);
+    }
+  }, [location.hash, searchParams]);
 
   useEffect(() => {
     if (!loading && user && isAdmin && (location.pathname === '/' || location.pathname === '')) {
