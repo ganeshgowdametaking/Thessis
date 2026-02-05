@@ -87,8 +87,8 @@ struct SearchResultPersonRow: View {
                     Text(currentStatus == .connected ? "Message" : (currentStatus == .pendingSent ? "Cancel" : "Connect"))
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(currentStatus == .connected ? Theme.primary : .white)
-                        .padding(.horizontal, 16)
                         .padding(.vertical, 8)
+                        .frame(width: 85) // Same width for all buttons
                         .background(currentStatus == .connected ? Color.clear : (currentStatus == .pendingSent ? Color.red.opacity(0.8) : Theme.primary))
                         .cornerRadius(20)
                         .overlay(
