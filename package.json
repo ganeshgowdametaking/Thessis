@@ -8,6 +8,8 @@
     "scripts": {
         "web": "cd web && npm run dev",
         "mobile": "cd mobile && npm start",
-        "install-all": "npm install && cd web && npm install && cd mobile && npm install"
+        "build": "npm run build --workspace=web",
+        "start": "npm run start --workspace=web",
+        "install-all": "npm install && npm install --workspace=web && npm install --workspace=mobile"
     }
 }
