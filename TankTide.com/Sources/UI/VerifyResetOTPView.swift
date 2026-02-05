@@ -4,10 +4,10 @@ struct VerifyResetOTPView: View {
     @Environment(\.dismiss) var dismiss
     let email: String
     
+    @ObservedObject private var authManager = AuthManager.shared
     @State private var otp: String = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var showingResetPassword = false
     
     var body: some View {
         ZStack {
@@ -118,6 +118,7 @@ struct VerifyResetOTPView: View {
                 
                 // Back Button
                 Button {
+                    AuthManager.shared.isResettingPassword = false
                     dismiss()
                 } label: {
                     HStack(spacing: 8) {
@@ -133,7 +134,7 @@ struct VerifyResetOTPView: View {
         }
         .navigationBarHidden(true)
         .dismissKeyboardOnTap()
-        .fullScreenCover(isPresented: $showingResetPassword) {
+        .fullScreenCover(isPresented: $authManager.showingResetPassword) {
             ResetPasswordView()
         }
     }
@@ -147,7 +148,7 @@ struct VerifyResetOTPView: View {
                 try await AuthManager.shared.verifyOTP(email: email, token: otp)
                 await MainActor.run {
                     isLoading = false
-                    showingResetPassword = true
+                    authManager.showingResetPassword = true
                 }
             } catch {
                 await MainActor.run {

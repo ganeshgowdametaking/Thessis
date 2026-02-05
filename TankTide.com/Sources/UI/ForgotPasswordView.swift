@@ -155,6 +155,7 @@ struct ForgotPasswordView: View {
             do {
                 try await AuthManager.shared.resetPassword(email: email)
                 await MainActor.run {
+                    AuthManager.shared.isResettingPassword = true
                     isLoading = false
                     showingCheckEmail = true
                 }

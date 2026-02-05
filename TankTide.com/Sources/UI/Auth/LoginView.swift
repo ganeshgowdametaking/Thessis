@@ -17,7 +17,7 @@ struct LoginView: View {
     @State private var showConfirmPassword = false
     
     var body: some View {
-        if authManager.currentUser != nil {
+        if authManager.currentUser != nil && !authManager.isResettingPassword {
             HomeView()
         } else {
             loginContent

@@ -69,6 +69,8 @@ struct PasswordResetSuccessView: View {
                 // Action Button
                 Button {
                     // Logic to navigate back to login or dashboard
+                    AuthManager.shared.isResettingPassword = false
+                    AuthManager.shared.showingResetPassword = false
                     dismiss()
                 } label: {
                     Text("Go to Dashboard")

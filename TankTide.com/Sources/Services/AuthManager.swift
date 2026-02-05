@@ -11,6 +11,7 @@ class AuthManager: NSObject, ObservableObject, ASWebAuthenticationPresentationCo
     
     @Published var currentUser: User?
     @Published var showingResetPassword = false
+    @Published var isResettingPassword = false
 
     private override init() {
         let url = URL(string: "https://fvprdknorvuqggwxfqly.supabase.co")!

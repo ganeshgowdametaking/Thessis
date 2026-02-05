@@ -179,6 +179,8 @@ struct ResetPasswordView: View {
                     
                     // Footer
                     Button {
+                        AuthManager.shared.isResettingPassword = false
+                        AuthManager.shared.showingResetPassword = false
                         dismiss()
                     } label: {
                         HStack(spacing: 8) {
