@@ -281,10 +281,6 @@ function AppContent() {
     setAuthModal(prev => ({ ...prev, mode }));
   };
 
-  if (loading) {
-    return <LoadingSpinner text="Initializing..." />;
-  }
-
   // If this is a password reset flow, show the password reset page regardless of authentication status
   if (isResetFlow) {
     return (
@@ -294,6 +290,10 @@ function AppContent() {
         </main>
       </div>
     );
+  }
+
+  if (loading) {
+    return <LoadingSpinner text="Initializing..." />;
   }
 
   // Helper to check if user is a company user

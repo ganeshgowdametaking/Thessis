@@ -16,10 +16,22 @@ const PasswordResetPage: React.FC = () => {
   })
   const [sessionReady, setSessionReady] = useState(false)
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+  const initialized = React.useRef(false)
 
   useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
+
     const initializeSession = async () => {
       try {
+        // Check if we already have a valid session
+        const { data: { session: existingSession } } = await supabase.auth.getSession()
+        if (existingSession) {
+          console.log('✅ Existing session found, skip setSession')
+          setSessionReady(true)
+          return
+        }
+
         // Extract access_token and refresh_token from URL hash (if present)
         const hash = window.location.hash
         if (hash) {
@@ -35,14 +47,9 @@ const PasswordResetPage: React.FC = () => {
               setError('This reset link is invalid or has expired. Please request a new one.')
             } else {
               console.log('✅ Session set successfully')
+              // Clear hash to prevent re-processing
+              window.history.replaceState(null, '', window.location.pathname + window.location.search)
             }
-          }
-        } else {
-          // Check if we already have a session
-          const { data: { session } } = await supabase.auth.getSession()
-          if (!session) {
-            console.warn('⚠️ No session found and no recovery token in hash')
-            // Don't show error yet, as they might be navigating manually
           }
         }
       } catch (err: any) {
