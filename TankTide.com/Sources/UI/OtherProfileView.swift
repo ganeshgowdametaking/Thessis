@@ -13,6 +13,7 @@ struct OtherProfileView: View {
     @State private var selectedTab = 0
     @State private var activeConversation: Conversation?
     @State private var navigateToChat = false
+    @State private var showingCopyToast = false
     
     var body: some View {
         ZStack {
@@ -21,6 +22,26 @@ struct OtherProfileView: View {
             VStack(spacing: 0) {
                 // Custom Header with Back button
                 headerBar
+                
+                if showingCopyToast {
+                    VStack {
+                        HStack(spacing: 8) {
+                            Image(systemName: "doc.on.doc.fill")
+                                .foregroundColor(.white)
+                            Text("Link copied to clipboard!")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Theme.primary)
+                        .cornerRadius(20)
+                        .shadow(color: Theme.primary.opacity(0.3), radius: 10, x: 0, y: 5)
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(100)
+                    .padding(.top, 8)
+                }
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
@@ -93,8 +114,22 @@ struct OtherProfileView: View {
             
             Spacer()
             
-            Button {
-                // More actions
+            Menu {
+                Button {
+                    let profileLink = "https://tanktide.com/profile/\(person.id)"
+                    UIPasteboard.general.string = profileLink
+                    withAnimation(.spring()) {
+                        showingCopyToast = true
+                    }
+                    // Hide toast after 2 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation {
+                            showingCopyToast = false
+                        }
+                    }
+                } label: {
+                    Label("Share Profile", systemImage: "square.and.arrow.up")
+                }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 20))
