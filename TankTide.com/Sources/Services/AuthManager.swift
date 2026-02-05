@@ -97,7 +97,7 @@ class AuthManager: NSObject, ObservableObject, ASWebAuthenticationPresentationCo
     }
 
     func verifyOTP(email: String, token: String) async throws {
-        try await client.auth.verifyOtp(
+        try await client.auth.verifyOTP(
             email: email,
             token: token,
             type: .recovery

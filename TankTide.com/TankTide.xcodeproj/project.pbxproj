@@ -70,6 +70,7 @@
 		98FA21F62F33D99A009AA640 /* ConnectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98FA21F52F33D99A009AA640 /* ConnectionService.swift */; };
 		98FA21F82F33D9A1009AA640 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98FA21F72F33D9A1009AA640 /* StorageService.swift */; };
 		98FA21FA2F33DDA9009AA640 /* LocationSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98FA21F92F33DDA9009AA640 /* LocationSearchService.swift */; };
+		98FA21FC2F3515F1009AA640 /* VerifyResetOTPView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98FA21FB2F3515F1009AA640 /* VerifyResetOTPView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -137,6 +138,7 @@
 		98FA21F52F33D99A009AA640 /* ConnectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionService.swift; sourceTree = "<group>"; };
 		98FA21F72F33D9A1009AA640 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
 		98FA21F92F33DDA9009AA640 /* LocationSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchService.swift; sourceTree = "<group>"; };
+		98FA21FB2F3515F1009AA640 /* VerifyResetOTPView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifyResetOTPView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -218,6 +220,7 @@
 				98FA21CE2F3369C5009AA640 /* PasswordResetSuccessView.swift */,
 				98FA21CF2F3369C5009AA640 /* ResetPasswordView.swift */,
 				98FA21D02F3369C5009AA640 /* TermsOfServiceView.swift */,
+				98FA21FB2F3515F1009AA640 /* VerifyResetOTPView.swift */,
 				98FA21BE2F3369B1009AA640 /* CreateReferralView.swift */,
 				98FA21BF2F3369B1009AA640 /* MyReferralsView.swift */,
 				98FA21C02F3369B1009AA640 /* OtherProfileView.swift */,
@@ -427,6 +430,7 @@
 				98FA21982F336899009AA640 /* Notification.swift in Sources */,
 				98FA21782F326C2E009AA640 /* AuthManager.swift in Sources */,
 				98FA21B32F336975009AA640 /* NotificationsView.swift in Sources */,
+				98FA21FC2F3515F1009AA640 /* VerifyResetOTPView.swift in Sources */,
 				98FA219C2F3368A4009AA640 /* UserProfile.swift in Sources */,
 				98FA21BB2F33699B009AA640 /* EditProfileView.swift in Sources */,
 				98FA21922F33687F009AA640 /* ChatRoom.swift in Sources */,

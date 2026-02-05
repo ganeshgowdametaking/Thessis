@@ -121,14 +121,14 @@ export const auth = {
     }
   },
 
-  verifyOTP: async (email: string, token: string) => {
-    console.log('🔐 Verifying OTP for:', email)
+  verifyOTP: async (email: string, token: string, type: 'signup' | 'recovery' = 'signup') => {
+    console.log(`🔐 Verifying OTP (${type}) for:`, email)
 
     try {
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token,
-        type: 'signup'
+        type
       })
 
       if (error) {
@@ -171,7 +171,7 @@ export const auth = {
 
     try {
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: undefined
       })
 
       if (error) {

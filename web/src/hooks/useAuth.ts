@@ -14,16 +14,16 @@ export function useAuth() {
     const getInitialSession = async () => {
       try {
         setError(null)
-        
+
         // Add timeout to prevent infinite loading
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Connection timeout')), 10000)
         )
-        
+
         const authPromise = auth.getCurrentUser()
-        
+
         const { user } = await Promise.race([authPromise, timeoutPromise]) as any
-        
+
         if (mounted) {
           setUser(user)
           setLoading(false)
@@ -98,10 +98,10 @@ export function useAuth() {
     }
   }
 
-  const verifyOTP = async (email: string, token: string) => {
+  const verifyOTP = async (email: string, token: string, type: 'signup' | 'recovery' = 'signup') => {
     try {
       setError(null)
-      const { data, error } = await auth.verifyOTP(email, token)
+      const { data, error } = await auth.verifyOTP(email, token, type)
       if (error) setError(error.message)
       return { data, error }
     } catch (error: any) {

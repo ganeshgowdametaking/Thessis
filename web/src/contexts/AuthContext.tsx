@@ -15,7 +15,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<any>
   signInWithGoogle: () => Promise<any>
   signOut: () => Promise<any>
-  verifyOTP: (email: string, token: string) => Promise<any>
+  verifyOTP: (email: string, token: string, type?: 'signup' | 'recovery') => Promise<any>
   resendOTP: (email: string) => Promise<any>
   resetPassword: (email: string) => Promise<any>
   updateProfile: (updates: any) => Promise<void>
@@ -33,18 +33,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const loadProfile = async () => {
       // Clear any previous errors when starting fresh
       setError(null)
-      
+
       if (user && user.email_confirmed_at) {
         try {
           const userProfile = await profileService.getCurrentProfile()
-          
+
           if (userProfile) {
             setProfile(userProfile)
           } else {
             // Profile doesn't exist, create it
             const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
             const isEU = localStorage.getItem('is_eu_user') === 'true';
-            
+
             // Auto-detect country for new users
             let countryCode = null;
             try {
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } catch (error) {
               console.log('Could not detect country:', error);
             }
-            
+
             try {
               const newProfile = await profileService.createProfile({
                 id: user.id,
@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 country_code: countryCode
               })
               setProfile(newProfile)
-              
+
               // Track EU signup for GDPR-compliant analytics
               if (isEU) {
                 analyticsService.trackEUSignup();
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = async (updates: any) => {
     if (!user) return
-    
+
     try {
       const updatedProfile = await profileService.updateProfile(user.id, updates)
       setProfile(updatedProfile)
