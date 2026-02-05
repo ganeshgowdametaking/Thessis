@@ -132,4 +132,20 @@ class ConnectionService: ObservableObject {
         
         await fetchConnections()
     }
+    
+    func getConnectionCount(for userId: String) async -> Int {
+        do {
+            let count: Int = try await client
+                .from("connections")
+                .select("*", head: true, count: .exact)
+                .or("requester_id.eq.\(userId),addressee_id.eq.\(userId)")
+                .eq("status", value: "accepted")
+                .execute()
+                .count ?? 0
+            return count
+        } catch {
+            print("❌ ConnectionService: Failed to get connection count for \(userId): \(error)")
+            return 0
+        }
+    }
 }

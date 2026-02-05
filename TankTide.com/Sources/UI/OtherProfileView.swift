@@ -14,6 +14,7 @@ struct OtherProfileView: View {
     @State private var activeConversation: Conversation?
     @State private var navigateToChat = false
     @State private var showingCopyToast = false
+    @State private var liveConnectionCount: Int = 0
     
     var body: some View {
         ZStack {
@@ -78,6 +79,11 @@ struct OtherProfileView: View {
             Task {
                 await connectionService.fetchConnections()
                 updateConnectionStatus()
+                
+                let count = await connectionService.getConnectionCount(for: person.id)
+                await MainActor.run {
+                    self.liveConnectionCount = count
+                }
                 
                 // Fetch full profile to get experiences, education, etc.
                 if let fullProfile = await ProfileService.shared.getProfile(id: person.id) {
@@ -170,7 +176,7 @@ struct OtherProfileView: View {
                     Image(systemName: "group")
                         .font(.system(size: 12))
                         .foregroundColor(Theme.primary)
-                    Text("\(person.connectionsCount ?? 0) Connections")
+                    Text("\(liveConnectionCount) Connections")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(Theme.primary)
                 }

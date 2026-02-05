@@ -6,6 +6,7 @@ struct ProfileView: View {
     @StateObject private var profileService = ProfileService.shared
     @Environment(\.dismiss) var dismiss
     @State private var showingEditProfile = false
+    @State private var liveConnectionCount: Int = 0
     
     var profile: UserProfile {
         profileService.currentUserProfile ?? .sample
@@ -83,6 +84,12 @@ struct ProfileView: View {
             .onAppear {
                 Task {
                     await profileService.fetchCurrentProfile()
+                    if let userId = AuthManager.shared.currentUser?.id.uuidString {
+                        let count = await ConnectionService.shared.getConnectionCount(for: userId)
+                        await MainActor.run {
+                            self.liveConnectionCount = count
+                        }
+                    }
                 }
             }
         }
@@ -155,7 +162,7 @@ struct ProfileView: View {
     
     var statsRow: some View {
         HStack {
-            statItem(value: profile.connections ?? "0", label: "Connections")
+            statItem(value: "\(liveConnectionCount)", label: "Connections")
             divider
             statItem(value: String(format: "%.1f", profile.rating ?? 0.0), label: "Rating", isRating: true)
             divider
