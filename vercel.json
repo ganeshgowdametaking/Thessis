@@ -1,7 +1,6 @@
 {
-    "buildCommand": "npm run build --workspace=web",
+    "buildCommand": "cd web && npm run build",
     "outputDirectory": "web/dist",
-    "framework": "vite",
     "rewrites": [
         {
             "source": "/(.*)",
