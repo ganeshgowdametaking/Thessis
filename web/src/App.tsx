@@ -256,14 +256,14 @@ function AppContent() {
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchParams] = useSearchParams();
   const [resetFlowActive, setResetFlowActive] = useState(false);
-  const isResetFlow = searchParams.get('reset') === 'true' || location.hash.includes('type=recovery') || resetFlowActive;
+  const isResetFlow = location.pathname === '/reset-password' || searchParams.get('reset') === 'true' || location.hash.includes('type=recovery') || resetFlowActive;
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (searchParams.get('reset') === 'true' || location.hash.includes('type=recovery')) {
+    if (location.pathname === '/reset-password' || searchParams.get('reset') === 'true' || location.hash.includes('type=recovery')) {
       setResetFlowActive(true);
     }
-  }, [location.hash, searchParams]);
+  }, [location.pathname, location.hash, searchParams]);
 
   useEffect(() => {
     if (!loading && user && isAdmin && (location.pathname === '/' || location.pathname === '')) {

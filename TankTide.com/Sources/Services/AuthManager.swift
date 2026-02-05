@@ -99,7 +99,7 @@ class AuthManager: NSObject, ObservableObject, ASWebAuthenticationPresentationCo
     func resetPassword(email: String) async throws {
         try await client.auth.resetPasswordForEmail(
             email,
-            redirectTo: URL(string: "https://tanktide.com/?reset=true")
+            redirectTo: URL(string: "https://tanktide.com/reset-password")
         )
     }
     

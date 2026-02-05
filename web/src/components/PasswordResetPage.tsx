@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react'
+import { Eye, EyeOff, ArrowLeft, CheckCircle, Loader } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 const PasswordResetPage: React.FC = () => {
@@ -23,7 +23,11 @@ const PasswordResetPage: React.FC = () => {
     initialized.current = true
 
     const initializeSession = async () => {
-      console.log('🚀 [RESET_DIAGNOSTIC] Initializing session...')
+      console.log('🚀 [RESET_DIAGNOSTIC] Page Initialized')
+      console.log('🔗 [RESET_DIAGNOSTIC] Full URL:', window.location.href)
+      console.log('🧬 [RESET_DIAGNOSTIC] Query params:', window.location.search)
+      console.log('🏁 [RESET_DIAGNOSTIC] Hash fragment:', window.location.hash)
+
       try {
         // 1. Check for existing session
         const { data: { session: existingSession } } = await supabase.auth.getSession()
@@ -47,8 +51,6 @@ const PasswordResetPage: React.FC = () => {
         if (hash) {
           const cleanHash = hash.replace(/^#/, '')
           const params = new URLSearchParams(cleanHash)
-          const keys = Array.from(params.keys())
-          console.log('🔍 [RESET_DIAGNOSTIC] Hash keys present:', keys)
 
           const access_token = params.get('access_token') || params.get('#access_token')
           const refresh_token = params.get('refresh_token') || ''
@@ -58,7 +60,6 @@ const PasswordResetPage: React.FC = () => {
             const { error } = await supabase.auth.setSession({ access_token, refresh_token })
             if (error) {
               console.error('❌ [RESET_DIAGNOSTIC] Manual setSession failed:', error.message)
-              // Don't set error yet, wait a bit for onAuthStateChange
             } else {
               console.log('✅ [RESET_DIAGNOSTIC] Manual setSession successful')
               const { data: { user } } = await supabase.auth.getUser()
@@ -93,7 +94,6 @@ const PasswordResetPage: React.FC = () => {
     setSuccess('')
 
     try {
-      // Validate password confirmation
       if (formData.password !== formData.confirmPassword) {
         throw new Error('Passwords do not match')
       }
@@ -102,7 +102,6 @@ const PasswordResetPage: React.FC = () => {
         throw new Error('Password must be at least 8 characters long')
       }
 
-      // AUTHORITATIVE CHECK: Verify user directly with server
       console.log('📡 [RESET_DIAGNOSTIC] Verifying user with server before update...')
       const { data: { user }, error: userError } = await supabase.auth.getUser()
 
@@ -113,7 +112,6 @@ const PasswordResetPage: React.FC = () => {
 
       console.log('💾 [RESET_DIAGNOSTIC] User verified as:', user.email, '. Updating password now...')
 
-      // Update the user's password
       const { error } = await supabase.auth.updateUser({
         password: formData.password
       })
@@ -151,14 +149,6 @@ const PasswordResetPage: React.FC = () => {
   const passwordStrength = getPasswordStrength(formData.password)
   const hasMinLength = formData.password.length >= 8
 
-  if (!sessionReady) {
-    return (
-      <div className="bg-page min-h-screen flex items-center justify-center p-4">
-        <div className="text-body-slate">Loading...</div>
-      </div>
-    )
-  }
-
   return (
     <div className="bg-page min-h-screen flex items-center justify-center p-4 font-display">
       <div className="w-full max-w-[480px] flex flex-col gap-6">
@@ -181,16 +171,36 @@ const PasswordResetPage: React.FC = () => {
             </p>
           </div>
 
+          {/* Diagnostic Check */}
+          {!sessionReady && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm flex items-center justify-between">
+              <span>Verifying link...</span>
+              <Loader className="animate-spin text-[16px]" />
+            </div>
+          )}
+
           {/* Error/Success Messages */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm space-y-3">
+              <p>{error}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setError('')
+                  initialized.current = false
+                  setSessionReady(false)
+                }}
+                className="w-full py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded font-bold transition-colors"
+              >
+                Retry Link Verification
+              </button>
             </div>
           )}
 
           {success && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-              {success}
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm flex items-center gap-2">
+              <CheckCircle className="text-[16px] text-green-600" />
+              <span>{success}</span>
             </div>
           )}
 
@@ -290,11 +300,11 @@ const PasswordResetPage: React.FC = () => {
 
         {/* Footer */}
         <p className="text-center text-copyright-slate text-xs">
-          © 2024 Sage & Stone. All rights reserved.
+          © 2024 TankTide. All rights reserved.
         </p>
       </div>
     </div>
   )
 }
 
-export default PasswordResetPage 
+export default PasswordResetPage
