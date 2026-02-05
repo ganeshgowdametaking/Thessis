@@ -51,6 +51,7 @@ struct VerifyResetOTPView: View {
                     
                     TextField("000000", text: $otp)
                         .font(.system(size: 32, weight: .bold, design: .monospaced))
+                        .foregroundColor(Theme.textMain)
                         .multilineTextAlignment(.center)
                         .keyboardType(.numberPad)
                         .frame(height: 80)
