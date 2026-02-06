@@ -138,7 +138,7 @@ const initializeSession = (): void => {
     window._lastActivity = Date.now();
     window._pageViews = [];
     window._interactions = [];
-    
+
     // Store session data
     const sessionData: SessionData = {
       sessionId: window._sessionId,
@@ -152,7 +152,7 @@ const initializeSession = (): void => {
       screenResolution: `${screen.width}x${screen.height}`,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     };
-    
+
     localStorage.setItem('current_session', JSON.stringify(sessionData));
   }
 };
@@ -160,7 +160,7 @@ const initializeSession = (): void => {
 // Track user interactions
 const trackInteraction = async (interaction: Omit<UserInteraction, 'timestamp' | 'sessionId' | 'userId'>): Promise<void> => {
   if (!window._analyticsInitialized) return;
-  
+
   const { data: { user } } = await supabase.auth.getUser();
   const interactionData: UserInteraction = {
     ...interaction,
@@ -168,16 +168,16 @@ const trackInteraction = async (interaction: Omit<UserInteraction, 'timestamp' |
     sessionId: window._sessionId,
     userId: user?.id
   };
-  
+
   window._interactions.push(interactionData);
   window._lastActivity = Date.now();
-  
+
   // Store in localStorage for persistence
   const sessionData = JSON.parse(localStorage.getItem('current_session') || '{}');
   sessionData.interactions = window._interactions;
   sessionData.lastActivity = new Date().toISOString();
   localStorage.setItem('current_session', JSON.stringify(sessionData));
-  
+
   // Send to analytics service (in real implementation)
   console.log('User interaction tracked:', interactionData);
 };
@@ -185,14 +185,14 @@ const trackInteraction = async (interaction: Omit<UserInteraction, 'timestamp' |
 // Set up event listeners for automatic tracking
 const setupAutomaticTracking = (): void => {
   if (!window._analyticsInitialized) return;
-  
+
   // Track clicks
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     const elementId = target.id || target.className || target.tagName;
     const elementType = target.tagName.toLowerCase();
     const elementText = target.textContent?.trim().substring(0, 100) || '';
-    
+
     trackInteraction({
       type: 'click',
       elementId,
@@ -202,14 +202,14 @@ const setupAutomaticTracking = (): void => {
       coordinates: { x: e.clientX, y: e.clientY }
     });
   });
-  
+
   // Track scroll depth
   let maxScrollDepth = 0;
   document.addEventListener('scroll', () => {
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
     const scrollDepth = Math.round((scrollTop / scrollHeight) * 100);
-    
+
     if (scrollDepth > maxScrollDepth) {
       maxScrollDepth = scrollDepth;
       trackInteraction({
@@ -219,7 +219,7 @@ const setupAutomaticTracking = (): void => {
       });
     }
   });
-  
+
   // Track form interactions
   document.addEventListener('focus', (e) => {
     const target = e.target as HTMLElement;
@@ -233,7 +233,7 @@ const setupAutomaticTracking = (): void => {
       });
     }
   });
-  
+
   // Track form submissions
   document.addEventListener('submit', (e) => {
     const target = e.target as HTMLFormElement;
@@ -244,7 +244,7 @@ const setupAutomaticTracking = (): void => {
       page: window.location.pathname
     });
   });
-  
+
   // Track link clicks
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
@@ -259,7 +259,7 @@ const setupAutomaticTracking = (): void => {
       });
     }
   });
-  
+
   // Track button clicks
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
@@ -282,39 +282,47 @@ export const analyticsService = {
     // Check if user is EU and has not given consent
     const isEU = localStorage.getItem('is_eu_user') === 'true';
     const consent = localStorage.getItem('gdpr_consent');
-    
+
     if (isEU && consent !== 'true') {
       console.log('Analytics disabled for EU user without consent');
       return;
     }
-    
+
     console.log('Analytics initialized');
-    
+
     // Initialize session tracking
     initializeSession();
-    
+
     // Set up automatic tracking for non-EU users or EU users with consent
     if (!isEU || consent === 'true') {
       setupAutomaticTracking();
     }
-    
+
     window._analyticsInitialized = true;
   },
-  
+
   // Track page view
   trackPageView: async (page: string) => {
     const isEU = localStorage.getItem('is_eu_user') === 'true';
     const consent = localStorage.getItem('gdpr_consent');
-    
+
     if (isEU && consent !== 'true') {
       return;
     }
-    
+
+    // THROTTLE: Don't track if we just tracked this page < 1s ago
+    // This prevents infinite loops if a component mounts/unmounts rapidly
+    const now = Date.now();
+    if (window._lastActivity && (now - window._lastActivity < 1000)) {
+      console.log('⚠️ Analytics: Throttled rapid page view tracking');
+      return;
+    }
+
     // Initialize if not already initialized
     if (!window._analyticsInitialized) {
       analyticsService.init();
     }
-    
+
     const { data: { user } } = await supabase.auth.getUser();
     const pageViewEvent: PageViewEvent = {
       page,
@@ -326,41 +334,42 @@ export const analyticsService = {
       userAgent: navigator.userAgent,
       screenResolution: `${screen.width}x${screen.height}`
     };
-    
+
     // Track page view
     window._pageViews.push(page);
-    window._lastActivity = Date.now();
-    
+    window._lastActivity = Date.now(); // Update activity time
+
     // Store in localStorage
     const sessionData = JSON.parse(localStorage.getItem('current_session') || '{}');
     sessionData.pageViews = window._pageViews;
     sessionData.lastActivity = new Date().toISOString();
     localStorage.setItem('current_session', JSON.stringify(sessionData));
-    
+
     // Send to analytics service (in real implementation)
     console.log('Page view tracked:', pageViewEvent);
-    
+
     // Track time on previous page
     if (window._pageViews.length > 1) {
-      const timeOnPage = Date.now() - window._lastActivity;
+      const timeOnPage = Date.now() - (window as any)._prevActivity || window._lastActivity;
       console.log('Time on page:', timeOnPage);
     }
+    (window as any)._prevActivity = Date.now(); // Store for next time check
   },
-  
+
   // Track user event
   trackEvent: async (eventType: string, eventData: any) => {
     const isEU = localStorage.getItem('is_eu_user') === 'true';
     const consent = localStorage.getItem('gdpr_consent');
-    
+
     if (isEU && consent !== 'true') {
       return;
     }
-    
+
     // Initialize if not already initialized
     if (!window._analyticsInitialized) {
       analyticsService.init();
     }
-    
+
     const { data: { user } } = await supabase.auth.getUser();
     const userEvent: UserEvent = {
       eventType,
@@ -370,23 +379,23 @@ export const analyticsService = {
       userId: user?.id,
       page: window.location.pathname
     };
-    
+
     // Send to analytics service (in real implementation)
     console.log('User event tracked:', userEvent);
   },
-  
+
   // Track custom interaction
   trackInteraction: async (interaction: Omit<UserInteraction, 'timestamp' | 'sessionId' | 'userId'>) => {
     const isEU = localStorage.getItem('is_eu_user') === 'true';
     const consent = localStorage.getItem('gdpr_consent');
-    
+
     if (isEU && consent !== 'true') {
       return;
     }
-    
+
     await trackInteraction(interaction);
   },
-  
+
   // Get session data
   getSessionData: (): SessionData | null => {
     try {
@@ -397,16 +406,16 @@ export const analyticsService = {
       return null;
     }
   },
-  
+
   // Clean up analytics data (for GDPR compliance)
   cleanUp: () => {
     console.log('Analytics cleaned up');
-    
+
     // Clear session data
     localStorage.removeItem('current_session');
     localStorage.removeItem('has_visited_before');
     localStorage.removeItem('first_visit_date');
-    
+
     window._analyticsInitialized = false;
     window._sessionId = '';
     window._firstVisit = false;
@@ -429,22 +438,22 @@ export const analyticsService = {
 
       if (profiles && profiles.length > 0) {
         console.log(`Found ${profiles.length} profiles without country codes`);
-        
+
         // Update all profiles to have 'IND' as default country
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ country_code: 'IND' })
           .is('country_code', null);
-        
+
         if (updateError) throw updateError;
-        
+
         return {
           updated: profiles.length,
           total: profiles.length,
           message: `Successfully updated ${profiles.length} profiles with country code 'IND'`
         };
       }
-      
+
       return { updated: 0, total: 0, message: 'All profiles already have country codes' };
     } catch (error) {
       console.error('Error updating country codes:', error);
@@ -490,7 +499,7 @@ export const analyticsService = {
           countryCounts[p.country_code] = (countryCounts[p.country_code] || 0) + 1;
         }
       });
-      
+
       const geographicData = Object.entries(countryCounts).map(([code, count]) => {
         const countryName = countryCodeToName[code] || code;
         return {
@@ -534,13 +543,13 @@ export const analyticsService = {
       // Get session data for engagement stats
       const sessionData = analyticsService.getSessionData();
       const allSessions = JSON.parse(localStorage.getItem('all_sessions') || '[]');
-      
+
       const engagementStats = {
-        averageSessionDuration: allSessions.length > 0 
+        averageSessionDuration: allSessions.length > 0
           ? allSessions.reduce((acc: number, session: any) => {
-              const duration = new Date(session.lastActivity).getTime() - new Date(session.startTime).getTime();
-              return acc + duration;
-            }, 0) / allSessions.length / 1000 // Convert to seconds
+            const duration = new Date(session.lastActivity).getTime() - new Date(session.startTime).getTime();
+            return acc + duration;
+          }, 0) / allSessions.length / 1000 // Convert to seconds
           : 0,
         averagePageViewsPerSession: allSessions.length > 0
           ? allSessions.reduce((acc: number, session: any) => acc + session.pageViews.length, 0) / allSessions.length
@@ -565,19 +574,19 @@ export const analyticsService = {
       const { data: connections, error: connectionsError } = await supabase
         .from('connections')
         .select('id');
-      
+
       if (connectionsError) throw connectionsError;
 
       const { data: posts, error: postsError } = await supabase
         .from('posts')
         .select('id');
-      
+
       if (postsError) throw postsError;
 
       const { data: messages, error: messagesError } = await supabase
         .from('messages')
         .select('id');
-      
+
       if (messagesError) throw messagesError;
 
       const platformStats = {
@@ -656,7 +665,7 @@ export const analyticsService = {
   // Save session data when user leaves
   saveSessionData: () => {
     if (!window._analyticsInitialized) return;
-    
+
     const sessionData = analyticsService.getSessionData();
     if (sessionData) {
       const allSessions = JSON.parse(localStorage.getItem('all_sessions') || '[]');
@@ -669,13 +678,13 @@ export const analyticsService = {
   trackEUVisitor: () => {
     const isEU = localStorage.getItem('is_eu_user') === 'true';
     const consent = localStorage.getItem('gdpr_consent');
-    
+
     if (!isEU || consent !== 'true') return;
-    
+
     // Track total visitors (aggregate only)
     const totalVisitors = parseInt(localStorage.getItem('total_visitors') || '0') + 1;
     localStorage.setItem('total_visitors', totalVisitors.toString());
-    
+
     // Track first-time visitors
     const isFirstVisit = !localStorage.getItem('has_visited_before');
     if (isFirstVisit) {
@@ -684,7 +693,7 @@ export const analyticsService = {
       localStorage.setItem('has_visited_before', 'true');
       localStorage.setItem('first_visit_date', new Date().toISOString());
     }
-    
+
     console.log('EU Visitor tracked (GDPR-compliant):', {
       totalVisitors,
       firstTimeVisitors: parseInt(localStorage.getItem('first_time_visitors') || '0'),
@@ -699,7 +708,7 @@ export const analyticsService = {
     const firstTimeVisitors = parseInt(localStorage.getItem('first_time_visitors') || '0');
     const totalSignups = parseInt(localStorage.getItem('total_signups') || '0');
     const signupRate = totalVisitors > 0 ? (totalSignups / totalVisitors) * 100 : 0;
-    
+
     return {
       totalVisitors,
       firstTimeVisitors,
@@ -713,13 +722,13 @@ export const analyticsService = {
   trackEUSignup: () => {
     const isEU = localStorage.getItem('is_eu_user') === 'true';
     const consent = localStorage.getItem('gdpr_consent');
-    
+
     if (!isEU || consent !== 'true') return;
-    
+
     const totalSignups = parseInt(localStorage.getItem('total_signups') || '0') + 1;
     localStorage.setItem('total_signups', totalSignups.toString());
     localStorage.setItem('last_signup_date', new Date().toISOString());
-    
+
     console.log('EU Signup tracked (GDPR-compliant):', {
       totalSignups,
       totalVisitors: parseInt(localStorage.getItem('total_visitors') || '0'),

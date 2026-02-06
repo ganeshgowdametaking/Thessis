@@ -34,10 +34,10 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
     try {
       setLoading(true);
       console.log('🔄 Loading notifications...');
-      
+
       const userNotifications = await notificationService.getNotifications();
       console.log('📊 Received notifications:', userNotifications);
-      
+
       // Debug connection notifications specifically
       const connectionNotifications = userNotifications.filter(n => n.type === 'connection');
       console.log('🔗 Connection notifications found:', connectionNotifications.length);
@@ -51,7 +51,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
           read: notif.read
         });
       });
-      
+
       // Enhance notifications with user profile data
       const enhancedNotifications = await Promise.all(
         userNotifications.map(async (notification) => {
@@ -73,7 +73,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
                 actorProfile
               };
             }
-            
+
             return notification;
           } catch (error) {
             console.warn('Failed to load actor profile for notification:', notification.id);
@@ -81,7 +81,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
           }
         })
       );
-      
+
       // DEDUPLICATE CONNECTION NOTIFICATIONS: Only show the latest per user-pair
       const dedupedNotifications: any[] = [];
       const connectionPairs = new Map();
@@ -97,7 +97,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
           dedupedNotifications.push(notif);
         }
       }
-      
+
       // TODO: Re-implement notification filtering with proper user identification
       // For now, disable filtering to restore notification functionality
       // const filteredNotifications = await blockingService.filterBlockedUsers(dedupedNotifications || []);
@@ -142,7 +142,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
 
     try {
       const isCurrentlyLiked = likedPosts.has(postId);
-      
+
       if (isCurrentlyLiked) {
         // Unlike the post
         await postService.removeUserLike(postId);
@@ -167,6 +167,8 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case 'job_application':
+        return <Briefcase className="h-5 w-5" />;
       case 'connection':
         return <UserPlus className="h-5 w-5" />;
       case 'job':
@@ -201,17 +203,17 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
     if (profile?.avatar_url) {
       return profile.avatar_url;
     }
-    
+
     // Create a simple colored background based on user ID
     const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
     const colorIndex = profile?.id ? profile.id.charCodeAt(0) % colors.length : 0;
     const backgroundColor = colors[colorIndex];
-    
+
     // Get initials
     const initials = profile?.full_name
       ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
       : 'U';
-    
+
     // Return a simple SVG data URL
     const svg = `
       <svg width="150" height="150" xmlns="http://www.w3.org/2000/svg">
@@ -219,62 +221,76 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
         <text x="75" y="85" font-family="Arial, sans-serif" font-size="60" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
       </svg>
     `;
-    
+
     return `data:image/svg+xml;base64,${btoa(svg)}`;
   };
 
   const handleAcceptConnection = async (notificationId: string, connectionId?: string) => {
+    console.log('✅ Accepting connection:', { notificationId, connectionId });
     try {
+      // Optimistically remove the notification from the list
+      setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
+
       if (connectionId) {
         await connectionService.acceptConnectionRequest(connectionId);
       }
-      
-      // Update notification in local state to show connected message and non-actionable
-      setNotifications(notifications => notifications.map(notif =>
-        notif.id === notificationId
-          ? {
-              ...notif,
-              message: `You are now connected with ${notif.actorProfile?.full_name || 'this user'}`,
-              actionable: false,
-              read: true
-            }
-          : notif
-      ));
-      await notificationService.markAsReadAndNonActionable(notificationId);
+
+      // Delete the notification from the database as well so it's gone for good
+      await notificationService.deleteNotification(notificationId);
+
       // Add a small delay to ensure database operation completes
       setTimeout(() => {
         if (window.refreshUnreadCounts) window.refreshUnreadCounts();
       }, 100);
     } catch (error) {
       console.error('Error accepting connection:', error);
-      alert('Failed to accept connection. Please try again.');
+      alert('Failed to accept connection properly, but the notification will be removed.');
+      loadNotifications(); // Reload to be sure
     }
   };
 
   const handleDeclineConnection = async (notificationId: string, connectionId?: string) => {
+    console.log('🚮 Declining connection:', { notificationId, connectionId });
     try {
+      // Optimistically remove the notification from the list
+      setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
+
       if (connectionId) {
-        await connectionService.declineConnectionRequest(connectionId);
+        console.log('🔄 Calling connectionService.declineConnectionRequest for:', connectionId);
+        const result = await connectionService.declineConnectionRequest(connectionId);
+        console.log('✅ Decline connection result:', result);
+      } else {
+        console.warn('⚠️ No connectionId found, only deleting notification:', notificationId);
+        await notificationService.deleteNotification(notificationId);
       }
-      // Remove notification
-      await notificationService.deleteNotification(notificationId);
-      // Reload notifications
-      await loadNotifications();
+
+      // Explicitly delete the notification as well to be 100% sure
+      // (The RPC should have done it, but this is a double-check)
+      try {
+        await notificationService.deleteNotification(notificationId);
+      } catch (e) {
+        // Ignore if already deleted
+      }
+
       // Add a small delay to ensure database operation completes
       setTimeout(() => {
         if (window.refreshUnreadCounts) window.refreshUnreadCounts();
       }, 100);
-    } catch (error) {
-      console.error('Error declining connection:', error);
-      alert('Failed to decline connection. Please try again.');
+    } catch (error: any) {
+      console.error('❌ Error declining connection:', error);
+      // Revert if it's a real failure, but often it might just be the notification already gone
+      if (!error.message?.includes('not found')) {
+        alert(`Failed to decline connection properly: ${error.message || 'Unknown error'}`);
+        loadNotifications();
+      }
     }
   };
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
       await notificationService.markAsRead(notificationId);
-      setNotifications(notifications.map(notif => 
-        notif.id === notificationId 
+      setNotifications(notifications.map(notif =>
+        notif.id === notificationId
           ? { ...notif, read: true }
           : notif
       ));
@@ -322,6 +338,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
   const filteredNotifications = notifications.filter(notif => {
     if (filter === 'all') return true;
     if (filter === 'unread') return !notif.read;
+    if (filter === 'connection') return notif.type === 'connection' || notif.type === 'job_application' || notif.type === 'referral';
     return notif.type === filter;
   });
 
@@ -333,12 +350,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
   console.log('🔍 Filtered notifications count:', filteredNotifications.length);
   console.log('📋 All notifications:', notifications);
 
-  const filterOptions = [
-    { value: 'all', label: 'All', count: notifications.length, icon: Bell },
-    { value: 'unread', label: 'Unread', count: unreadCount, icon: Filter },
-    { value: 'connection', label: 'Connections', count: notifications.filter(n => n.type === 'connection').length, icon: Users },
-    { value: 'job', label: 'Jobs', count: notifications.filter(n => n.type === 'job' || n.type === 'referral').length, icon: Briefcase }
-  ];
+
 
   if (loading) {
     return (
@@ -347,6 +359,31 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
       </div>
     );
   }
+
+  const handleNotificationClick = (notification: any) => {
+    // If it's a connection request, maybe stay on page or view profile
+    if (notification.type === 'connection' && notification.metadata?.requester_id) {
+      navigate(`/user/${notification.metadata.requester_id}`);
+    } else if (notification.type === 'job_application' && notification.metadata?.job_id) {
+      navigate(`/applications/${notification.metadata.job_id}`);
+    } else if (notification.type === 'like' || notification.type === 'comment') {
+      // If we have post_id in metadata, we could navigate to that post
+      // For now, maybe just stay here or implement post view
+      if (notification.metadata?.post_id) {
+        // Assume there's a way to view a single post, e.g. jobs page with a search or filter
+        navigate('/jobs');
+      }
+    } else if (notification.type === 'payout') {
+      navigate('/settings'); // Or wherever payouts are handled
+    } else if (notification.type === 'analytics') {
+      navigate('/analytics');
+    }
+
+    // Mark as read when clicked
+    if (!notification.read) {
+      handleMarkAsRead(notification.id);
+    }
+  };
 
   // Group notifications by date
   const groupNotificationsByDate = (notifications: any[]) => {
@@ -392,11 +429,9 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">Notifications</h1>
-            <p className="text-slate-500 font-medium">
-              You have <span className="text-slate-900 font-bold">{unreadCount} unread</span> messages requiring attention.
-            </p>
+
           </div>
-          <button 
+          <button
             onClick={handleMarkAllAsRead}
             className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-stone-header text-sm font-bold text-slate-900 hover:bg-stone-50 hover:border-slate-300 transition-all shadow-sm"
           >
@@ -408,23 +443,21 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
         {/* Filter Tabs */}
         <div className="mb-8 border-b border-stone-header">
           <div className="flex gap-6 overflow-x-auto pb-[1px]">
-            <button 
+            <button
               onClick={() => setFilter('all')}
-              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${
-                filter === 'all' 
-                  ? 'text-sage border-b-2 border-sage' 
-                  : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
-              }`}
+              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${filter === 'all'
+                ? 'text-sage border-b-2 border-sage'
+                : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
+                }`}
             >
               All
             </button>
-            <button 
+            <button
               onClick={() => setFilter('unread')}
-              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${
-                filter === 'unread' 
-                  ? 'text-sage border-b-2 border-sage' 
-                  : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
-              }`}
+              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${filter === 'unread'
+                ? 'text-sage border-b-2 border-sage'
+                : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
+                }`}
             >
               Unread
               {unreadCount > 0 && (
@@ -433,26 +466,16 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
                 </span>
               )}
             </button>
-            <button 
+            <button
               onClick={() => setFilter('connection')}
-              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${
-                filter === 'connection' 
-                  ? 'text-sage border-b-2 border-sage' 
-                  : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
-              }`}
+              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${filter === 'connection'
+                ? 'text-sage border-b-2 border-sage'
+                : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
+                }`}
             >
               Referrals
             </button>
-            <button 
-              onClick={() => setFilter('job')}
-              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${
-                filter === 'job' 
-                  ? 'text-sage border-b-2 border-sage' 
-                  : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
-              }`}
-            >
-              System
-            </button>
+
           </div>
         </div>
 
@@ -464,9 +487,9 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 pl-1">Today</h3>
               <div className="flex flex-col gap-3">
                 {groupedNotifications.today.map((notification) => (
-                  <NotificationCard 
-                    key={notification.id} 
-                    notification={notification} 
+                  <NotificationCard
+                    key={notification.id}
+                    notification={notification}
                     onAcceptConnection={handleAcceptConnection}
                     onDeclineConnection={handleDeclineConnection}
                     onMarkAsRead={handleMarkAsRead}
@@ -476,6 +499,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
                     likedPosts={likedPosts}
                     getProfilePicture={getProfilePicture}
                     getNotificationIcon={getNotificationIcon}
+                    onNotificationClick={(notif) => handleNotificationClick(notif)}
                   />
                 ))}
               </div>
@@ -488,9 +512,9 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 pl-1">Yesterday</h3>
               <div className="flex flex-col gap-3">
                 {groupedNotifications.yesterday.map((notification) => (
-                  <NotificationCard 
-                    key={notification.id} 
-                    notification={notification} 
+                  <NotificationCard
+                    key={notification.id}
+                    notification={notification}
                     onAcceptConnection={handleAcceptConnection}
                     onDeclineConnection={handleDeclineConnection}
                     onMarkAsRead={handleMarkAsRead}
@@ -500,6 +524,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
                     likedPosts={likedPosts}
                     getProfilePicture={getProfilePicture}
                     getNotificationIcon={getNotificationIcon}
+                    onNotificationClick={(notif) => handleNotificationClick(notif)}
                     isRead={true}
                   />
                 ))}
@@ -513,9 +538,9 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 pl-1">Last Week</h3>
               <div className="flex flex-col gap-3">
                 {groupedNotifications.lastWeek.map((notification) => (
-                  <NotificationCard 
-                    key={notification.id} 
-                    notification={notification} 
+                  <NotificationCard
+                    key={notification.id}
+                    notification={notification}
                     onAcceptConnection={handleAcceptConnection}
                     onDeclineConnection={handleDeclineConnection}
                     onMarkAsRead={handleMarkAsRead}
@@ -525,6 +550,33 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
                     likedPosts={likedPosts}
                     getProfilePicture={getProfilePicture}
                     getNotificationIcon={getNotificationIcon}
+                    onNotificationClick={(notif) => handleNotificationClick(notif)}
+                    isRead={true}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Older */}
+          {groupedNotifications.older.length > 0 && (
+            <section>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 pl-1">Older</h3>
+              <div className="flex flex-col gap-3">
+                {groupedNotifications.older.map((notification) => (
+                  <NotificationCard
+                    key={notification.id}
+                    notification={notification}
+                    onAcceptConnection={handleAcceptConnection}
+                    onDeclineConnection={handleDeclineConnection}
+                    onMarkAsRead={handleMarkAsRead}
+                    onProfileClick={handleProfileClick}
+                    onDeleteNotification={handleDeleteNotification}
+                    onLikeToggle={handleLikeToggle}
+                    likedPosts={likedPosts}
+                    getProfilePicture={getProfilePicture}
+                    getNotificationIcon={getNotificationIcon}
+                    onNotificationClick={(notif) => handleNotificationClick(notif)}
                     isRead={true}
                   />
                 ))}
@@ -545,11 +597,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
         </div>
 
         {/* End of notifications */}
-        {filteredNotifications.length > 0 && (
-          <div className="h-20 flex items-center justify-center mt-8">
-            <p className="text-slate-500 text-sm font-medium">End of notifications</p>
-          </div>
-        )}
+
       </main>
     </div>
   );
@@ -567,6 +615,7 @@ interface NotificationCardProps {
   likedPosts: Set<string>;
   getProfilePicture: (profile: any) => string;
   getNotificationIcon: (type: string) => JSX.Element;
+  onNotificationClick: (notification: any) => void;
   isRead?: boolean;
 }
 
@@ -581,21 +630,22 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   likedPosts,
   getProfilePicture,
   getNotificationIcon,
+  onNotificationClick,
   isRead = false
 }) => {
   const formatTimeAgo = (dateString: string) => {
     const now = new Date();
     const notifDate = new Date(dateString);
     const diffInMinutes = Math.floor((now.getTime() - notifDate.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 60) {
       return `${diffInMinutes} mins ago`;
     } else if (diffInMinutes < 1440) {
       const hours = Math.floor(diffInMinutes / 60);
       return `${hours} hours ago`;
     } else {
-      return notifDate.toLocaleDateString('en-US', { 
-        month: 'short', 
+      return notifDate.toLocaleDateString('en-US', {
+        month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
@@ -606,9 +656,10 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   const isUnread = !notification.read && !isRead;
 
   return (
-    <div className={`group relative flex items-start gap-4 p-5 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:border-sage/30 transition-all duration-300 cursor-pointer ${
-      isUnread ? 'opacity-100' : 'opacity-80 hover:opacity-100'
-    }`}>
+    <div
+      onClick={() => onNotificationClick(notification)}
+      className={`group relative flex items-start gap-4 p-5 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:border-sage/30 transition-all duration-300 cursor-pointer ${isUnread ? 'opacity-100' : 'opacity-80 hover:opacity-100'
+        }`}>
       {/* Unread indicator */}
       {isUnread && (
         <div className="absolute left-0 top-6 w-1 h-8 bg-sage rounded-r-full"></div>
@@ -618,8 +669,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
       <div className="shrink-0 relative">
         {notification.actorProfile ? (
           <>
-            <img 
-              className="size-12 rounded-full object-cover border border-stone-off" 
+            <img
+              className="size-12 rounded-full object-cover border border-stone-off"
               src={getProfilePicture(notification.actorProfile)}
               alt={notification.actorProfile.full_name}
               onClick={() => onProfileClick(notification.actorProfile.id)}
@@ -645,13 +696,12 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
           <p className="text-slate-900 text-base leading-snug">
             {notification.actorProfile ? (
               <>
-                <span className="font-bold">{notification.actorProfile.full_name}</span>
-                {notification.type === 'connection' && ' accepted your referral for '}
-                {notification.type === 'like' && ' liked your post'}
-                {notification.type === 'comment' && ' commented on your post'}
-                {notification.type === 'connection' && (
-                  <span className="font-bold">Senior UX Designer</span>
-                )}
+                <span className="font-bold mr-1">{notification.actorProfile.full_name}</span>
+                {notification.type === 'connection' && <span className="font-medium text-slate-600">sent you a connection request</span>}
+                {notification.type === 'like' && <span className="font-medium text-slate-600">liked your post</span>}
+                {notification.type === 'comment' && <span className="font-medium text-slate-600">commented on your post</span>}
+                {notification.type === 'job_application' && <span className="font-medium text-slate-600">applied for your job referral</span>}
+                {!['connection', 'like', 'comment', 'job_application'].includes(notification.type) && <span className="font-medium text-slate-600">{notification.title}</span>}
               </>
             ) : (
               <span className="font-medium">{notification.message || notification.title}</span>
@@ -663,12 +713,9 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
         </div>
 
         {/* Description */}
-        {(notification.message || notification.actorProfile) && (
+        {(notification.message || notification.actorProfile) && notification.type !== 'connection' && (
           <p className="text-slate-body text-sm mt-1 line-clamp-2">
-            {notification.type === 'connection' && notification.actorProfile 
-              ? "Great news! Sarah has moved to the screening stage. You can now track her progress in your dashboard."
-              : notification.message
-            }
+            {notification.message}
           </p>
         )}
 
@@ -691,9 +738,10 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             </>
           ) : (
             <button className="text-sm font-bold text-sage hover:text-sage-olive transition-colors">
-              {notification.type === 'connection' ? 'View Application' : 
-               notification.type === 'analytics' ? 'Review Matches' :
-               notification.type === 'payout' ? 'View Details' : 'View'}
+              {notification.type === 'job_application' ? 'View Application' :
+                notification.type === 'connection' ? 'View Profile' :
+                  notification.type === 'analytics' ? 'Review Matches' :
+                    notification.type === 'payout' ? 'View Details' : 'View'}
             </button>
           )}
         </div>

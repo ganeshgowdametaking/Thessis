@@ -10,13 +10,10 @@ export const connectionService = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
+    // SELECT only the 4 columns we actually use
     const { data, error } = await supabase
       .from('connections')
-      .select(`
-        *,
-        requester:profiles!connections_requester_id_fkey(*),
-        addressee:profiles!connections_addressee_id_fkey(*)
-      `)
+      .select('id, requester_id, addressee_id, status')
       .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
 
     if (error) throw error
@@ -74,12 +71,12 @@ export const connectionService = {
     if (existingConnection) {
       // Connection already exists, don't create a new one
       console.log('⚠️ Connection already exists:', existingConnection)
-      
+
       // FIXED: Update cache to reflect existing connection
-      const status = existingConnection.status === 'pending' 
+      const status = existingConnection.status === 'pending'
         ? (existingConnection.requester_id === user.id ? 'pending_sent' : 'pending_received')
         : existingConnection.status === 'accepted' ? 'connected' : 'none'
-      
+
       const cacheData = {
         status: status,
         connection_id: existingConnection.id,
@@ -88,7 +85,7 @@ export const connectionService = {
       }
       localStorage.setItem(cacheKey, JSON.stringify(cacheData))
       console.log('💾 Updated cache for existing connection:', cacheData)
-      
+
       return existingConnection
     }
 
@@ -107,9 +104,9 @@ export const connectionService = {
       console.error('❌ Error creating connection request:', error)
       throw error
     }
-    
+
     console.log('✅ Connection request created successfully:', data)
-    
+
     // FIXED: Store in localStorage with proper key and immediate update
     const cacheData = {
       status: 'pending_sent',
@@ -129,34 +126,22 @@ export const connectionService = {
         .eq('id', user.id)
         .single()
 
-      // FIXED: Check if a notification already exists for this connection request
-      const { data: existingNotifications } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', addresseeId)
-        .eq('type', 'connection')
-        .filter('metadata->>connection_id', 'eq', data.id)
-        
-      // Only create a new notification if one doesn't already exist
-      if (!existingNotifications || existingNotifications.length === 0) {
-        await notificationService.createNotification({
-          type: 'connection',
-          title: 'New Connection Request',
-          message: `${requesterProfile?.full_name || 'Someone'} wants to connect with you${requesterProfile?.title ? ` • ${requesterProfile.title}` : ''}${requesterProfile?.company ? ` at ${requesterProfile.company}` : ''}`,
-          actionable: true,
-          priority: 'high',
-          metadata: {
-            connection_id: data.id,
-            requester_id: user.id
-          }
-        }, addresseeId)
-      } else {
-        console.log('⚠️ Notification already exists for this connection request, skipping creation')
-      }
+      // Create notification for the addressee
+      await notificationService.createNotification({
+        type: 'connection',
+        title: 'New Connection Request',
+        message: '',
+        actionable: true,
+        priority: 'high',
+        metadata: {
+          connection_id: data.id,
+          requester_id: user.id
+        }
+      }, addresseeId)
     } catch (notificationError) {
       console.warn('Failed to create connection notification:', notificationError)
     }
-    
+
     return data
   },
 
@@ -170,7 +155,7 @@ export const connectionService = {
       .single()
 
     if (error) throw error
-    
+
     // Update localStorage cache
     const { data: { user } } = await supabase.auth.getUser()
     if (user && data) {
@@ -208,18 +193,27 @@ export const connectionService = {
         console.warn('Failed to create connection accepted notification:', notificationError)
       }
     }
-    
+
     return data
   },
 
-  // Decline/Cancel connection request
+  // Decline/Cancel connection request - MOVED TO SECURE RPC
   declineConnectionRequest: async (connectionId: string) => {
-    const { error } = await supabase
-      .from('connections')
-      .delete()
-      .eq('id', connectionId)
-
-    if (error) throw error
+    try {
+      const { data, error } = await supabase.rpc('delete_connection_safely', {
+        connection_id: connectionId
+      })
+      if (error) throw error
+      return data
+    } catch (e) {
+      console.error('Error in declineConnectionRequest:', e)
+      // Fallback to manual delete if RPC fails (though it shouldn't)
+      const { error } = await supabase
+        .from('connections')
+        .delete()
+        .eq('id', connectionId)
+      if (error) throw error
+    }
   },
 
   // COMPLETELY FIXED: Cancel connection request with proper authentication context
@@ -244,7 +238,7 @@ export const connectionService = {
     try {
       // STEP 1: Find the connection to delete
       console.log('🔍 Step 1: Finding connection to delete between users:', user.id, 'and', otherUserId)
-      
+
       const { data: connectionToDelete, error: findError } = await supabase
         .from('connections')
         .select('*')
@@ -265,18 +259,18 @@ export const connectionService = {
       }
 
       console.log('🎯 Found connection to delete:', connectionToDelete)
-      
+
       // STEP 2: Try using the database function first (if it exists)
       try {
         console.log('🔄 Attempting to use database function...')
         const { data: result, error: rpcError } = await supabase
-          .rpc('delete_connection_safely', 
+          .rpc('delete_connection_safely',
             { connection_id: connectionToDelete.id }
           )
 
         if (!rpcError && result) {
           console.log('✅ Database function result:', result)
-          
+
           if (result.success) {
             console.log('✅ Connection deleted successfully via database function')
             return {
@@ -316,39 +310,19 @@ export const connectionService = {
       localStorage.removeItem(cacheKey)
       console.log('✅ Cache cleared successfully')
 
-      // STEP 5: Delete any pending notifications for this connection
-      try {
-        // Find notifications related to this connection
-        const { data: notifications } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('type', 'connection')
-          .filter('metadata->>connection_id', 'eq', connectionToDelete.id)
-          
-        if (notifications && notifications.length > 0) {
-          console.log(`🔍 Found ${notifications.length} notifications to delete for this connection`)
-          
-          // Delete each notification
-          for (const notification of notifications) {
-            await notificationService.deleteNotification(notification.id)
-          }
-          
-          console.log('✅ Deleted all related notifications')
-        }
-      } catch (notificationError) {
-        console.warn('⚠️ Error cleaning up notifications:', notificationError)
-        // Don't fail the whole operation if notification cleanup fails
-      }
+      // STEP 5: Notification cleanup is now handled automatically by the RPC
+      // (delete_connection_safely deletes matching notifications in the metadata)
+      console.log('✨ Notification cleanup handled by server-side RPC')
 
       console.log('🎯 Connection cancellation completed successfully')
       return { success: true, message: 'Connection cancelled and deleted successfully' }
 
     } catch (error: any) {
       console.error('❌ CRITICAL ERROR in cancelConnectionRequest:', error)
-      
+
       // Don't clear cache on error - let the UI show the actual state
       console.log('⚠️ Cache NOT cleared due to error - UI will reflect actual database state')
-      
+
       // Provide specific error messages for common issues
       if (error.message?.includes('RLS policy') || error.message?.includes('policy')) {
         throw new Error('Permission denied: Unable to delete connection due to database security policy. Please contact support.\n\nTechnical details: RLS policy restriction')
@@ -375,7 +349,7 @@ export const connectionService = {
       // For mock users, check localStorage for persistence
       const mockConnectionKey = `connection_${user.id}_${otherUserId}`
       const savedState = localStorage.getItem(mockConnectionKey)
-      
+
       if (savedState) {
         try {
           const state = JSON.parse(savedState)
@@ -387,14 +361,14 @@ export const connectionService = {
           return 'none'
         }
       }
-      
+
       console.log('📱 No mock connection state found - returning "none"')
       return 'none' // Default for mock users
     }
 
     // CRITICAL FIX: For real users, ALWAYS check database first (NEVER use cache on initial load)
     console.log('🔍 Checking database for fresh connection status (DATABASE-FIRST)...')
-    
+
     const { data: connection, error } = await supabase
       .from('connections')
       .select('*')
@@ -445,7 +419,7 @@ export const connectionService = {
     if (!user) throw new Error('Not authenticated')
 
     const mockConnectionKey = `connection_${user.id}_${mockUserId}`
-    
+
     if (action === 'connect') {
       // Save pending state to localStorage
       const connectionState = {
@@ -459,7 +433,7 @@ export const connectionService = {
       localStorage.setItem(mockConnectionKey, JSON.stringify(connectionState))
       console.log('📱 Saved mock connection state to localStorage (Connect → Cancel Request):', connectionState)
       return connectionState
-      
+
     } else if (action === 'cancel') {
       // Remove from localStorage - this returns state to "Connect"
       localStorage.removeItem(mockConnectionKey)

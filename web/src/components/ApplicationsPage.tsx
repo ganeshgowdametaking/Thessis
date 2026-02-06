@@ -42,12 +42,12 @@ interface ApplicationsPageProps {
   onViewProfile: (userId: string) => void;
 }
 
-export default function ApplicationsPage({ 
-  referralId, 
-  referralTitle, 
-  onBack, 
-  onMessage, 
-  onViewProfile 
+export default function ApplicationsPage({
+  referralId,
+  referralTitle,
+  onBack,
+  onMessage,
+  onViewProfile
 }: ApplicationsPageProps) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +64,7 @@ export default function ApplicationsPage({
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data, error } = await supabase
         .from('applications')
         .select(`
@@ -114,7 +114,7 @@ export default function ApplicationsPage({
       alert('No resume available for this application.');
       return;
     }
-    
+
     try {
       // If it's a base64 data URL, open it in a new tab
       if (application.resume_url.startsWith('data:')) {
@@ -144,10 +144,10 @@ export default function ApplicationsPage({
       alert('No resume available for this application.');
       return;
     }
-    
+
     try {
       const fileName = `${application.user_profile?.full_name?.replace(/\s+/g, '_') || 'Resume'}_${new Date().getFullYear()}.pdf`;
-      
+
       if (application.resume_url.startsWith('data:')) {
         // Handle base64 data
         const link = document.createElement('a');
@@ -181,9 +181,9 @@ export default function ApplicationsPage({
 
       if (error) throw error;
 
-      setApplications(prev => 
-        prev.map(app => 
-          app.id === applicationId 
+      setApplications(prev =>
+        prev.map(app =>
+          app.id === applicationId
             ? { ...app, status: newStatus }
             : app
         )
@@ -199,7 +199,7 @@ export default function ApplicationsPage({
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffHours < 24) {
       if (diffHours < 1) return 'Just now';
       return `${diffHours} hours ago`;
@@ -211,11 +211,11 @@ export default function ApplicationsPage({
 
   const filteredApplications = applications.filter(app => {
     const matchesTab = activeTab === 'all' || app.status === activeTab;
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       app.user_profile?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.user_profile?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.user_profile?.current_company?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     return matchesTab && matchesSearch;
   });
 
@@ -239,14 +239,14 @@ export default function ApplicationsPage({
       {/* Page Header */}
       <header className="bg-[#F9F9F7] pt-8 pb-4 px-8 shrink-0 z-10">
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-6">
-          <div 
+          <div
             className="flex items-center gap-2 text-slate-500 hover:text-[#5f7261] transition-colors cursor-pointer w-fit"
             onClick={onBack}
           >
             <span className="material-symbols-outlined text-[20px]">arrow_back</span>
             <span className="text-sm font-medium">Back to Referrals</span>
           </div>
-          
+
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-1">
@@ -259,68 +259,59 @@ export default function ApplicationsPage({
                 {referralTitle} • <span className="text-[#5f7261] font-semibold">{applications.length} Total Applicants</span>
               </p>
             </div>
-            
+
             <div className="flex gap-3">
-              <button className="bg-[#5f7261] hover:bg-[#4b5c4d] text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center gap-2">
-                <span className="material-symbols-outlined text-[20px]">add</span>
-                Add Candidate
-              </button>
+              {/* Add Candidate button removed */}
             </div>
           </div>
 
           {/* Tabs and Filters */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mt-2 border-b border-slate-200 pb-1">
             <div className="flex gap-6 overflow-x-auto no-scrollbar">
-              <button 
-                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${
-                  activeTab === 'all' 
-                    ? 'border-[#5f7261] text-[#5f7261]' 
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                } transition-all`}
+              <button
+                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'all'
+                  ? 'border-[#5f7261] text-[#5f7261]'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  } transition-all`}
                 onClick={() => setActiveTab('all')}
               >
                 <span className="font-bold text-sm">All</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  activeTab === 'all' 
-                    ? 'bg-[#5f7261] text-white' 
-                    : 'bg-slate-200 text-slate-600'
-                }`}>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'all'
+                  ? 'bg-[#5f7261] text-white'
+                  : 'bg-slate-200 text-slate-600'
+                  }`}>
                   {statusCounts.all}
                 </span>
               </button>
-              
-              <button 
-                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${
-                  activeTab === 'pending' 
-                    ? 'border-[#5f7261] text-[#5f7261]' 
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                } transition-all`}
+
+              <button
+                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'pending'
+                  ? 'border-[#5f7261] text-[#5f7261]'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  } transition-all`}
                 onClick={() => setActiveTab('pending')}
               >
                 <span className="font-medium text-sm">Pending</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  activeTab === 'pending' 
-                    ? 'bg-[#5f7261] text-white' 
-                    : 'bg-slate-200 text-slate-600'
-                }`}>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'pending'
+                  ? 'bg-[#5f7261] text-white'
+                  : 'bg-slate-200 text-slate-600'
+                  }`}>
                   {statusCounts.pending}
                 </span>
               </button>
-              
-              <button 
-                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${
-                  activeTab === 'shortlisted' 
-                    ? 'border-[#5f7261] text-[#5f7261]' 
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                } transition-all`}
+
+              <button
+                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'shortlisted'
+                  ? 'border-[#5f7261] text-[#5f7261]'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  } transition-all`}
                 onClick={() => setActiveTab('shortlisted')}
               >
                 <span className="font-medium text-sm">Shortlisted</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  activeTab === 'shortlisted' 
-                    ? 'bg-[#5f7261] text-white' 
-                    : 'bg-slate-200 text-slate-600'
-                }`}>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'shortlisted'
+                  ? 'bg-[#5f7261] text-white'
+                  : 'bg-slate-200 text-slate-600'
+                  }`}>
                   {statusCounts.shortlisted}
                 </span>
               </button>
@@ -329,7 +320,7 @@ export default function ApplicationsPage({
             <div className="flex items-center gap-3 pb-2 w-full lg:w-auto">
               <div className="relative w-full lg:w-64">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
-                <input 
+                <input
                   className="w-full h-10 pl-10 pr-4 rounded-lg border-none bg-white text-sm text-slate-700 placeholder:text-slate-400 focus:ring-1 focus:ring-[#5f7261] shadow-sm"
                   placeholder="Search applicants..."
                   type="text"
@@ -341,10 +332,6 @@ export default function ApplicationsPage({
               <button className="h-10 px-4 rounded-lg bg-white border border-transparent hover:border-slate-200 text-slate-600 flex items-center gap-2 text-sm font-semibold shadow-sm transition-all whitespace-nowrap">
                 <span className="material-symbols-outlined text-[20px]">sort</span>
                 Earliest First
-              </button>
-              <button className="h-10 px-4 rounded-lg bg-white border border-transparent hover:border-slate-200 text-slate-600 flex items-center gap-2 text-sm font-semibold shadow-sm transition-all">
-                <span className="material-symbols-outlined text-[20px]">filter_list</span>
-                Filter
               </button>
             </div>
           </div>
@@ -369,7 +356,7 @@ export default function ApplicationsPage({
                 >
                   {/* Profile Header */}
                   <div className="flex justify-between items-start mb-4">
-                    <button 
+                    <button
                       className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                       onClick={() => onViewProfile(application.user_id)}
                     >
@@ -431,7 +418,7 @@ export default function ApplicationsPage({
 
                   {/* Actions */}
                   <div className="mt-auto flex flex-col gap-2">
-                    <button 
+                    <button
                       className="w-full bg-[#5f7261] hover:bg-[#4b5c4d] text-white py-2 rounded-md text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
                       onClick={() => handleStatusUpdate(application.id, 'shortlisted')}
                     >
@@ -439,21 +426,21 @@ export default function ApplicationsPage({
                       Shortlist
                     </button>
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         className="flex-1 bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
                         onClick={() => setSelectedApplication(application)}
                       >
                         <span className="material-symbols-outlined text-[18px]">person</span>
                         View Details
                       </button>
-                      <button 
+                      <button
                         className="flex-1 bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
                         onClick={() => handleViewResume(application)}
                       >
                         <span className="material-symbols-outlined text-[18px]">description</span>
                         Resume
                       </button>
-                      <button 
+                      <button
                         className="flex-1 bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
                         onClick={() => onMessage(application.applicant_id)}
                       >
@@ -498,13 +485,13 @@ export default function ApplicationsPage({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   className="p-2 text-slate-400 hover:bg-[#f2f1ec] rounded-lg transition-colors"
                   onClick={() => handleDownloadResume(selectedApplication)}
                 >
                   <span className="material-symbols-outlined">download</span>
                 </button>
-                <button 
+                <button
                   className="p-2 text-slate-400 hover:bg-[#f2f1ec] rounded-lg transition-colors"
                   onClick={() => setSelectedApplication(null)}
                 >
@@ -512,7 +499,7 @@ export default function ApplicationsPage({
                 </button>
               </div>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-8">
               <div className="grid grid-cols-3 gap-8">
                 <div className="col-span-1 flex flex-col gap-6 border-r border-slate-100 pr-8">
@@ -539,7 +526,7 @@ export default function ApplicationsPage({
                       )}
                     </div>
                   </div>
-                  
+
                   {selectedApplication.user_profile?.skills && (
                     <div>
                       <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Skills</h4>
@@ -553,7 +540,7 @@ export default function ApplicationsPage({
                     </div>
                   )}
                 </div>
-                
+
                 <div className="col-span-2 flex flex-col gap-8">
                   {selectedApplication.cover_letter && (
                     <section>
@@ -563,7 +550,7 @@ export default function ApplicationsPage({
                       </p>
                     </section>
                   )}
-                  
+
                   <section>
                     <h3 className="text-lg font-bold text-slate-900 mb-3">Resume</h3>
                     <div className="bg-[#f2f1ec] border border-slate-200 rounded-lg p-4 flex items-center justify-between gap-4 transition-colors">
@@ -579,14 +566,14 @@ export default function ApplicationsPage({
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button 
+                        <button
                           className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors"
                           onClick={() => handleViewResume(selectedApplication)}
                         >
                           <span className="material-symbols-outlined text-[16px]">visibility</span>
                           View
                         </button>
-                        <button 
+                        <button
                           className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors"
                           onClick={() => handleDownloadResume(selectedApplication)}
                         >
@@ -599,15 +586,15 @@ export default function ApplicationsPage({
                 </div>
               </div>
             </div>
-            
+
             <div className="p-4 border-t border-slate-100 bg-[#f2f1ec]/50 flex justify-end gap-3 shrink-0">
-              <button 
+              <button
                 className="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-white transition-colors"
                 onClick={() => setSelectedApplication(null)}
               >
                 Dismiss
               </button>
-              <button 
+              <button
                 className="px-5 py-2.5 rounded-lg bg-[#5f7261] text-white text-sm font-semibold hover:bg-[#4b5c4d] transition-colors flex items-center gap-2"
                 onClick={() => {
                   handleStatusUpdate(selectedApplication.id, 'shortlisted');

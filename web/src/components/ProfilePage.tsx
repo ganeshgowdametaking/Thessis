@@ -10,6 +10,7 @@ import PostsModal from './PostsModal';
 import LoadingSpinner from './LoadingSpinner';
 import CountryPicker from './CountryPicker';
 import { iso2ToIso3 } from '../utils/countryMapping';
+import ImageCropper from './ImageCropper';
 
 interface Experience {
   id: number;
@@ -63,6 +64,7 @@ const ProfilePage: React.FC = () => {
     location: '',
     bio: '',
     profile_picture_url: '',
+    cover_image_url: '',
     experiences: [] as Experience[],
     education: [] as Education[],
     skills: [] as Skill[],
@@ -70,9 +72,12 @@ const ProfilePage: React.FC = () => {
     country_code: '',
   });
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [realCounts, setRealCounts] = useState({
     posts: 0,
     connections: 0,
+    expYears: 0,
+    rating: 5.0,
   });
 
   // Location autocomplete state
@@ -84,6 +89,11 @@ const ProfilePage: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
 
+  // Cropping state
+  const [isCropping, setIsCropping] = useState(false);
+  const [isCroppingCover, setIsCroppingCover] = useState(false);
+  const [tempImage, setTempImage] = useState<string | null>(null);
+
   useEffect(() => {
     if (profile) {
       setEditForm({
@@ -93,6 +103,7 @@ const ProfilePage: React.FC = () => {
         location: profile.location || '',
         bio: profile.bio || '',
         profile_picture_url: profile.avatar_url || '',
+        cover_image_url: profile.cover_image_url || '',
         experiences: profile.experiences || [],
         education: profile.education || [],
         skills: profile.skills || [],
@@ -112,7 +123,7 @@ const ProfilePage: React.FC = () => {
               }
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       }
     }
     loadRealCounts();
@@ -178,29 +189,102 @@ const ProfilePage: React.FC = () => {
 
   const loadRealCounts = async () => {
     try {
-      const allPosts = await postService.getFeedPosts();
-      const userPosts = allPosts.filter(post => post.author_id === user?.id);
-      const connections = await connectionService.getConnections();
-      const userConnections = connections.filter(conn =>
+      // 1. Get real counts for posts and connections
+      const allPosts: any[] = await postService.getFeedPosts();
+      const userPosts = allPosts.filter((post: any) => post.author_id === user?.id);
+      const connections: any[] = await connectionService.getConnections();
+      const userConnections = connections.filter((conn: any) =>
         (conn.requester_id === user?.id || conn.addressee_id === user?.id) && conn.status === 'accepted'
       );
+
+      // 2. Calculate experience years from the profile's experiences array
+      let totalMonths = 0;
+      const experiencesToUse = profile?.experiences || [];
+
+      experiencesToUse.forEach((exp: Experience) => {
+        if (exp.startDate) {
+          const start = new Date(exp.startDate);
+          const end = exp.current ? new Date() : (exp.endDate ? new Date(exp.endDate) : new Date());
+
+          // Calculate difference in months
+          const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+          totalMonths += Math.max(0, months);
+        }
+      });
+
+      const expYears = Math.floor(totalMonths / 12);
+
+      // 3. Calculate a "Rating" score based on activity to make it feel dynamic
+      // Starts at 4.5, grows with activity up to 5.0
+      const baseRating = 4.5;
+      const activityScore = (userConnections.length * 0.1) + (userPosts.length * 0.05);
+      const rating = Math.min(5.0, baseRating + activityScore).toFixed(1);
+
       setRealCounts({
         posts: userPosts.length,
         connections: userConnections.length,
+        expYears,
+        rating: parseFloat(rating)
       });
     } catch (error) {
       console.error('Error loading real counts:', error);
-      setRealCounts({ posts: 0, connections: 0 });
+      setRealCounts({ posts: 0, connections: 0, expYears: 0, rating: 4.5 });
     }
   };
 
   const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setProfilePictureFile(file);
-      setEditForm({ ...editForm, profile_picture_url: URL.createObjectURL(file) });
+      const reader = new FileReader();
+      reader.onload = () => {
+        setTempImage(reader.result as string);
+        setIsCropping(true);
+      };
+      reader.readAsDataURL(file);
+      // Reset target value to allow selecting same file again
+      e.target.value = '';
     }
   };
+
+  const handleCropComplete = useCallback((croppedBlob: Blob) => {
+    const croppedFile = new File([croppedBlob], 'profile_picture.jpg', { type: 'image/jpeg' });
+    const croppedUrl = URL.createObjectURL(croppedBlob);
+
+    setProfilePictureFile(croppedFile);
+    setEditForm(prev => ({ ...prev, profile_picture_url: croppedUrl }));
+    setIsCropping(false);
+    setTempImage(null);
+  }, []);
+
+  const handleCropCancel = () => {
+    setIsCropping(false);
+    setIsCroppingCover(false);
+    setTempImage(null);
+  };
+
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        setTempImage(reader.result as string);
+        setIsCroppingCover(true);
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    }
+  };
+
+  const handleCoverCropComplete = useCallback((croppedBlob: Blob) => {
+    const croppedFile = new File([croppedBlob], 'cover_image.jpg', { type: 'image/jpeg' });
+    const croppedUrl = URL.createObjectURL(croppedBlob);
+
+    setCoverImageFile(croppedFile);
+    setEditForm(prev => ({ ...prev, cover_image_url: croppedUrl }));
+    setIsCroppingCover(false);
+    setTempImage(null);
+  }, []);
+
 
   const addItem = (section: keyof typeof editForm, newItem: any) => {
     setEditForm({
@@ -275,12 +359,34 @@ const ProfilePage: React.FC = () => {
         updates.avatar_url = base64String; // Store Base64 in avatar_url
       }
 
+      // Handle cover image file
+      if (coverImageFile) {
+        const maxSizeMB = 10; // Allow slightly larger for cover
+        if (coverImageFile.size > maxSizeMB * 1024 * 1024) {
+          throw new Error(`Cover image file is too large. Maximum size is ${maxSizeMB}MB.`);
+        }
+
+        const base64String = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(coverImageFile);
+        });
+
+        updates.cover_image_url = base64String;
+      }
+
       console.log('Submitting profile updates:', updates);
 
       await profileService.updateProfile(user.id, updates);
-      await updateProfile({ ...profile, ...updates, avatar_url: updates.avatar_url });
+      await updateProfile({
+        ...profile, ...updates,
+        avatar_url: updates.avatar_url || profile.avatar_url,
+        cover_image_url: updates.cover_image_url || profile.cover_image_url
+      });
       setIsEditing(false);
       setProfilePictureFile(null);
+      setCoverImageFile(null);
     } catch (error: any) {
       console.error('Profile update error:', {
         message: error.message,
@@ -300,6 +406,7 @@ const ProfilePage: React.FC = () => {
     setIsEditing(false);
     setSaveError(null);
     setProfilePictureFile(null);
+    setCoverImageFile(null);
     if (profile) {
       setEditForm({
         full_name: profile.full_name || '',
@@ -308,6 +415,7 @@ const ProfilePage: React.FC = () => {
         location: profile.location || '',
         bio: profile.bio || '',
         profile_picture_url: profile.avatar_url || '',
+        cover_image_url: profile.cover_image_url || '',
         experiences: profile.experiences || [],
         education: profile.education || [],
         skills: profile.skills || [],
@@ -351,15 +459,23 @@ const ProfilePage: React.FC = () => {
       {/* Main Content */}
       <main className="flex-1 w-full max-w-[1024px] mx-auto px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8">
         {/* Profile Header Section */}
-        <section className="w-full bg-white rounded-2xl p-6 md:p-10 border border-slate-border-card shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] flex flex-col items-center relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-sage-green/5 via-sage-green/0 to-transparent pointer-events-none"></div>
-          
-          <div className="relative z-10 flex flex-col items-center gap-6 w-full max-w-2xl">
+        <section className="w-full bg-white rounded-2xl border border-slate-border-card shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] flex flex-col items-center relative overflow-hidden group">
+          <div
+            className="absolute top-0 left-0 w-full h-44 bg-cover bg-center"
+            style={profile?.cover_image_url ? { backgroundImage: `url("${profile.cover_image_url}")` } : {}}
+          >
+            {!profile?.cover_image_url && (
+              <div className="absolute inset-0 bg-gradient-to-br from-stone-off via-stone-border to-slate-200"></div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent"></div>
+          </div>
+
+          <div className="relative z-10 flex flex-col items-center gap-4 w-full max-w-2xl mt-28 mb-10">
             <div className="relative">
               <div className="absolute -inset-2 rounded-full bg-gradient-to-tr from-sage-green/20 to-transparent blur-xl opacity-50"></div>
-              <div 
-                className="relative bg-center bg-no-repeat aspect-square bg-cover rounded-full h-32 w-32 border-4 border-white shadow-xl" 
-                style={{backgroundImage: `url("${getProfilePicture()}")`}}
+              <div
+                className="relative bg-center bg-no-repeat aspect-square bg-cover rounded-full h-32 w-32 border-4 border-white shadow-xl"
+                style={{ backgroundImage: `url("${getProfilePicture()}")` }}
               ></div>
               <div className="absolute bottom-1 right-1 bg-emerald-500 border-[3px] border-white size-6 rounded-full shadow-sm" title="Online"></div>
             </div>
@@ -379,23 +495,23 @@ const ProfilePage: React.FC = () => {
 
             <div className="flex flex-wrap justify-center gap-4 md:gap-8 w-full border-y border-slate-border-divider py-5 my-2">
               <div className="flex flex-col items-center px-4">
-                <span className="text-text-main text-xl font-bold">{realCounts.connections}+</span>
+                <span className="text-text-main text-xl font-bold">{realCounts.connections}</span>
                 <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Connections</span>
               </div>
               <div className="w-px bg-slate-border-divider h-10 self-center"></div>
               <div className="flex flex-col items-center px-4">
-                <span className="text-text-main text-xl font-bold">4.9/5</span>
+                <span className="text-text-main text-xl font-bold">{realCounts.rating.toFixed(1)}/5</span>
                 <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Rating</span>
               </div>
               <div className="w-px bg-slate-border-divider h-10 self-center"></div>
               <div className="flex flex-col items-center px-4">
-                <span className="text-text-main text-xl font-bold">8yr</span>
+                <span className="text-text-main text-xl font-bold">{realCounts.expYears}yr</span>
                 <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Exp</span>
               </div>
             </div>
 
             <div className="flex w-full max-w-sm gap-4 mt-2">
-              <button 
+              <button
                 onClick={() => {
                   const profileUrl = `${window.location.origin}/user/${user?.id}`;
                   navigator.clipboard.writeText(profileUrl).then(() => {
@@ -418,7 +534,7 @@ const ProfilePage: React.FC = () => {
                 <Share className="text-[20px]" />
                 Share
               </button>
-              <button 
+              <button
                 onClick={() => setIsEditing(true)}
                 className="flex-1 h-11 px-6 rounded-lg border border-stone-border hover:bg-off-stone bg-white text-slate-900 text-sm font-bold tracking-wide transition-all flex items-center justify-center gap-2"
               >
@@ -456,9 +572,9 @@ const ProfilePage: React.FC = () => {
                       <div key={exp.id} className="relative flex gap-6 group">
                         <div className="relative z-10 shrink-0">
                           <div className="size-[54px] rounded-full bg-white border border-stone-border flex items-center justify-center p-1 group-hover:border-sage-green group-hover:shadow-md transition-all duration-300">
-                            <div 
-                              className="bg-center bg-no-repeat bg-contain rounded-full size-full" 
-                              style={{backgroundImage: `url("${exp.logo}")`}}
+                            <div
+                              className="bg-center bg-no-repeat bg-contain rounded-full size-full"
+                              style={{ backgroundImage: `url("${exp.logo}")` }}
                             ></div>
                           </div>
                         </div>
@@ -532,7 +648,7 @@ const ProfilePage: React.FC = () => {
                 <div className="flex flex-wrap gap-2">
                   {editForm.skills.length > 0 ? (
                     editForm.skills.map((skill) => (
-                      <span 
+                      <span
                         key={skill.id}
                         className="px-3 py-1.5 rounded-md bg-white text-slate-body hover:bg-sage-green/10 hover:text-sage-green cursor-default text-sm font-bold tracking-wide transition-colors border border-stone-border"
                       >
@@ -584,7 +700,7 @@ const ProfilePage: React.FC = () => {
       {/* Footer */}
       <footer className="w-full border-t border-slate-border-divider bg-white py-8 mt-auto">
         <div className="max-w-[1024px] mx-auto px-4 text-center">
-          <p className="text-slate-400 text-sm font-medium">© 2024 Sage & Stone. All rights reserved.</p>
+
         </div>
       </footer>
 
@@ -605,22 +721,54 @@ const ProfilePage: React.FC = () => {
               </div>
             </div>
             <form onSubmit={handleEditSubmit} className="p-8 space-y-8">
-              {/* Profile Picture */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Profile Picture</label>
-                <div className="flex items-center space-x-4">
-                  <img
-                    src={getProfilePicture()}
-                    alt="Preview"
-                    className="w-16 h-16 rounded-full object-cover border border-slate-300"
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfilePictureChange}
-                    className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-                    disabled={isSaving}
-                  />
+              {/* Profile Images */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Profile Picture */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Profile Picture</label>
+                  <div className="flex items-center space-x-4">
+                    <div className="relative group">
+                      <img
+                        src={getProfilePicture()}
+                        alt="Preview"
+                        className="w-20 h-20 rounded-full object-cover border-2 border-slate-200 shadow-sm"
+                      />
+                      <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                        <Edit3 className="text-white h-5 w-5" />
+                      </div>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfilePictureChange}
+                      className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
+                      disabled={isSaving}
+                    />
+                  </div>
+                </div>
+
+                {/* Cover Image */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Cover Image (Background)</label>
+                  <div className="flex items-center space-x-4">
+                    <div className="relative group flex-1">
+                      <div
+                        className="h-20 w-full rounded-lg bg-cover bg-center border-2 border-slate-200 shadow-sm overflow-hidden bg-gradient-to-br from-stone-off via-stone-border to-slate-200"
+                        style={editForm.cover_image_url ? { backgroundImage: `url("${editForm.cover_image_url}")` } : {}}
+                      >
+                      </div>
+                      <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                        <Edit3 className="text-white h-5 w-5" />
+                      </div>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCoverImageChange}
+                      className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
+                      disabled={isSaving}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -734,9 +882,7 @@ const ProfilePage: React.FC = () => {
                     <span>Add</span>
                   </button>
                 </div>
-                <p className="text-xs text-slate-500 mb-4">
-                  💡 Tip: Enter real city, state, or country names for locations (e.g., "San Francisco, CA" or "London, UK")
-                </p>
+
                 {editForm.experiences.map((exp) => (
                   <div key={exp.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
                     <button
@@ -1129,8 +1275,8 @@ const ProfilePage: React.FC = () => {
               {shareSuccess ? 'Link Copied!' : 'Copy Failed'}
             </h3>
             <p className="text-slate-600 text-sm">
-              {shareSuccess 
-                ? 'Profile link has been copied to your clipboard.' 
+              {shareSuccess
+                ? 'Profile link has been copied to your clipboard.'
                 : 'Failed to copy link. Please try again.'
               }
             </p>
@@ -1138,13 +1284,36 @@ const ProfilePage: React.FC = () => {
         </div>
       )}
 
+      {/* Connections Modal */}
       <ConnectionsModal
         isOpen={showConnectionsModal}
         onClose={() => setShowConnectionsModal(false)}
-        onViewProfile={() => {
-          setShowConnectionsModal(false);
-        }}
+        onViewProfile={() => setShowConnectionsModal(false)}
+        userId={profile?.id || user?.id || ''}
       />
+
+      {/* Image Cropper Modals */}
+      {isCropping && tempImage && (
+        <ImageCropper
+          image={tempImage}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspect={1}
+          cropShape="round"
+          title="Crop Profile Picture"
+        />
+      )}
+
+      {isCroppingCover && tempImage && (
+        <ImageCropper
+          image={tempImage}
+          onCropComplete={handleCoverCropComplete}
+          onCancel={handleCropCancel}
+          aspect={3 / 1}
+          cropShape="rect"
+          title="Crop Cover Image"
+        />
+      )}
       <PostsModal
         isOpen={showPostsModal}
         onClose={() => setShowPostsModal(false)}

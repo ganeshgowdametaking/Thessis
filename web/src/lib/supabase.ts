@@ -54,6 +54,16 @@ export const auth = {
         console.error('❌ Sign up error:', error)
         return { data: null, error }
       }
+
+      // Check for existing user (Supabase returns user object but empty identities if already exists)
+      if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+        console.warn('⚠️ User already exists:', email)
+        return {
+          data: null,
+          error: { message: 'An account already exists with this email address. Please sign in instead.' }
+        }
+      }
+
       console.log('✅ Sign up successful, confirmation email sent')
       return { data, error: null }
     } catch (error) {
@@ -211,6 +221,25 @@ export const auth = {
     } catch (error) {
       console.error('❌ Network error during Google sign in:', error)
       return { data: null, error: { message: 'Network connection failed. Please check your internet connection and try again.' } }
+    }
+  },
+
+  updatePassword: async (password: string) => {
+    console.log('🔐 Attempting password update...')
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        password
+      })
+      if (error) {
+        console.error('❌ Password update error:', error)
+        return { data: null, error }
+      } else {
+        console.log('✅ Password update successful')
+        return { data, error: null }
+      }
+    } catch (error) {
+      console.error('❌ Network error during password update:', error)
+      return { data: null, error: { message: 'Network connection failed during password update.' } }
     }
   }
 }

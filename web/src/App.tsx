@@ -1,5 +1,5 @@
 // TankTide v2.0 - Enhanced UI/UX and Smart Messaging System
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import JobsPage from './components/JobsPage';
@@ -43,6 +43,7 @@ import CompanyNewJobPage from './components/CompanyNewJobPage';
 import CompanyApplicantsPage from './components/CompanyApplicantsPage';
 import CompanyIncomingReferralsPage from './components/CompanyIncomingReferralsPage';
 import CompanyProfileBrandingPage from './components/CompanyProfileBrandingPage';
+import ScrollToTop from './components/ScrollToTop';
 import CompanyLayout from './components/CompanyLayout';
 
 // Wrapper component for ApplicationsPage to handle React Router integration
@@ -241,6 +242,7 @@ function App() {
   return (
     <LoadingProvider>
       <Router>
+        <ScrollToTop />
         <Routes>
           <Route path="/*" element={<AppContent />} />
         </Routes>
@@ -259,6 +261,12 @@ function AppContent() {
   const isResetFlow = location.pathname === '/reset-password' || searchParams.get('reset') === 'true' || location.hash.includes('type=recovery') || resetFlowActive;
   const navigate = useNavigate();
 
+  // Helper to check if user is a company user
+  const isCompanyUser = user && (user.user_metadata?.user_type === 'company' || user.user_metadata?.user_type === 'employer');
+
+  // Ref to track if we've already handled the initial redirect
+  const hasRedirected = useRef(false);
+
   useEffect(() => {
     if (location.pathname === '/reset-password' || searchParams.get('reset') === 'true' || location.hash.includes('type=recovery')) {
       setResetFlowActive(true);
@@ -266,12 +274,14 @@ function AppContent() {
   }, [location.pathname, location.hash, searchParams]);
 
   useEffect(() => {
-    if (!loading && user && isAdmin && (location.pathname === '/' || location.pathname === '')) {
+    // Only redirect if we are EXACTLY at the root and have the data, and haven't redirected yet
+    if (!loading && user && isAdmin && location.pathname === '/' && !hasRedirected.current) {
+      hasRedirected.current = true;
       navigate('/analytics', { replace: true });
     }
-  }, [user, isAdmin, loading, location.pathname, navigate]);
+  }, [isAdmin, loading, user, location.pathname, navigate]);
 
-  const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password' }>({
+  const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password' | 'verify-reset-otp' | 'update-password' }>({
     isOpen: false,
     mode: 'signin',
   });
@@ -284,9 +294,79 @@ function AppContent() {
     setAuthModal({ isOpen: false, mode: 'signin' });
   };
 
-  const handleAuthModeChange = (mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password') => {
+  const handleAuthModeChange = (mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password' | 'verify-reset-otp' | 'update-password') => {
     setAuthModal(prev => ({ ...prev, mode }));
   };
+
+  const routes = useMemo(() => (
+    <Routes>
+      {/* Auth callback route - accessible to all users */}
+      <Route path="/auth/callback" element={<AuthCallback />} />
+
+      {/* Public routes - always available */}
+      <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
+      <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
+      <Route path="/terms" element={<TermsOfServiceWrapper />} />
+      <Route path="/data-request" element={<DataRequestFormWrapper />} />
+
+      {/* Company routes - only for company users with separate layout */}
+      {isCompanyUser ? (
+        <>
+          <Route path="/company-dashboard" element={<CompanyLayout><CompanyDashboardPage /></CompanyLayout>} />
+          <Route path="/company-hiring/jobs" element={<CompanyLayout><CompanyJobsPage /></CompanyLayout>} />
+          <Route path="/company-hiring/new" element={<CompanyLayout><CompanyNewJobPage /></CompanyLayout>} />
+          <Route path="/company-hiring/applicants" element={<CompanyLayout><CompanyApplicantsPage /></CompanyLayout>} />
+          <Route path="/company-referrals/incoming" element={<CompanyLayout><CompanyIncomingReferralsPage /></CompanyLayout>} />
+          <Route path="/company-referrals/outgoing" element={<CompanyLayout><div>Outgoing Invites</div></CompanyLayout>} />
+          <Route path="/company-referrals/partners" element={<CompanyLayout><div>My Partners</div></CompanyLayout>} />
+          <Route path="/company-referrals/invite" element={<CompanyLayout><div>Invite Partner</div></CompanyLayout>} />
+          <Route path="/company-profile/branding" element={<CompanyLayout><CompanyProfileBrandingPage /></CompanyLayout>} />
+          <Route path="/company-profile/careers" element={<CompanyLayout><div>Careers Page Preview</div></CompanyLayout>} />
+          <Route path="/company-profile/team" element={<CompanyLayout><div>Team & Access</div></CompanyLayout>} />
+          <Route path="/company-profile/integrations" element={<CompanyLayout><div>Integrations & API Keys</div></CompanyLayout>} />
+          <Route path="/company-settings/account" element={<CompanyLayout><div>Account (Email, Password, 2FA)</div></CompanyLayout>} />
+          <Route path="/company-settings/notifications" element={<CompanyLayout><div>Notifications & Digests</div></CompanyLayout>} />
+          <Route path="/company-settings/help" element={<CompanyLayout><div>Help & Support (Docs, Chat)</div></CompanyLayout>} />
+          <Route path="/company-dashboard/activity" element={<CompanyLayout><div>Recent Activity Feed</div></CompanyLayout>} />
+          <Route path="/company-dashboard/actions" element={<CompanyLayout><div>Quick Actions (Post Job, Invite Partner)</div></CompanyLayout>} />
+        </>
+      ) : null}
+
+      {/* Regular user routes - for all authenticated users (including company users) */}
+      {user ? (
+        <>
+          <Route path="/analytics" element={isAdmin ? <AnalyticsPage /> : <Navigate to="/jobs" replace />} />
+          <Route path="/jobs" element={<JobsPage />} />
+          <Route path="/create-referral" element={<CreateReferralPage />} />
+          <Route path="/applications/:referralId" element={<ApplicationsPageWrapper />} />
+          <Route path="/search-results" element={<SearchResultsPageWrapper key={location.search} />} />
+          <Route path="/messages" element={<MessagesPageWrapper />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
+          <Route path="/settings" element={<SettingsPageWrapper />} />
+          <Route path="/accept-admin-invite" element={<AcceptAdminInvitePage />} />
+          <Route path="*" element={<Navigate to="/jobs" replace />} />
+        </>
+      ) : null}
+
+      {/* Public routes - for non-authenticated users */}
+      {!user && (
+        <>
+          <Route path="/companies" element={<CompanyLandingPage />} />
+          <Route path="/company-signup" element={<CompanySignupPage />} />
+          <Route path="/company-login" element={<CompanyLoginPage />} />
+          <Route path="/company-confirmation" element={<CompanyConfirmationPage />} />
+          <Route path="/company-onboarding" element={<CompanyOnboardingPage />} />
+          <Route path="/company-job-success" element={<CompanyJobSuccessPage />} />
+          {/* Temporary route for testing Password Reset page */}
+          <Route path="/reset-password" element={<PasswordResetPage />} />
+          <Route path="/" element={<HomePageWrapper />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </>
+      )}
+    </Routes>
+  ), [user?.id, isAdmin, isCompanyUser]);
 
   // If this is a password reset flow, show the password reset page regardless of authentication status
   if (isResetFlow) {
@@ -303,97 +383,28 @@ function AppContent() {
     return <LoadingSpinner text="Initializing..." />;
   }
 
-  // Helper to check if user is a company user
-  const isCompanyUser = user && (user.user_metadata?.user_type === 'company' || user.user_metadata?.user_type === 'employer');
-
   return (
-    <TrackingProvider>
-      <div className="flex min-h-screen flex-col bg-slate-100 relative">
-        <GDPRBanner />
-        <Header
-          onSignIn={() => handleOpenAuthModal('signin')}
-          onJoinNow={() => handleOpenAuthModal('signup')}
-        />
-        <main className="flex-grow">
-          <Routes>
-            {/* Auth callback route - accessible to all users */}
-            <Route path="/auth/callback" element={<AuthCallback />} />
+    // <TrackingProvider>
+    <div className="flex min-h-screen flex-col bg-slate-100 relative">
+      <GDPRBanner />
+      <Header
+        onSignIn={() => handleOpenAuthModal('signin')}
+        onJoinNow={() => handleOpenAuthModal('signup')}
+      />
+      <main className="flex-grow">
+        {routes}
+      </main>
+      {!(isMobile && location.pathname === '/messages') && <Footer />}
 
-            {/* Public routes - always available */}
-            <Route path="/privacy-policy" element={<PrivacyPolicyWrapper />} />
-            <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
-            <Route path="/terms" element={<TermsOfServiceWrapper />} />
-            <Route path="/data-request" element={<DataRequestFormWrapper />} />
-
-            {/* Company routes - only for company users with separate layout */}
-            {isCompanyUser ? (
-              <>
-                <Route path="/company-dashboard" element={<CompanyLayout><CompanyDashboardPage /></CompanyLayout>} />
-                <Route path="/company-hiring/jobs" element={<CompanyLayout><CompanyJobsPage /></CompanyLayout>} />
-                <Route path="/company-hiring/new" element={<CompanyLayout><CompanyNewJobPage /></CompanyLayout>} />
-                <Route path="/company-hiring/applicants" element={<CompanyLayout><CompanyApplicantsPage /></CompanyLayout>} />
-                <Route path="/company-referrals/incoming" element={<CompanyLayout><CompanyIncomingReferralsPage /></CompanyLayout>} />
-                <Route path="/company-referrals/outgoing" element={<CompanyLayout><div>Outgoing Invites</div></CompanyLayout>} />
-                <Route path="/company-referrals/partners" element={<CompanyLayout><div>My Partners</div></CompanyLayout>} />
-                <Route path="/company-referrals/invite" element={<CompanyLayout><div>Invite Partner</div></CompanyLayout>} />
-                <Route path="/company-profile/branding" element={<CompanyLayout><CompanyProfileBrandingPage /></CompanyLayout>} />
-                <Route path="/company-profile/careers" element={<CompanyLayout><div>Careers Page Preview</div></CompanyLayout>} />
-                <Route path="/company-profile/team" element={<CompanyLayout><div>Team & Access</div></CompanyLayout>} />
-                <Route path="/company-profile/integrations" element={<CompanyLayout><div>Integrations & API Keys</div></CompanyLayout>} />
-                <Route path="/company-settings/account" element={<CompanyLayout><div>Account (Email, Password, 2FA)</div></CompanyLayout>} />
-                <Route path="/company-settings/notifications" element={<CompanyLayout><div>Notifications & Digests</div></CompanyLayout>} />
-                <Route path="/company-settings/help" element={<CompanyLayout><div>Help & Support (Docs, Chat)</div></CompanyLayout>} />
-                <Route path="/company-dashboard/activity" element={<CompanyLayout><div>Recent Activity Feed</div></CompanyLayout>} />
-                <Route path="/company-dashboard/actions" element={<CompanyLayout><div>Quick Actions (Post Job, Invite Partner)</div></CompanyLayout>} />
-              </>
-            ) : null}
-
-            {/* Regular user routes - for all authenticated users (including company users) */}
-            {user ? (
-              <>
-                <Route path="/analytics" element={isAdmin ? <AnalyticsPage /> : <Navigate to="/jobs" replace />} />
-                <Route path="/jobs" element={<JobsPage />} />
-                <Route path="/create-referral" element={<CreateReferralPage />} />
-                <Route path="/applications/:referralId" element={<ApplicationsPageWrapper />} />
-                <Route path="/search-results" element={<SearchResultsPageWrapper key={location.search} />} />
-                <Route path="/messages" element={<MessagesPageWrapper />} />
-                <Route path="/notifications" element={<NotificationsPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
-                <Route path="/settings" element={<SettingsPageWrapper />} />
-                <Route path="/accept-admin-invite" element={<AcceptAdminInvitePage />} />
-                <Route path="*" element={<Navigate to="/jobs" replace />} />
-              </>
-            ) : null}
-
-            {/* Public routes - for non-authenticated users */}
-            {!user && (
-              <>
-                <Route path="/companies" element={<CompanyLandingPage />} />
-                <Route path="/company-signup" element={<CompanySignupPage />} />
-                <Route path="/company-login" element={<CompanyLoginPage />} />
-                <Route path="/company-confirmation" element={<CompanyConfirmationPage />} />
-                <Route path="/company-onboarding" element={<CompanyOnboardingPage />} />
-                <Route path="/company-job-success" element={<CompanyJobSuccessPage />} />
-                {/* Temporary route for testing Password Reset page */}
-                <Route path="/reset-password" element={<PasswordResetPage />} />
-                <Route path="/" element={<HomePageWrapper />} />
-                <Route path="*" element={<Navigate to="/" />} />
-              </>
-            )}
-          </Routes>
-        </main>
-        {!(isMobile && location.pathname === '/messages') && <Footer />}
-
-        {/* Auth Modal */}
-        <AuthModal
-          isOpen={authModal.isOpen}
-          onClose={handleCloseAuthModal}
-          mode={authModal.mode}
-          onModeChange={handleAuthModeChange}
-        />
-      </div>
-    </TrackingProvider>
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModal.isOpen}
+        onClose={handleCloseAuthModal}
+        mode={authModal.mode}
+        onModeChange={handleAuthModeChange}
+      />
+    </div>
+    // </TrackingProvider>
   );
 }
 

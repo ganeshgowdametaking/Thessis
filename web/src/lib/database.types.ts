@@ -400,7 +400,37 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      delete_connection_safely: {
+        Args: {
+          connection_id: string
+        }
+        Returns: boolean
+      }
+      create_notification_safely: {
+        Args: {
+          notification_type: string
+          notification_title: string
+          notification_message: string
+          target_user_id: string
+          notification_actionable?: boolean
+          notification_priority?: string
+          notification_metadata?: Json | null
+        }
+        Returns: Database['public']['Tables']['notifications']['Row']
+      }
+      delete_conversation_safely: {
+        Args: {
+          conversation_id: string
+          user_id: string
+        }
+        Returns: boolean
+      }
+      check_connection_permissions: {
+        Args: {
+          connection_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

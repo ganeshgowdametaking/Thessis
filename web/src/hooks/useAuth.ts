@@ -150,6 +150,19 @@ export function useAuth() {
     }
   }
 
+  const updatePassword = async (password: string) => {
+    try {
+      setError(null)
+      const { data, error } = await auth.updatePassword(password)
+      if (error) setError(error.message)
+      return { data, error }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Password update failed'
+      setError(errorMessage)
+      return { data: null, error: { message: errorMessage } }
+    }
+  }
+
   return {
     user,
     loading,
@@ -160,6 +173,7 @@ export function useAuth() {
     verifyOTP,
     resendOTP,
     resetPassword,
-    signInWithGoogle
+    signInWithGoogle,
+    updatePassword
   }
 }

@@ -8,6 +8,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 import OfflineMessage from './OfflineMessage';
 import { isOnline, getCachedData, setCachedData, getOfflineMessage } from '../utils/offlineUtils';
+import { supabase } from '../lib/supabase';
 
 interface UserProfilePageProps {
   userId: string;
@@ -54,17 +55,20 @@ interface Achievement {
 }
 
 const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onViewProfile }) => {
-  const { user } = useAuthContext();
+  const { user, userConnections, refreshUserConnections } = useAuthContext();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState<string>('none');
+  // Local connectionStatus removed in favor of global context
+  const connectionStatus = userConnections[userId] || 'none';
   const [connectionLoading, setConnectionLoading] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
   const [realCounts, setRealCounts] = useState({
-    connections: 0
+    connections: 0,
+    expYears: 0,
+    rating: 5.0
   });
   const [isOffline, setIsOffline] = useState(!isOnline());
 
@@ -76,7 +80,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
   useEffect(() => {
     loadUserProfile();
-    loadConnectionStatus();
+    // loadConnectionStatus no longer needed (comes from context)
     loadRealCounts();
     loadBlockingStatus();
   }, [userId]);
@@ -85,7 +89,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     console.log('Loading profile for userId:', userId);
     try {
       setLoading(true);
-      
+
       // Check if there's a blocking relationship first
       const hasBlocking = await blockingService.hasBlockingRelationship(userId);
       if (hasBlocking) {
@@ -98,7 +102,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
         setLoading(false);
         return;
       }
-      
+
       // Check if offline first
       if (!isOnline()) {
         console.log('Device is offline, checking cache...');
@@ -117,37 +121,37 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
         setIsOffline(true);
         return;
       }
-      
+
       // Online - try to load real profile data
       try {
         const userProfile = await profileService.getProfile(userId);
         console.log('Raw profile data from database:', userProfile);
-        
+
         if (userProfile) {
           console.log('Loaded real profile:', userProfile);
           setProfile(userProfile);
-          
+
           // Check if the profile has the extended data fields
           console.log('Profile experiences:', userProfile.experiences);
           console.log('Profile education:', userProfile.education);
           console.log('Profile skills:', userProfile.skills);
           console.log('Profile achievements:', userProfile.achievements);
-          
+
           // Use real data if available, otherwise show empty sections
-          const experiences = Array.isArray(userProfile.experiences) && userProfile.experiences.length > 0 
+          const experiences = Array.isArray(userProfile.experiences) && userProfile.experiences.length > 0
             ? userProfile.experiences : [];
-          const education = Array.isArray(userProfile.education) && userProfile.education.length > 0 
+          const education = Array.isArray(userProfile.education) && userProfile.education.length > 0
             ? userProfile.education : [];
-          const skills = Array.isArray(userProfile.skills) && userProfile.skills.length > 0 
+          const skills = Array.isArray(userProfile.skills) && userProfile.skills.length > 0
             ? userProfile.skills : [];
-          const achievements = Array.isArray(userProfile.achievements) && userProfile.achievements.length > 0 
+          const achievements = Array.isArray(userProfile.achievements) && userProfile.achievements.length > 0
             ? userProfile.achievements : [];
-          
+
           setExperiences(experiences);
           setEducation(education);
           setSkills(skills);
           setAchievements(achievements);
-          
+
           // Cache the profile data for offline use
           setCachedData(`profile_${userId}`, {
             profile: userProfile,
@@ -156,12 +160,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
             skills,
             achievements
           });
-          
+
+          // Load real counts with the profile data
+          loadRealCounts(userProfile);
           return; // Exit early if we got real data
         }
       } catch (profileError) {
         console.log('Error loading real profile:', profileError);
-        
+
         // Try cached data on error
         const cachedProfile = getCachedData(`profile_${userId}`);
         if (cachedProfile) {
@@ -174,7 +180,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
           return;
         }
       }
-      
+
       // No real profile found and no cache - show as unavailable
       console.log('No profile data available for userId:', userId);
       setProfile(null);
@@ -182,7 +188,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
       setEducation([]);
       setSkills([]);
       setAchievements([]);
-      
+
     } catch (error) {
       console.error('Error in loadUserProfile:', error);
       setProfile(null);
@@ -192,41 +198,54 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     }
   };
 
-  const loadConnectionStatus = async () => {
-    if (userId === user?.id) return;
-    
-    try {
-      const status = await connectionService.getConnectionStatus(userId);
-      setConnectionStatus(status);
-    } catch (error) {
-      console.error('Error loading connection status:', error);
-    }
-  };
+  // loadConnectionStatus removed: using userConnections from context
 
-  const loadRealCounts = async () => {
+  const loadRealCounts = async (userProfile?: any) => {
     try {
-      const connections = await connectionService.getConnections();
-      const userConnections = connections.filter(conn => 
-        conn && 
-        conn.requester_id && 
-        conn.addressee_id && 
-        conn.status &&
-        (conn.requester_id === userId || conn.addressee_id === userId) && 
-        conn.status === 'accepted'
-      );
-      
+      // 1. Count connections
+      const { count, error } = await supabase
+        .from('connections')
+        .select('*', { count: 'planned', head: true })
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+
+      if (error) throw error;
+      const connectionsCount = count || 0;
+
+      // 2. Calculate experience from profile (passed in or from state)
+      const targetProfile = userProfile || profile;
+      let totalMonths = 0;
+
+      if (targetProfile && Array.isArray(targetProfile.experiences)) {
+        targetProfile.experiences.forEach((exp: any) => {
+          if (exp.startDate) {
+            const start = new Date(exp.startDate);
+            const end = exp.current ? new Date() : (exp.endDate ? new Date(exp.endDate) : new Date());
+            const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+            totalMonths += Math.max(0, months);
+          }
+        });
+      }
+
+      const expYears = Math.floor(totalMonths / 12);
+
+      // 3. Rating dynamic placeholder based on connections
+      const baseRating = 4.5;
+      const rating = Math.min(5.0, baseRating + (connectionsCount * 0.1)).toFixed(1);
+
       setRealCounts({
-        connections: userConnections.length
+        connections: connectionsCount,
+        expYears,
+        rating: parseFloat(rating)
       });
     } catch (error) {
       console.error('Error loading real counts:', error);
-      setRealCounts({ connections: 500 }); // Fallback to mock data
     }
   };
 
   const loadBlockingStatus = async () => {
     if (userId === user?.id) return;
-    
+
     try {
       const blocked = await blockingService.isUserBlocked(userId);
       setIsBlocked(blocked);
@@ -322,25 +341,22 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     if (!user || userId === user.id) return;
     try {
       setConnectionLoading(true);
-      
+
       if (connectionStatus === 'none') {
         // Send connection request
         await connectionService.sendConnectionRequest(userId);
         await new Promise(res => setTimeout(res, 300));
-        const status = await connectionService.forceRefreshConnectionStatus(userId);
-        setConnectionStatus(status);
+        refreshUserConnections(); // Update global state
       } else if (connectionStatus === 'pending_sent') {
         // Cancel connection request
         await connectionService.cancelConnectionRequest(userId);
         await new Promise(res => setTimeout(res, 300));
-        const status = await connectionService.forceRefreshConnectionStatus(userId);
-        setConnectionStatus(status);
+        refreshUserConnections(); // Update global state
       } else if (connectionStatus === 'connected') {
         // Disconnect from user
         await connectionService.cancelConnectionRequest(userId);
         await new Promise(res => setTimeout(res, 300));
-        const status = await connectionService.forceRefreshConnectionStatus(userId);
-        setConnectionStatus(status);
+        refreshUserConnections(); // Update global state
         // Reload connection counts after disconnecting
         loadRealCounts();
       } else if (connectionStatus === 'pending_received') {
@@ -360,13 +376,13 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
     try {
       // Navigate to messages page with user ID - don't create conversation yet
-      navigate('/messages', { 
-        state: { 
+      navigate('/messages', {
+        state: {
           selectedApplicant: userId,
           msgNavTs: Date.now() // Add timestamp to ensure navigation happens
-        } 
+        }
       });
-      
+
     } catch (error) {
       console.error('Error navigating to messages:', error);
       alert('Failed to open conversation. Please try again.');
@@ -375,11 +391,11 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
   const handleBlock = async () => {
     if (!user || userId === user.id) return;
-    
+
     try {
       setBlockLoading(true);
       setShowActionsMenu(false);
-      
+
       if (isBlocked) {
         // Unblock the user
         await blockingService.unblockUser(userId);
@@ -401,7 +417,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
   const getConnectionButtonText = () => {
     if (connectionLoading) return 'Loading...';
-    
+
     switch (connectionStatus) {
       case 'connected': return 'Disconnect';
       case 'pending_sent': return 'Cancel Request';
@@ -412,14 +428,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
   const getConnectionButtonStyle = () => {
     switch (connectionStatus) {
-      case 'connected': 
-        return 'flex-1 lg:flex-none h-10 px-5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
-      case 'pending_sent': 
-        return 'flex-1 lg:flex-none h-10 px-5 bg-slate-500 hover:bg-slate-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
-      case 'pending_received': 
-        return 'flex-1 lg:flex-none h-10 px-5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
-      default: 
-        return 'flex-1 lg:flex-none h-10 px-5 bg-sage hover:bg-sage-dark text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
+      case 'connected':
+        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-slate-500 hover:bg-slate-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
+      case 'pending_sent':
+        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-slate-500 hover:bg-slate-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
+      case 'pending_received':
+        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
+      default:
+        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-sage hover:bg-sage-dark text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
     }
   };
 
@@ -436,22 +452,22 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     if (user?.avatar_url) {
       return user.avatar_url;
     }
-    
+
     const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
     const colorIndex = user?.id ? user.id.charCodeAt(0) % colors.length : 0;
     const backgroundColor = colors[colorIndex];
-    
+
     const initials = user?.full_name
       ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
       : 'U';
-    
+
     const svg = `
       <svg width="150" height="150" xmlns="http://www.w3.org/2000/svg">
         <rect width="150" height="150" fill="${backgroundColor}"/>
         <text x="75" y="85" font-family="Arial, sans-serif" font-size="60" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
       </svg>
     `;
-    
+
     return `data:image/svg+xml;base64,${btoa(svg)}`;
   };
 
@@ -477,7 +493,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     return (
       <div className="bg-stone text-slate-700 min-h-screen flex flex-col">
         <div className="flex-1 flex items-center justify-center">
-          <OfflineMessage 
+          <OfflineMessage
             {...getOfflineMessage('profile')}
             showRetry={true}
             onRetry={loadUserProfile}
@@ -498,7 +514,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
             </div>
             <h3 className="text-xl font-bold text-slate-900 mb-3">Profile not found</h3>
             <p className="text-slate-600">This user profile could not be loaded.</p>
-            <button 
+            <button
               onClick={onBack}
               className="mt-6 bg-sage hover:bg-sage-dark text-white px-6 py-3 rounded-lg font-semibold transition-colors"
             >
@@ -518,7 +534,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
         <div className="w-full max-w-6xl">
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative">
             {/* Back Button */}
-            <button 
+            <button
               className="absolute top-4 left-4 z-10 p-2 bg-white bg-opacity-80 hover:bg-stone-off backdrop-blur-sm rounded-full shadow-sm text-slate-500 hover:text-sage transition-all border border-stone-border"
               onClick={onBack}
               aria-label="Go back"
@@ -528,13 +544,21 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
             {/* Header Section */}
             <div className="relative w-full">
-              <div className="h-44 w-full bg-gradient-to-br from-stone-off via-stone-border to-slate-200 border-b border-transparent"></div>
-              
+              <div
+                className="h-44 w-full bg-cover bg-center border-b border-transparent relative overflow-hidden"
+                style={profile?.cover_image_url ? { backgroundImage: `url("${profile.cover_image_url}")` } : {}}
+              >
+                {!profile?.cover_image_url && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-stone-off via-stone-border to-slate-200"></div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent"></div>
+              </div>
+
               <div className="px-6 md:px-10 pb-8">
-                <div className="flex flex-col md:flex-row gap-6 items-start -mt-16 relative">
+                <div className="flex flex-col md:flex-row gap-6 items-start -mt-14 md:-mt-16 relative">
                   {/* Profile Picture */}
                   <div className="relative group">
-                    <div 
+                    <div
                       className="bg-center bg-no-repeat bg-cover rounded-full h-32 w-32 border-4 border-white shadow-md flex-shrink-0 bg-stone-off"
                       style={{ backgroundImage: `url("${getProfilePicture(profile)}")` }}
                     ></div>
@@ -542,7 +566,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                   </div>
 
                   {/* Profile Info */}
-                  <div className="flex-1 pt-2 md:pt-16 flex flex-col w-full">
+                  <div className="flex-1 pt-2 md:pt-20 flex flex-col w-full">
                     <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -556,14 +580,22 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                         <p className="text-slate-700 text-lg font-medium">
                           {profile.title || 'Senior Product Manager'} at <span className="text-slate-900 font-semibold">{profile.company || 'TechFlow'}</span>
                         </p>
-                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2 text-sm text-slate-500">
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2 text-sm text-slate-500 font-medium">
                           <span className="flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-lg">location_on</span>
+                            <span className="material-symbols-outlined text-lg text-slate-400">location_on</span>
                             {profile.location || 'San Francisco, CA'}
                           </span>
                           <span className="flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-lg">group</span>
-                            {realCounts.connections}+ Connections
+                            <span className="material-symbols-outlined text-lg text-slate-400">group</span>
+                            <span className="text-slate-900 font-bold">{realCounts.connections}</span> Connections
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-lg text-slate-400">star</span>
+                            <span className="text-slate-900 font-bold">{realCounts.rating.toFixed(1)}/5</span> Rating
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-lg text-slate-400">history</span>
+                            <span className="text-slate-900 font-bold">{realCounts.expYears}yr</span> Exp
                           </span>
                         </div>
                         <p className="mt-4 text-slate-700 max-w-2xl text-sm leading-relaxed">
@@ -574,7 +606,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                       {/* Action Buttons */}
                       {userId !== user?.id && (
                         <div className="flex items-center gap-3 w-full lg:w-auto mt-4 lg:mt-0">
-                          <button 
+                          <button
                             className={getConnectionButtonStyle()}
                             onClick={handleConnect}
                             disabled={connectionLoading}
@@ -582,37 +614,36 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                             <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">{getConnectionButtonIcon()}</span>
                             {getConnectionButtonText()}
                           </button>
-                          
-                          <button 
-                            className="flex-1 lg:flex-none h-10 px-5 bg-white border border-stone-border hover:bg-stone-off hover:border-sage text-slate-900 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+
+                          <button
+                            className="flex-1 lg:flex-none lg:min-w-[120px] h-10 px-5 bg-white border border-stone-border hover:bg-stone-off hover:border-sage text-slate-900 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
                             onClick={handleMessage}
                           >
                             <span className="material-symbols-outlined text-xl">mail</span>
                             Message
                           </button>
-                          
+
                           <div className="relative group/menu">
-                            <button 
+                            <button
                               className="h-10 w-10 flex items-center justify-center bg-white border border-stone-border hover:bg-stone-off rounded-lg text-slate-500 transition-colors"
                               onClick={() => setShowActionsMenu(!showActionsMenu)}
                             >
                               <span className="material-symbols-outlined">more_horiz</span>
                             </button>
-                            
+
                             {showActionsMenu && (
                               <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-stone-border overflow-hidden z-20">
-                                <button 
-                                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${
-                                    isBlocked 
-                                      ? 'text-green-600 hover:bg-green-50' 
-                                      : 'text-red-500 hover:bg-red-50'
-                                  } ${blockLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                <button
+                                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isBlocked
+                                    ? 'text-green-600 hover:bg-green-50'
+                                    : 'text-red-500 hover:bg-red-50'
+                                    } ${blockLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                                   onClick={handleBlock}
                                   disabled={blockLoading}
                                 >
                                   <span className="material-symbols-outlined text-lg">
                                     {blockLoading ? 'hourglass_empty' : isBlocked ? 'check_circle' : 'block'}
-                                  </span> 
+                                  </span>
                                   {blockLoading ? 'Loading...' : isBlocked ? 'Unblock' : 'Block'}
                                 </button>
                               </div>
@@ -640,7 +671,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                     </div>
                     <h2 className="text-xl font-bold text-slate-900">Experience</h2>
                   </div>
-                  
+
                   <div className="space-y-8">
                     {Array.isArray(experiences) && experiences.map((exp) => (
                       <div key={exp.id} className="flex gap-4 group">
@@ -679,7 +710,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                     </div>
                     <h2 className="text-xl font-bold text-slate-900">Education</h2>
                   </div>
-                  
+
                   <div className="space-y-6">
                     {Array.isArray(education) && education.map((edu) => (
                       <div key={edu.id} className="flex gap-4 items-start">
@@ -717,7 +748,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                     Skills
                     <div className="h-px bg-stone-border flex-1"></div>
                   </h3>
-                  
+
                   <div className="space-y-4">
                     {Array.isArray(skills) && skills.map((skill) => (
                       <div key={skill.id}>
@@ -726,8 +757,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                           <span className="text-xs font-bold text-green-500">{skill.level}%</span>
                         </div>
                         <div className="w-full bg-stone-border rounded-full h-2 overflow-hidden">
-                          <div 
-                            className="bg-sage h-2 rounded-full transition-all duration-1000 ease-out" 
+                          <div
+                            className="bg-sage h-2 rounded-full transition-all duration-1000 ease-out"
                             style={{ width: `${skill.level}%` }}
                           ></div>
                         </div>
@@ -745,14 +776,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                     Achievements
                     <div className="h-px bg-stone-border flex-1"></div>
                   </h3>
-                  
+
                   <div className="space-y-4">
                     {Array.isArray(achievements) && achievements.map((achievement) => (
                       <div key={achievement.id} className="flex gap-3">
                         <div className="text-slate-500 bg-white p-1.5 rounded-lg h-fit flex-shrink-0">
                           <span className="material-symbols-outlined text-xl">
-                            {achievement.type === 'Award' ? 'emoji_events' : 
-                             achievement.type === 'Certification' ? 'psychology' : 'workspace_premium'}
+                            {achievement.type === 'Award' ? 'emoji_events' :
+                              achievement.type === 'Certification' ? 'psychology' : 'workspace_premium'}
                           </span>
                         </div>
                         <div>
@@ -778,7 +809,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                     Links
                     <div className="h-px bg-stone-border flex-1"></div>
                   </h3>
-                  
+
                   <div className="space-y-2">
                     {profile.website && (
                       <a className="group flex items-center gap-3 text-sm text-slate-900 py-2 px-2 -mx-2 rounded-lg hover:bg-white transition-colors" href={profile.website} target="_blank" rel="noopener noreferrer">

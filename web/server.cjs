@@ -14,7 +14,7 @@ const s3 = new S3Client({ region: process.env.AWS_REGION });
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'http://localhost:5174', 
+    'http://localhost:5174',
     'http://localhost:5175',
     'http://localhost:5176',
     'http://localhost:5177',
@@ -55,7 +55,7 @@ app.post('/upload-file', upload.single('file'), async (req, res) => {
     });
 
     await s3.send(command);
-    
+
     // Return the S3 URL without query parameters
     const s3Url = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
     res.json({ url: s3Url });
@@ -92,6 +92,65 @@ app.post('/generate-download-url', async (req, res) => {
 
   const url = await getSignedUrl(s3, command, { expiresIn: 900 }); // 15 min
   res.json({ url });
+});
+
+// Send feedback email via Mailgun
+app.post('/send-feedback', async (req, res) => {
+  try {
+    const { subject, message, userEmail, userName } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Feedback message is required' });
+    }
+
+    const domain = process.env.MAILGUN_DOMAIN;
+    const apiKey = process.env.MAILGUN_API_KEY;
+    const fromEmail = process.env.MAILGUN_FROM_EMAIL || `TankTide Feedback <feedback@${domain}>`;
+
+    if (!domain || !apiKey) {
+      console.error('❌ Mailgun configuration missing');
+      return res.status(500).json({ error: 'Email service not configured' });
+    }
+
+    const auth = Buffer.from(`api:${apiKey}`).toString('base64');
+
+    const formData = new URLSearchParams();
+    formData.append('from', fromEmail);
+    formData.append('to', 'info@tanktide.com');
+    formData.append('subject', `[TankTide Feedback] ${subject || 'New Feedback'}`);
+    formData.append('text', `
+New feedback received from TankTide User:
+------------------------------------------
+Name: ${userName || 'Anonymous'}
+Email: ${userEmail || 'Not provided'}
+Subject: ${subject || 'General'}
+Time: ${new Date().toLocaleString()}
+
+Feedback:
+"${message}"
+------------------------------------------
+    `);
+
+    const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: formData.toString()
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ Mailgun error:', errorData);
+      throw new Error(errorData.message || 'Failed to send email');
+    }
+
+    res.json({ success: true, message: 'Feedback sent successfully' });
+  } catch (error) {
+    console.error('Feedback error:', error);
+    res.status(500).json({ error: 'Failed to send feedback' });
+  }
 });
 
 app.listen(port, () => {
