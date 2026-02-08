@@ -193,7 +193,6 @@ const CreateReferralPage: React.FC = () => {
   };
 
   const deleteReferral = async (jobId: string) => {
-    if (!confirm('Are you sure you want to delete this referral?')) return;
 
     try {
       const { error } = await supabase
