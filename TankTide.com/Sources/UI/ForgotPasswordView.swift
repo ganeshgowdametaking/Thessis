@@ -123,19 +123,22 @@ struct ForgotPasswordView: View {
                 
                 Spacer()
                 
-                // Footer
-                Button {
-                    dismiss()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.left")
-                            .font(.system(size: 14, weight: .bold))
-                        Text("Back to Sign In")
-                            .font(.system(size: 14, weight: .bold))
+                // Back Button
+                HStack {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(Theme.textMain)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white)
+                            .clipShape(Circle())
+                            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
                     }
-                    .foregroundColor(Theme.textMain)
-                    .padding(.bottom, 30)
+                    Spacer()
                 }
+                .padding(.bottom, 20)
             }
         }
         .navigationBarHidden(true)

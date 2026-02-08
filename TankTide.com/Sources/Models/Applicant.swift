@@ -32,10 +32,12 @@ struct Applicant: Identifiable, Codable {
     var coverLetter: String?
     var resumeUrl: String?
     var appliedDate: String?
+    var skills: [String]?
     
     enum CodingKeys: String, CodingKey {
-        case id, name, role, company, location, status, email, phone
+        case id, name, role, company, location, status, email, phone, skills
         case imageUrl = "image_url"
+
         case linkedIn = "linkedin"
         case coverLetter = "cover_letter"
         case resumeUrl = "resume_url"

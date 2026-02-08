@@ -5,6 +5,7 @@ struct Job: Identifiable, Decodable {
     let id: String
     let title: String
     let company: String
+    let department: String?
     let location: String
     let salary: String? // Made optional
     var type: String // Mapped from job_type
@@ -36,7 +37,12 @@ struct Job: Identifiable, Decodable {
     let status: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, title, company, location, salary
+        case id
+        case title
+        case company
+        case location
+        case salary
+        case department
         case type = "job_type"
         case description
         case skills
@@ -71,6 +77,7 @@ struct Job: Identifiable, Decodable {
         title = try container.decode(String.self, forKey: .title)
         company = try container.decode(String.self, forKey: .company)
         location = try container.decode(String.self, forKey: .location)
+        department = try container.decodeIfPresent(String.self, forKey: .department)
         
         // Handle mapped fields
         if let dbType = try? container.decode(String.self, forKey: .type) {
@@ -146,6 +153,7 @@ struct Job: Identifiable, Decodable {
         self.hiringManagerName = hiringManagerName
         self.hiringManagerTitle = hiringManagerTitle
         self.hiringManagerImage = hiringManagerImage
+        self.department = "Design"
         self.createdAt = nil
         self.status = "active"
         self.createdBy = nil
@@ -180,4 +188,31 @@ extension Job {
             hiringManagerImage: "person.crop.circle.fill"
         )
     ]
+}
+// MARK: - Insert Model
+struct JobInsert: Encodable {
+    let title: String
+    let company: String
+    let department: String?
+    let location: String
+    let jobType: String
+    let experienceLevel: String
+    let description: String
+    let skills: [String]
+    let remoteAvailable: Bool
+    let urgentHiring: Bool
+    let createdBy: String
+    let status: String
+    let createdAt: String
+    
+    enum CodingKeys: String, CodingKey {
+        case title, company, department, location, skills, status
+        case jobType = "job_type"
+        case experienceLevel = "experience_level"
+        case description
+        case remoteAvailable = "remote_available"
+        case urgentHiring = "urgent_hiring"
+        case createdBy = "created_by"
+        case createdAt = "created_at"
+    }
 }

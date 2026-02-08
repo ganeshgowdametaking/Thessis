@@ -47,6 +47,7 @@ struct HomeView: View {
             Task {
                 await jobService.fetchJobs()
                 await ConnectionService.shared.fetchConnections()
+                await ApplicationService.shared.fetchMyApplications()
             }
         }
     }
@@ -153,14 +154,21 @@ struct HomeView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(Theme.textSecondary)
             
-            TextField("Search roles or companies...", text: $searchText)
-                .font(.system(size: 14))
-                .foregroundColor(Theme.textMain)
-                .onSubmit {
-                    if !searchText.isEmpty {
-                       shouldNavigateToResults = true
-                    }
+            ZStack(alignment: .leading) {
+                if searchText.isEmpty {
+                    Text("Search jobs, people or companies....")
+                        .font(.system(size: 14))
+                        .foregroundColor(Theme.textMuted.opacity(0.6))
                 }
+                TextField("", text: $searchText)
+                    .font(.system(size: 14))
+                    .foregroundColor(Theme.textMain)
+                    .onSubmit {
+                        if !searchText.isEmpty {
+                           shouldNavigateToResults = true
+                        }
+                    }
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)

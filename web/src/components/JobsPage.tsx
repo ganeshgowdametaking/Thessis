@@ -23,19 +23,9 @@ interface ApplicationFormData {
 }
 
 const JobsPage: React.FC = () => {
-  console.log('🔍 JobsPage component loading...');
   const { user, profile } = useAuthContext();
   const navigate = useNavigate();
-  
-  // Debug logging
-  useEffect(() => {
-    console.log('🔍 DEBUG: User state changed:', user);
-    if (user) {
-      console.log('🔍 DEBUG: User ID:', user.id);
-      console.log('🔍 DEBUG: User email:', user.email);
-    }
-  }, [user]);
-  
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,8 +48,8 @@ const JobsPage: React.FC = () => {
     customFields: {},
   });
   const [applicationError, setApplicationError] = useState<string | null>(null);
-  const [appliedJobs, setAppliedJobs] = useState<string[]>([]); 
- const [applicationsCount, setApplicationsCount] = useState(0);
+  const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
+  const [applicationsCount, setApplicationsCount] = useState(0);
   const [applicationStep, setApplicationStep] = useState(1);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -75,19 +65,20 @@ const JobsPage: React.FC = () => {
 
   const jobUrl = selectedJob ? `${window.location.origin}/jobs/${selectedJob.id}` : '';
 
+  // Ref to prevent double-fetching on mount
+  const hasFetched = React.useRef(false);
+
   useEffect(() => {
+    if (hasFetched.current) return;
     loadData();
-  }, []);
+    hasFetched.current = true;
+  }, []); // Logic stable, only run once on mount
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showSortDropdown) {
-        setShowSortDropdown(false);
-      }
-      if (showJobTypeDropdown) {
-        setShowJobTypeDropdown(false);
-      }
+      if (showSortDropdown) setShowSortDropdown(false);
+      if (showJobTypeDropdown) setShowJobTypeDropdown(false);
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -96,74 +87,74 @@ const JobsPage: React.FC = () => {
     };
   }, [showSortDropdown, showJobTypeDropdown]);
 
-  // Separate effect to load user-specific data when user changes
+  // Separate effect to load user-specific data when user ID changes
+  const lastUserIdRef = React.useRef<string | null>(null);
   useEffect(() => {
+    const currentUserId = user?.id || null;
+
+    // Skip if user ID hasn't actually changed
+    if (currentUserId === lastUserIdRef.current) return;
+    lastUserIdRef.current = currentUserId;
+
     if (user) {
       loadUserJobs();
       loadUserApplications();
     } else {
-      // Clear user-specific data when user logs out
       setUserJobs([]);
       setAppliedJobs([]);
       setApplicationsCount(0);
     }
-  }, [user]);
+  }, [user?.id]); // Use user.id, not the full object
 
   const loadData = async () => {
     setLoading(true);
-    
-    // DEBUG: Check applications table schema
-    console.log('🔍 DEBUG: Checking applications table schema...');
+    // Removed debugCheckApplicationsTable call to prevent spam
+
     try {
-      await jobService.debugCheckApplicationsTable();
-    } catch (error) {
-      console.error('❌ DEBUG: Error checking applications table:', error);
+      await Promise.all([
+        loadJobs(),
+        loadUserJobs(),
+        loadUserApplications()
+      ]);
+    } catch (e) {
+      console.error('Error loading initial data:', e);
+    } finally {
+      setLoading(false);
     }
-    
-    await Promise.all([
-      loadJobs(),
-      loadUserJobs(),
-      loadUserApplications()
-    ]);
-    setLoading(false);
   };
 
   const loadJobs = async () => {
     try {
       setError(null);
-      
-      // TEMPORARY DEBUG - Call debug function first
-      console.log('🔍 DEBUG: Calling debug function...');
-      await jobService.debugGetAllJobs();
-      
+      // Removed debugGetAllJobs call to prevent overload
+
       const data = await jobService.getJobs(filters);
-      
-      // TODO: Re-implement job filtering with proper user identification
-      // For now, disable filtering to restore job functionality
-      // const filteredJobs = await blockingService.filterBlockedUsers(data || []);
       setJobs(data || []);
-      
-      // Only auto-select first job on desktop (not mobile)
+
       if (!selectedJob && data && data.length > 0 && !isMobile) {
         setSelectedJob(data[0]);
       }
     } catch (error: any) {
+      console.error('Failed to load jobs:', error);
+      // Don't show full error UI for a temporary network blip if we can help it
+      // But if it fails completely, set the error state
       setError(error.message || 'Failed to load jobs.');
     }
-  };  const
- loadUserJobs = async () => {
-    if (!user) {
-      setUserJobs([]);
-      return;
-    }
-    try {
-      const data = await jobService.getUserJobs();
-      setUserJobs(data.map((j: Job) => j.id));
-    } catch (error) {
-      console.error('Error loading user jobs:', error);
-      setUserJobs([]);
-    }
   };
+  const
+    loadUserJobs = async () => {
+      if (!user) {
+        setUserJobs([]);
+        return;
+      }
+      try {
+        const data = await jobService.getUserJobs();
+        setUserJobs(data.map((j: Job) => j.id));
+      } catch (error) {
+        console.error('Error loading user jobs:', error);
+        setUserJobs([]);
+      }
+    };
 
   const loadUserApplications = async () => {
     if (!user) {
@@ -268,20 +259,20 @@ const JobsPage: React.FC = () => {
       experienceLevel: ''
     });
     setSearchQuery(''); // Clear search query when clearing filters
-    
+
     // Clear selected job on mobile when clearing filters
     if (isMobile) {
       setSelectedJob(null);
     }
-    
+
     loadJobs();
     setShowFilters(false);
   };
 
   const handleSelectJob = (job: Job) => {
     setSelectedJob(job);
-  };  
-const handleApplyToJob = () => {
+  };
+  const handleApplyToJob = () => {
     if (!user) {
       setApplicationError('Please sign in to apply for jobs. Click "Sign In" in the header to get started.');
       return;
@@ -343,11 +334,11 @@ const handleApplyToJob = () => {
     if (!emailRegex.test(applicationForm.email)) {
       setApplicationError('Please enter a valid email address.');
       return;
-    }   
- try {
+    }
+    try {
       setApplicationError(null);
       const file = applicationForm.resume as File;
-      
+
       // For development: Convert file to base64 instead of uploading to S3
       const fileReader = new FileReader();
       const fileData = await new Promise<string>((resolve, reject) => {
@@ -390,29 +381,29 @@ const handleApplyToJob = () => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
-    
+
     const diffInWeeks = Math.floor(diffInDays / 7);
     if (diffInWeeks < 4) return `${diffInWeeks} week${diffInWeeks > 1 ? 's' : ''} ago`;
-    
+
     const diffInMonths = Math.floor(diffInDays / 30);
     return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
-  };  const
- filteredJobs = jobs.filter(job => {
-    const matchesSearch = 
-       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilters = 
-      (!filters.location || job.location.toLowerCase().includes(filters.location.toLowerCase())) &&
-      (!filters.jobType || job.job_type === filters.jobType) &&
-      (!filters.remote || job.remote_available);
-    return matchesSearch && matchesFilters;
-  });
+  }; const
+    filteredJobs = jobs.filter(job => {
+      const matchesSearch =
+        job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.company.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFilters =
+        (!filters.location || job.location.toLowerCase().includes(filters.location.toLowerCase())) &&
+        (!filters.jobType || job.job_type === filters.jobType) &&
+        (!filters.remote || job.remote_available);
+      return matchesSearch && matchesFilters;
+    });
 
   const handleCopy = () => {
     navigator.clipboard.writeText(jobUrl);
@@ -480,7 +471,7 @@ const handleApplyToJob = () => {
               <div className="flex flex-col">
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">Job Referrals</h1>
               </div>
-              <button 
+              <button
                 onClick={handleCreateReferralClick}
                 className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-sm font-bold px-4 h-10 rounded-lg transition-colors shadow-lg shadow-primary/20"
               >
@@ -491,38 +482,37 @@ const handleApplyToJob = () => {
             <div className="flex gap-3 mt-2">
               <div className="flex flex-1 items-center rounded-lg bg-white border border-stone-divider focus-within:ring-2 focus-within:ring-primary/50 transition-all shadow-sm">
                 <Search className="text-slate-500 pl-3" />
-                <input 
-                  className="w-full bg-transparent border-none text-sm px-3 py-2.5 placeholder:text-slate-500 text-slate-900 focus:ring-0" 
+                <input
+                  className="w-full bg-transparent border-none text-sm px-3 py-2.5 placeholder:text-slate-500 text-slate-900 focus:ring-0"
                   placeholder="Search role, company..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
                 />
               </div>
-              <button 
+              <button
                 onClick={() => setShowFilters(true)}
                 className="flex items-center justify-center bg-white border border-stone-divider hover:bg-slate-50 rounded-lg size-[42px] transition-colors shrink-0 text-slate-500 hover:text-primary shadow-sm"
               >
                 <List className="text-[20px]" />
               </button>
             </div>
-          </div>       
-   {/* Jobs List */}
+          </div>
+          {/* Jobs List */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {filteredJobs.length > 0 ? (
               filteredJobs.map((job, index) => {
                 const isSelected = selectedJob?.id === job.id;
                 const isFirstJob = index === 0;
-                
+
                 return (
                   <div
                     key={job.id}
                     onClick={() => handleSelectJob(job)}
-                    className={`group relative flex gap-4 p-4 rounded-xl cursor-pointer transition-all ${
-                      isSelected || isFirstJob 
-                        ? 'bg-white border border-slate-100 border-l-primary shadow-sm' 
-                        : 'border border-transparent hover:bg-white hover:border-slate-100 hover:border-l-primary hover:shadow-sm'
-                    }`}
+                    className={`group relative flex gap-4 p-4 rounded-xl cursor-pointer transition-all ${isSelected || isFirstJob
+                      ? 'bg-white border border-slate-100 border-l-primary shadow-sm'
+                      : 'border border-transparent hover:bg-white hover:border-slate-100 hover:border-l-primary hover:shadow-sm'
+                      }`}
                   >
                     <div className="shrink-0">
                       <div className="bg-center bg-no-repeat bg-contain bg-white rounded-lg size-12 shadow-sm border border-slate-100 p-1">
@@ -534,9 +524,8 @@ const handleApplyToJob = () => {
                     </div>
                     <div className="flex flex-1 flex-col justify-center min-w-0">
                       <div className="flex justify-between items-start">
-                        <h3 className={`text-base font-bold truncate pr-2 ${
-                          isSelected || isFirstJob ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'
-                        }`}>
+                        <h3 className={`text-base font-bold truncate pr-2 ${isSelected || isFirstJob ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'
+                          }`}>
                           {job.title}
                         </h3>
                         {job.urgent_hiring && (
@@ -591,8 +580,8 @@ const handleApplyToJob = () => {
               </div>
             )}
           </div>
-        </aside>  
-      {/* Main Content */}
+        </aside>
+        {/* Main Content */}
         <section className="flex-1 overflow-y-auto bg-white scroll-smooth">
           {selectedJob ? (
             <div className="max-w-4xl mx-auto p-8 lg:p-12 pb-24">
@@ -606,7 +595,7 @@ const handleApplyToJob = () => {
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <button 
+                    <button
                       onClick={() => setShowShareModal(true)}
                       className="flex items-center justify-center size-10 rounded-lg border border-stone-divider text-slate-500 hover:bg-stone-sidebar transition-colors"
                     >
@@ -665,8 +654,8 @@ const handleApplyToJob = () => {
                     </button>
                   )}
                 </div>
-              </div>     
-         {/* Job Content */}
+              </div>
+              {/* Job Content */}
               <div className="space-y-10 text-slate-700 leading-relaxed">
                 <section>
                   <h3 className="text-xl font-bold text-slate-900 mb-4">About the Role</h3>
@@ -744,9 +733,9 @@ ilter Modal */}
             <div className="bg-white border-b border-gray-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-gray-900">Filter Jobs</h3>
-                <button 
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" 
-                  onClick={() => setShowFilters(false)} 
+                <button
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  onClick={() => setShowFilters(false)}
                   aria-label="Close"
                 >
                   <X className="h-5 w-5" />
@@ -767,32 +756,29 @@ ilter Modal */}
                         handleFilterChange('sortBy', '');
                         setShowSortDropdown(false);
                       }}
-                      className={`w-full px-4 py-3 text-left border-2 rounded-lg transition-colors ${
-                        (filters.sortBy || '') === ''
-                          ? 'bg-green-50 text-green-700 font-semibold'
-                          : 'bg-white text-gray-700 hover:bg-gray-50'
-                      }`}
+                      className={`w-full px-4 py-3 text-left border-2 rounded-lg transition-colors ${(filters.sortBy || '') === ''
+                        ? 'bg-green-50 text-green-700 font-semibold'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
                       style={{
                         borderColor: '#5F7261'
                       }}
                     >
-                      <div className="flex items-center justify-between">
-                        <span>Most Relevant</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowSortDropdown(!showSortDropdown);
-                          }}
-                          className="ml-2 p-1 hover:bg-gray-200 rounded"
-                        >
-                          <ChevronDown className={`h-4 w-4 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
-                        </button>
-                      </div>
+                      <span>{filters.sortBy === '' ? 'Most Relevant' : filters.sortBy === 'newest' ? 'Newest First' : 'Oldest First'}</span>
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowSortDropdown(!showSortDropdown);
+                        }}
+                        className="ml-2 p-1 hover:bg-gray-200 rounded cursor-pointer"
+                      >
+                        <ChevronDown className={`h-4 w-4 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
+                      </span>
                     </button>
 
                     {/* Dropdown Options */}
                     {showSortDropdown && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 rounded-lg shadow-lg z-10" style={{borderColor: '#5F7261'}}>
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 rounded-lg shadow-lg z-10" style={{ borderColor: '#5F7261' }}>
                         {[
                           { value: 'newest', label: 'Newest First' },
                           { value: 'oldest', label: 'Oldest First' }
@@ -803,11 +789,10 @@ ilter Modal */}
                               handleFilterChange('sortBy', option.value);
                               setShowSortDropdown(false);
                             }}
-                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                              filters.sortBy === option.value
-                                ? 'bg-green-50 text-green-700 font-semibold'
-                                : 'text-gray-700'
-                            }`}
+                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${filters.sortBy === option.value
+                              ? 'bg-green-50 text-green-700 font-semibold'
+                              : 'text-gray-700'
+                              }`}
                           >
                             {option.label}
                           </button>
@@ -826,32 +811,29 @@ ilter Modal */}
                         handleFilterChange('jobType', '');
                         setShowJobTypeDropdown(false);
                       }}
-                      className={`w-full px-4 py-3 text-left border-2 rounded-lg transition-colors ${
-                        filters.jobType === ''
-                          ? 'bg-green-50 text-green-700 font-semibold'
-                          : 'bg-white text-gray-700 hover:bg-gray-50'
-                      }`}
+                      className={`w-full px-4 py-3 text-left border-2 rounded-lg transition-colors ${filters.jobType === ''
+                        ? 'bg-green-50 text-green-700 font-semibold'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
                       style={{
                         borderColor: '#5F7261'
                       }}
                     >
-                      <div className="flex items-center justify-between">
-                        <span>All Types</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowJobTypeDropdown(!showJobTypeDropdown);
-                          }}
-                          className="ml-2 p-1 hover:bg-gray-200 rounded"
-                        >
-                          <ChevronDown className={`h-4 w-4 transition-transform ${showJobTypeDropdown ? 'rotate-180' : ''}`} />
-                        </button>
-                      </div>
+                      <span>{filters.jobType === '' ? 'All Types' : filters.jobType}</span>
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowJobTypeDropdown(!showJobTypeDropdown);
+                        }}
+                        className="ml-2 p-1 hover:bg-gray-200 rounded cursor-pointer"
+                      >
+                        <ChevronDown className={`h-4 w-4 transition-transform ${showJobTypeDropdown ? 'rotate-180' : ''}`} />
+                      </span>
                     </button>
 
                     {/* Dropdown Options */}
                     {showJobTypeDropdown && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 rounded-lg shadow-lg z-10" style={{borderColor: '#5F7261'}}>
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 rounded-lg shadow-lg z-10" style={{ borderColor: '#5F7261' }}>
                         {[
                           { value: 'Full-time', label: 'Full-time' },
                           { value: 'Part-time', label: 'Part-time' },
@@ -865,11 +847,10 @@ ilter Modal */}
                               handleFilterChange('jobType', option.value);
                               setShowJobTypeDropdown(false);
                             }}
-                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                              filters.jobType === option.value
-                                ? 'bg-green-50 text-green-700 font-semibold'
-                                : 'text-gray-700'
-                            }`}
+                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${filters.jobType === option.value
+                              ? 'bg-green-50 text-green-700 font-semibold'
+                              : 'text-gray-700'
+                              }`}
                           >
                             {option.label}
                           </button>
@@ -891,9 +872,8 @@ ilter Modal */}
                     onBlur={() => setLocationTouched(true)}
                     placeholder="City, State, or Country"
                     data-filter-input="true"
-                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-colors bg-white text-gray-900 font-medium placeholder-gray-400 shadow-sm ${
-                      locationError ? 'focus:ring-red-500' : 'focus:ring-green-500'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-colors bg-white text-gray-900 font-medium placeholder-gray-400 shadow-sm ${locationError ? 'focus:ring-red-500' : 'focus:ring-green-500'
+                      }`}
                     style={{
                       borderColor: locationError ? '#ef4444' : '#5F7261',
                       minHeight: '48px',
@@ -902,7 +882,7 @@ ilter Modal */}
                     autoComplete="off"
                   />
                   {locationSuggestions.length > 0 && (
-                    <ul className="absolute z-10 bg-white border-2 rounded-lg mt-1 w-full max-h-56 overflow-y-auto shadow-xl" style={{borderColor: '#5F7261'}}>
+                    <ul className="absolute z-10 bg-white border-2 rounded-lg mt-1 w-full max-h-56 overflow-y-auto shadow-xl" style={{ borderColor: '#5F7261' }}>
                       {locationSuggestions.map((suggestion) => (
                         <li
                           key={suggestion.place_id}
@@ -927,7 +907,7 @@ ilter Modal */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Work Style</label>
-                  <div className="flex items-center space-x-3 p-3 border-2 rounded-lg bg-green-50" style={{borderColor: '#5F7261'}}>
+                  <div className="flex items-center space-x-3 p-3 border-2 rounded-lg bg-green-50" style={{ borderColor: '#5F7261' }}>
                     <input
                       type="checkbox"
                       id="remote-only"
@@ -996,8 +976,8 @@ ilter Modal */}
             </div>
           </div>
         </div>
-      )} 
-     {/* Share Modal */}
+      )}
+      {/* Share Modal */}
       {showShareModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={() => setShowShareModal(false)}>
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative" onClick={e => e.stopPropagation()}>

@@ -15,38 +15,79 @@ class ChatService: ObservableObject {
     func fetchChatRooms() async {
         await MainActor.run { isLoading = true }
         
+        guard let currentUserId = AuthManager.shared.currentUser?.id.uuidString.lowercased() else {
+            await MainActor.run { isLoading = false }
+            return
+        }
+        
         do {
-            // In the mobile app, we might need to use 'conversations' and map them to 'ChatRoom' 
-            // if the 'chat_rooms' view is not available or doesn't have all data.
-            // But let's try to fetch them like the web version if possible.
-            // For now, let's stick to the web's 'conversations' logic for fetching rooms.
+            // Fetch conversations where I am participant 1 OR participant 2
             let response: [Conversation] = try await client
                 .from("conversations")
                 .select("*, p1_profile:profiles!conversations_participant_1_fkey(*), p2_profile:profiles!conversations_participant_2_fkey(*)")
+                .or("participant_1.eq.\(currentUserId),participant_2.eq.\(currentUserId)")
+                .order("last_message_at", ascending: false)
                 .execute()
                 .value
             
-            await MainActor.run {
-                // Map conversations to ChatRooms
-                self.chatRooms = response.compactMap { conv in
-                    let isP1Me = conv.participant1.lowercased() == AuthManager.shared.currentUser?.id.uuidString.lowercased()
-                    let otherProfile = isP1Me ? conv.p2Profile : conv.p1Profile
-                    
-                    return ChatRoom(
-                        id: conv.id,
-                        participantName: otherProfile?.name ?? "Unknown",
-                        lastMessage: "No messages yet", // Would need another join or fetch
-                        timestamp: conv.lastMessageAt ?? "Now",
-                        avatarUrl: otherProfile?.avatar,
-                        isOnline: false,
-                        hasUnread: false
-                    )
+            // Fetch the last message for each conversation in parallel
+            let rooms = await withTaskGroup(of: ChatRoom?.self) { group in
+                for conv in response {
+                    group.addTask {
+                        let isP1Me = conv.participant1.lowercased() == currentUserId
+                        let otherProfile = isP1Me ? conv.p2Profile : conv.p1Profile
+                        
+                        let lastMsg = await self.fetchLastMessage(for: conv.id)
+                        
+                        return ChatRoom(
+                            id: conv.id,
+                            participantName: otherProfile?.name ?? "Unknown",
+                            lastMessage: lastMsg ?? "No messages yet",
+                            timestamp: conv.lastMessageAt ?? "New",
+                            avatarUrl: otherProfile?.avatar,
+                            isOnline: false,
+                            hasUnread: false // Logic for unread would go here
+                        )
+                    }
                 }
+                
+                var results: [ChatRoom] = []
+                for await room in group {
+                    if let room = room {
+                        results.append(room)
+                    }
+                }
+                return results.sorted { $0.timestamp > $1.timestamp }
+            }
+            
+            await MainActor.run {
+                self.chatRooms = rooms
                 self.isLoading = false
             }
         } catch {
             print("❌ Error fetching chat rooms: \(error)")
             await MainActor.run { isLoading = false }
+        }
+    }
+    
+    private func fetchLastMessage(for conversationId: String) async -> String? {
+        do {
+            struct MsgContent: Decodable {
+                let content: String
+            }
+            
+            let response: [MsgContent] = try await client
+                .from("messages")
+                .select("content")
+                .eq("conversation_id", value: conversationId)
+                .order("created_at", ascending: false)
+                .limit(1)
+                .execute()
+                .value
+            
+            return response.first?.content
+        } catch {
+            return nil
         }
     }
     
@@ -120,6 +161,23 @@ class ChatService: ObservableObject {
             .execute()
             
         await fetchMessages(for: conversationId)
+    }
+    
+    func deleteConversation(id: String) async throws {
+        // Delete the conversation from the DB
+        // The messages will be deleted via CASCADE in Supabase if correctly configured,
+        // or we might need to delete them manually if not. 
+        // For now, assume CASCADE or that we only care about the conversation entry.
+        try await client
+            .from("conversations")
+            .delete()
+            .eq("id", value: id)
+            .execute()
+        
+        await MainActor.run {
+            // Remove from local list
+            self.chatRooms.removeAll { $0.id == id }
+        }
     }
 }
 

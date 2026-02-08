@@ -41,14 +41,15 @@ struct SearchView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
                 Button {
-                    // Back logic if needed
+                    dismiss()
                 } label: {
-                    Image(systemName: "arrow.left")
-                        .font(.system(size: 20))
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundColor(Theme.textMain)
                         .frame(width: 44, height: 44)
-                        .background(Color.white.opacity(0.1))
+                        .background(Color.white)
                         .clipShape(Circle())
+                        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
                 }
                 
                 HStack {
@@ -56,9 +57,16 @@ struct SearchView: View {
                         .font(.system(size: 18))
                         .foregroundColor(Theme.textMuted)
                     
-                    TextField("Search", text: $searchText)
+                ZStack(alignment: .leading) {
+                    if searchText.isEmpty {
+                        Text("Search")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(Theme.textMuted.opacity(0.6))
+                    }
+                    TextField("", text: $searchText)
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(Theme.textMain)
+                }
                     
                     if !searchText.isEmpty {
                         Button {

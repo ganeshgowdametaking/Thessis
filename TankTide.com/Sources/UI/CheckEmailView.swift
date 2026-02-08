@@ -108,16 +108,19 @@ struct CheckEmailView: View {
                             .padding(.top, 4)
                         }
                         
-                        Button {
-                            dismiss()
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "arrow.left")
-                                    .font(.system(size: 14, weight: .bold))
-                                Text("Back to log in")
-                                    .font(.system(size: 14, weight: .bold))
+                        HStack {
+                            Button {
+                                dismiss()
+                            } label: {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(Theme.textMain)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.white)
+                                    .clipShape(Circle())
+                                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
                             }
-                            .foregroundColor(Theme.textMuted)
+                            Spacer()
                         }
                     }
                     .padding(.top, 8)

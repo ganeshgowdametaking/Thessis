@@ -7,13 +7,30 @@ type JobInsert = Database['public']['Tables']['jobs']['Insert'];
 type JobUpdate = Database['public']['Tables']['jobs']['Update'];
 type ApplicationInsert = Database['public']['Tables']['applications']['Insert'];
 
+// Simple in-memory cache
+let cachedJobs: Job[] | null = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 2000; // 2 seconds
+
 export const jobService = {
-  // Get all jobs with retry logic
+  // Get all jobs with retry logic and caching
   getJobs: async (filters?: {
     location?: string;
     jobType?: string;
     remote?: boolean;
   }, retries: number = 2): Promise<Job[]> => {
+    const now = Date.now();
+
+    // Return cached data if available and fresh, AND no specific filters are applied
+    // (Filtering is done client-side usually, but here we pass filters to DB. 
+    // If we have powerful filters, we might skip cache. For now, assuming base fetch.)
+    const hasFilters = filters && (filters.location || filters.jobType || filters.remote);
+
+    if (!hasFilters && cachedJobs && (now - lastFetchTime < CACHE_DURATION)) {
+      console.log('⚡ Returning cached jobs to prevent spam');
+      return cachedJobs;
+    }
+
     console.log('🔍 Starting getJobs with filters:', filters);
 
     for (let attempt = 0; attempt <= retries; attempt++) {
@@ -32,24 +49,20 @@ export const jobService = {
 
         // Exclude jobs created by the current user
         if (currentUserId) {
-          console.log(`🔍 Excluding jobs created by user: ${currentUserId}`);
           query = query.neq('created_by', currentUserId);
         }
 
         // FIX: Only apply filters if they have a non-empty value
         if (filters?.location && filters.location.trim() !== '') {
-          console.log(`Applying location filter: ${filters.location}`);
           query = query.ilike('location', `%${filters.location.trim()}%`);
         }
 
         if (filters?.jobType && filters.jobType.trim() !== '') {
-          console.log(`Applying jobType filter: ${filters.jobType}`);
           query = query.eq('job_type', filters.jobType as any);
         }
 
         // Only filter for remote jobs if the remote filter is explicitly set to true
         if (filters?.remote === true) {
-          console.log(`Applying remote filter`);
           query = query.eq('remote_available', true);
         }
 
@@ -62,9 +75,16 @@ export const jobService = {
           continue;
         }
 
-        console.log(`Attempt ${attempt + 1} - Fetched jobs:`, data);
-        console.log(`Attempt ${attempt + 1} - Number of jobs found:`, data?.length || 0);
-        return (data as any[]) || [];
+        const result = (data as any[]) || [];
+
+        // Update cache only if successful
+        if (!hasFilters) {
+          cachedJobs = result;
+          lastFetchTime = Date.now();
+        }
+
+        console.log(`Attempt ${attempt + 1} - Fetched jobs:`, result.length);
+        return result;
       } catch (error) {
         console.error(`Attempt ${attempt + 1} - Unexpected error in getJobs:`, error);
         if (attempt === retries) throw error;

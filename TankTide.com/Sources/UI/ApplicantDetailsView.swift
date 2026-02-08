@@ -50,10 +50,10 @@ struct ApplicantDetailsView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(Theme.textMain)
-                    .frame(width: 40, height: 40)
-                    .background(Color.white.opacity(0.8))
+                    .frame(width: 44, height: 44)
+                    .background(Color.white)
                     .clipShape(Circle())
                     .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
             }
@@ -116,9 +116,24 @@ struct ApplicantDetailsView: View {
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(Theme.primary)
                 
-                Text("Applied 2 days ago")
-                    .font(.system(size: 14))
-                    .foregroundColor(Theme.textMuted)
+                
+                // Formatted date logic
+                if let dateStr = applicant.appliedDate,
+                   let date = ISO8601DateFormatter().date(from: dateStr) {
+                    let formattedString: String = {
+                        let formatter = RelativeDateTimeFormatter()
+                        formatter.unitsStyle = .full
+                        return formatter.localizedString(for: date, relativeTo: Date())
+                    }()
+                    
+                    Text("Applied \(formattedString)")
+                        .font(.system(size: 14))
+                        .foregroundColor(Theme.textMuted)
+                } else {
+                    Text("Applied recently")
+                        .font(.system(size: 14))
+                        .foregroundColor(Theme.textMuted)
+                }
             }
             
             Button {
@@ -147,11 +162,21 @@ struct ApplicantDetailsView: View {
             sectionHeader(title: "Contact", icon: "contact.page")
             
             VStack(spacing: 0) {
-                contactRow(icon: "envelope", label: "Email", value: "sarah.j@example.com", isLink: true)
-                Divider().padding(.leading, 64)
-                contactRow(icon: "phone", label: "Phone", value: "+1 (555) 012-3456", isLink: true)
-                Divider().padding(.leading, 64)
-                contactRow(icon: "link", label: "LinkedIn", value: "linkedin.com/in/sarahj", isLink: true)
+                if let email = applicant.email {
+                    contactRow(icon: "envelope", label: "Email", value: email, isLink: true)
+                } else {
+                    contactRow(icon: "envelope", label: "Email", value: "Not provided", isLink: false)
+                }
+                
+                if let phone = applicant.phone {
+                    Divider().padding(.leading, 64)
+                    contactRow(icon: "phone", label: "Phone", value: phone, isLink: true)
+                }
+                
+                if let linkedIn = applicant.linkedIn {
+                    Divider().padding(.leading, 64)
+                    contactRow(icon: "link", label: "LinkedIn", value: linkedIn, isLink: true)
+                }
             }
             .background(Color.white)
             .cornerRadius(20)
@@ -164,24 +189,21 @@ struct ApplicantDetailsView: View {
             sectionHeader(title: "Skills", icon: "bolt.fill")
             
             FlowLayout(spacing: 8) {
-                ForEach(["Figma", "Prototyping", "User Research", "Design Systems", "Wireframing", "UI/UX"], id: \.self) { skill in
-                    Text(skill)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Theme.primary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Theme.primary.opacity(0.1))
-                        .cornerRadius(10)
+                if let skills = applicant.skills, !skills.isEmpty {
+                    ForEach(skills, id: \.self) { skill in
+                        Text(skill)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Theme.primary)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Theme.primary.opacity(0.1))
+                            .cornerRadius(10)
+                    }
+                } else {
+                    Text("No skills listed")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Theme.textMuted)
                 }
-                
-                Text("+3 more")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Theme.textMuted)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.1), lineWidth: 1))
             }
         }
     }
@@ -191,7 +213,7 @@ struct ApplicantDetailsView: View {
             sectionHeader(title: "Cover Letter", icon: "quote.opening")
             
             VStack(alignment: .leading, spacing: 12) {
-                Text("I am thrilled to apply for the Senior Product Designer position at Sage & Stone. With over 5 years of experience crafting intuitive digital experiences, I believe my background in scalable design systems aligns perfectly with your team's goals...")
+                Text(applicant.coverLetter ?? "No cover letter provided.")
                     .font(.system(size: 15))
                     .foregroundColor(Theme.textSecondary)
                     .lineSpacing(6)
@@ -233,14 +255,16 @@ struct ApplicantDetailsView: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Sarah_Jenkins_CV_2024.pdf")
+                    Text(applicant.resumeUrl != nil ? "Resume.pdf" : "No resume uploaded")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(Theme.textMain)
                         .lineLimit(1)
                     
-                    Text("2.4 MB • Uploaded 2 days ago")
-                        .font(.system(size: 12))
-                        .foregroundColor(Theme.textMuted)
+                    if applicant.resumeUrl != nil {
+                        Text("PDF • Click below to view")
+                            .font(.system(size: 12))
+                            .foregroundColor(Theme.textMuted)
+                    }
                     
                     HStack(spacing: 12) {
                         Button("View") { }

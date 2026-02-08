@@ -69,11 +69,13 @@ struct ChatView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(Theme.primary)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(Theme.textMain)
                     .frame(width: 44, height: 44)
+                    .background(Color.white)
+                    .clipShape(Circle())
+                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
             }
-            .padding(.leading, -8)
             
             ZStack(alignment: .bottomTrailing) {
                 UserAvatar(avatarString: participantAvatar, size: 40, borderWidth: 1)
@@ -98,11 +100,28 @@ struct ChatView: View {
             Spacer()
             
             HStack(spacing: 8) {
-                Button { } label: {
+                Menu {
+                    Button(role: .destructive) {
+                        Task {
+                            do {
+                                try await chatService.deleteConversation(id: conversationId)
+                                await MainActor.run {
+                                    dismiss()
+                                }
+                            } catch {
+                                print("❌ Failed to delete conversation: \(error)")
+                            }
+                        }
+                    } label: {
+                        Label("Delete Conversation", systemImage: "trash")
+                    }
+                } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 18))
                         .foregroundColor(Theme.primary)
                         .frame(width: 40, height: 40)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(Circle())
                 }
             }
         }

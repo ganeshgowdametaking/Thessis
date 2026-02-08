@@ -3,6 +3,7 @@ import { X, Mail, Lock, User, Eye, EyeOff, ArrowLeft, Loader, CheckCircle } from
 import { useAuthContext } from '../contexts/AuthContext'
 import GoogleSignInButton from './GoogleSignInButton'
 import { supabase } from '../lib/supabase'
+import { getUTMForSignup, clearUTMData } from '../utils/utmHandler'
 
 type AuthMode = 'signin' | 'signup' | 'verify-email' | 'forgot-password' | 'verify-reset-otp' | 'update-password'
 
@@ -47,11 +48,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
           throw new Error('Password must be at least 8 characters long')
         }
 
+        // Include UTM attribution data in signup
+        const utmData = getUTMForSignup()
         const { error } = await signUp(formData.email, formData.password, {
-          full_name: formData.fullName
+          full_name: formData.fullName,
+          ...utmData,
         })
         if (error) throw error
 
+        // Clear UTM data after successful signup initiation
+        clearUTMData()
         setSuccess('Account created! Please check your email for a code.')
         onModeChange('verify-email')
       } else if (mode === 'verify-email') {

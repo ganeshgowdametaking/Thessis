@@ -140,6 +140,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user?.id, authLoading])
 
+  // Global Heartbeat: Update last_seen every 60s
+  useEffect(() => {
+    if (!user) return
+
+    const beat = setInterval(async () => {
+      try {
+        // @ts-ignore - last_seen is added via SQL migration but types might be outdated
+        await supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', user.id)
+      } catch (err) {
+        // silent fail
+      }
+    }, 60000)
+
+    return () => clearInterval(beat)
+  }, [user])
+
   const updateProfile = async (updates: any) => {
     if (!user) return
 

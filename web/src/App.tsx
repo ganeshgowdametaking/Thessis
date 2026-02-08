@@ -26,10 +26,8 @@ import { LoadingProvider } from './contexts/LoadingContext';
 import { supabase } from './lib/supabase';
 import { useMediaQuery } from 'react-responsive';
 import LoadingSpinner from './components/LoadingSpinner';
-import AnalyticsPage from './components/AnalyticsPage';
 import GDPRBanner from './components/GDPRBanner';
 import AuthCallback from './components/AuthCallback';
-import TrackingProvider from './components/TrackingProvider';
 import CompanyLandingPage from './components/CompanyLandingPage';
 import AcceptAdminInvitePage from './components/AcceptAdminInvitePage';
 import CompanySignupPage from './components/CompanySignupPage';
@@ -45,6 +43,9 @@ import CompanyIncomingReferralsPage from './components/CompanyIncomingReferralsP
 import CompanyProfileBrandingPage from './components/CompanyProfileBrandingPage';
 import ScrollToTop from './components/ScrollToTop';
 import CompanyLayout from './components/CompanyLayout';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import { analyticsService } from './services/analyticsService';
+import { captureUTMParams } from './utils/utmHandler';
 
 // Wrapper component for ApplicationsPage to handle React Router integration
 function ApplicationsPageWrapper() {
@@ -166,7 +167,6 @@ function SearchResultsPageWrapper() {
 
 // Wrapper component for SettingsPage
 function SettingsPageWrapper() {
-  console.log('🔥 SETTINGSPAGWRAPPER CALLED', new Date().toISOString());
   return <SettingsPage />;
 }
 
@@ -232,9 +232,6 @@ function MessagesPageWrapper() {
   // Read selectedApplicant from navigation state (if present)
   const selectedApplicant = location.state?.selectedApplicant;
 
-  console.log('🔍 MessagesPageWrapper - location.state:', location.state);
-  console.log('🔍 MessagesPageWrapper - selectedApplicant:', selectedApplicant);
-
   return <MessagesPage selectedApplicant={selectedApplicant} />;
 }
 
@@ -252,7 +249,6 @@ function App() {
 }
 
 function AppContent() {
-  console.log('🔥🔥🔥 APPCONTENT LIVE', new Date().toISOString());
   const { user, loading, isAdmin, profile } = useAuthContext();
   const location = useLocation();
   const isMobile = useMediaQuery({ maxWidth: 767 });
@@ -260,6 +256,22 @@ function AppContent() {
   const [resetFlowActive, setResetFlowActive] = useState(false);
   const isResetFlow = location.pathname === '/reset-password' || searchParams.get('reset') === 'true' || location.hash.includes('type=recovery') || resetFlowActive;
   const navigate = useNavigate();
+
+
+  // Initialize analytics and capture UTM params
+  useEffect(() => {
+    analyticsService.init();
+    analyticsService.trackPageView(window.location.pathname);
+
+    // Capture UTM parameters from URL and persist to localStorage
+    captureUTMParams();
+  }, []);
+
+  // Track page views on location change
+  useEffect(() => {
+    analyticsService.trackPageView(location.pathname);
+  }, [location.pathname]);
+
 
   // Helper to check if user is a company user
   const isCompanyUser = user && (user.user_metadata?.user_type === 'company' || user.user_metadata?.user_type === 'employer');
@@ -335,7 +347,7 @@ function AppContent() {
       {/* Regular user routes - for all authenticated users (including company users) */}
       {user ? (
         <>
-          <Route path="/analytics" element={isAdmin ? <AnalyticsPage /> : <Navigate to="/jobs" replace />} />
+          <Route path="/analytics" element={<AnalyticsDashboard />} />
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/create-referral" element={<CreateReferralPage />} />
           <Route path="/applications/:referralId" element={<ApplicationsPageWrapper />} />

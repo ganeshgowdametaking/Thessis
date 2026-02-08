@@ -1,22 +1,24 @@
 import SwiftUI
 
 struct ApplicationsListView: View {
+    let referral: MyReferral
     @StateObject private var appService = ApplicationService.shared
     @Environment(\.dismiss) var dismiss
     @State private var searchText = ""
     @State private var selectedTab = "All"
     
-    let tabs = ["All (42)", "Pending (35)", "Shortlisted (7)"]
+    var tabs: [String] {
+        ["All (\(applicants.count))", "Pending", "Shortlisted"]
+    }
     
     var applicants: [Applicant] {
-        let baseList = appService.applicants.isEmpty ? Applicant.samples : appService.applicants
+        let baseList = appService.jobApplicants
         if searchText.isEmpty {
             return baseList
         } else {
             return baseList.filter {
                 $0.name.localizedCaseInsensitiveContains(searchText) ||
-                $0.role.localizedCaseInsensitiveContains(searchText) ||
-                $0.company.localizedCaseInsensitiveContains(searchText)
+                $0.role.localizedCaseInsensitiveContains(searchText)
             }
         }
     }
@@ -37,7 +39,7 @@ struct ApplicationsListView: View {
                         VStack(alignment: .leading, spacing: 0) {
                             // Title Section
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Senior Product Designer")
+                                Text(referral.title)
                                     .font(.system(size: 24, weight: .bold))
                                     .foregroundColor(Theme.textMain)
                                 
@@ -112,10 +114,7 @@ struct ApplicationsListView: View {
                             // Applicant List
                             VStack(spacing: 16) {
                                 ForEach(applicants) { applicant in
-                                    NavigationLink(destination: ApplicantDetailsView(applicant: applicant)) {
-                                        ApplicantCard(applicant: applicant)
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
+                                    ApplicantCard(applicant: applicant)
                                 }
                             }
                             .padding(.horizontal, 20)
@@ -129,7 +128,7 @@ struct ApplicationsListView: View {
         .navigationBarHidden(true)
         .onAppear {
             Task {
-                await appService.fetchApplicants()
+                await appService.fetchApplicants(for: referral.id)
             }
         }
     }
@@ -140,25 +139,20 @@ struct ApplicationsListView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(Theme.textMain)
-                    .frame(width: 44, height: 44)
-                    .background(Color.white)
-                    .clipShape(Circle())
-                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(Theme.textMain)
+                .frame(width: 44, height: 44)
+                .background(Color.white)
+                .clipShape(Circle())
+                .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
             }
             
             Spacer()
             
-            HStack(spacing: 8) {
-                Image(systemName: "leaf.fill")
-                    .foregroundColor(Theme.primary)
-                    .font(.system(size: 20))
-                Text("Sage & Stone")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(Theme.textMain)
-                    .tracking(-0.5)
-            }
+            Text("Applications")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(Theme.textMain)
+                .tracking(-0.5)
             
             Spacer()
             
@@ -185,58 +179,77 @@ struct ApplicationsListView: View {
 struct ApplicantCard: View {
     let applicant: Applicant
     
+    // Helper to convert Applicant to UserProfile for navigation
+    var userProfileContext: UserProfile {
+        UserProfile(
+            id: applicant.id, // Using applicant_id which matches user id
+            name: applicant.name,
+            title: applicant.role,
+            company: applicant.company,
+            location: applicant.location,
+            avatar: applicant.imageUrl,
+            bio: nil, 
+            skills: [], 
+            achievements: []
+        )
+    }
+    
     var body: some View {
         VStack(spacing: 20) {
-            HStack(alignment: .top, spacing: 16) {
-                // Avatar with Status
-                ZStack(alignment: .bottomTrailing) {
-                    Circle()
-                        .fill(Theme.stoneSurface)
+            // Profile Header - CLickable to go to User Profile
+            NavigationLink(destination: OtherProfileView(person: userProfileContext)) {
+                HStack(alignment: .top, spacing: 16) {
+                    // Avatar with Status
+                    ZStack(alignment: .bottomTrailing) {
+                        Circle()
+                            .fill(Theme.stoneSurface)
+                            .frame(width: 56, height: 56)
+                        
+                        AsyncImage(url: URL(string: applicant.imageUrl)) { image in
+                            image.resizable()
+                        } placeholder: {
+                            Color.gray.opacity(0.1)
+                        }
                         .frame(width: 56, height: 56)
-                    
-                    AsyncImage(url: URL(string: applicant.imageUrl)) { image in
-                        image.resizable()
-                    } placeholder: {
-                        Color.gray.opacity(0.1)
-                    }
-                    .frame(width: 56, height: 56)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                    
-                    Circle()
-                        .fill(applicant.status.color)
-                        .frame(width: 14, height: 14)
+                        .clipShape(Circle())
                         .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                        .offset(x: 2, y: 2)
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(applicant.name)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(Theme.textMain)
-                    
-                    Text("\(applicant.role) @ \(applicant.company)")
-                        .font(.system(size: 14))
-                        .foregroundColor(Theme.textSecondary)
-                    
-                    HStack(spacing: 4) {
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 10))
-                        Text(applicant.location)
-                            .font(.system(size: 12))
+                        
+                        Circle()
+                            .fill(applicant.status.color)
+                            .frame(width: 14, height: 14)
+                            .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                            .offset(x: 2, y: 2)
                     }
-                    .foregroundColor(Theme.textMuted)
-                    .padding(.top, 4)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(applicant.name)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(Theme.textMain)
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 10))
+                            Text(applicant.location)
+                                .font(.system(size: 12))
+                        }
+                        .foregroundColor(Theme.textMuted)
+                        .padding(.top, 4)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundColor(Theme.textMuted.opacity(0.5))
+                        .padding(.top, 20)
                 }
-                
-                Spacer()
             }
+            .buttonStyle(PlainButtonStyle())
             
             HStack(spacing: 12) {
-                Button {
-                    // View Profile
-                } label: {
-                    Text("View Profile")
+                // View Application - Goes to Application Details
+                NavigationLink(destination: ApplicantDetailsView(applicant: applicant)) {
+                    Text("View Application")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(Theme.primary)
                         .frame(maxWidth: .infinity)
@@ -248,9 +261,10 @@ struct ApplicantCard: View {
                                 .stroke(Theme.primary.opacity(0.5), lineWidth: 1)
                         )
                 }
+                .buttonStyle(PlainButtonStyle())
                 
                 Button {
-                    // Shortlist
+                    // Shortlist Action
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "checkmark")

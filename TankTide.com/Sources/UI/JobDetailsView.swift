@@ -1,9 +1,23 @@
 import SwiftUI
+import UniformTypeIdentifiers
+import Supabase
 
 struct JobDetailsView: View {
     let job: Job
     @Environment(\.dismiss) var dismiss
     @State private var isStarred = false
+    private var hasApplied: Bool {
+        appService.myApplications.contains { $0.jobId == job.id }
+    }
+    @State private var showingApplySheet = false
+    @State private var showingFilePicker = false
+    @State private var email = AuthManager.shared.currentUser?.email ?? ""
+    @State private var selectedResume: URL?
+    @State private var isApplying = false
+    @State private var showSuccessAlert = false
+    @State private var errorMessage: String?
+    
+    @StateObject private var appService = ApplicationService.shared
     
     var body: some View {
         ZStack {
@@ -43,8 +57,41 @@ struct JobDetailsView: View {
                         
                         // Quick Stats
                         HStack(spacing: 12) {
-                            statBadge(icon: "payments", text: job.salary ?? "Competitive")
                             statBadge(icon: "schedule", text: "Posted \(job.postedDate ?? "Recently")")
+                        }
+                        
+                        // Apply Now Button
+                        if hasApplied {
+                            HStack {
+                                Text("Applied")
+                                    .font(.system(size: 18, weight: .bold))
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 16, weight: .bold))
+                            }
+                            .foregroundColor(Theme.primary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Theme.primary.opacity(0.1))
+                            .cornerRadius(16)
+                            .padding(.horizontal, 24)
+                        } else {
+                            Button {
+                                showingApplySheet = true
+                            } label: {
+                                HStack {
+                                    Text("Apply Now")
+                                        .font(.system(size: 18, weight: .bold))
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 16, weight: .bold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(Theme.primary)
+                                .cornerRadius(16)
+                                .shadow(color: Theme.primary.opacity(0.2), radius: 10, x: 0, y: 5)
+                            }
+                            .padding(.horizontal, 24)
                         }
                         
                         Divider().padding(.horizontal, 24).padding(.vertical, 8)
@@ -162,45 +209,196 @@ struct JobDetailsView: View {
                             .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 4)
                         }
                         .padding(.horizontal, 24)
-                        .padding(.bottom, 120) // Give space for footer
+                        .padding(.bottom, 40)
                     }
                 }
             }
-            
-            // Sticky Footer
-            VStack {
-                Spacer()
-                VStack(spacing: 0) {
-                    Divider()
-                    HStack {
-                        Button {
-                            // Apply logic
-                        } label: {
-                            HStack {
-                                Text("Apply Now")
-                                    .font(.system(size: 18, weight: .bold))
-                                Image(systemName: "arrow.right")
-                                    .font(.system(size: 16, weight: .bold))
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(Theme.primary)
-                            .cornerRadius(16)
-                            .shadow(color: Theme.primary.opacity(0.2), radius: 10, x: 0, y: 5)
-                        }
-                    }
-                    .padding(20)
-                    .padding(.bottom, 12) // Extra bottom padding for home indicator
-                    .background(Color.white.opacity(0.95))
-                    .blur(radius: 0) // Just to ensure clean background
-                }
-                .background(Color.white)
-                .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: -5)
-            }
-            .ignoresSafeArea(edges: .bottom)
         }
         .navigationBarHidden(true)
+        .onAppear {
+            Task {
+                await appService.fetchMyApplications()
+            }
+        }
+        .sheet(isPresented: $showingApplySheet) {
+            applySheet
+        }
+    }
+    
+    var applySheet: some View {
+        NavigationView {
+            ZStack {
+                Theme.stoneBg.ignoresSafeArea()
+                
+                VStack(spacing: 28) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Email Address")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(Theme.textSecondary)
+                        
+                        TextField("Enter your email", text: $email)
+                            .padding()
+                            .foregroundColor(Theme.textMain)
+                            .background(Theme.stoneSurface)
+                            .cornerRadius(14)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color.black.opacity(0.05), lineWidth: 1)
+                            )
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Resume")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(Theme.textSecondary)
+                        
+                        Button {
+                            showingFilePicker = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "doc.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(Theme.primary)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(selectedResume?.lastPathComponent ?? "Select Resume")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(selectedResume == nil ? Theme.textMuted : Theme.primary)
+                                    
+                                    if selectedResume == nil {
+                                        Text("PDF or DOCX supported")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(Theme.textMuted)
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: selectedResume == nil ? "plus.circle.fill" : "checkmark.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(selectedResume == nil ? Theme.textMuted.opacity(0.5) : Theme.primary)
+                            }
+                            .padding(20)
+                            .frame(maxWidth: .infinity)
+                            .background(Theme.stoneSurface)
+                            .cornerRadius(16)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(selectedResume == nil ? Color.black.opacity(0.05) : Theme.primary.opacity(0.3), lineWidth: 1.5)
+                            )
+                        }
+                    }
+                    .fileImporter(
+                        isPresented: $showingFilePicker,
+                        allowedContentTypes: [.pdf, .rtf, UTType(filenameExtension: "docx")!],
+                        allowsMultipleSelection: false
+                    ) { result in
+                        switch result {
+                        case .success(let urls):
+                            selectedResume = urls.first
+                        case .failure(let error):
+                            errorMessage = error.localizedDescription
+                        }
+                    }
+                    
+                    if let error = errorMessage {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                            Text(error)
+                        }
+                        .foregroundColor(Theme.urgent)
+                        .font(.system(size: 14, weight: .medium))
+                        .padding()
+                        .background(Theme.urgent.opacity(0.1))
+                        .cornerRadius(10)
+                    }
+                    
+                    Spacer()
+                    
+                    Button {
+                        Task {
+                            await handleApply()
+                        }
+                    } label: {
+                        if isApplying {
+                            ProgressView().tint(.white)
+                        } else {
+                            HStack(spacing: 12) {
+                                Text("Submit Application")
+                                    .font(.system(size: 18, weight: .bold))
+                                Image(systemName: "paperplane.fill")
+                                    .font(.system(size: 16))
+                            }
+                        }
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 60)
+                    .background(selectedResume == nil || email.isEmpty ? Color.gray.opacity(0.3) : Theme.primary)
+                    .cornerRadius(18)
+                    .shadow(color: (selectedResume == nil || email.isEmpty ? Color.clear : Theme.primary.opacity(0.3)), radius: 10, x: 0, y: 5)
+                    .disabled(isApplying || email.isEmpty || selectedResume == nil)
+                    .padding(.bottom, 10)
+                }
+                .padding(24)
+            }
+            .navigationTitle("Job Application")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showingApplySheet = false
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Theme.textMain)
+                    }
+                }
+            }
+        }
+    }
+    
+    func handleApply() async {
+        guard let resumeURL = selectedResume else {
+            errorMessage = "Please select a resume."
+            return
+        }
+        
+        isApplying = true
+        errorMessage = nil
+        
+        do {
+            // Start accessing the security-scoped resource
+            if resumeURL.startAccessingSecurityScopedResource() {
+                defer { resumeURL.stopAccessingSecurityScopedResource() }
+                
+                let fileData = try Data(contentsOf: resumeURL)
+                let base64String = fileData.base64EncodedString()
+                let mimeType = resumeURL.pathExtension.lowercased() == "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                let dataURI = "data:\(mimeType);base64,\(base64String)"
+                
+                try await appService.applyToJob(
+                    jobId: job.id,
+                    email: email,
+                    resumeBase64: dataURI
+                )
+                
+                await MainActor.run {
+                    isApplying = false
+                    showingApplySheet = false
+                }
+            } else {
+                errorMessage = "Could not access the file."
+                isApplying = false
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+                isApplying = false
+            }
+        }
     }
     
     var headerView: some View {
@@ -208,13 +406,13 @@ struct JobDetailsView: View {
             Button {
                 dismiss()
             } label: {
-                Image(systemName: "arrow.left")
-                    .font(.system(size: 20))
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(Theme.textMain)
                     .frame(width: 44, height: 44)
                     .background(Color.white)
                     .clipShape(Circle())
-                    .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 1)
+                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
             }
             
             Spacer()
@@ -225,14 +423,8 @@ struct JobDetailsView: View {
             
             Spacer()
             
-            Button {
-                withAnimation { isStarred.toggle() }
-            } label: {
-                Image(systemName: isStarred ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 20))
-                    .foregroundColor(isStarred ? Theme.primary : Theme.textMain)
-                    .frame(width: 44, height: 44)
-            }
+            // Empty space to maintain center alignment of title
+            Spacer().frame(width: 44)
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)

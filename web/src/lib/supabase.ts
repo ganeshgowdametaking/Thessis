@@ -120,8 +120,6 @@ export const auth = {
 
       if (!user) {
         console.log('ℹ️ No authenticated user session')
-      } else {
-        console.log('✅ User session found:', user.email)
       }
 
       return { user, error: null }

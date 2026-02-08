@@ -151,8 +151,9 @@ struct JobSearchResultsView: View {
 
     func performSearch() {
         Task {
-            // Fetch connections first so results show correct button status
+            // Fetch connections and applications first so results show correct button status
             await ConnectionService.shared.fetchConnections()
+            await ApplicationService.shared.fetchMyApplications()
             
             // Always fetch profiles too when searching
             let profiles = await profileService.searchProfiles(query: searchText)

@@ -177,21 +177,24 @@ struct ResetPasswordView: View {
                             .stroke(Color.black.opacity(0.05), lineWidth: 1)
                     )
                     
-                    // Footer
+                // Footer
+                HStack {
                     Button {
                         AuthManager.shared.isResettingPassword = false
                         AuthManager.shared.showingResetPassword = false
                         dismiss()
                     } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "arrow.left")
-                                .font(.system(size: 14, weight: .bold))
-                            Text("Back to Dashboard")
-                                .font(.system(size: 14, weight: .bold))
-                        }
-                        .foregroundColor(Theme.textSecondary)
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(Theme.textMain)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white)
+                            .clipShape(Circle())
+                            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
                     }
-                    .padding(.bottom, 40)
+                    Spacer()
+                }
+                .padding(.bottom, 40)
                 }
                 .padding(.horizontal, 20)
             }

@@ -5,10 +5,21 @@ struct MyReferralsView: View {
     @State private var selectedFilter: ReferralStatus? = nil // nil means "All"
     @State private var showingCreateReferral = false
     
-    let stats = ReferralStats.sample
+    var stats: ReferralStats {
+        let referrals = appService.myReferrals
+        let total = referrals.count
+        let applicants = referrals.reduce(0) { $0 + $1.applicantCount }
+        let active = referrals.filter { $0.status == .active }.count
+        
+        return ReferralStats(
+            totalReferrals: total,
+            totalApplicants: applicants,
+            activeReferrals: active
+        )
+    }
     
     var allReferrals: [MyReferral] {
-        appService.myReferrals.isEmpty ? MyReferral.samples : appService.myReferrals
+        appService.myReferrals
     }
     
     var filteredReferrals: [MyReferral] {
@@ -46,7 +57,7 @@ struct MyReferralsView: View {
                             } else {
                                 VStack(spacing: 16) {
                                     ForEach(filteredReferrals) { referral in
-                                        NavigationLink(destination: ApplicationsListView()) {
+                                        NavigationLink(destination: ApplicationsListView(referral: referral)) {
                                             MyReferralRow(referral: referral)
                                         }
                                         .buttonStyle(PlainButtonStyle())
@@ -166,11 +177,7 @@ struct MyReferralsView: View {
                 Text("No referrals yet")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(Theme.textMain)
-                Text("Start referring your network to open positions at Sage & Stone.")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "4e8597"))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+
             }
             
             Button {

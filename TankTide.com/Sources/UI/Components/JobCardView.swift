@@ -2,6 +2,7 @@ import SwiftUI
 
 struct JobCardView: View {
     let job: Job
+    @ObservedObject private var appService = ApplicationService.shared
     
     var body: some View {
         NavigationLink(destination: JobDetailsView(job: job)) {
@@ -57,10 +58,32 @@ struct JobCardView: View {
                     }
                 }
                 
-                // Tags
+                // Tags & Status
                 HStack(spacing: 8) {
-                    TagView(text: job.type, color: Theme.stoneBg)
-                    TagView(text: job.workType, color: Theme.stoneBg)
+                    TagView(text: job.type, color: Theme.stoneBg, textColor: Theme.textMuted)
+                    TagView(text: job.workType, color: Theme.stoneBg, textColor: Theme.textMuted)
+                    
+                    Spacer()
+                    
+                    if appService.myApplications.contains(where: { $0.jobId == job.id }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 10))
+                            Text("Applied")
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundColor(Theme.primary)
+                        .frame(width: 80, height: 28)
+                        .background(Theme.primary.opacity(0.1))
+                        .cornerRadius(20)
+                    } else {
+                        Text("Apply")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(Theme.textMuted)
+                            .frame(width: 80, height: 28)
+                            .background(Theme.stoneBg)
+                            .cornerRadius(20)
+                    }
                 }
             }
             .padding(16)

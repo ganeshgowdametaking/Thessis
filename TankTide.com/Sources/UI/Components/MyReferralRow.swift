@@ -9,12 +9,21 @@ struct MyReferralRow: View {
             HStack {
                 statusBadge
                 Spacer()
-                Button {
-                    // More action
+                Menu {
+                    Button(role: .destructive) {
+                        Task {
+                            try? await ApplicationService.shared.deleteReferral(id: referral.id)
+                        }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
                 } label: {
                     Image(systemName: "ellipsis")
-                        .foregroundColor(Theme.textMuted)
-                        .padding(4)
+                        .foregroundColor(Theme.primary)
+                        .padding(8)
+                        .background(Theme.primary.opacity(0.1))
+                        .clipShape(Circle())
+                        .contentShape(Rectangle())
                 }
             }
             
@@ -27,7 +36,7 @@ struct MyReferralRow: View {
                 
                 Text("\(referral.department) • \(referral.location)")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(hex: "4e8597")) // secondary-text
+                    .foregroundColor(Theme.textSecondary)
             }
             
             // Applicants

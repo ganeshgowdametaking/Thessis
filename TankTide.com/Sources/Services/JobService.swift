@@ -16,11 +16,13 @@ class JobService: ObservableObject {
         await MainActor.run { isLoading = true; error = nil }
         
         do {
-            let fetchedJobs: [Job] = try await client
-                .from("jobs")
-                .select()
-                .execute()
-                .value
+            var query = client.from("jobs").select()
+            
+            if let userId = AuthManager.shared.currentUser?.id.uuidString {
+                query = query.neq("created_by", value: userId)
+            }
+            
+            let fetchedJobs: [Job] = try await query.execute().value
             
             await MainActor.run {
                 self.jobs = fetchedJobs
@@ -48,5 +50,15 @@ class JobService: ObservableObject {
             print("❌ Error fetching featured jobs: \(error)")
             return []
         }
+    }
+    
+    func createJob(_ job: JobInsert) async throws {
+        try await client
+            .from("jobs")
+            .insert(job)
+            .execute()
+        
+        // Refresh local list
+        await fetchJobs()
     }
 }

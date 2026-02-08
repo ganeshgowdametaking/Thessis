@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Briefcase, MessageSquare, Bell, User, Settings, Search, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+// import { Menu, X, Briefcase, MessageSquare, Bell, User, Settings, Search, LogOut } from 'lucide-react'; // Removing unused import entirely
 import { useAuthContext } from '../contexts/AuthContext';
-import { searchService } from '../services/searchService';
-import { messageService } from '../services/messageService';
+// import { searchService } from '../services/searchService'; // Removing unused import entirely
+// import { messageService } from '../services/messageService'; // Removing unused import entirely
 import { notificationService } from '../services/notificationService';
 
 // Add global type for refreshUnreadCounts
@@ -18,20 +18,21 @@ interface HeaderProps {
   onJoinNow?: () => void;
 }
 
+
 const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
-  const { user, signOut, profile, loading } = useAuthContext();
-  const location = useLocation();
+  const { user, signOut, profile } = useAuthContext();
+  // const location = useLocation(); // Unused
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
+  // const [searchLoading, setSearchLoading] = useState(false); // Unused
   const settingsDropdownRef = useRef<HTMLDivElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  // const [unreadMessages, setUnreadMessages] = useState(0); // Unused
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
@@ -76,11 +77,11 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   // Fetch unread counts
   const fetchCounts = async () => {
     try {
-      const [msgCount, notifCount] = await Promise.all([
-        messageService.getUnreadMessagesCount(),
+      const [notifCount] = await Promise.all([
+        // messageService.getUnreadMessagesCount(),
         notificationService.getUnreadNotificationsCount(),
       ]);
-      setUnreadMessages(msgCount);
+      // setUnreadMessages(msgCount);
       setUnreadNotifications(notifCount);
     } catch (e) {
       // Silent fail
@@ -88,7 +89,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   };
 
   useEffect(() => {
-    let isMounted = true;
+    // let isMounted = true; // Unused
     const safeFetch = async () => {
       await fetchCounts();
     };
@@ -96,7 +97,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
     const interval = setInterval(safeFetch, 120000); // Poll every 2 minutes
     // Expose global refresh for other components
     window.refreshUnreadCounts = fetchCounts;
-    return () => { isMounted = false; clearInterval(interval); window.refreshUnreadCounts = undefined; };
+    return () => { /* isMounted = false; */ clearInterval(interval); window.refreshUnreadCounts = undefined; };
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -146,6 +147,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
     }
   };
 
+
   // Common suggestion item component to avoid duplication
   const SuggestionItem = ({ suggestion, index }: { suggestion: any; index: number }) => (
     <div
@@ -182,22 +184,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
     </div>
   );
 
-  // Helper for badge
-  const Badge = ({ count }: { count: number }) => (
-    count > 0 ? (
-      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-white z-10">
-        {count > 99 ? '99+' : count}
-      </span>
-    ) : null
-  );
-
-  // Debug: Log user status
-  console.log('Header Debug - User:', user);
-  console.log('Header Debug - Loading:', loading);
-  console.log('Header Debug - Profile:', profile);
-
   if (!user) {
-    console.log('Header Debug - Showing simple header (no user)');
     return (
       <header className="w-full border-b border-slate-200/60 bg-stone/90 backdrop-blur-md sticky top-0 z-50 h-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -226,33 +213,6 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
     );
   }
 
-  const navLinks = [
-    ...(profile?.role === 'admin' ? [{ href: '/analytics', label: 'Analytics', icon: Briefcase }] : []),
-    { href: '/jobs', label: 'Jobs', icon: Briefcase },
-    { href: '/messages', label: 'Messages', icon: MessageSquare },
-    { href: '/notifications', label: 'Notifications', icon: Bell },
-    { href: '/profile', label: 'Profile', icon: User },
-  ];
-
-  const NavLink = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string }) => {
-    const isActive = location.pathname === href;
-    let badgeCount = 0;
-    if (label === 'Messages') badgeCount = unreadMessages;
-    if (label === 'Notifications') badgeCount = unreadNotifications;
-    return (
-      <Link
-        to={href}
-        className={`flex min-w-[70px] flex-col items-center space-y-1 rounded-lg p-2 transition-colors ${isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-          }`}
-      >
-        <div className="relative flex h-5 w-5 items-center justify-center">
-          <Icon className="h-5 w-5 stroke-2" />
-          <Badge count={badgeCount} />
-        </div>
-        <span className="text-xs font-medium">{label}</span>
-      </Link>
-    );
-  };
 
   return (
     <header className="bg-white border-b border-stone-200 h-20 shrink-0 flex items-center justify-between px-6 lg:px-10 z-40 relative">
@@ -285,7 +245,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
 
       <div className="flex items-center gap-8 xl:gap-12 shrink-0">
         <nav className="hidden xl:flex items-center gap-10">
-          {profile?.role === 'admin' && (
+          {(profile?.role === 'admin' || profile?.role?.toLowerCase() === 'founder' || profile?.role?.toLowerCase() === 'co_founder') && (
             <Link className="text-[#354038] font-semibold text-[17px] hover:text-primary transition-colors flex items-center h-10" to="/analytics">
               Dashboard
             </Link>
@@ -425,5 +385,4 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
     </header>
   );
 };
-
-export default Header;    
+export default Header;
