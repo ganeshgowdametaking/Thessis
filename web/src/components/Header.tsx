@@ -251,7 +251,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
             </Link>
           )}
           <Link className="text-[#354038] font-semibold text-[17px] hover:text-primary transition-colors flex items-center h-10" to="/jobs">
-            Jobs
+            Referrals
           </Link>
           <Link className="text-[#354038] font-semibold text-[17px] hover:text-primary transition-colors flex items-center h-10" to="/messages">
             Messages
@@ -345,7 +345,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
               className="block text-[#354038] font-semibold text-[16px] hover:text-primary transition-colors py-2"
               onClick={() => setIsMenuOpen(false)}
             >
-              Jobs
+              Referrals
             </Link>
             <Link
               to="/messages"
