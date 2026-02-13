@@ -124,6 +124,11 @@ declare global {
   }
 }
 
+// Storage limits to prevent QuotaExceededError
+const MAX_INTERACTIONS_PER_SESSION = 100;
+const MAX_PAGE_VIEWS_PER_SESSION = 50;
+const MAX_SESSIONS_STORED = 10;
+
 // Generate unique session ID
 const generateSessionId = (): string => {
   return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -185,6 +190,12 @@ const trackInteraction = async (interaction: Omit<UserInteraction, 'timestamp' |
 
   // Store in localStorage for persistence
   const sessionData = JSON.parse(localStorage.getItem('current_session') || '{}');
+
+  // Cap interactions to prevent storage overflow
+  if (window._interactions.length > MAX_INTERACTIONS_PER_SESSION) {
+    window._interactions = window._interactions.slice(-MAX_INTERACTIONS_PER_SESSION);
+  }
+
   sessionData.interactions = window._interactions;
   sessionData.lastActivity = new Date().toISOString();
   localStorage.setItem('current_session', JSON.stringify(sessionData));
@@ -373,6 +384,10 @@ export const analyticsService = {
     */
 
     // Track page view
+    // Cap page views to prevent storage overflow
+    if (window._pageViews.length > MAX_PAGE_VIEWS_PER_SESSION) {
+      window._pageViews = window._pageViews.slice(-MAX_PAGE_VIEWS_PER_SESSION);
+    }
     window._pageViews.push(page);
     window._lastActivity = Date.now(); // Update activity time
 
@@ -826,10 +841,56 @@ export const analyticsService = {
 
     const sessionData = analyticsService.getSessionData();
     if (sessionData) {
-      const allSessions = JSON.parse(localStorage.getItem('all_sessions') || '[]');
-      allSessions.push(sessionData);
-      localStorage.setItem('all_sessions', JSON.stringify(allSessions));
+      try {
+        let allSessions = JSON.parse(localStorage.getItem('all_sessions') || '[]');
+        if (!Array.isArray(allSessions)) allSessions = [];
+
+        // Remove current session if it already exists to avoid duplicates
+        allSessions = allSessions.filter((s: any) => s.sessionId !== sessionData.sessionId);
+
+        // Add current session
+        allSessions.push(sessionData);
+
+        // Cap the number of stored sessions
+        if (allSessions.length > MAX_SESSIONS_STORED) {
+          allSessions = allSessions.slice(-MAX_SESSIONS_STORED);
+        }
+
+        localStorage.setItem('all_sessions', JSON.stringify(allSessions));
+      } catch (error) {
+        console.warn('Analytics: Failed to save session data', error);
+        // Fallback: If we can't save all_sessions, clear it to make room
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          localStorage.removeItem('all_sessions');
+        }
+      }
     }
+  },
+
+  // Force clear all analytics data to free up space
+  forceClearAnalytics: () => {
+    const keysToRemove = [
+      'current_session',
+      'all_sessions',
+      'has_visited_before',
+      'first_visit_date',
+      'total_visitors',
+      'first_time_visitors',
+      'total_signups',
+      'last_signup_date',
+      'is_eu_user',
+      'gdpr_consent'
+    ];
+
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+
+    // Reset window objects
+    window._analyticsInitialized = false;
+    window._sessionId = '';
+    window._pageViews = [];
+    window._interactions = [];
+
+    console.log('✅ Analytics storage cleared successfully');
   },
 
   // GDPR-compliant visitor tracking for EU users
