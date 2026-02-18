@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { X, Mail, Lock, User, Eye, EyeOff, ArrowLeft, Loader, CheckCircle } from 'lucide-react'
 import { useAuthContext } from '../contexts/AuthContext'
 import GoogleSignInButton from './GoogleSignInButton'
+import LinkedInSignInButton from './LinkedInSignInButton'
 import { supabase } from '../lib/supabase'
 import { getUTMForSignup, clearUTMData } from '../utils/utmHandler'
 
@@ -222,6 +223,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
           ) : (
             <>
               <GoogleSignInButton className="w-full py-2.5 border border-slate-300 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors" />
+              <LinkedInSignInButton className="w-full py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors mt-2" />
               <div className="relative flex items-center py-1"><div className="flex-grow border-t border-slate-100"></div><span className="px-4 text-[10px] text-slate-400 uppercase tracking-widest font-bold">Or use email</span><div className="flex-grow border-t border-slate-100"></div></div>
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 {mode === 'signup' && <div className="relative"><input className="w-full rounded-lg border border-slate-300 py-3 px-4 text-sm focus:border-primary focus:outline-none" placeholder="Full Name" type="text" value={formData.fullName} onChange={(e) => handleInputChange('fullName', e.target.value)} required /><User className="absolute right-3 top-3 text-slate-400" size={20} /></div>}

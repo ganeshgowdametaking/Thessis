@@ -222,6 +222,29 @@ export const auth = {
     }
   },
 
+  signInWithLinkedIn: async () => {
+    console.log('🔐 Attempting LinkedIn sign in...')
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'linkedin_oidc',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        }
+      })
+
+      if (error) {
+        console.error('❌ LinkedIn sign in error:', error)
+        return { data: null, error }
+      } else {
+        console.log('✅ LinkedIn sign in initiated successfully')
+        return { data, error: null }
+      }
+    } catch (error) {
+      console.error('❌ Network error during LinkedIn sign in:', error)
+      return { data: null, error: { message: 'Network connection failed. Please check your internet connection and try again.' } }
+    }
+  },
+
   updatePassword: async (password: string) => {
     console.log('🔐 Attempting password update...')
     try {

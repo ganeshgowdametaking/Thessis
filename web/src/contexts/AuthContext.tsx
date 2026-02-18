@@ -17,6 +17,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData: any) => Promise<any>
   signIn: (email: string, password: string) => Promise<any>
   signInWithGoogle: () => Promise<any>
+  signInWithLinkedIn: () => Promise<any>
   signOut: () => Promise<any>
   verifyOTP: (email: string, token: string, type?: 'signup' | 'recovery') => Promise<any>
   resendOTP: (email: string) => Promise<any>
@@ -28,7 +29,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { user, loading: authLoading, error: authError, signUp, signIn, signInWithGoogle, signOut, verifyOTP, resendOTP, resetPassword, updatePassword } = useAuth()
+  const { user, loading: authLoading, error: authError, signUp, signIn, signInWithGoogle, signInWithLinkedIn, signOut, verifyOTP, resendOTP, resetPassword, updatePassword } = useAuth()
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -182,6 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signIn,
     signInWithGoogle,
+    signInWithLinkedIn,
     signOut,
     verifyOTP,
     resendOTP,

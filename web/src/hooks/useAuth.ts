@@ -175,6 +175,19 @@ export function useAuth() {
     }
   }
 
+  const signInWithLinkedIn = async () => {
+    try {
+      setError(null)
+      const { data, error } = await auth.signInWithLinkedIn()
+      if (error) setError(error.message)
+      return { data, error }
+    } catch (error: any) {
+      const errorMessage = error.message || 'LinkedIn sign in failed'
+      setError(errorMessage)
+      return { data: null, error: { message: errorMessage } }
+    }
+  }
+
   const updatePassword = async (password: string) => {
     try {
       setError(null)
@@ -199,6 +212,7 @@ export function useAuth() {
     resendOTP,
     resetPassword,
     signInWithGoogle,
+    signInWithLinkedIn,
     updatePassword
   }
 }
