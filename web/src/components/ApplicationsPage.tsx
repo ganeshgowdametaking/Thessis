@@ -42,6 +42,30 @@ interface ApplicationsPageProps {
   onViewProfile: (userId: string) => void;
 }
 
+interface AIRankingCandidate {
+  id: number;
+  name: string;
+  email: string;
+  score: number | null;
+  rationale: string | null;
+  shortlisted: boolean;
+  shortlist_reason: string | null;
+  status: string;
+}
+
+interface AIRankingLeaderboard {
+  job: {
+    id: number;
+    title: string;
+  };
+  top_5: AIRankingCandidate[];
+  others: AIRankingCandidate[];
+  total_ranked: number;
+  shortlisted_count?: number;
+  pending_count: number;
+  failed_count: number;
+}
+
 export default function ApplicationsPage({
   referralId,
   referralTitle,
@@ -55,6 +79,14 @@ export default function ApplicationsPage({
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [aiRankingLoading, setAiRankingLoading] = useState(false);
+  const [aiRankingError, setAiRankingError] = useState<string | null>(null);
+  const [aiLeaderboard, setAiLeaderboard] = useState<AIRankingLeaderboard | null>(null);
+  const [aiLastUpdatedAt, setAiLastUpdatedAt] = useState<string | null>(null);
+  const [aiLastRunKey, setAiLastRunKey] = useState<string>('');
+
+  const configuredRankingApi = (import.meta.env.VITE_RESUME_RANKING_API || '/api/ranking').trim();
+  const resumeRankingApiBase = configuredRankingApi.replace(/\/+$/, '');
 
   useEffect(() => {
     fetchApplications();
@@ -108,6 +140,216 @@ export default function ApplicationsPage({
       setLoading(false);
     }
   };
+
+  const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const extractJobDescriptionFromRecord = (record: Record<string, unknown> | null): string => {
+    if (!record) {
+      return '';
+    }
+
+    const candidates = [
+      record.description,
+      record.job_description,
+      record.requirements,
+      record.responsibilities,
+      record.summary,
+    ];
+
+    for (const entry of candidates) {
+      if (typeof entry === 'string' && entry.trim().length > 0) {
+        return entry.trim();
+      }
+    }
+
+    return '';
+  };
+
+  const fallbackJobDescription = () =>
+    [
+      `Job Title: ${referralTitle}`,
+      'Please evaluate candidates for this role using the resume and profile details.',
+      'Prioritize role-fit, required skills, and relevant years of experience.',
+    ].join('\n');
+
+  const buildProfileText = (application: Application) => {
+    const profile = application.user_profile;
+    const chunks = [
+      profile?.current_position,
+      profile?.current_company,
+      profile?.location,
+      Array.isArray(profile?.skills) ? profile?.skills.join(', ') : '',
+      profile?.linkedin_url,
+    ].filter((value) => typeof value === 'string' && value.trim().length > 0) as string[];
+
+    return chunks.join('\n');
+  };
+
+  const resumeUrlToPdfFile = async (resumeUrl: string, fileStem: string): Promise<File> => {
+    const response = await fetch(resumeUrl);
+    if (!response.ok) {
+      throw new Error(`Resume fetch failed (${response.status})`);
+    }
+
+    const blob = await response.blob();
+    const safeName = fileStem.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+    return new File([blob], `${safeName || 'resume'}.pdf`, { type: blob.type || 'application/pdf' });
+  };
+
+  const fetchRankingLeaderboard = async (jobId: number): Promise<AIRankingLeaderboard> => {
+    const res = await fetch(`${resumeRankingApiBase}/jobs/${jobId}/leaderboard`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch leaderboard (${res.status})`);
+    }
+    return (await res.json()) as AIRankingLeaderboard;
+  };
+
+  const getValidApplications = () =>
+    applications.filter((application) => {
+      const hasResume = Boolean(application.resume_url);
+      const hasEmail = Boolean(application.user_profile?.email);
+      const hasName = Boolean(application.user_profile?.full_name);
+      return hasResume && hasEmail && hasName;
+    });
+
+  const buildAiRunKey = () => {
+    const serial = getValidApplications()
+      .map((application) => `${application.id}:${application.updated_at || application.applied_at || ''}:${application.resume_url || ''}`)
+      .sort()
+      .join('|');
+    return `${referralId}|${serial}`;
+  };
+
+  const handleRunAiRanking = async () => {
+    try {
+      setAiRankingLoading(true);
+      setAiRankingError(null);
+
+      if (!resumeRankingApiBase) {
+        setAiRankingError('AI ranking service is not configured. Set VITE_RESUME_RANKING_API to your deployed ranking API URL.');
+        return;
+      }
+
+      const validApplications = getValidApplications();
+
+      if (validApplications.length === 0) {
+        setAiRankingError('No applicants with complete profile/email/resume data were found.');
+        return;
+      }
+
+      const { data: jobData, error: jobError } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', referralId)
+        .maybeSingle();
+
+      if (jobError) {
+        console.warn('Could not fetch full job description from jobs table:', jobError.message);
+      }
+
+      const jobRecord = (jobData as Record<string, unknown> | null) || null;
+      const jdText = extractJobDescriptionFromRecord(jobRecord) || fallbackJobDescription();
+
+      const createJobForm = new FormData();
+      createJobForm.append('title', referralTitle);
+      createJobForm.append('description', jdText);
+
+      const createJobRes = await fetch(`${resumeRankingApiBase}/jobs/`, {
+        method: 'POST',
+        body: createJobForm,
+      });
+
+      if (!createJobRes.ok) {
+        const errorBody = await createJobRes.text().catch(() => '');
+        throw new Error(`Ranking service unavailable (${createJobRes.status})${errorBody ? `: ${errorBody}` : ''}`);
+      }
+
+      const createdJob = (await createJobRes.json()) as { id: number };
+      const rankingJobId = createdJob.id;
+
+      let submitted = 0;
+      for (const application of validApplications) {
+        try {
+          const fullName = application.user_profile?.full_name || 'Unknown';
+          const email = application.user_profile?.email || '';
+          const phone = application.user_profile?.phone || '';
+          const profileText = buildProfileText(application);
+          const file = await resumeUrlToPdfFile(application.resume_url || '', fullName);
+
+          const appForm = new FormData();
+          appForm.append('name', fullName);
+          appForm.append('email', email);
+          appForm.append('phone', phone);
+          appForm.append('profile_text', profileText);
+          appForm.append('file', file);
+
+          const submitRes = await fetch(`${resumeRankingApiBase}/jobs/${rankingJobId}/applications/`, {
+            method: 'POST',
+            body: appForm,
+          });
+
+          if (submitRes.ok) {
+            submitted += 1;
+          }
+        } catch (submissionError) {
+          console.warn('Skipping applicant for AI ranking due to upload error:', submissionError);
+        }
+      }
+
+      if (submitted === 0) {
+        throw new Error('Could not submit any applicant resumes to the ranking service.');
+      }
+
+      const timeoutMs = 240000;
+      const pollIntervalMs = 2500;
+      const start = Date.now();
+      let latestBoard: AIRankingLeaderboard | null = null;
+
+      while (Date.now() - start < timeoutMs) {
+        latestBoard = await fetchRankingLeaderboard(rankingJobId);
+        if (latestBoard.pending_count === 0) {
+          break;
+        }
+        await pause(pollIntervalMs);
+      }
+
+      if (!latestBoard) {
+        throw new Error('Ranking service did not return a leaderboard.');
+      }
+
+      setAiLeaderboard(latestBoard);
+      setAiLastUpdatedAt(new Date().toISOString());
+    } catch (runError) {
+      const message =
+        runError instanceof TypeError && runError.message.includes('Failed to fetch')
+          ? `AI ranking service is unreachable at ${resumeRankingApiBase}. Check VITE_RESUME_RANKING_API and CORS/network settings.`
+          : runError instanceof Error
+            ? runError.message
+            : 'Failed to run AI ranking.';
+      setAiRankingError(message);
+    } finally {
+      setAiRankingLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (loading || aiRankingLoading) {
+      return;
+    }
+
+    const runKey = buildAiRunKey();
+    if (!runKey || runKey === aiLastRunKey) {
+      return;
+    }
+
+    const validCount = getValidApplications().length;
+    if (validCount === 0) {
+      return;
+    }
+
+    setAiLastRunKey(runKey);
+    void handleRunAiRanking();
+  }, [applications, referralId, loading, aiRankingLoading]);
 
   const handleViewResume = (application: Application) => {
     if (!application.resume_url) {
@@ -341,6 +583,82 @@ export default function ApplicationsPage({
       {/* Applications Grid */}
       <div className="flex-1 overflow-y-auto px-8 py-6">
         <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-lg p-5 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">AI Resume Ranking</h2>
+                <p className="text-sm text-slate-500">
+                  Automatically ranks applicants when new applications are detected and updates shortlist insights.
+                </p>
+                {aiLastUpdatedAt && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    Last updated: {new Date(aiLastUpdatedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+              <div className="w-full lg:w-auto">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${aiRankingLoading ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  {aiRankingLoading ? 'AI Ranking In Progress' : 'Auto Ranking Enabled'}
+                </span>
+              </div>
+            </div>
+
+            {aiRankingError && (
+              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2 mb-3">
+                {aiRankingError}
+              </div>
+            )}
+
+            {aiLeaderboard && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-[#f2f1ec] rounded-md p-3">
+                    <p className="text-xs text-slate-500">Shortlisted</p>
+                    <p className="text-lg font-bold text-slate-900">{aiLeaderboard.shortlisted_count ?? aiLeaderboard.top_5.length}</p>
+                  </div>
+                  <div className="bg-[#f2f1ec] rounded-md p-3">
+                    <p className="text-xs text-slate-500">Ranked</p>
+                    <p className="text-lg font-bold text-slate-900">{aiLeaderboard.total_ranked}</p>
+                  </div>
+                  <div className="bg-[#f2f1ec] rounded-md p-3">
+                    <p className="text-xs text-slate-500">Pending</p>
+                    <p className="text-lg font-bold text-slate-900">{aiLeaderboard.pending_count}</p>
+                  </div>
+                  <div className="bg-[#f2f1ec] rounded-md p-3">
+                    <p className="text-xs text-slate-500">Failed</p>
+                    <p className="text-lg font-bold text-slate-900">{aiLeaderboard.failed_count}</p>
+                  </div>
+                </div>
+
+                {(aiLeaderboard.top_5.length > 0 || aiLeaderboard.others.length > 0) ? (
+                  <div className="bg-[#f9f9f7] rounded-md border border-slate-200 overflow-hidden">
+                    <div className="px-4 py-2 border-b border-slate-200">
+                      <p className="text-sm font-semibold text-slate-700">
+                        {aiLeaderboard.top_5.length > 0
+                          ? `Top Qualified Candidates (${aiLeaderboard.top_5.length} found)`
+                          : `Top Ranked Candidates (${Math.min(aiLeaderboard.others.length, 5)} shown)`}
+                      </p>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                      {(aiLeaderboard.top_5.length > 0 ? aiLeaderboard.top_5 : aiLeaderboard.others.slice(0, 5)).map((candidate, index) => (
+                        <div key={candidate.id} className="px-4 py-3">
+                          <p className="text-sm font-semibold text-slate-900">
+                            {index + 1}. {candidate.name} <span className="text-[#5f7261]">({(candidate.score ?? 0).toFixed(2)}%)</span>
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">{candidate.rationale || 'No rationale provided.'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                    No candidates met shortlist thresholds for this job yet.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {filteredApplications.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-slate-500 text-lg">

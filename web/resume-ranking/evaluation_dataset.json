@@ -1,0 +1,12 @@
+{
+  "predicted_order": [
+    "Candidate A",
+    "Candidate B",
+    "Candidate C"
+  ],
+  "ground_truth_relevance": {
+    "Candidate A": 3,
+    "Candidate B": 2,
+    "Candidate C": 1
+  }
+}

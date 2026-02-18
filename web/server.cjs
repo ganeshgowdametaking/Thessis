@@ -1,71 +1,247 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const multer = require('multer');
 const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const cors = require('cors');
+const cheerio = require('cheerio');
+const Groq = require('groq-sdk');
+const axios = require('axios');
+const multer = require('multer');
 
 const app = express();
 const port = 3001;
+const upload = multer({ storage: multer.memoryStorage() });
+const rankingApiBase = (process.env.RANKING_API_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+
+// Groq client initialization
+
+
+const groqApiKey = process.env.GROQ_API_KEY;
+console.log('🔑 Groq API Key found:', groqApiKey ? `Yes (${groqApiKey.substring(0, 4)}...)` : 'No');
+
+const groq = groqApiKey ? new Groq({ apiKey: groqApiKey }) : null;
+
+if (!groq) {
+  console.warn('⚠️  WARNING: GROQ_API_KEY is not set in web/.env. AI extraction will not work.');
+}
+
+// Simple async queue to handle rate limits
+class ExtractionQueue {
+  constructor(concurrency = 2) {
+    this.concurrency = concurrency;
+    this.running = 0;
+    this.queue = [];
+  }
+
+  async add(task) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ task, resolve, reject });
+      this.process();
+    });
+  }
+
+  async process() {
+    if (this.running >= this.concurrency || this.queue.length === 0) return;
+
+    this.running++;
+    const { task, resolve, reject } = this.queue.shift();
+
+    try {
+      const result = await task();
+      resolve(result);
+    } catch (err) {
+      reject(err);
+    } finally {
+      this.running--;
+      this.process();
+    }
+  }
+}
+
+const extractionQueue = new ExtractionQueue();
+
+app.use(cors());
+app.use(express.json({ limit: '5mb' }));
+
+// Middleware to sanitize PII (basic implementation)
+const sanitizePII = (text) => {
+  if (!text) return '';
+  // Remove potential emails and phone numbers for privacy
+  return text
+    .replace(/[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+\.[a-zA-Z0-9.-]+/gi, '[EMAIL]')
+    .replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, '[PHONE]');
+};
 
 const s3 = new S3Client({ region: process.env.AWS_REGION });
 
-// CORS configuration
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:5176',
-    'http://localhost:5177',
-    'http://localhost:5178',
-    'http://localhost:5179',
-    'http://localhost:5180',
-    'http://localhost:5181',
-    'http://localhost:5182',
-    'http://localhost:5183',
-    'http://localhost:5184',
-    'http://localhost:5185'
-  ],
-  credentials: true
-}));
+// Helper function for robust HTML cleaning
+const cleanHtmlContent = (html) => {
+  const $ = cheerio.load(html);
 
-app.use(express.json());
+  // 1. Remove obvious noise
+  $('script, style, noscript, nav, footer, header, iframe, svg, button, form').remove();
+  $('[class*="nav"], [class*="menu"], [class*="footer"], [class*="header"], [id*="nav"], [id*="menu"]').remove();
 
-// Configure multer for file uploads
-const upload = multer({ storage: multer.memoryStorage() });
+  // 2. Select main content container if possible
+  let $content = $('body');
+  const mainSelector = 'main, article, [role="main"], #content, .content, #main, .main, .job-description, .description';
+  const mainElement = $(mainSelector).first();
+  if (mainElement.length > 0) {
+    $content = mainElement;
+  }
 
-// Upload file directly through backend (avoids CORS issues)
-app.post('/upload-file', upload.single('file'), async (req, res) => {
+  // 3. Smart Block Handling (The Fix for "Wall of Text")
+  // Append a newline to block-level elements before extracting text ensures separation.
+  $content.find('br, div, p, li, h1, h2, h3, h4, h5, h6, section, tr').after('\n');
+
+  // 4. Extract text
+  let text = $content.text();
+
+  // FIX: Semantic Cutoff to remove Application Form Data
+  const cutoffMarkers = [
+    /Apply for this job/i,
+    /Apply now/i,
+    /School\s*\*\s*Degree/i,  // Greenhouse specific
+    /Demographic Information/i,
+    /Attach Resume/i
+  ];
+
+  for (const marker of cutoffMarkers) {
+    const match = text.match(marker);
+    if (match && match.index > 100) { // Ensure we don't cut off too early by mistake
+      console.log(`✂️ Cutting off text at marker: ${marker}`);
+      text = text.substring(0, match.index);
+      break;
+    }
+  }
+
+  // 5. Whitespace Normalization (The Fix for "Excessive Spacing")
+  // Collapse multiple newlines into max two
+  text = text.replace(/\n\s*\n/g, '\n\n');
+  // Collapse multiple spaces into one
+  text = text.replace(/[ \t]+/g, ' ').trim();
+
+  return text;
+};
+
+// AI Extraction Endpoint
+app.post('/extract-referral', async (req, res) => {
+  console.log('📥 Received extraction request');
+  const { text, url } = req.body;
+
+  if (!text && !url) {
+    return res.status(400).json({ error: 'No text or URL provided for extraction' });
+  }
+
+  if (!groq) {
+    return res.status(503).json({
+      error: 'AI service is not configured. Please add GROQ_API_KEY to your web/.env file and restart the server.',
+      code: 'MISSING_API_KEY'
+    });
+  }
+
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file provided' });
-    }
+    console.log(`🤖 Starting AI extraction... (Type: ${url ? 'URL' : 'Text'})`);
+    const result = await extractionQueue.add(async () => {
+      let contentToAnalyze = text;
 
-    const { key } = req.body;
-    if (!key) {
-      return res.status(400).json({ error: 'No key provided' });
-    }
+      if (url) {
+        try {
+          const response = await axios.get(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            },
+            timeout: 8000
+          });
 
-    const command = new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET_NAME,
-      Key: key,
-      Body: req.file.buffer,
-      ContentType: req.file.mimetype,
+          contentToAnalyze = cleanHtmlContent(response.data);
+
+        } catch (err) {
+          throw new Error('Could not fetch content from URL');
+        }
+      }
+
+      const sanitizedText = sanitizePII(contentToAnalyze).substring(0, 25000); // 15k -> 25k chars for deep pages
+
+      const chatCompletion = await groq.chat.completions.create({
+        messages: [
+          {
+            role: 'system',
+            content: `You are a professional recruiting assistant. Extract job referral details. 
+            
+            ### CRITICAL RULE 1: EXPERIENCE LEVEL MAPPING (STRICT)
+            You must map experience to EXACTLY one of these strings based on this logic:
+            
+            1. "Lead / Manager": ONLY if the Job Title contains "Lead", "Manager", "Head", "Principal" OR the description explicitly requires "People Management" / "Team Leadership". 
+               (Do NOT select this just because years are high, e.g., "8 years" individual contributor is "Senior").
+            2. "Senior (5+ yrs)": If it is NOT a Manager role, but requires 5+ years (e.g., "4-8 years", "5-10 years", "Senior Engineer").
+            3. "Mid Level (2-4 yrs)": 2-5 years experience.
+            4. "Entry Level": 0-2 years experience.
+
+            ### CRITICAL RULE 2: FULL DESCRIPTION
+            For the "full_content_body" field, you must output the ENTIRE original job description text verbatim.
+            - DO NOT summarize.
+            - DO NOT say "See above".
+            - Copy the full text exactly as given, preserving newlines and bullet points.
+
+            ### RETURN JSON:
+            {
+              "job_title": "String",
+              "company_name": "String",
+              "department": "String (Infer if missing)",
+              "location": "String",
+              "job_type": "String (Full-time/Part-time/Contract)",
+              "experience_level": "String (MUST match one of the exact options above)",
+              "skills": ["String", "String"],
+              "benefits": ["String", "String"],
+              "full_content_body": "String (The complete, verbatim job description text)"
+            }`
+          },
+          {
+            role: 'user',
+            content: sanitizedText
+          }
+        ],
+        model: 'llama-3.1-8b-instant',
+        response_format: { type: 'json_object' },
+        temperature: 0.1,
+        max_tokens: 8000
+      });
+
+      const rawContent = chatCompletion.choices[0].message.content;
+      console.log('🤖 Raw AI Response:', rawContent.substring(0, 200) + '...');
+
+      // Strip markdown code blocks if present
+      const cleanContent = rawContent.replace(/```json\n?|\n?```/g, '').trim();
+
+      try {
+        const data = JSON.parse(cleanContent);
+
+        // Use the AI's full content if available. 
+        // If not (null), FALLBACK to the raw sanitized text we scraped ourselves.
+        data.description = data.full_content_body || sanitizedText || '';
+
+        return data;
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', cleanContent);
+        throw new Error('AI returned invalid JSON');
+      }
     });
 
-    await s3.send(command);
-
-    // Return the S3 URL without query parameters
-    const s3Url = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
-    res.json({ url: s3Url });
+    res.json(result);
   } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ error: 'Failed to upload file' });
+    console.error('Extraction error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Generate pre-signed URL for upload (keeping for compatibility)
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Remove redundant express.json() call here
+
+// Generate pre-signed URL for upload
 app.post('/generate-upload-url', async (req, res) => {
   const { key, contentType } = req.body;
   if (!key || !contentType) return res.status(400).json({ error: 'Missing key or contentType' });
@@ -79,6 +255,12 @@ app.post('/generate-upload-url', async (req, res) => {
   const url = await getSignedUrl(s3, command, { expiresIn: 900 }); // 15 min
   res.json({ url });
 });
+
+
+
+
+
+
 
 // Generate pre-signed URL for download
 app.post('/generate-download-url', async (req, res) => {
@@ -94,65 +276,66 @@ app.post('/generate-download-url', async (req, res) => {
   res.json({ url });
 });
 
-// Send feedback email via Mailgun
-app.post('/send-feedback', async (req, res) => {
+const forwardRankingResponse = async (upstreamRes, res) => {
+  const text = await upstreamRes.text();
+  res.status(upstreamRes.status);
+  const contentType = upstreamRes.headers.get('content-type');
+  if (contentType) {
+    res.set('content-type', contentType);
+  }
+  res.send(text);
+};
+
+app.post('/ranking/jobs', upload.none(), async (req, res) => {
   try {
-    const { subject, message, userEmail, userName } = req.body;
+    const form = new FormData();
+    form.append('title', req.body.title || '');
+    form.append('description', req.body.description || '');
 
-    if (!message) {
-      return res.status(400).json({ error: 'Feedback message is required' });
-    }
-
-    const domain = process.env.MAILGUN_DOMAIN;
-    const apiKey = process.env.MAILGUN_API_KEY;
-    const fromEmail = process.env.MAILGUN_FROM_EMAIL || `TankTide Feedback <feedback@${domain}>`;
-
-    if (!domain || !apiKey) {
-      console.error('❌ Mailgun configuration missing');
-      return res.status(500).json({ error: 'Email service not configured' });
-    }
-
-    const auth = Buffer.from(`api:${apiKey}`).toString('base64');
-
-    const formData = new URLSearchParams();
-    formData.append('from', fromEmail);
-    formData.append('to', 'info@tanktide.com');
-    formData.append('subject', `[TankTide Feedback] ${subject || 'New Feedback'}`);
-    formData.append('text', `
-New feedback received from TankTide User:
-------------------------------------------
-Name: ${userName || 'Anonymous'}
-Email: ${userEmail || 'Not provided'}
-Subject: ${subject || 'General'}
-Time: ${new Date().toLocaleString()}
-
-Feedback:
-"${message}"
-------------------------------------------
-    `);
-
-    const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
+    const upstreamRes = await fetch(`${rankingApiBase}/jobs/`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: formData.toString()
+      body: form,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('❌ Mailgun error:', errorData);
-      throw new Error(errorData.message || 'Failed to send email');
+    await forwardRankingResponse(upstreamRes, res);
+  } catch (error) {
+    res.status(502).json({ error: `Ranking service unreachable at ${rankingApiBase}` });
+  }
+});
+
+app.post('/ranking/jobs/:jobId/applications', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Missing resume file' });
     }
 
-    res.json({ success: true, message: 'Feedback sent successfully' });
+    const form = new FormData();
+    form.append('name', req.body.name || '');
+    form.append('email', req.body.email || '');
+    form.append('phone', req.body.phone || '');
+    form.append('profile_text', req.body.profile_text || '');
+    form.append('file', new Blob([req.file.buffer], { type: req.file.mimetype || 'application/pdf' }), req.file.originalname || 'resume.pdf');
+
+    const upstreamRes = await fetch(`${rankingApiBase}/jobs/${req.params.jobId}/applications/`, {
+      method: 'POST',
+      body: form,
+    });
+
+    await forwardRankingResponse(upstreamRes, res);
   } catch (error) {
-    console.error('Feedback error:', error);
-    res.status(500).json({ error: 'Failed to send feedback' });
+    res.status(502).json({ error: `Ranking service unreachable at ${rankingApiBase}` });
+  }
+});
+
+app.get('/ranking/jobs/:jobId/leaderboard', async (req, res) => {
+  try {
+    const upstreamRes = await fetch(`${rankingApiBase}/jobs/${req.params.jobId}/leaderboard`);
+    await forwardRankingResponse(upstreamRes, res);
+  } catch (error) {
+    res.status(502).json({ error: `Ranking service unreachable at ${rankingApiBase}` });
   }
 });
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
-}); 
+});
