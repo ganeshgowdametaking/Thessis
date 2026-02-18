@@ -45,6 +45,39 @@ const looksLikeJobText = (text = '') => {
   return signals.filter((s) => low.includes(s)).length >= 2 && text.length > 600;
 };
 
+const inferCompanyFromText = (text = '') => {
+  const low = text.toLowerCase();
+  const aboutIdx = low.indexOf('about company');
+  if (aboutIdx >= 0) {
+    const windowText = text.slice(aboutIdx, aboutIdx + 500);
+    const match = windowText.match(/about company\s+([A-Z][A-Za-z0-9.& -]{1,60})/);
+    if (match?.[1]) return match[1].trim();
+  }
+  const foundedMatch = text.match(/Founded in \d{4},\s*([A-Z][A-Za-z0-9.& -]{1,60})/i);
+  if (foundedMatch?.[1]) return foundedMatch[1].trim();
+  return '';
+};
+
+const inferExperienceLevel = (text = '') => {
+  const range = text.match(/required experience[^0-9]*?(\d+)\s*[-–]\s*(\d+)\s*years?/i);
+  const plus = text.match(/(\d+)\+?\s*years?/i);
+  let years = 0;
+  if (range) years = Number(range[1]);
+  else if (plus) years = Number(plus[1]);
+  if (years >= 5) return 'Senior (5+ yrs)';
+  if (years >= 2) return 'Mid Level (2-4 yrs)';
+  return years > 0 ? 'Entry Level' : '';
+};
+
+const inferDepartment = (title = '', text = '') => {
+  const source = `${title} ${text}`.toLowerCase();
+  if (source.includes('data scientist') || source.includes('machine learning')) return 'Data Science';
+  if (source.includes('backend') || source.includes('full stack') || source.includes('software engineer')) return 'Engineering';
+  if (source.includes('product')) return 'Product';
+  if (source.includes('design')) return 'Design';
+  return '';
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -161,6 +194,22 @@ ${sanitizedText}`,
     const data = JSON.parse(cleanContent);
     if (!data.job_title && titleHint) data.job_title = titleHint;
     if (!data.company_name && companyHint) data.company_name = companyHint;
+    const inferredCompany = inferCompanyFromText(sanitizedText);
+    if (
+      inferredCompany &&
+      (!data.company_name ||
+        ['turbohire', 'linkedin', 'naukri', 'indeed', 'greenhouse'].includes(String(data.company_name).toLowerCase()))
+    ) {
+      data.company_name = inferredCompany;
+    }
+    if (!data.experience_level || /entry/i.test(String(data.experience_level))) {
+      const inferredLevel = inferExperienceLevel(sanitizedText);
+      if (inferredLevel) data.experience_level = inferredLevel;
+    }
+    if (!data.department) {
+      const inferredDepartment = inferDepartment(String(data.job_title || titleHint || ''), sanitizedText);
+      if (inferredDepartment) data.department = inferredDepartment;
+    }
     data.description = data.full_content_body || sanitizedText || '';
     return res.status(200).json(data);
   } catch (error) {
