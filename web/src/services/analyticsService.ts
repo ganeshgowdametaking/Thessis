@@ -208,14 +208,14 @@ const trackInteraction = async (interaction: Omit<UserInteraction, 'timestamp' |
 let trackingCleanup: (() => void) | null = null;
 
 // Debounce utility
-const debounce = (func: Function, wait: number) => {
-  let timeout: NodeJS.Timeout;
-  const debounced = (...args: any[]) => {
+const debounce = <T extends (...args: never[]) => void>(func: T, wait: number): T & { cancel: () => void } => {
+  let timeout: ReturnType<typeof setTimeout>;
+  const debounced = (...args: Parameters<T>) => {
     clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
+    timeout = setTimeout(() => func(...args as never[]), wait);
   };
   debounced.cancel = () => clearTimeout(timeout);
-  return debounced;
+  return debounced as T & { cancel: () => void };
 };
 
 // Set up event listeners for automatic tracking

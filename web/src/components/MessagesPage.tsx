@@ -307,8 +307,6 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     } catch (error) {
       console.error('Error searching users:', error);
       setSearchSuggestions([]);
-    } finally {
-
     }
   };
 

@@ -12,6 +12,10 @@ const app = express();
 const port = 3001;
 const upload = multer({ storage: multer.memoryStorage() });
 const rankingApiBase = (process.env.RANKING_API_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+const debugLogsEnabled = process.env.DEBUG_LOGS === '1' || process.env.NODE_ENV !== 'production';
+const debugLog = (...args) => {
+  if (debugLogsEnabled) console.log(...args);
+};
 
 // Groq client initialization
 
@@ -109,7 +113,7 @@ const cleanHtmlContent = (html) => {
   for (const marker of cutoffMarkers) {
     const match = text.match(marker);
     if (match && match.index > 100) { // Ensure we don't cut off too early by mistake
-      console.log(`✂️ Cutting off text at marker: ${marker}`);
+      debugLog(`✂️ Cutting off text at marker: ${marker}`);
       text = text.substring(0, match.index);
       break;
     }
@@ -126,7 +130,7 @@ const cleanHtmlContent = (html) => {
 
 // AI Extraction Endpoint
 app.post('/extract-referral', async (req, res) => {
-  console.log('📥 Received extraction request');
+  debugLog('📥 Received extraction request');
   const { text, url } = req.body;
 
   if (!text && !url) {
@@ -141,7 +145,7 @@ app.post('/extract-referral', async (req, res) => {
   }
 
   try {
-    console.log(`🤖 Starting AI extraction... (Type: ${url ? 'URL' : 'Text'})`);
+    debugLog(`🤖 Starting AI extraction... (Type: ${url ? 'URL' : 'Text'})`);
     const result = await extractionQueue.add(async () => {
       let contentToAnalyze = text;
 
@@ -209,7 +213,7 @@ app.post('/extract-referral', async (req, res) => {
       });
 
       const rawContent = chatCompletion.choices[0].message.content;
-      console.log('🤖 Raw AI Response:', rawContent.substring(0, 200) + '...');
+      debugLog('🤖 Raw AI Response:', rawContent.substring(0, 200) + '...');
 
       // Strip markdown code blocks if present
       const cleanContent = rawContent.replace(/```json\n?|\n?```/g, '').trim();

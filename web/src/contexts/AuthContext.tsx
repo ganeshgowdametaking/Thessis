@@ -147,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const beat = setInterval(async () => {
       try {
-        // @ts-ignore - last_seen is added via SQL migration but types might be outdated
+        // @ts-expect-error - last_seen is added via SQL migration but generated types may lag.
         await supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', user.id)
       } catch (err) {
         // silent fail

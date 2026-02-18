@@ -5,7 +5,10 @@ import { AuthProvider } from './contexts/AuthContext';
 import './index.css';
 import { analyticsService } from './services/analyticsService.ts';
 import { gdprService } from './services/gdprService.ts';
-import './utils/trackingTestUtils.ts';
+
+if (import.meta.env.DEV) {
+  import('./utils/trackingTestUtils.ts');
+}
 
 // Only initialize analytics for non-EU users, or for EU users after consent
 const isEU = localStorage.getItem('is_eu_user') === 'true';

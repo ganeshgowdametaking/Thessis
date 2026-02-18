@@ -296,7 +296,7 @@ const CreateReferralPage: React.FC = () => {
         '\n\n$1'
       )
       // 3. Keep bullet/number list structure
-      .replace(/(?:^|\s)([•\-\*])\s+/g, '\n$1 ')
+      .replace(/(?:^|\s)([•*-])\s+/g, '\n$1 ')
       .replace(/(?:^|\s)(\d+\.)\s+/g, '\n$1 ')
       // 4. Fix split hyphenated words from PDF extraction: "high - fidelity" -> "high-fidelity"
       .replace(/([A-Za-z])\s-\s([A-Za-z])/g, '$1-$2')
