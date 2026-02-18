@@ -85,6 +85,10 @@ const CreateReferralPage: React.FC = () => {
           display_name: 'Remote',
         });
       }
+      if (query.trim().toLowerCase() === 'remote') {
+        setLocationSuggestions(suggestions);
+        return;
+      }
 
       try {
         const response = await fetch(
@@ -250,15 +254,45 @@ const CreateReferralPage: React.FC = () => {
   const cleanPDFText = (text: string) => {
     if (!text) return '';
     return text
-      // 1. Remove excessive spaces
-      .replace(/\s+/g, ' ')
+      .replace(/\r/g, '\n')
+      // Keep paragraph structure while normalizing spaces
+      .replace(/[ \t]+/g, ' ')
       // 2. Insert newlines before common Job Description Headers
       .replace(/(The Role|About Us|What We're Looking For|Your Mission|Responsibilities|Requirements|Qualifications|Benefits|Role:|Location:|Compensation:)/gi, '\n\n$1')
       // 3. Insert newlines before Bullet Points (•, -, *)
       .replace(/([•\-\*]\s)/g, '\n$1')
+      // 4. Fix split hyphenated words from PDF extraction: "high - fidelity" -> "high-fidelity"
+      .replace(/([A-Za-z])\s-\s([A-Za-z])/g, '$1-$2')
       // 4. Ensure space after colons for readability
       .replace(/([a-zA-Z]+:)(?=[^\s])/g, '$1 ')
+      .replace(/\n{3,}/g, '\n\n')
       .trim();
+  };
+
+  const normalizeJobType = (jobType: string | undefined, title: string, description: string) => {
+    const source = `${jobType || ''} ${title || ''} ${description || ''}`.toLowerCase();
+    if (source.includes('intern')) return 'Internship';
+    if (source.includes('contract')) return 'Contract';
+    if (source.includes('part-time') || source.includes('part time')) return 'Part-time';
+    if (source.includes('freelance')) return 'Freelance';
+    return 'Full-time';
+  };
+
+  const normalizeExperienceLevel = (rawLevel: string | undefined, title: string, description: string) => {
+    const source = `${title || ''} ${description || ''}`.toLowerCase();
+    if (source.includes('intern')) return 'Entry Level';
+
+    const range = source.match(/(\d+)\s*[-–to]+\s*(\d+)\s*(?:years?|yrs?)/i);
+    const plus = source.match(/(\d+)\+?\s*(?:years?|yrs?)/i);
+    const years = range ? Number(range[1]) : plus ? Number(plus[1]) : 0;
+    if (years >= 5) return 'Senior (5+ yrs)';
+    if (years >= 2) return 'Mid Level (2-4 yrs)';
+    if (years > 0) return 'Entry Level';
+
+    if (rawLevel && ['Entry Level', 'Mid Level (2-4 yrs)', 'Senior (5+ yrs)', 'Lead / Manager'].includes(rawLevel)) {
+      return rawLevel;
+    }
+    return 'Entry Level';
   };
 
   const formatExtractedJobDescription = (text: string) => {
@@ -329,22 +363,27 @@ const CreateReferralPage: React.FC = () => {
       }
 
       const data = await response.json();
-      const structuredDescription = formatExtractedJobDescription(
-        data.full_content_body || data.description || textToProcess
-      );
+      const sourceDescription = data.full_content_body || data.description || textToProcess || '';
+      const normalizedTitle = data.job_title || data.title || formData.title || '';
+      const structuredDescription =
+        type === 'pdf'
+          ? cleanPDFText(sourceDescription)
+          : formatExtractedJobDescription(sourceDescription);
+      const normalizedJobType = normalizeJobType(data.job_type, normalizedTitle, sourceDescription);
+      const normalizedExperience = normalizeExperienceLevel(data.experience_level, normalizedTitle, sourceDescription);
 
       // Update form with AI results
       setFormData(prev => ({
         ...prev,
-        title: data.job_title || data.title || prev.title,
+        title: normalizedTitle || prev.title,
         company: data.company_name || data.company || prev.company,
         department: data.department || prev.department,
         description: structuredDescription || cleanPDFText(textToProcess) || prev.description,
         location: data.location || prev.location,
-        experience_level: data.experience_level || prev.experience_level,
+        experience_level: normalizedExperience || prev.experience_level,
 
         // ✨ NEW: Capture Skills, Benefits, and Job Type
-        job_type: data.job_type || prev.job_type,
+        job_type: normalizedJobType || prev.job_type,
         skills: data.skills && Array.isArray(data.skills) ? data.skills : prev.skills,
         benefits: data.benefits && Array.isArray(data.benefits) ? data.benefits : prev.benefits,
       }));
