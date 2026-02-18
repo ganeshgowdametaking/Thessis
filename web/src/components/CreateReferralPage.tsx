@@ -6,6 +6,11 @@ import { useNavigate } from 'react-router-dom';
 import { jobService } from '../services/jobService';
 import LoadingSpinner from './LoadingSpinner';
 import debounce from 'lodash.debounce';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Use the local worker from the node_modules
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 type Job = Database['public']['Tables']['jobs']['Row'];
 type JobInsert = Database['public']['Tables']['jobs']['Insert'];
@@ -41,6 +46,11 @@ const CreateReferralPage: React.FC = () => {
   const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
   const [locationQuery, setLocationQuery] = useState('');
 
+  // AI Auto-fill state
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [referralLink, setReferralLink] = useState('');
+
   // Fetch user's jobs (acting as referrals)
   const fetchMyReferrals = useCallback(async () => {
     if (!user?.id) return;
@@ -66,14 +76,24 @@ const CreateReferralPage: React.FC = () => {
         setLocationSuggestions([]);
         return;
       }
+
+      // Explicitly handle "Remote"
+      const suggestions = [];
+      if ('remote'.includes(query.toLowerCase())) {
+        suggestions.push({
+          place_id: 'remote_option',
+          display_name: 'Remote',
+        });
+      }
+
       try {
         const response = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=8`
         );
         const data = await response.json();
-        setLocationSuggestions(data);
+        setLocationSuggestions([...suggestions, ...data]);
       } catch (error) {
-        setLocationSuggestions([]);
+        setLocationSuggestions(suggestions);
       }
     }, 300),
     []
@@ -215,6 +235,94 @@ const CreateReferralPage: React.FC = () => {
     navigate(`/applications/${jobId}`);
   };
 
+  const extractTextFromPDF = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map((item: any) => item.str).join(' ');
+    }
+    return text;
+  };
+
+  const cleanPDFText = (text: string) => {
+    if (!text) return '';
+    return text
+      // 1. Remove excessive spaces
+      .replace(/\s+/g, ' ')
+      // 2. Insert newlines before common Job Description Headers
+      .replace(/(The Role|About Us|What We're Looking For|Your Mission|Responsibilities|Requirements|Qualifications|Benefits|Role:|Location:|Compensation:)/gi, '\n\n$1')
+      // 3. Insert newlines before Bullet Points (•, -, *)
+      .replace(/([•\-\*]\s)/g, '\n$1')
+      // 4. Ensure space after colons for readability
+      .replace(/([a-zA-Z]+:)(?=[^\s])/g, '$1 ')
+      .trim();
+  };
+
+  const handleAIAutoFill = async (type: 'pdf' | 'link', payload: any) => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      let textToProcess = '';
+      let urlToProcess = '';
+
+      if (type === 'pdf') {
+        textToProcess = await extractTextFromPDF(payload);
+        console.log(`📄 PDF Extracted Text (${textToProcess.length} chars):`, textToProcess.substring(0, 300) + '...');
+        if (!textToProcess.trim()) throw new Error('Could not find any text in this PDF. It might be an image.');
+      } else {
+        urlToProcess = payload;
+      }
+
+      const response = await fetch('/api/extract-referral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: textToProcess, url: urlToProcess }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = 'Failed to extract data';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          errorMessage = `Server Error (${response.status}): ${errorText.substring(0, 50)}...`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+
+      // Update form with AI results
+      setFormData(prev => ({
+        ...prev,
+        title: data.job_title || data.title || prev.title,
+        company: data.company_name || data.company || prev.company,
+        department: data.department || prev.department,
+        description: data.full_content_body || cleanPDFText(textToProcess) || data.description || prev.description,
+        location: data.location || prev.location,
+        experience_level: data.experience_level || prev.experience_level,
+
+        // ✨ NEW: Capture Skills, Benefits, and Job Type
+        job_type: data.job_type || prev.job_type,
+        skills: data.skills && Array.isArray(data.skills) ? data.skills : prev.skills,
+        benefits: data.benefits && Array.isArray(data.benefits) ? data.benefits : prev.benefits,
+      }));
+
+      if (data.location) setLocationQuery(data.location);
+
+      console.log('✨ AI Extraction Success:', data);
+    } catch (err: any) {
+      console.error('❌ AI Extraction Error:', err);
+      setAiError(err.message || 'Something went wrong during extraction');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -242,6 +350,12 @@ const CreateReferralPage: React.FC = () => {
   return (
     <div className="bg-stone-50 font-display text-slate-700 antialiased min-h-screen flex flex-col">
       <main className="flex-grow w-full px-6 md:px-12 py-10 max-w-5xl mx-auto">
+        <div className="mb-6 rounded-lg border-2 border-[#5f7261] bg-[#eef4ef] px-4 py-3">
+          <p className="text-sm font-bold text-[#2f4a33]">
+            AI_BLOCK_V2: PDF upload + link extraction is enabled on this page.
+          </p>
+        </div>
+
         {/* Header */}
         <div className="flex flex-col gap-6 mb-10">
           <button
@@ -293,6 +407,86 @@ const CreateReferralPage: React.FC = () => {
             <div className="size-10 rounded-full bg-stone-50 flex items-center justify-center text-[#5f7261] border border-stone-100">
               <span className="material-symbols-outlined">bolt</span>
             </div>
+          </div>
+        </div>
+
+        {/* AI Auto-fill Section */}
+        <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="bg-[#5f7261]/5 border border-[#5f7261]/20 rounded-xl p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-[#5f7261] p-2 rounded-lg text-white">
+                <span className="material-symbols-outlined text-[24px]">magic_button</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">AI Referral Magic</h3>
+                <p className="text-sm text-slate-600">Upload a PDF or paste a link to auto-fill this entire form.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* PDF Upload */}
+              <div className="relative">
+                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-[#5f7261]/30 rounded-xl bg-white hover:bg-[#5f7261]/10 transition-all cursor-pointer group">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <span className="material-symbols-outlined text-[#5f7261] text-[32px] mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
+                    <p className="mb-1 text-sm text-slate-700 font-bold">Upload Job Description PDF</p>
+                    <p className="text-xs text-slate-500">Fast, local, and secure</p>
+                  </div>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="application/pdf"
+                    onChange={(e) => e.target.files?.[0] && handleAIAutoFill('pdf', e.target.files[0])}
+                    disabled={aiLoading}
+                  />
+                </label>
+              </div>
+
+              {/* Link Input */}
+              <div className="flex flex-col justify-center gap-4">
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">link</span>
+                  <input
+                    type="url"
+                    placeholder="Paste job board link (LinkedIn, etc.)"
+                    className="w-full h-12 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#5f7261] focus:border-transparent outline-none transition-all"
+                    value={referralLink}
+                    onChange={(e) => setReferralLink(e.target.value)}
+                  />
+                </div>
+                <button
+                  onClick={() => referralLink && handleAIAutoFill('link', referralLink)}
+                  className="h-12 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+                  disabled={aiLoading || !referralLink}
+                >
+                  {aiLoading ? (
+                    <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[18px]">bolt</span>
+                      Extract from Link
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {aiError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-semibold animate-in shake duration-300">
+                ⚠️ {aiError}
+              </div>
+            )}
+
+            {aiLoading && (
+              <div className="mt-6 flex items-center justify-center gap-3 py-2">
+                <div className="flex gap-1">
+                  <span className="size-2 bg-[#5f7261] rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                  <span className="size-2 bg-[#5f7261] rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                  <span className="size-2 bg-[#5f7261] rounded-full animate-bounce"></span>
+                </div>
+                <p className="text-sm font-bold text-[#5f7261]">Llama 3.1 is analyzing your referral...</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -400,6 +594,7 @@ const CreateReferralPage: React.FC = () => {
                           <option>Part-time</option>
                           <option>Contract</option>
                           <option>Freelance</option>
+                          <option>Internship</option>
                         </select>
                         <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[18px]">expand_more</span>
                       </div>
