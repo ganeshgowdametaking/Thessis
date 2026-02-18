@@ -115,7 +115,10 @@ const decodeHtmlEntities = (input = '') =>
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     .replace(/&#39;/gi, "'")
-    .replace(/&quot;/gi, '"');
+    .replace(/&quot;/gi, '"')
+    .replace(/&#43;/gi, '+')
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, num) => String.fromCharCode(Number(num)));
 
 const htmlToStructuredText = (html = '') => {
   if (!html) return '';
@@ -135,7 +138,7 @@ const htmlToStructuredText = (html = '') => {
     .trim();
 
   // Drop application form and trailing portal noise.
-  const noiseMarkers = ['Apply for this job', 'Create a Job Alert', 'Voluntary Self-Identification'];
+  const noiseMarkers = ['Apply for this job', 'Create a Job Alert', 'Voluntary Self-Identification', 'Legal Entity'];
   for (const marker of noiseMarkers) {
     const idx = text.indexOf(marker);
     if (idx > 1000) {
@@ -159,6 +162,175 @@ const extractKnownSkills = (text = '') => {
     if (pattern.test(low)) found.push(skill);
   }
   return [...new Set(found)];
+};
+
+const hasMeaningfulDescription = (text = '') => {
+  const clean = String(text || '').replace(/\s+/g, ' ').trim();
+  if (clean.length < 220) return false;
+  const low = clean.toLowerCase();
+  const badMarkers = [
+    'the full job description is provided in the source text',
+    'job description is provided in the source text',
+    'full content not available',
+    'description not available',
+  ];
+  return !badMarkers.some((marker) => low.includes(marker));
+};
+
+const parseJsonLoose = (raw = '') => {
+  if (!raw) return null;
+  const attempts = [
+    raw.trim(),
+    raw.trim().replace(/;\s*$/, ''),
+    raw.trim().replace(/[\u0000-\u001F]+/g, ' '),
+  ];
+  for (const candidate of attempts) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // Try next normalized candidate.
+    }
+  }
+  return null;
+};
+
+const collectJobPostingObjects = (node, out, depth = 0) => {
+  if (!node || depth > 8) return;
+  if (Array.isArray(node)) {
+    for (const item of node) collectJobPostingObjects(item, out, depth + 1);
+    return;
+  }
+  if (typeof node !== 'object') return;
+
+  const typeValue = node['@type'] || node.type || '';
+  const types = Array.isArray(typeValue) ? typeValue : [typeValue];
+  if (types.some((t) => String(t || '').toLowerCase() === 'jobposting')) {
+    out.push(node);
+  }
+
+  for (const value of Object.values(node)) {
+    if (value && typeof value === 'object') {
+      collectJobPostingObjects(value, out, depth + 1);
+    }
+  }
+};
+
+const normalizeEmploymentType = (employmentType) => {
+  const values = Array.isArray(employmentType) ? employmentType : [employmentType];
+  const normalized = values.map((v) => String(v || '').toUpperCase()).filter(Boolean);
+  if (normalized.some((v) => v.includes('INTERN'))) return 'Internship';
+  if (normalized.some((v) => v.includes('PART_TIME'))) return 'Part-time';
+  if (normalized.some((v) => v.includes('CONTRACT'))) return 'Contract';
+  if (normalized.some((v) => v.includes('TEMP'))) return 'Contract';
+  if (normalized.some((v) => v.includes('FULL_TIME'))) return 'Full-time';
+  return '';
+};
+
+const formatPostalAddress = (address = {}) => {
+  if (!address || typeof address !== 'object') return '';
+  const locality = address.addressLocality || '';
+  const region = address.addressRegion || '';
+  const country = address.addressCountry || '';
+  const compact = [locality, region, country].filter(Boolean).join(', ');
+  if (compact) return compact;
+  return [address.streetAddress, locality, region, address.postalCode, country].filter(Boolean).join(', ');
+};
+
+const extractLocationFromJobPosting = (jobPosting = {}) => {
+  const locationType = String(jobPosting?.jobLocationType || '').toUpperCase();
+  if (locationType.includes('TELECOMMUTE')) return 'Remote';
+
+  const candidate = Array.isArray(jobPosting?.jobLocation) ? jobPosting.jobLocation[0] : jobPosting?.jobLocation;
+  if (typeof candidate === 'string') return candidate;
+  if (candidate && typeof candidate === 'object') {
+    if (typeof candidate.name === 'string' && candidate.name.trim()) return candidate.name.trim();
+    const fromAddress = formatPostalAddress(candidate.address);
+    if (fromAddress) return fromAddress;
+  }
+
+  const applicantReq = Array.isArray(jobPosting?.applicantLocationRequirements)
+    ? jobPosting.applicantLocationRequirements[0]
+    : jobPosting?.applicantLocationRequirements;
+  if (typeof applicantReq === 'string') return applicantReq;
+  if (applicantReq && typeof applicantReq === 'object') {
+    const fromAddress = formatPostalAddress(applicantReq.address);
+    if (fromAddress) return fromAddress;
+    if (typeof applicantReq.name === 'string' && applicantReq.name.trim()) return applicantReq.name.trim();
+  }
+
+  return '';
+};
+
+const toArrayFromString = (value = '') =>
+  String(value || '')
+    .split(/,|\||;/)
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+const extractJsonLdJobPostingData = (rawHtml = '') => {
+  if (!rawHtml) return null;
+  const blocks = [...rawHtml.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
+    .map((m) => (m[1] || '').trim())
+    .filter(Boolean);
+  if (!blocks.length) return null;
+
+  const postings = [];
+  for (const block of blocks) {
+    const parsed = parseJsonLoose(block);
+    if (!parsed) continue;
+    collectJobPostingObjects(parsed, postings);
+  }
+  if (!postings.length) return null;
+
+  const scored = postings
+    .map((p) => ({
+      posting: p,
+      score:
+        (p?.title ? 2 : 0) +
+        (p?.description ? 4 : 0) +
+        (p?.hiringOrganization?.name ? 1 : 0) +
+        (p?.jobLocation ? 1 : 0) +
+        (p?.employmentType ? 1 : 0),
+    }))
+    .sort((a, b) => b.score - a.score);
+  const jobPosting = scored[0]?.posting;
+  if (!jobPosting) return null;
+
+  const title = String(jobPosting?.title || jobPosting?.name || '').trim();
+  const company = String(jobPosting?.hiringOrganization?.name || '').trim();
+  const descriptionRaw = String(jobPosting?.description || '').trim();
+  const descriptionHtml = decodeHtmlEntities(descriptionRaw);
+  const description = htmlToStructuredText(descriptionHtml);
+  if (!title || !description) return null;
+
+  const occupation = String(jobPosting?.occupationalCategory || '').trim();
+  const employmentType = normalizeEmploymentType(jobPosting?.employmentType);
+  const benefitsRaw = jobPosting?.jobBenefits;
+  const benefits = Array.isArray(benefitsRaw)
+    ? benefitsRaw.map((b) => String(b || '').trim()).filter(Boolean)
+    : benefitsRaw
+      ? toArrayFromString(benefitsRaw)
+      : [];
+  const qualificationText = [
+    typeof jobPosting?.qualifications === 'string' ? jobPosting.qualifications : '',
+    typeof jobPosting?.skills === 'string' ? jobPosting.skills : '',
+    typeof jobPosting?.experienceRequirements === 'string' ? jobPosting.experienceRequirements : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+  const fullTextForSignals = `${description}\n${qualificationText}`.trim();
+
+  return {
+    job_title: title,
+    company_name: company,
+    department: occupation || inferDepartment(title, fullTextForSignals),
+    location: extractLocationFromJobPosting(jobPosting),
+    job_type: employmentType || inferJobType(title, fullTextForSignals, ''),
+    experience_level: inferExperienceLevel(fullTextForSignals),
+    skills: extractKnownSkills(fullTextForSignals),
+    benefits,
+    full_content_body: description,
+  };
 };
 
 const extractWindowInitialState = (html = '') => {
@@ -360,6 +532,7 @@ export default async function handler(req, res) {
     let rawHtml = '';
     let titleHint = '';
     let companyHint = '';
+    let deterministicData = null;
     if (url) {
       const response = await fetch(url, {
         headers: {
@@ -380,6 +553,16 @@ export default async function handler(req, res) {
         if (greenhouseData?.job_title && greenhouseData?.full_content_body) {
           greenhouseData.description = greenhouseData.full_content_body;
           return res.status(200).json(greenhouseData);
+        }
+      }
+
+      // Universal structured fallback: many career sites expose JSON-LD JobPosting.
+      const jsonLdData = extractJsonLdJobPostingData(rawHtml);
+      if (jsonLdData?.job_title) {
+        deterministicData = jsonLdData;
+        if (hasMeaningfulDescription(jsonLdData.full_content_body)) {
+          jsonLdData.description = jsonLdData.full_content_body;
+          return res.status(200).json(jsonLdData);
         }
       }
 
@@ -418,15 +601,15 @@ export default async function handler(req, res) {
     if (!hasGroqKey) {
       const fallbackSource = buildStructuredExcerpt(sanitizedText, 10000);
       const fallbackData = {
-        job_title: titleHint || '',
-        company_name: inferCompanyFromText(sanitizedText) || companyHint || '',
-        department: inferDepartment(titleHint, sanitizedText),
-        location: '',
-        job_type: inferJobType(titleHint, sanitizedText, ''),
-        experience_level: inferExperienceLevel(sanitizedText),
-        skills: extractKnownSkills(sanitizedText),
-        benefits: [],
-        full_content_body: fallbackSource || sanitizedText.slice(0, 8000),
+        job_title: deterministicData?.job_title || titleHint || '',
+        company_name: deterministicData?.company_name || inferCompanyFromText(sanitizedText) || companyHint || '',
+        department: deterministicData?.department || inferDepartment(titleHint, sanitizedText),
+        location: deterministicData?.location || '',
+        job_type: deterministicData?.job_type || inferJobType(titleHint, sanitizedText, ''),
+        experience_level: deterministicData?.experience_level || inferExperienceLevel(sanitizedText),
+        skills: deterministicData?.skills?.length ? deterministicData.skills : extractKnownSkills(sanitizedText),
+        benefits: deterministicData?.benefits || [],
+        full_content_body: deterministicData?.full_content_body || fallbackSource || sanitizedText.slice(0, 8000),
       };
       fallbackData.description = fallbackData.full_content_body;
       return res.status(200).json(fallbackData);
@@ -442,15 +625,15 @@ export default async function handler(req, res) {
       } catch (_fallbackErr) {
         // Best-effort deterministic fallback to avoid hard failure for users.
         data = {
-          job_title: titleHint || '',
-          company_name: companyHint || '',
-          department: inferDepartment(titleHint, sanitizedText),
-          location: '',
-          job_type: '',
-          experience_level: inferExperienceLevel(sanitizedText),
-          skills: [],
-          benefits: [],
-          full_content_body: fallbackSource || sanitizedText.slice(0, 8000),
+          job_title: deterministicData?.job_title || titleHint || '',
+          company_name: deterministicData?.company_name || companyHint || '',
+          department: deterministicData?.department || inferDepartment(titleHint, sanitizedText),
+          location: deterministicData?.location || '',
+          job_type: deterministicData?.job_type || '',
+          experience_level: deterministicData?.experience_level || inferExperienceLevel(sanitizedText),
+          skills: deterministicData?.skills || [],
+          benefits: deterministicData?.benefits || [],
+          full_content_body: deterministicData?.full_content_body || fallbackSource || sanitizedText.slice(0, 8000),
         };
       }
     }
@@ -460,9 +643,25 @@ export default async function handler(req, res) {
     if (
       inferredCompany &&
       (!data.company_name ||
-        ['turbohire', 'linkedin', 'naukri', 'indeed', 'greenhouse'].includes(String(data.company_name).toLowerCase()))
+        ['turbohire', 'linkedin', 'naukri', 'indeed', 'greenhouse', 'phenompeople'].includes(String(data.company_name).toLowerCase()))
     ) {
       data.company_name = inferredCompany;
+    }
+    if (!data.job_title && deterministicData?.job_title) data.job_title = deterministicData.job_title;
+    if (!data.company_name && deterministicData?.company_name) data.company_name = deterministicData.company_name;
+    if (!data.location && deterministicData?.location) data.location = deterministicData.location;
+    if (!data.department && deterministicData?.department) data.department = deterministicData.department;
+    if (!data.job_type && deterministicData?.job_type) data.job_type = deterministicData.job_type;
+    if (!data.experience_level && deterministicData?.experience_level) data.experience_level = deterministicData.experience_level;
+    if ((!Array.isArray(data.skills) || data.skills.length === 0) && deterministicData?.skills?.length) {
+      data.skills = deterministicData.skills;
+    }
+    const currentDescription = data.full_content_body || data.description || '';
+    if (!hasMeaningfulDescription(currentDescription)) {
+      data.full_content_body =
+        deterministicData?.full_content_body ||
+        buildStructuredExcerpt(sanitizedText, 10000) ||
+        sanitizedText.slice(0, 8000);
     }
     const inferredLevel = inferExperienceLevel(sanitizedText);
     if (inferredLevel) data.experience_level = inferredLevel;
