@@ -1,0 +1,9 @@
+# Default owner
+* @ganeshgowdametaking
+
+# Security-sensitive paths require focused review
+/api/ @ganeshgowdametaking
+/web/server.cjs @ganeshgowdametaking
+/web/resume-ranking/ @ganeshgowdametaking
+/supabase/functions/ @ganeshgowdametaking
+/.github/workflows/ @ganeshgowdametaking

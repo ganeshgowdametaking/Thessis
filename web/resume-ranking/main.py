@@ -1,10 +1,16 @@
+import json
 import os
+import re
 import shutil
+import time
 import uuid
 from typing import Optional
+from urllib import request as urlrequest
 
-from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Form
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
 from database import engine, get_db
@@ -14,7 +20,47 @@ from tasks import process_application_task
 
 models.Base.metadata.create_all(bind=engine)
 
+
+# Ensure public UUID identifiers exist for IDOR-resistant API exposure.
+def ensure_public_id_columns():
+    inspector = inspect(engine)
+
+    with engine.begin() as conn:
+        job_columns = {col["name"] for col in inspector.get_columns("jobs")}
+        if "public_id" not in job_columns:
+            conn.execute(text("ALTER TABLE jobs ADD COLUMN public_id VARCHAR(36)"))
+
+        app_columns = {col["name"] for col in inspector.get_columns("applications")}
+        if "public_id" not in app_columns:
+            conn.execute(text("ALTER TABLE applications ADD COLUMN public_id VARCHAR(36)"))
+
+        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_public_id ON jobs(public_id)"))
+        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_applications_public_id ON applications(public_id)"))
+
+        missing_jobs = conn.execute(text("SELECT id FROM jobs WHERE public_id IS NULL OR public_id = ''")).mappings().all()
+        for row in missing_jobs:
+            conn.execute(
+                text("UPDATE jobs SET public_id = :pid WHERE id = :id"),
+                {"pid": str(uuid.uuid4()), "id": row["id"]},
+            )
+
+        missing_apps = conn.execute(
+            text("SELECT id FROM applications WHERE public_id IS NULL OR public_id = ''")
+        ).mappings().all()
+        for row in missing_apps:
+            conn.execute(
+                text("UPDATE applications SET public_id = :pid WHERE id = :id"),
+                {"pid": str(uuid.uuid4()), "id": row["id"]},
+            )
+
+
+ensure_public_id_columns()
+
 app = FastAPI(title="Resume Ranking API")
+
+security_log_webhook_url = os.getenv("SECURITY_LOG_WEBHOOK_URL", "")
+max_resume_size_mb = int(os.getenv("MAX_RESUME_UPLOAD_MB", "10"))
+
 
 default_origins = [
     "http://localhost:5173",
@@ -36,11 +82,83 @@ app.add_middleware(
 )
 
 
+def _emit_security_event(event: dict):
+    payload = {
+        **event,
+        "service": "resume-ranking",
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    print("[SECURITY_EVENT]", json.dumps(payload, separators=(",", ":")))
+
+    if not security_log_webhook_url:
+        return
+
+    try:
+        req = urlrequest.Request(
+            security_log_webhook_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        urlrequest.urlopen(req, timeout=2)
+    except Exception:
+        # Security telemetry should never break primary request flow.
+        pass
+
+
+@app.middleware("http")
+async def security_middleware(req: Request, call_next):
+    started = time.time()
+    res = await call_next(req)
+
+    # Security hardening headers.
+    res.headers["X-Content-Type-Options"] = "nosniff"
+    res.headers["X-Frame-Options"] = "DENY"
+    res.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    res.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+
+    path = req.url.path or ""
+    if path.startswith("/auth") or path.startswith("/admin"):
+        _emit_security_event(
+            {
+                "category": "AUTH_ADMIN_ATTEMPT",
+                "method": req.method,
+                "path": path,
+                "status_code": res.status_code,
+                "ip": req.client.host if req.client else "",
+                "user_agent": req.headers.get("user-agent", ""),
+                "latency_ms": int((time.time() - started) * 1000),
+            }
+        )
+
+    return res
+
+
+def _resolve_job(db: Session, job_ref: str):
+    job = None
+    if job_ref.isdigit():
+        job = db.query(models.Job).filter(models.Job.id == int(job_ref)).first()
+    if not job:
+        job = db.query(models.Job).filter(models.Job.public_id == job_ref).first()
+    return job
+
+
+def _resolve_application(db: Session, application_ref: str):
+    application = None
+    if application_ref.isdigit():
+        application = db.query(models.Application).filter(models.Application.id == int(application_ref)).first()
+    if not application:
+        application = db.query(models.Application).filter(models.Application.public_id == application_ref).first()
+    return application
+
+
 def _serialize_application(application: models.Application):
     shortlisted, shortlist_reason = _shortlist_decision(application)
     return {
-        "id": application.id,
-        "job_id": application.job_id,
+        "id": application.public_id,
+        "legacy_id": application.id,
+        "job_id": application.job.public_id if application.job else None,
+        "job_legacy_id": application.job_id,
         "name": application.name,
         "email": application.email,
         "phone": application.phone,
@@ -94,7 +212,8 @@ def create_job(title: str = Form(...), description: str = Form(...), db: Session
         db.refresh(job)
 
         return {
-            "id": job.id,
+            "id": job.public_id,
+            "legacy_id": job.id,
             "title": job.title,
             "description": job.description,
             "message": "Job created successfully",
@@ -103,22 +222,23 @@ def create_job(title: str = Form(...), description: str = Form(...), db: Session
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@app.get("/jobs/{job_id}")
-def get_job(job_id: int, db: Session = Depends(get_db)):
-    job = db.query(models.Job).filter(models.Job.id == job_id).first()
+@app.get("/jobs/{job_ref}")
+def get_job(job_ref: str, db: Session = Depends(get_db)):
+    job = _resolve_job(db, job_ref)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
     return {
-        "id": job.id,
+        "id": job.public_id,
+        "legacy_id": job.id,
         "title": job.title,
         "description": job.description,
     }
 
 
-@app.post("/jobs/{job_id}/applications/")
+@app.post("/jobs/{job_ref}/applications/")
 async def submit_application(
-    job_id: int,
+    job_ref: str,
     background_tasks: BackgroundTasks,
     name: str = Form(...),
     email: str = Form(...),
@@ -127,25 +247,34 @@ async def submit_application(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    job = db.query(models.Job).filter(models.Job.id == job_id).first()
+    job = _resolve_job(db, job_ref)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    if not file.filename.lower().endswith(".pdf"):
+    filename = file.filename or "resume.pdf"
+    if not filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF resumes are supported")
+
+    if file.content_type and file.content_type not in {"application/pdf", "application/x-pdf", "binary/octet-stream"}:
+        raise HTTPException(status_code=400, detail="Unsupported file content type")
 
     upload_dir = "uploaded_resumes"
     os.makedirs(upload_dir, exist_ok=True)
 
-    safe_name = file.filename.replace(" ", "_")
+    safe_name = re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(filename))
     stored_filename = f"{uuid.uuid4().hex}_{safe_name}"
     file_path = os.path.join(upload_dir, stored_filename)
 
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
+    if file_size_mb > max_resume_size_mb:
+        os.remove(file_path)
+        raise HTTPException(status_code=400, detail=f"Resume exceeds max size of {max_resume_size_mb}MB")
+
     application = models.Application(
-        job_id=job_id,
+        job_id=job.id,
         name=name,
         email=email,
         phone=phone,
@@ -161,29 +290,30 @@ async def submit_application(
     background_tasks.add_task(process_application_task, application.id)
 
     return {
-        "application_id": application.id,
+        "application_id": application.public_id,
+        "legacy_application_id": application.id,
         "status": application.status,
         "message": "Application submitted and queued for ranking",
     }
 
 
-@app.get("/applications/{application_id}")
-def get_application(application_id: int, db: Session = Depends(get_db)):
-    application = db.query(models.Application).filter(models.Application.id == application_id).first()
+@app.get("/applications/{application_ref}")
+def get_application(application_ref: str, db: Session = Depends(get_db)):
+    application = _resolve_application(db, application_ref)
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
     return _serialize_application(application)
 
 
-@app.get("/jobs/{job_id}/applications")
-def list_applications(job_id: int, db: Session = Depends(get_db)):
-    job = db.query(models.Job).filter(models.Job.id == job_id).first()
+@app.get("/jobs/{job_ref}/applications")
+def list_applications(job_ref: str, db: Session = Depends(get_db)):
+    job = _resolve_job(db, job_ref)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
     rows = (
         db.query(models.Application)
-        .filter(models.Application.job_id == job_id)
+        .filter(models.Application.job_id == job.id)
         .order_by(models.Application.score.desc().nullslast(), models.Application.created_at.asc())
         .all()
     )
@@ -191,28 +321,28 @@ def list_applications(job_id: int, db: Session = Depends(get_db)):
     return [_serialize_application(row) for row in rows]
 
 
-@app.get("/jobs/{job_id}/leaderboard")
-def get_leaderboard(job_id: int, db: Session = Depends(get_db)):
-    job = db.query(models.Job).filter(models.Job.id == job_id).first()
+@app.get("/jobs/{job_ref}/leaderboard")
+def get_leaderboard(job_ref: str, db: Session = Depends(get_db)):
+    job = _resolve_job(db, job_ref)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
     ranked = (
         db.query(models.Application)
-        .filter(models.Application.job_id == job_id, models.Application.status == "RANKED")
+        .filter(models.Application.job_id == job.id, models.Application.status == "RANKED")
         .order_by(models.Application.score.desc(), models.Application.created_at.asc())
         .all()
     )
 
     pending_count = (
         db.query(models.Application)
-        .filter(models.Application.job_id == job_id, models.Application.status.in_(["RECEIVED", "PROCESSING"]))
+        .filter(models.Application.job_id == job.id, models.Application.status.in_(["RECEIVED", "PROCESSING"]))
         .count()
     )
 
     failed_count = (
         db.query(models.Application)
-        .filter(models.Application.job_id == job_id, models.Application.status == "FAILED")
+        .filter(models.Application.job_id == job.id, models.Application.status == "FAILED")
         .count()
     )
 
@@ -231,7 +361,7 @@ def get_leaderboard(job_id: int, db: Session = Depends(get_db)):
     non_shortlisted = [row for row in serialized_ranked if not row["shortlisted"]]
 
     return {
-        "job": {"id": job.id, "title": job.title},
+        "job": {"id": job.public_id, "legacy_id": job.id, "title": job.title},
         "top_5": shortlisted[:5],
         "others": shortlisted[5:] + non_shortlisted,
         "total_ranked": len(serialized_ranked),
@@ -242,11 +372,15 @@ def get_leaderboard(job_id: int, db: Session = Depends(get_db)):
 
 
 # Legacy endpoint retained for old frontend contract.
-@app.get("/results/{job_id}")
-def get_results(job_id: int, db: Session = Depends(get_db)):
+@app.get("/results/{job_ref}")
+def get_results(job_ref: str, db: Session = Depends(get_db)):
+    job = _resolve_job(db, job_ref)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
     rows = (
         db.query(models.Application)
-        .filter(models.Application.job_id == job_id, models.Application.status == "RANKED")
+        .filter(models.Application.job_id == job.id, models.Application.status == "RANKED")
         .order_by(models.Application.score.desc())
         .all()
     )

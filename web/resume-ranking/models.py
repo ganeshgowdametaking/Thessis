@@ -1,3 +1,5 @@
+import uuid
+
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -17,6 +19,7 @@ class Job(Base):
     __tablename__ = "jobs"
 
     id = Column(Integer, primary_key=True, index=True)
+    public_id = Column(String(36), unique=True, index=True, nullable=False, default=lambda: str(uuid.uuid4()))
     title = Column(String, index=True, nullable=False)
     description = Column(Text, nullable=False)
     jd_vector = Column(JSON, nullable=False)
@@ -28,6 +31,7 @@ class Application(Base):
     __tablename__ = "applications"
 
     id = Column(Integer, primary_key=True, index=True)
+    public_id = Column(String(36), unique=True, index=True, nullable=False, default=lambda: str(uuid.uuid4()))
     job_id = Column(Integer, ForeignKey("jobs.id"), index=True, nullable=False)
 
     name = Column(String, index=True, nullable=False)

@@ -17,6 +17,19 @@ This folder contains the FastAPI backend used by the Applications page AI rankin
 - Frontend calls `/api/ranking/*` by default.
 - Vite proxies `/api/*` to `web/server.cjs`.
 - `web/server.cjs` forwards ranking requests to `RANKING_API_URL` (default `http://127.0.0.1:8000`).
+- API responses now expose public UUID identifiers (`id`) and legacy numeric IDs (`legacy_id`) for backward compatibility.
+
+### Security baseline
+
+- Use managed Postgres in production (`DATABASE_URL`) with SSL enforced.
+- Do not use SQLite in production (`APP_ENV=production` blocks startup with SQLite).
+- Configure CORS explicitly using:
+  - `CORS_ALLOW_ORIGINS`
+  - `CORS_ALLOW_ORIGIN_REGEX`
+- Configure SIEM forwarding:
+  - `SECURITY_LOG_WEBHOOK_URL`
+- Configure upload ceiling:
+  - `MAX_RESUME_UPLOAD_MB` (default 10MB)
 
 ### Evaluation
 

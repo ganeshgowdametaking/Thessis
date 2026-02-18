@@ -16,6 +16,36 @@ const debugLogsEnabled = process.env.DEBUG_LOGS === '1' || process.env.NODE_ENV 
 const debugLog = (...args) => {
   if (debugLogsEnabled) console.log(...args);
 };
+const securityLogWebhookUrl = process.env.SECURITY_LOG_WEBHOOK_URL || '';
+const allowedCorsOrigins = (process.env.CORS_ALLOW_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const vercelPreviewRegex = /^https:\/\/.*\.vercel\.app$/i;
+const defaultOrigins = ['http://localhost:5173', 'http://localhost:3000', 'https://tanktide.com', 'https://www.tanktide.com'];
+const corsOrigins = allowedCorsOrigins.length > 0 ? allowedCorsOrigins : defaultOrigins;
+const s3ServerSideEncryption = process.env.S3_SERVER_SIDE_ENCRYPTION || 'AES256';
+const s3KmsKeyId = process.env.S3_KMS_KEY_ID;
+
+const emitSecurityEvent = async (event) => {
+  const safeEvent = {
+    ...event,
+    service: 'tanktide-web-api',
+    timestamp: new Date().toISOString(),
+  };
+  console.warn('[SECURITY_EVENT]', JSON.stringify(safeEvent));
+  if (!securityLogWebhookUrl) return;
+
+  try {
+    await fetch(securityLogWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(safeEvent),
+    });
+  } catch {
+    // Keep request path non-blocking on logging failures.
+  }
+};
 
 // Groq client initialization
 
@@ -64,8 +94,46 @@ class ExtractionQueue {
 
 const extractionQueue = new ExtractionQueue();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (corsOrigins.includes(origin) || vercelPreviewRegex.test(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('CORS origin denied'));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '5mb' }));
+
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  next();
+});
+
+app.use((req, res, next) => {
+  const sensitivePath = /^\/(auth|admin)(\/|$)/i.test(req.path || '');
+  if (!sensitivePath) return next();
+
+  const started = Date.now();
+  res.on('finish', () => {
+    emitSecurityEvent({
+      category: 'AUTH_ADMIN_ATTEMPT',
+      method: req.method,
+      path: req.originalUrl || req.url,
+      ip: req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '',
+      user_agent: req.headers['user-agent'] || '',
+      status_code: res.statusCode,
+      latency_ms: Date.now() - started,
+    });
+  });
+  next();
+});
 
 // Middleware to sanitize PII (basic implementation)
 const sanitizePII = (text) => {
@@ -250,11 +318,17 @@ app.post('/generate-upload-url', async (req, res) => {
   const { key, contentType } = req.body;
   if (!key || !contentType) return res.status(400).json({ error: 'Missing key or contentType' });
 
-  const command = new PutObjectCommand({
+  const putParams = {
     Bucket: process.env.S3_BUCKET_NAME,
     Key: key,
     ContentType: contentType,
-  });
+    ServerSideEncryption: s3ServerSideEncryption,
+  };
+  if (s3ServerSideEncryption === 'aws:kms' && s3KmsKeyId) {
+    putParams.SSEKMSKeyId = s3KmsKeyId;
+  }
+
+  const command = new PutObjectCommand(putParams);
 
   const url = await getSignedUrl(s3, command, { expiresIn: 900 }); // 15 min
   res.json({ url });
