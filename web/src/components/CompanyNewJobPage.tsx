@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Eye, ChevronDown, Search } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface JobFormData {
   title: string;
@@ -137,6 +140,9 @@ const CompanyNewJobPage: React.FC = () => {
   const { user, profile } = useAuthContext();
   const [loading, setLoading] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [referralLink, setReferralLink] = useState('');
   const [formData, setFormData] = useState<JobFormData>({
     title: '',
     company: profile?.company_name || '',
@@ -200,6 +206,61 @@ const CompanyNewJobPage: React.FC = () => {
   const handlePublish = async () => {
     setFormData(prev => ({ ...prev, status: 'active' }));
     await handleSubmit(new Event('submit') as any);
+  };
+
+  const extractTextFromPDF = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i += 1) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map((item: any) => item.str).join(' ');
+    }
+    return text;
+  };
+
+  const handleAIAutoFill = async (type: 'pdf' | 'link', payload: any) => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      let textToProcess = '';
+      let urlToProcess = '';
+
+      if (type === 'pdf') {
+        textToProcess = await extractTextFromPDF(payload);
+        if (!textToProcess.trim()) throw new Error('Could not extract text from PDF.');
+      } else {
+        urlToProcess = payload;
+      }
+
+      const response = await fetch('/api/extract-referral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: textToProcess, url: urlToProcess }),
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(err || 'Failed to extract job details');
+      }
+
+      const data = await response.json();
+      setFormData(prev => ({
+        ...prev,
+        title: data.job_title || prev.title,
+        company: data.company_name || prev.company,
+        location: data.location || prev.location,
+        job_type: (data.job_type || prev.job_type).toLowerCase().replace(/\s+/g, '-'),
+        description: data.full_content_body || data.description || prev.description,
+        requirements: Array.isArray(data.skills) ? data.skills.join(', ') : prev.requirements,
+        benefits: Array.isArray(data.benefits) ? data.benefits.join(', ') : prev.benefits,
+      }));
+    } catch (error: any) {
+      setAiError(error.message || 'AI extraction failed');
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   return (
@@ -269,6 +330,41 @@ const CompanyNewJobPage: React.FC = () => {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">AI Job Autofill</h2>
+            <p className="text-sm text-gray-600 mb-4">Upload a job-description PDF or paste a job link to autofill this form.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="flex items-center justify-center h-24 border-2 border-dashed border-blue-300 rounded-md bg-white cursor-pointer hover:bg-blue-50">
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="application/pdf"
+                  onChange={(e) => e.target.files?.[0] && handleAIAutoFill('pdf', e.target.files[0])}
+                  disabled={aiLoading}
+                />
+                <span className="text-sm text-blue-700 font-medium">{aiLoading ? 'Processing...' : 'Upload PDF'}</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={referralLink}
+                  onChange={(e) => setReferralLink(e.target.value)}
+                  placeholder="Paste job link"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                />
+                <button
+                  type="button"
+                  onClick={() => referralLink && handleAIAutoFill('link', referralLink)}
+                  disabled={aiLoading || !referralLink}
+                  className="px-4 py-2 bg-gray-900 text-white rounded-md disabled:opacity-50"
+                >
+                  Extract
+                </button>
+              </div>
+            </div>
+            {aiError && <p className="mt-3 text-sm text-red-600">{aiError}</p>}
+          </div>
+
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Job Details</h2>
             
