@@ -1,5 +1,3 @@
-import Groq from 'groq-sdk';
-
 const sanitizePII = (text = '') =>
   text
     .replace(/[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+\.[a-zA-Z0-9.-]+/gi, '[EMAIL]')
@@ -25,7 +23,8 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'GROQ_API_KEY is not configured on deployment.' });
   }
 
-  const { text, url } = req.body || {};
+  const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+  const { text, url } = body;
   if (!text && !url) {
     return res.status(400).json({ error: 'No text or URL provided for extraction' });
   }
@@ -46,13 +45,21 @@ export default async function handler(req, res) {
     }
 
     const sanitizedText = sanitizePII(contentToAnalyze).substring(0, 25000);
-    const groq = new Groq({ apiKey: groqApiKey });
-
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: `You are a recruiting assistant. Extract job referral details as JSON.
+    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${groqApiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        response_format: { type: 'json_object' },
+        temperature: 0.1,
+        max_tokens: 4000,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a recruiting assistant. Extract job referral details as JSON.
 Return:
 {
   "job_title": "String",
@@ -65,16 +72,18 @@ Return:
   "benefits": ["String"],
   "full_content_body": "String"
 }`,
-        },
-        { role: 'user', content: sanitizedText },
-      ],
-      model: 'llama-3.1-8b-instant',
-      response_format: { type: 'json_object' },
-      temperature: 0.1,
-      max_tokens: 4000,
+          },
+          { role: 'user', content: sanitizedText },
+        ],
+      }),
     });
 
-    const rawContent = chatCompletion.choices[0].message.content || '{}';
+    if (!groqRes.ok) {
+      const upstreamText = await groqRes.text();
+      throw new Error(`Groq API failed (${groqRes.status}): ${upstreamText.slice(0, 300)}`);
+    }
+    const groqJson = await groqRes.json();
+    const rawContent = groqJson?.choices?.[0]?.message?.content || '{}';
     const cleanContent = rawContent.replace(/```json\n?|\n?```/g, '').trim();
     const data = JSON.parse(cleanContent);
     data.description = data.full_content_body || sanitizedText || '';
