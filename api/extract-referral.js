@@ -79,6 +79,24 @@ export default async function handler(req, res) {
       contentToAnalyze = cleanHtmlContent(rawHtml);
       titleHint = extractTitleFromHtml(rawHtml);
       companyHint = extractCompanyHint(rawHtml, contentToAnalyze);
+
+      // Fallback for JS-heavy job boards: fetch reader-friendly extracted text.
+      if (!contentToAnalyze || contentToAnalyze.length < 1200 || !looksLikeJobText(contentToAnalyze)) {
+        try {
+          const readerRes = await fetch(`https://r.jina.ai/http://${url.replace(/^https?:\/\//, '')}`, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+          });
+          if (readerRes.ok) {
+            const readerText = await readerRes.text();
+            const cleanedReader = readerText.replace(/\s+/g, ' ').trim();
+            if (cleanedReader.length > contentToAnalyze.length) {
+              contentToAnalyze = cleanedReader;
+            }
+          }
+        } catch {
+          // Keep primary contentToAnalyze if fallback is unavailable.
+        }
+      }
     }
 
     if (!contentToAnalyze || contentToAnalyze.length < 300) {
