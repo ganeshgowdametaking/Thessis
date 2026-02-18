@@ -13,6 +13,38 @@ const cleanHtmlContent = (html = '') => {
   return stripped;
 };
 
+const extractTitleFromHtml = (html = '') => {
+  const og = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
+  if (og?.[1]) return og[1].trim();
+  const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return title?.[1]?.replace(/\s+/g, ' ').trim() || '';
+};
+
+const extractCompanyHint = (html = '', text = '') => {
+  const candidates = [
+    ...html.matchAll(/<meta[^>]+(?:name|property)=["'](?:og:site_name|application-name)["'][^>]+content=["']([^"']+)["']/gi),
+  ]
+    .map((m) => m[1]?.trim())
+    .filter(Boolean);
+  if (candidates.length > 0) return candidates[0];
+
+  const aboutMatch = text.match(/about company\s+([a-z0-9 .,&-]{2,80})/i);
+  return aboutMatch?.[1]?.trim() || '';
+};
+
+const looksLikeJobText = (text = '') => {
+  const low = text.toLowerCase();
+  const signals = [
+    'responsibilities',
+    'required skills',
+    'qualifications',
+    'experience',
+    'job description',
+    'key responsibilities',
+  ];
+  return signals.filter((s) => low.includes(s)).length >= 2 && text.length > 600;
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -31,17 +63,30 @@ export default async function handler(req, res) {
 
   try {
     let contentToAnalyze = text || '';
+    let rawHtml = '';
+    let titleHint = '';
+    let companyHint = '';
     if (url) {
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
         },
       });
       if (!response.ok) {
         throw new Error(`Could not fetch URL (${response.status})`);
       }
-      const html = await response.text();
-      contentToAnalyze = cleanHtmlContent(html);
+      rawHtml = await response.text();
+      contentToAnalyze = cleanHtmlContent(rawHtml);
+      titleHint = extractTitleFromHtml(rawHtml);
+      companyHint = extractCompanyHint(rawHtml, contentToAnalyze);
+    }
+
+    if (!contentToAnalyze || contentToAnalyze.length < 300) {
+      return res.status(422).json({ error: 'Could not extract enough content from the source. Please upload PDF or paste full job description text.' });
+    }
+
+    if (url && !looksLikeJobText(contentToAnalyze)) {
+      return res.status(422).json({ error: 'The provided link did not expose a readable job description. Try a direct job post URL or upload PDF.' });
     }
 
     const sanitizedText = sanitizePII(contentToAnalyze).substring(0, 25000);
@@ -60,6 +105,10 @@ export default async function handler(req, res) {
           {
             role: 'system',
             content: `You are a recruiting assistant. Extract job referral details as JSON.
+Rules:
+- Use only provided source text; do not invent fields.
+- If unknown, return empty string/empty array.
+- Do not output generic placeholders like "Software Engineer" unless explicitly present.
 Return:
 {
   "job_title": "String",
@@ -73,7 +122,13 @@ Return:
   "full_content_body": "String"
 }`,
           },
-          { role: 'user', content: sanitizedText },
+          {
+            role: 'user',
+            content: `TITLE_HINT: ${titleHint || 'N/A'}
+COMPANY_HINT: ${companyHint || 'N/A'}
+SOURCE_TEXT:
+${sanitizedText}`,
+          },
         ],
       }),
     });
@@ -86,6 +141,8 @@ Return:
     const rawContent = groqJson?.choices?.[0]?.message?.content || '{}';
     const cleanContent = rawContent.replace(/```json\n?|\n?```/g, '').trim();
     const data = JSON.parse(cleanContent);
+    if (!data.job_title && titleHint) data.job_title = titleHint;
+    if (!data.company_name && companyHint) data.company_name = companyHint;
     data.description = data.full_content_body || sanitizedText || '';
     return res.status(200).json(data);
   } catch (error) {
