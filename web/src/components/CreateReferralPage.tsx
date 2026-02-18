@@ -261,6 +261,45 @@ const CreateReferralPage: React.FC = () => {
       .trim();
   };
 
+  const formatExtractedJobDescription = (text: string) => {
+    if (!text) return '';
+    let formatted = text
+      .replace(/\r/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const sectionTitles = [
+      'Key Responsibilities',
+      'Required Skills',
+      'Preferred Qualifications',
+      'Education',
+      'Benefits',
+      'Responsibilities',
+      'Qualifications',
+      'Requirements',
+    ];
+
+    for (const title of sectionTitles) {
+      const regex = new RegExp(`${title}\\s*:`, 'gi');
+      formatted = formatted.replace(regex, `\n\n${title}:\n`);
+    }
+
+    // Convert common "Label: content." patterns into bullet lines.
+    formatted = formatted.replace(/([A-Z][A-Za-z/& ()-]{2,40}:\s*)([^.]+(?:\.[^.]+){0,2}\.?)/g, (_m, label, body) => {
+      const cleanLabel = String(label).replace(/\s+$/, '');
+      const cleanBody = String(body).trim();
+      return `\n- ${cleanLabel} ${cleanBody}`;
+    });
+
+    // Clean excessive blank lines and ensure bullet spacing.
+    formatted = formatted
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/\n-\s*/g, '\n- ')
+      .trim();
+
+    return formatted;
+  };
+
   const handleAIAutoFill = async (type: 'pdf' | 'link', payload: any) => {
     setAiLoading(true);
     setAiError(null);
@@ -295,6 +334,9 @@ const CreateReferralPage: React.FC = () => {
       }
 
       const data = await response.json();
+      const structuredDescription = formatExtractedJobDescription(
+        data.full_content_body || data.description || textToProcess
+      );
 
       // Update form with AI results
       setFormData(prev => ({
@@ -302,7 +344,7 @@ const CreateReferralPage: React.FC = () => {
         title: data.job_title || data.title || prev.title,
         company: data.company_name || data.company || prev.company,
         department: data.department || prev.department,
-        description: data.full_content_body || cleanPDFText(textToProcess) || data.description || prev.description,
+        description: structuredDescription || cleanPDFText(textToProcess) || prev.description,
         location: data.location || prev.location,
         experience_level: data.experience_level || prev.experience_level,
 
@@ -350,12 +392,6 @@ const CreateReferralPage: React.FC = () => {
   return (
     <div className="bg-stone-50 font-display text-slate-700 antialiased min-h-screen flex flex-col">
       <main className="flex-grow w-full px-6 md:px-12 py-10 max-w-5xl mx-auto">
-        <div className="mb-6 rounded-lg border-2 border-[#5f7261] bg-[#eef4ef] px-4 py-3">
-          <p className="text-sm font-bold text-[#2f4a33]">
-            AI_BLOCK_V2: PDF upload + link extraction is enabled on this page.
-          </p>
-        </div>
-
         {/* Header */}
         <div className="flex flex-col gap-6 mb-10">
           <button
