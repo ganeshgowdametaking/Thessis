@@ -101,10 +101,12 @@ const inferDepartment = (title = '', text = '') => {
 
 const inferJobType = (title = '', text = '', rawType = '') => {
   const source = `${rawType} ${title} ${text}`.toLowerCase();
-  if (source.includes('intern')) return 'Internship';
-  if (source.includes('part-time') || source.includes('part time')) return 'Part-time';
-  if (source.includes('freelance')) return 'Freelance';
+  if (/\b(intern|internship|trainee|apprentice)\b/i.test(source)) return 'Internship';
+  if (/\bpart[\s-]*time\b/i.test(source)) return 'Part-time';
+  if (/\bfreelance\b/i.test(source)) return 'Freelance';
   if (/employment\s*type\s*:\s*contract|job\s*type\s*:\s*contract|contract\s*(role|position)/i.test(source)) return 'Contract';
+  if (/\bcontract\b/i.test(source)) return 'Contract';
+  if (/\bfull[\s-]*time\b/i.test(source)) return 'Full-time';
   return 'Full-time';
 };
 

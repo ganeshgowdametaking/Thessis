@@ -308,19 +308,18 @@ const CreateReferralPage: React.FC = () => {
 
   const normalizeJobType = (jobType: string | undefined, title: string, description: string) => {
     const source = `${jobType || ''} ${title || ''} ${description || ''}`.toLowerCase();
-    if (source.includes('intern')) return 'Internship';
-    if (source.includes('contract')) return 'Contract';
-    if (source.includes('part-time') || source.includes('part time')) return 'Part-time';
-    if (source.includes('freelance')) return 'Freelance';
+    if (/\bfull[\s-]*time\b/i.test(source)) return 'Full-time';
+    if (/\b(intern|internship|trainee|apprentice)\b/i.test(source)) return 'Internship';
+    if (/\bcontract\b/i.test(source)) return 'Contract';
+    if (/\bpart[\s-]*time\b/i.test(source)) return 'Part-time';
+    if (/\bfreelance\b/i.test(source)) return 'Freelance';
     return 'Full-time';
   };
 
   const normalizeExperienceLevel = (rawLevel: string | undefined, title: string, description: string) => {
-    const source = `${title || ''} ${description || ''}`.toLowerCase();
-    if (source.includes('intern')) return 'Entry Level';
-
+    const source = `${rawLevel || ''} ${title || ''} ${description || ''}`;
     const range = source.match(/(\d+)\s*[-–to]+\s*(\d+)\s*(?:years?|yrs?)/i);
-    const plus = source.match(/(\d+)\+?\s*(?:years?|yrs?)/i);
+    const plus = source.match(/(\d+)\+?\s*(?:years?|yrs?)\s*(?:of\s+experience)?/i);
     const years = range ? Number(range[1]) : plus ? Number(plus[1]) : 0;
     if (years >= 5) return 'Senior (5+ yrs)';
     if (years >= 2) return 'Mid Level (2-4 yrs)';
@@ -329,6 +328,8 @@ const CreateReferralPage: React.FC = () => {
     if (rawLevel && ['Entry Level', 'Mid Level (2-4 yrs)', 'Senior (5+ yrs)', 'Lead / Manager'].includes(rawLevel)) {
       return rawLevel;
     }
+
+    if (/\b(intern|internship|trainee|apprentice)\b/i.test(source)) return 'Entry Level';
     return 'Entry Level';
   };
 
