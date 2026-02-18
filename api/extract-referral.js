@@ -50,20 +50,34 @@ const inferCompanyFromText = (text = '') => {
   const aboutIdx = low.indexOf('about company');
   if (aboutIdx >= 0) {
     const windowText = text.slice(aboutIdx, aboutIdx + 500);
-    const match = windowText.match(/about company\s+([A-Z][A-Za-z0-9.& -]{1,60})/);
+    const match = windowText.match(/about company\s+([A-Z][A-Za-z0-9.&-]{1,40})(?:\s+(?:has|is|was|,|\.))/);
     if (match?.[1]) return match[1].trim();
   }
   const foundedMatch = text.match(/Founded in \d{4},\s*([A-Z][A-Za-z0-9.& -]{1,60})/i);
-  if (foundedMatch?.[1]) return foundedMatch[1].trim();
+  if (foundedMatch?.[1]) {
+    const raw = foundedMatch[1].trim();
+    const cleaned = raw.replace(/\s+(has|is|was)\b.*$/i, '').trim();
+    return cleaned;
+  }
   return '';
 };
 
 const inferExperienceLevel = (text = '') => {
-  const range = text.match(/required experience[^0-9]*?(\d+)\s*[-–]\s*(\d+)\s*years?/i);
-  const plus = text.match(/(\d+)\+?\s*years?/i);
+  const patterns = [
+    /required experience[^0-9]{0,30}(\d+)\s*[-–to]{1,3}\s*(\d+)\s*years?/i,
+    /experience[^0-9]{0,30}(\d+)\s*[-–to]{1,3}\s*(\d+)\s*years?/i,
+    /(\d+)\s*[-–to]{1,3}\s*(\d+)\s*years?/i,
+  ];
+  const plus = text.match(/(?:required|experience)?[^0-9]{0,20}(\d+)\+?\s*years?/i);
   let years = 0;
-  if (range) years = Number(range[1]);
-  else if (plus) years = Number(plus[1]);
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) {
+      years = Number(m[1]);
+      break;
+    }
+  }
+  if (!years && plus) years = Number(plus[1]);
   if (years >= 5) return 'Senior (5+ yrs)';
   if (years >= 2) return 'Mid Level (2-4 yrs)';
   return years > 0 ? 'Entry Level' : '';
@@ -202,10 +216,8 @@ ${sanitizedText}`,
     ) {
       data.company_name = inferredCompany;
     }
-    if (!data.experience_level || /entry/i.test(String(data.experience_level))) {
-      const inferredLevel = inferExperienceLevel(sanitizedText);
-      if (inferredLevel) data.experience_level = inferredLevel;
-    }
+    const inferredLevel = inferExperienceLevel(sanitizedText);
+    if (inferredLevel) data.experience_level = inferredLevel;
     if (!data.department) {
       const inferredDepartment = inferDepartment(String(data.job_title || titleHint || ''), sanitizedText);
       if (inferredDepartment) data.department = inferredDepartment;
