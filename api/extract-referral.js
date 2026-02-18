@@ -20,6 +20,13 @@ const extractTitleFromHtml = (html = '') => {
   return title?.[1]?.replace(/\s+/g, ' ').trim() || '';
 };
 
+const extractMetaContent = (html = '', key = '') => {
+  if (!html || !key) return '';
+  const regex = new RegExp(`<meta[^>]+(?:property|name)=["']${key}["'][^>]+content=["']([^"']+)["']`, 'i');
+  const m = html.match(regex);
+  return m?.[1]?.trim() || '';
+};
+
 const extractCompanyHint = (html = '', text = '') => {
   const candidates = [
     ...html.matchAll(/<meta[^>]+(?:name|property)=["'](?:og:site_name|application-name)["'][^>]+content=["']([^"']+)["']/gi),
@@ -92,6 +99,186 @@ const inferDepartment = (title = '', text = '') => {
   return '';
 };
 
+const inferJobType = (title = '', text = '', rawType = '') => {
+  const source = `${rawType} ${title} ${text}`.toLowerCase();
+  if (source.includes('intern')) return 'Internship';
+  if (source.includes('part-time') || source.includes('part time')) return 'Part-time';
+  if (source.includes('freelance')) return 'Freelance';
+  if (/employment\s*type\s*:\s*contract|job\s*type\s*:\s*contract|contract\s*(role|position)/i.test(source)) return 'Contract';
+  return 'Full-time';
+};
+
+const decodeHtmlEntities = (input = '') =>
+  input
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#39;/gi, "'")
+    .replace(/&quot;/gi, '"');
+
+const htmlToStructuredText = (html = '') => {
+  if (!html) return '';
+  let text = html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/(h1|h2|h3|h4|h5|h6)>/gi, '\n\n')
+    .replace(/<li[^>]*>/gi, '\n- ')
+    .replace(/<\/li>/gi, '')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ');
+  text = decodeHtmlEntities(text)
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  // Drop application form and trailing portal noise.
+  const noiseMarkers = ['Apply for this job', 'Create a Job Alert', 'Voluntary Self-Identification'];
+  for (const marker of noiseMarkers) {
+    const idx = text.indexOf(marker);
+    if (idx > 1000) {
+      text = text.slice(0, idx).trim();
+      break;
+    }
+  }
+  return text;
+};
+
+const extractKnownSkills = (text = '') => {
+  const skillTerms = [
+    'SQL', 'Python', 'R', 'dbt', 'TensorFlow', 'PyTorch', 'Scikit-learn', 'Spark', 'Hadoop', 'BigQuery',
+    'Tableau', 'Power BI', 'Matplotlib', 'Seaborn', 'PostgreSQL', 'React', 'Node.js', 'AWS', 'GCP', 'Azure',
+    'Supabase', 'Figma', 'SwiftUI', 'React Native', 'A/B Testing', 'Data Wrangling', 'Statistics',
+  ];
+  const found = [];
+  const low = text.toLowerCase();
+  for (const skill of skillTerms) {
+    const pattern = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    if (pattern.test(low)) found.push(skill);
+  }
+  return [...new Set(found)];
+};
+
+const extractWindowInitialState = (html = '') => {
+  const marker = 'window.__INITIAL_STATE__';
+  const idx = html.indexOf(marker);
+  if (idx < 0) return null;
+
+  const eqIdx = html.indexOf('=', idx);
+  if (eqIdx < 0) return null;
+  const start = html.indexOf('{', eqIdx);
+  if (start < 0) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < html.length; i += 1) {
+    const ch = html[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === '{') depth += 1;
+    if (ch === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return html.slice(start, i + 1);
+      }
+    }
+  }
+  return null;
+};
+
+const extractGreenhouseData = (rawHtml = '', fallbackText = '') => {
+  if (!rawHtml) return null;
+  const titleFromMeta = extractTitleFromHtml(rawHtml).trim();
+  const pageTitleMatch = rawHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const pageTitle = decodeHtmlEntities(pageTitleMatch?.[1] || '').replace(/\s+/g, ' ').trim();
+  const companyFromPageTitle = pageTitle.match(/\sat\s(.+)$/i)?.[1]?.trim() || '';
+  const locationFromMeta = extractMetaContent(rawHtml, 'og:description');
+
+  let jobTitle = '';
+  let companyName = '';
+  let location = '';
+  let fullHtml = '';
+  let employmentRaw = '';
+
+  const stateJson = extractWindowInitialState(rawHtml);
+  if (stateJson) {
+    try {
+      const state = JSON.parse(stateJson);
+      const routeData = state?.loaderData?.['routes/$url_token_.jobs_.$job_post_id'] || {};
+      const jobPost = routeData?.jobPost || {};
+      jobTitle = jobPost.title || '';
+      companyName = jobPost.company_name || '';
+      employmentRaw = jobPost.employment || '';
+      location =
+        jobPost.location_name ||
+        jobPost.job_post_location ||
+        routeData.location ||
+        routeData.job_post_location ||
+        '';
+      fullHtml = [jobPost.introduction, jobPost.content, jobPost.conclusion].filter(Boolean).join('\n');
+    } catch {
+      // Continue with HTML parsing fallback below.
+    }
+  }
+
+  // Deterministic HTML parsing fallback if JSON state is unavailable.
+  if (!jobTitle) {
+    const h1Match = rawHtml.match(/<h1[^>]*class="[^"]*section-header[^"]*"[^>]*>([\s\S]*?)<\/h1>/i);
+    jobTitle = decodeHtmlEntities(h1Match?.[1] || titleFromMeta).replace(/\s+/g, ' ').trim();
+  }
+  if (!companyName) {
+    companyName = companyFromPageTitle || extractCompanyHint(rawHtml, fallbackText) || '';
+  }
+  if (!location) {
+    const locMatch = rawHtml.match(/class="job__location"[\s\S]*?<div>([\s\S]*?)<\/div>/i);
+    location = decodeHtmlEntities(locMatch?.[1] || locationFromMeta || '').replace(/\s+/g, ' ').trim();
+  }
+  if (!fullHtml) {
+    const descStart = rawHtml.search(/class="job__description[^"]*"/i);
+    if (descStart >= 0) {
+      const startTagEnd = rawHtml.indexOf('>', descStart);
+      const endCandidates = [
+        rawHtml.search(/class="job-alert/i),
+        rawHtml.search(/class="divider"/i),
+        rawHtml.search(/class="application--container"/i),
+      ].filter((i) => i > startTagEnd);
+      const descEnd = endCandidates.length > 0 ? Math.min(...endCandidates) : rawHtml.length;
+      fullHtml = rawHtml.slice(startTagEnd + 1, descEnd);
+    }
+  }
+
+  const fullText = htmlToStructuredText(fullHtml);
+  if (!jobTitle || !fullText) return null;
+
+  return {
+    job_title: jobTitle,
+    company_name: companyName,
+    department: inferDepartment(jobTitle, fullText),
+    location,
+    job_type: inferJobType(jobTitle, fullText, employmentRaw),
+    experience_level: inferExperienceLevel(fullText),
+    skills: extractKnownSkills(fullText),
+    benefits: [],
+    full_content_body: fullText,
+  };
+};
+
 const buildStructuredExcerpt = (text = '', maxLen = 12000) => {
   const headings = [
     'Key Responsibilities',
@@ -160,9 +347,7 @@ export default async function handler(req, res) {
   }
 
   const groqApiKey = process.env.GROQ_API_KEY;
-  if (!groqApiKey || !groqApiKey.startsWith('gsk_')) {
-    return res.status(503).json({ error: 'GROQ_API_KEY is not configured on deployment.' });
-  }
+  const hasGroqKey = Boolean(groqApiKey && groqApiKey.startsWith('gsk_'));
 
   const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
   const { text, url } = body;
@@ -188,6 +373,15 @@ export default async function handler(req, res) {
       contentToAnalyze = cleanHtmlContent(rawHtml);
       titleHint = extractTitleFromHtml(rawHtml);
       companyHint = extractCompanyHint(rawHtml, contentToAnalyze);
+
+      // Deterministic ATS parser first (higher precision than LLM for supported domains).
+      if (/greenhouse\.io/i.test(url)) {
+        const greenhouseData = extractGreenhouseData(rawHtml, contentToAnalyze);
+        if (greenhouseData?.job_title && greenhouseData?.full_content_body) {
+          greenhouseData.description = greenhouseData.full_content_body;
+          return res.status(200).json(greenhouseData);
+        }
+      }
 
       // Fallback for JS-heavy job boards: fetch reader-friendly extracted text.
       if (!contentToAnalyze || contentToAnalyze.length < 1200 || !looksLikeJobText(contentToAnalyze)) {
@@ -221,6 +415,23 @@ export default async function handler(req, res) {
     }
 
     const sanitizedText = sanitizePII(contentToAnalyze).substring(0, 25000);
+    if (!hasGroqKey) {
+      const fallbackSource = buildStructuredExcerpt(sanitizedText, 10000);
+      const fallbackData = {
+        job_title: titleHint || '',
+        company_name: inferCompanyFromText(sanitizedText) || companyHint || '',
+        department: inferDepartment(titleHint, sanitizedText),
+        location: '',
+        job_type: inferJobType(titleHint, sanitizedText, ''),
+        experience_level: inferExperienceLevel(sanitizedText),
+        skills: extractKnownSkills(sanitizedText),
+        benefits: [],
+        full_content_body: fallbackSource || sanitizedText.slice(0, 8000),
+      };
+      fallbackData.description = fallbackData.full_content_body;
+      return res.status(200).json(fallbackData);
+    }
+
     let data;
     try {
       data = await callGroqExtraction(groqApiKey, sanitizedText.slice(0, 18000), titleHint, companyHint, 1600);
