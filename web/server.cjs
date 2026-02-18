@@ -17,7 +17,7 @@ const rankingApiBase = (process.env.RANKING_API_URL || 'http://127.0.0.1:8000').
 
 
 const groqApiKey = process.env.GROQ_API_KEY;
-console.log('🔑 Groq API Key found:', groqApiKey ? `Yes (${groqApiKey.substring(0, 4)}...)` : 'No');
+console.log('🔑 Groq API Key found:', groqApiKey ? 'Yes' : 'No');
 
 const groq = groqApiKey ? new Groq({ apiKey: groqApiKey }) : null;
 

@@ -7,7 +7,6 @@ RUN pip install --no-cache-dir --default-timeout=100 \
     --trusted-host pypi.org \
     --trusted-host files.pythonhosted.org \
     -r requirements.txt
-RUN python -m spacy download en_core_web_sm
 
 COPY . .
 

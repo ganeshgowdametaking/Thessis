@@ -16,9 +16,20 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Resume Ranking API")
 
+default_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://tanktide.com",
+    "https://www.tanktide.com",
+]
+configured_origins = os.getenv("CORS_ALLOW_ORIGINS", "")
+allowed_origins = [origin.strip() for origin in configured_origins.split(",") if origin.strip()] or default_origins
+allow_origin_regex = os.getenv("CORS_ALLOW_ORIGIN_REGEX", r"^https://.*\.vercel\.app$")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -70,7 +81,7 @@ def _shortlist_decision(application: models.Application):
 
 @app.get("/health")
 def healthcheck():
-    return {"ok": True, "engine": "background-tasks", "db": str(engine.url)}
+    return {"ok": True, "engine": "background-tasks"}
 
 
 @app.post("/jobs/")

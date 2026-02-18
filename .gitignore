@@ -12,10 +12,13 @@ dist
 
 # Misc
 .DS_Store
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+web/.env
+web/.env.*
 
 # Logs
 npm-debug.log*
@@ -38,3 +41,17 @@ TankTide.com/Index/
 TankTide.com/Logs/
 TankTide.com/xcshareddata/
 TankTide.com/xcuserdata/
+
+# Generated runtime artifacts
+web/resume-ranking/uploaded_resumes/
+web/resume-ranking/*.db
+web/resume-ranking/__pycache__/
+web/resume-ranking/.venv/
+web/resume-ranking/*.pyc
+web/resume-ranking/*.pyo
+web/resume-ranking/*.pyd
+
+# User-specific Xcode metadata
+TankTide.com/**/xcuserdata/
+TankTide.com/**/UserInterfaceState.xcuserstate
+TankTide.com/**/xcschememanagement.plist
