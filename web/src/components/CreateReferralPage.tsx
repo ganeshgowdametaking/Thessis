@@ -246,7 +246,36 @@ const CreateReferralPage: React.FC = () => {
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      text += content.items.map((item: any) => item.str).join(' ');
+
+      // Reconstruct line structure from positional text items so section headings
+      // and bullets survive extraction.
+      const items = content.items
+        .map((item: any) => ({
+          str: String(item?.str || ''),
+          x: Number(item?.transform?.[4] || 0),
+          y: Number(item?.transform?.[5] || 0),
+          hasEOL: Boolean(item?.hasEOL),
+        }))
+        .filter((item) => item.str.trim().length > 0);
+
+      items.sort((a, b) => (Math.abs(b.y - a.y) > 1 ? b.y - a.y : a.x - b.x));
+
+      const lines: Array<{ y: number; chunks: string[] }> = [];
+      for (const item of items) {
+        const current = lines[lines.length - 1];
+        if (!current || Math.abs(current.y - item.y) > 2) {
+          lines.push({ y: item.y, chunks: [item.str] });
+        } else {
+          current.chunks.push(item.str);
+        }
+      }
+
+      const pageText = lines
+        .map((line) => line.chunks.join(' ').replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+        .join('\n');
+
+      text += `${pageText}\n\n`;
     }
     return text;
   };
@@ -257,10 +286,18 @@ const CreateReferralPage: React.FC = () => {
       .replace(/\r/g, '\n')
       // Keep paragraph structure while normalizing spaces
       .replace(/[ \t]+/g, ' ')
+      // Merge split words caused by line wraps: "Must \n- Have" -> "Must-Have"
+      .replace(/([A-Za-z])\s*\n\s*-\s*([A-Za-z])/g, '$1-$2')
+      // Remove standalone page noise lines and tiny artifacts
+      .replace(/^\s*(page\s*\d+|confidential|draft)\s*$/gim, '')
       // 2. Insert newlines before common Job Description Headers
-      .replace(/(The Role|About Us|What We're Looking For|Your Mission|Responsibilities|Requirements|Qualifications|Benefits|Role:|Location:|Compensation:)/gi, '\n\n$1')
-      // 3. Insert newlines before Bullet Points (•, -, *)
-      .replace(/([•\-\*]\s)/g, '\n$1')
+      .replace(
+        /(The Role|About Us|What We[’']?re Looking For|Your Mission|Key Responsibilities|Responsibilities|Requirements|Qualifications|Benefits|Role:|Location:|Compensation:|What You[’']?ll Work On)/gi,
+        '\n\n$1'
+      )
+      // 3. Keep bullet/number list structure
+      .replace(/(?:^|\s)([•\-\*])\s+/g, '\n$1 ')
+      .replace(/(?:^|\s)(\d+\.)\s+/g, '\n$1 ')
       // 4. Fix split hyphenated words from PDF extraction: "high - fidelity" -> "high-fidelity"
       .replace(/([A-Za-z])\s-\s([A-Za-z])/g, '$1-$2')
       // 4. Ensure space after colons for readability
