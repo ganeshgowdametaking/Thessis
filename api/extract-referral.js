@@ -92,6 +92,68 @@ const inferDepartment = (title = '', text = '') => {
   return '';
 };
 
+const buildStructuredExcerpt = (text = '', maxLen = 12000) => {
+  const headings = [
+    'Key Responsibilities',
+    'Required Skills',
+    'Preferred Qualifications',
+    'Education',
+    'Requirements',
+    'Qualifications',
+    'Job Description',
+  ];
+  let excerpt = '';
+  for (const h of headings) {
+    const m = text.match(new RegExp(`${h}[\\s\\S]{0,1800}`, 'i'));
+    if (m?.[0]) excerpt += `\n\n${m[0]}`;
+  }
+  if (!excerpt) excerpt = text;
+  return excerpt.slice(0, maxLen);
+};
+
+const callGroqExtraction = async (groqApiKey, promptSource, titleHint, companyHint, maxTokens = 1400) => {
+  const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${groqApiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'llama-3.1-8b-instant',
+      response_format: { type: 'json_object' },
+      temperature: 0.1,
+      max_tokens: maxTokens,
+      messages: [
+        {
+          role: 'system',
+          content: `Extract job details as strict JSON only.
+Rules:
+- Use only source text.
+- If unknown, return "" or [].
+Return keys exactly:
+job_title, company_name, department, location, job_type, experience_level, skills, benefits, full_content_body`,
+        },
+        {
+          role: 'user',
+          content: `TITLE_HINT: ${titleHint || 'N/A'}
+COMPANY_HINT: ${companyHint || 'N/A'}
+SOURCE_TEXT:
+${promptSource}`,
+        },
+      ],
+    }),
+  });
+
+  const upstreamText = await groqRes.text();
+  if (!groqRes.ok) {
+    throw new Error(`GROQ_UPSTREAM_${groqRes.status}:${upstreamText.slice(0, 500)}`);
+  }
+  const groqJson = JSON.parse(upstreamText);
+  const rawContent = groqJson?.choices?.[0]?.message?.content || '{}';
+  const cleanContent = rawContent.replace(/```json\n?|\n?```/g, '').trim();
+  return JSON.parse(cleanContent);
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -159,57 +221,28 @@ export default async function handler(req, res) {
     }
 
     const sanitizedText = sanitizePII(contentToAnalyze).substring(0, 25000);
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${groqApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
-        response_format: { type: 'json_object' },
-        temperature: 0.1,
-        max_tokens: 4000,
-        messages: [
-          {
-            role: 'system',
-            content: `You are a recruiting assistant. Extract job referral details as JSON.
-Rules:
-- Use only provided source text; do not invent fields.
-- If unknown, return empty string/empty array.
-- Do not output generic placeholders like "Software Engineer" unless explicitly present.
-Return:
-{
-  "job_title": "String",
-  "company_name": "String",
-  "department": "String",
-  "location": "String",
-  "job_type": "String",
-  "experience_level": "String",
-  "skills": ["String"],
-  "benefits": ["String"],
-  "full_content_body": "String"
-}`,
-          },
-          {
-            role: 'user',
-            content: `TITLE_HINT: ${titleHint || 'N/A'}
-COMPANY_HINT: ${companyHint || 'N/A'}
-SOURCE_TEXT:
-${sanitizedText}`,
-          },
-        ],
-      }),
-    });
-
-    if (!groqRes.ok) {
-      const upstreamText = await groqRes.text();
-      throw new Error(`Groq API failed (${groqRes.status}): ${upstreamText.slice(0, 300)}`);
+    let data;
+    try {
+      data = await callGroqExtraction(groqApiKey, sanitizedText.slice(0, 18000), titleHint, companyHint, 1600);
+    } catch (primaryErr) {
+      const fallbackSource = buildStructuredExcerpt(sanitizedText, 10000);
+      try {
+        data = await callGroqExtraction(groqApiKey, fallbackSource, titleHint, companyHint, 1200);
+      } catch (_fallbackErr) {
+        // Best-effort deterministic fallback to avoid hard failure for users.
+        data = {
+          job_title: titleHint || '',
+          company_name: companyHint || '',
+          department: inferDepartment(titleHint, sanitizedText),
+          location: '',
+          job_type: '',
+          experience_level: inferExperienceLevel(sanitizedText),
+          skills: [],
+          benefits: [],
+          full_content_body: fallbackSource || sanitizedText.slice(0, 8000),
+        };
+      }
     }
-    const groqJson = await groqRes.json();
-    const rawContent = groqJson?.choices?.[0]?.message?.content || '{}';
-    const cleanContent = rawContent.replace(/```json\n?|\n?```/g, '').trim();
-    const data = JSON.parse(cleanContent);
     if (!data.job_title && titleHint) data.job_title = titleHint;
     if (!data.company_name && companyHint) data.company_name = companyHint;
     const inferredCompany = inferCompanyFromText(sanitizedText);
