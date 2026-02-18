@@ -263,12 +263,10 @@ const CreateReferralPage: React.FC = () => {
 
   const formatExtractedJobDescription = (text: string) => {
     if (!text) return '';
-    let formatted = text
-      .replace(/\r/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
+    let formatted = text.replace(/\r/g, '\n');
 
-    const sectionTitles = [
+    // Preserve structural headings and add spacing like source job pages.
+    const headingPatterns = [
       'Key Responsibilities',
       'Required Skills',
       'Preferred Qualifications',
@@ -278,23 +276,20 @@ const CreateReferralPage: React.FC = () => {
       'Qualifications',
       'Requirements',
     ];
-
-    for (const title of sectionTitles) {
-      const regex = new RegExp(`${title}\\s*:`, 'gi');
-      formatted = formatted.replace(regex, `\n\n${title}:\n`);
+    for (const heading of headingPatterns) {
+      const regex = new RegExp(`\\b${heading}\\s*:`, 'gi');
+      formatted = formatted.replace(regex, `\n\n${heading}:\n\n`);
     }
 
-    // Convert common "Label: content." patterns into bullet lines.
-    formatted = formatted.replace(/([A-Z][A-Za-z/& ()-]{2,40}:\s*)([^.]+(?:\.[^.]+){0,2}\.?)/g, (_m, label, body) => {
-      const cleanLabel = String(label).replace(/\s+$/, '');
-      const cleanBody = String(body).trim();
-      return `\n- ${cleanLabel} ${cleanBody}`;
-    });
+    // Keep each "Label: details" as its own paragraph (not list bullet).
+    formatted = formatted.replace(
+      /([A-Z][A-Za-z/& ()-]{2,50}:\s*)([^:\n]+?)(?=(?:\s+[A-Z][A-Za-z/& ()-]{2,50}:\s)|\n\n|$)/g,
+      (_m, label, body) => `${label}${String(body).trim()}\n\n`
+    );
 
-    // Clean excessive blank lines and ensure bullet spacing.
     formatted = formatted
+      .replace(/[ \t]+/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
-      .replace(/\n-\s*/g, '\n- ')
       .trim();
 
     return formatted;

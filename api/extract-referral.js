@@ -135,7 +135,11 @@ export default async function handler(req, res) {
           });
           if (readerRes.ok) {
             const readerText = await readerRes.text();
-            const cleanedReader = readerText.replace(/\s+/g, ' ').trim();
+            const cleanedReader = readerText
+              .replace(/\r/g, '')
+              .replace(/[ \t]+/g, ' ')
+              .replace(/\n{3,}/g, '\n\n')
+              .trim();
             if (cleanedReader.length > contentToAnalyze.length) {
               contentToAnalyze = cleanedReader;
             }
