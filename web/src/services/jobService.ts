@@ -43,7 +43,7 @@ export const jobService = {
 
         let query = supabase
           .from('jobs')
-          .select('*')
+          .select('*, created_by_profile:profiles!jobs_created_by_fkey(response_metric)')
           .eq('status', 'active' as any)
           .order('created_at', { ascending: false });
 
@@ -500,6 +500,8 @@ export const jobService = {
       throw new Error('Failed to load your applications.');
     }
   },
+
+
 
   // TEMPORARY DEBUG FUNCTION - Remove after debugging
   debugGetAllJobs: async () => {

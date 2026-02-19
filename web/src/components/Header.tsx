@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-// import { Menu, X, Briefcase, MessageSquare, Bell, User, Settings, Search, LogOut } from 'lucide-react'; // Removing unused import entirely
 import { useAuthContext } from '../contexts/AuthContext';
-// import { searchService } from '../services/searchService'; // Removing unused import entirely
-// import { messageService } from '../services/messageService'; // Removing unused import entirely
 import { notificationService } from '../services/notificationService';
+
 
 // Add global type for refreshUnreadCounts
 declare global {
@@ -18,21 +16,17 @@ interface HeaderProps {
   onJoinNow?: () => void;
 }
 
-
 const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   const { user, signOut, profile } = useAuthContext();
-  // const location = useLocation(); // Unused
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  // const [searchLoading, setSearchLoading] = useState(false); // Unused
   const settingsDropdownRef = useRef<HTMLDivElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  // const [unreadMessages, setUnreadMessages] = useState(0); // Unused
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
@@ -78,10 +72,8 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   const fetchCounts = async () => {
     try {
       const [notifCount] = await Promise.all([
-        // messageService.getUnreadMessagesCount(),
         notificationService.getUnreadNotificationsCount(),
       ]);
-      // setUnreadMessages(msgCount);
       setUnreadNotifications(notifCount);
     } catch (e) {
       // Silent fail
@@ -89,7 +81,6 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   };
 
   useEffect(() => {
-    // let isMounted = true; // Unused
     const safeFetch = async () => {
       await fetchCounts();
     };
@@ -97,7 +88,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
     const interval = setInterval(safeFetch, 120000); // Poll every 2 minutes
     // Expose global refresh for other components
     window.refreshUnreadCounts = fetchCounts;
-    return () => { /* isMounted = false; */ clearInterval(interval); window.refreshUnreadCounts = undefined; };
+    return () => { clearInterval(interval); window.refreshUnreadCounts = undefined; };
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -259,6 +250,8 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
         </nav>
 
         <div className="flex items-center gap-6">
+
+
           <Link to="/notifications" className="relative text-[#354038] hover:text-primary transition-colors p-1 group flex items-center justify-center h-10 w-10">
             <span className="material-symbols-outlined text-[28px] filled group-hover:opacity-80 transition-opacity">notifications</span>
             {unreadNotifications > 0 && (
@@ -361,6 +354,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
             >
               Settings
             </Link>
+
             <button
               onClick={() => { setIsMenuOpen(false); signOut(); }}
               className="block w-full text-left text-red-600 font-semibold text-[16px] py-2"

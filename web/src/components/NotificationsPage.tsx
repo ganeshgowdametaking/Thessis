@@ -1,31 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Users, Briefcase, Heart, MessageCircle, UserPlus, CheckCircle, TrendingUp, DollarSign, AlertTriangle, Rocket, ChevronRight, Filter } from 'lucide-react';
+import { Bell, Briefcase, Heart, MessageCircle, UserPlus, CheckCircle, TrendingUp, DollarSign, AlertTriangle, Rocket, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { notificationService } from '../services/notificationService';
 import { connectionService } from '../services/connectionService';
 import { profileService } from '../services/profileService';
-import { postService } from '../services/postService';
-import { blockingService } from '../services/blockingService';
 import { useAuthContext } from '../contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
+import { hireVerificationService, HireVerificationRequest } from '../services/hireVerificationService';
+import { VerificationCard } from './VerificationCard';
 
-interface NotificationsPageProps {
-  onViewProfile?: (userId: string) => void;
-}
-
-const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) => {
+const NotificationsPage: React.FC = () => {
   const { user } = useAuthContext();
   const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [verifications, setVerifications] = useState<HireVerificationRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
-  const [forceUpdate, setForceUpdate] = useState(0);
 
   useEffect(() => {
     loadNotifications();
-    loadUserLikes();
     // Update the global notification count when component loads
     if (window.refreshUnreadCounts) window.refreshUnreadCounts();
   }, []); // Empty dependency array
@@ -35,22 +28,13 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
       setLoading(true);
       console.log('🔄 Loading notifications...');
 
-      const userNotifications = await notificationService.getNotifications();
-      console.log('📊 Received notifications:', userNotifications);
+      const [userNotifications, pendingVerifications] = await Promise.all([
+        notificationService.getNotifications() as Promise<any[]>,
+        user ? hireVerificationService.getPendingVerifications(user.id) : Promise.resolve([])
+      ]);
 
-      // Debug connection notifications specifically
-      const connectionNotifications = userNotifications.filter(n => n.type === 'connection');
-      console.log('🔗 Connection notifications found:', connectionNotifications.length);
-      connectionNotifications.forEach((notif, index) => {
-        console.log(`🔗 Connection notification ${index + 1}:`, {
-          id: notif.id,
-          type: notif.type,
-          metadata: notif.metadata,
-          metadataType: typeof notif.metadata,
-          actionable: notif.actionable,
-          read: notif.read
-        });
-      });
+      setVerifications(pendingVerifications as HireVerificationRequest[]);
+      console.log('📊 Received notifications:', userNotifications);
 
       // Enhance notifications with user profile data
       const enhancedNotifications = await Promise.all(
@@ -98,70 +82,12 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
         }
       }
 
-      // TODO: Re-implement notification filtering with proper user identification
-      // For now, disable filtering to restore notification functionality
-      // const filteredNotifications = await blockingService.filterBlockedUsers(dedupedNotifications || []);
       setNotifications(dedupedNotifications || []);
     } catch (error) {
       console.error('❌ Error loading notifications:', error);
       setNotifications([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadUserLikes = async () => {
-    try {
-      const userLikesData = await postService.getUserLikes();
-      const likedPostIds = new Set<string>(userLikesData.map((like: any) => like.post_id));
-      setLikedPosts(likedPostIds);
-    } catch (error) {
-      console.error('Error loading user likes:', error);
-    }
-  };
-
-  const handleRefresh = async () => {
-    try {
-      setRefreshing(true);
-      await loadNotifications();
-      await loadUserLikes();
-      // Add a small delay to ensure database operation completes
-      setTimeout(() => {
-        if (window.refreshUnreadCounts) window.refreshUnreadCounts();
-      }, 100);
-    } catch (error) {
-      console.error('Error refreshing notifications:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  // ENHANCED: Handle like toggle with duplicate handling
-  const handleLikeToggle = async (postId: string) => {
-    if (!postId) return;
-
-    try {
-      const isCurrentlyLiked = likedPosts.has(postId);
-
-      if (isCurrentlyLiked) {
-        // Unlike the post
-        await postService.removeUserLike(postId);
-        setLikedPosts(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(postId);
-          return newSet;
-        });
-      } else {
-        // Like the post
-        const result = await postService.createUserLike(postId);
-        // Only update UI if it's a new like (not a duplicate)
-        if (result.isNewLike) {
-          setLikedPosts(prev => new Set(prev).add(postId));
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      // Optionally show user feedback
     }
   };
 
@@ -186,15 +112,6 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
         return <AlertTriangle className="h-5 w-5" />;
       default:
         return <Bell className="h-5 w-5" />;
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'border-l-red-500';
-      case 'medium': return 'border-l-yellow-500';
-      case 'low': return 'border-l-green-500';
-      default: return 'border-l-slate-300';
     }
   };
 
@@ -321,20 +238,6 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
     navigate(`/user/${userId}`);
   };
 
-  const handleDeleteNotification = async (notificationId: string) => {
-    try {
-      await notificationService.deleteNotification(notificationId);
-      setNotifications(notifications => notifications.filter(notif => notif.id !== notificationId));
-      // Add a small delay to ensure database operation completes
-      setTimeout(() => {
-        if (window.refreshUnreadCounts) window.refreshUnreadCounts();
-      }, 100);
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-      alert('Failed to delete notification. Please try again.');
-    }
-  };
-
   const filteredNotifications = notifications.filter(notif => {
     if (filter === 'all') return true;
     if (filter === 'unread') return !notif.read;
@@ -345,12 +248,10 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
   const unreadCount = notifications.filter(notif => !notif.read).length;
 
   // Debug logging for render
-  console.log('🔄 NotificationsPage render - forceUpdate:', forceUpdate);
+  console.log('🔄 NotificationsPage render');
   console.log('📊 Current notifications count:', notifications.length);
   console.log('🔍 Filtered notifications count:', filteredNotifications.length);
   console.log('📋 All notifications:', notifications);
-
-
 
   if (loading) {
     return (
@@ -479,6 +380,25 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
           </div>
         </div>
 
+        {/* Verification Requests Section */}
+        {verifications.length > 0 && filter === 'all' && (
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 px-1">
+              <span className="material-symbols-outlined text-amber-500 text-[20px] filled">star</span>
+              Action Required
+            </h3>
+            <div className="space-y-4">
+              {verifications.map(req => (
+                <VerificationCard
+                  key={req.id}
+                  request={req}
+                  onResponse={loadNotifications}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Notifications */}
         <div className="flex flex-col gap-8">
           {/* Today */}
@@ -492,11 +412,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
                     notification={notification}
                     onAcceptConnection={handleAcceptConnection}
                     onDeclineConnection={handleDeclineConnection}
-                    onMarkAsRead={handleMarkAsRead}
                     onProfileClick={handleProfileClick}
-                    onDeleteNotification={handleDeleteNotification}
-                    onLikeToggle={handleLikeToggle}
-                    likedPosts={likedPosts}
                     getProfilePicture={getProfilePicture}
                     getNotificationIcon={getNotificationIcon}
                     onNotificationClick={(notif) => handleNotificationClick(notif)}
@@ -517,11 +433,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
                     notification={notification}
                     onAcceptConnection={handleAcceptConnection}
                     onDeclineConnection={handleDeclineConnection}
-                    onMarkAsRead={handleMarkAsRead}
                     onProfileClick={handleProfileClick}
-                    onDeleteNotification={handleDeleteNotification}
-                    onLikeToggle={handleLikeToggle}
-                    likedPosts={likedPosts}
                     getProfilePicture={getProfilePicture}
                     getNotificationIcon={getNotificationIcon}
                     onNotificationClick={(notif) => handleNotificationClick(notif)}
@@ -543,11 +455,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
                     notification={notification}
                     onAcceptConnection={handleAcceptConnection}
                     onDeclineConnection={handleDeclineConnection}
-                    onMarkAsRead={handleMarkAsRead}
                     onProfileClick={handleProfileClick}
-                    onDeleteNotification={handleDeleteNotification}
-                    onLikeToggle={handleLikeToggle}
-                    likedPosts={likedPosts}
                     getProfilePicture={getProfilePicture}
                     getNotificationIcon={getNotificationIcon}
                     onNotificationClick={(notif) => handleNotificationClick(notif)}
@@ -569,11 +477,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onViewProfile }) 
                     notification={notification}
                     onAcceptConnection={handleAcceptConnection}
                     onDeclineConnection={handleDeclineConnection}
-                    onMarkAsRead={handleMarkAsRead}
                     onProfileClick={handleProfileClick}
-                    onDeleteNotification={handleDeleteNotification}
-                    onLikeToggle={handleLikeToggle}
-                    likedPosts={likedPosts}
                     getProfilePicture={getProfilePicture}
                     getNotificationIcon={getNotificationIcon}
                     onNotificationClick={(notif) => handleNotificationClick(notif)}
@@ -608,11 +512,7 @@ interface NotificationCardProps {
   notification: any;
   onAcceptConnection: (notificationId: string, connectionId?: string) => void;
   onDeclineConnection: (notificationId: string, connectionId?: string) => void;
-  onMarkAsRead: (notificationId: string) => void;
   onProfileClick: (userId: string) => void;
-  onDeleteNotification: (notificationId: string) => void;
-  onLikeToggle: (postId: string) => void;
-  likedPosts: Set<string>;
   getProfilePicture: (profile: any) => string;
   getNotificationIcon: (type: string) => JSX.Element;
   onNotificationClick: (notification: any) => void;
@@ -623,11 +523,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   notification,
   onAcceptConnection,
   onDeclineConnection,
-  onMarkAsRead,
   onProfileClick,
-  onDeleteNotification,
-  onLikeToggle,
-  likedPosts,
   getProfilePicture,
   getNotificationIcon,
   onNotificationClick,

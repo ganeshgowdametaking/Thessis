@@ -1,11 +1,26 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
+import SenioritySelector, { SeniorityBucket } from './SenioritySelector';
+import { trustService } from '../services/TrustService';
 
 const SettingsPage: React.FC = () => {
-  const { signOut, updatePassword, user } = useAuthContext();
+  const { signOut, updatePassword, updateProfile, user, profile } = useAuthContext();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'account' | 'feedback'>('account');
+
+  // Sync organization email and step when profile loads
+  React.useEffect(() => {
+    const currentEmail = (profile as any)?.work_email || profile?.secondary_email;
+    if (currentEmail) {
+      setOrganizationEmail(currentEmail);
+    }
+    if ((profile as any)?.work_email_verified || profile?.secondary_email_verified) {
+      setVerificationStep('verified');
+    } else {
+      setVerificationStep('input');
+    }
+  }, [profile]);
 
   // Account State
   const [organizationEmail, setOrganizationEmail] = useState('');
@@ -23,6 +38,15 @@ const SettingsPage: React.FC = () => {
   const [feedbackSubject, setFeedbackSubject] = useState('General Feedback');
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Verification Step Logic
+  const [verificationStep, setVerificationStep] = useState<'input' | 'otp' | 'seniority' | 'verified'>(
+    ((profile as any)?.work_email_verified || profile?.secondary_email_verified) ? 'verified' : 'input'
+  );
+  const [verificationOtp, setVerificationOtp] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const verifiedOrgEmail = (profile as any)?.work_email || profile?.secondary_email || '';
+  const isOrgVerified = Boolean((profile as any)?.work_email_verified || profile?.secondary_email_verified);
 
   const handleUpdatePassword = async () => {
     if (!newPassword || !confirmPassword) {
@@ -105,6 +129,97 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleSendVerificationCode = async () => {
+    if (!user?.id) {
+      setMessage({ type: 'error', text: 'Please sign in again and retry.' });
+      return;
+    }
+    if (!organizationEmail || !organizationEmail.includes('@')) {
+      setMessage({ type: 'error', text: 'Please enter a valid organization email' });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+    try {
+      const normalizedEmail = organizationEmail.trim().toLowerCase();
+      const { success, error } = await trustService.startWorkEmailVerification(user.id, normalizedEmail);
+      if (!success) {
+        setMessage({ type: 'error', text: error || 'Failed to send verification code.' });
+        return;
+      }
+      setVerificationStep('otp');
+      setMessage({ type: 'success', text: 'Verification code sent to ' + normalizedEmail });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!user?.id) {
+      setMessage({ type: 'error', text: 'Please sign in again and retry.' });
+      return;
+    }
+    if (verificationOtp.length !== 6) {
+      setMessage({ type: 'error', text: 'Please enter a valid 6-digit code.' });
+      return;
+    }
+
+    setIsVerifying(true);
+    setMessage(null);
+    try {
+      const normalizedEmail = organizationEmail.trim().toLowerCase();
+      const { success, error } = await trustService.verifyWorkEmail(user.id, normalizedEmail, verificationOtp);
+      if (!success) {
+        setMessage({ type: 'error', text: error || 'Invalid verification code.' });
+        return;
+      }
+      setVerificationStep('seniority');
+      setMessage({ type: 'success', text: 'Email verified successfully! Now, tell us about your role.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Invalid verification code.' });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleSaveProfessionalIdentity = async (seniority: SeniorityBucket, title: string) => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      await updateProfile({
+        seniority,
+        title: title, // Sync with main title field for UI
+        display_title: title,
+        secondary_email: organizationEmail.trim().toLowerCase(),
+        secondary_email_verified: true,
+        work_email: organizationEmail.trim().toLowerCase(),
+        work_email_verified: true
+      });
+      setVerificationStep('verified');
+      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+    } catch (err: any) {
+      console.error('❌ Profile update failed:', err);
+      let errorMessage = err.message || 'Unknown error';
+
+      // Handle the specific unique constraint violation for verified secondary emails
+      if (err.code === '23505' && err.message?.includes('unique_verified_secondary_email')) {
+        errorMessage = 'This organization email is already verified on another account. Please use a unique email.';
+      }
+
+      setMessage({ type: 'error', text: `Failed to update profile: ${errorMessage}` });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetVerification = () => {
+    setVerificationStep('input');
+    setMessage(null);
+  };
+
   return (
     <div className="min-h-screen bg-stone flex flex-col">
       <main className="flex-grow py-8 px-4 sm:px-6 lg:px-8">
@@ -160,33 +275,90 @@ const SettingsPage: React.FC = () => {
                   </summary>
                   <div className="px-6 pb-6 pt-2 border-t border-slate-100">
                     <div className="max-w-xl space-y-6 pt-4">
-                      <div className="rounded-lg bg-sage-light border border-sage/20 p-4 flex items-start gap-3">
-                        <span className="material-symbols-outlined text-sage mt-0.5">verified</span>
-                        <div>
-                          <h4 className="text-sm font-semibold text-sage-dark">Verified Organization</h4>
-                          <p className="text-sm text-sage-dark mt-1">Your email <span className="font-medium">jane.doe@techflow.com</span> is verified and active.</p>
-                        </div>
-                      </div>
-                      <div className="space-y-4 pt-4">
-                        <label className="block text-sm font-medium text-slate-700">Organization Email <span className="text-red-500">*</span></label>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          <div className="relative flex-grow">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                              <span className="material-symbols-outlined text-slate-500 text-[20px]">mail</span>
+                      {isOrgVerified && verificationStep === 'verified' && (
+                        <div className="rounded-xl bg-slate-50 border border-slate-200 p-6 flex flex-col gap-4 animate-in fade-in duration-500">
+                          <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-sage/10 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-sage text-[24px]">verified</span>
                             </div>
-                            <input
-                              className="block w-full rounded-lg border border-slate-500 bg-white pl-10 py-2.5 text-slate-900 placeholder:text-slate-500 focus:ring-sage focus:border-sage sm:text-sm shadow-sm transition-all"
-                              placeholder="name@company.com"
-                              type="email"
-                              value={organizationEmail}
-                              onChange={(e) => setOrganizationEmail(e.target.value)}
-                            />
+                            <div className="flex-grow">
+                              <h4 className="text-base font-bold text-slate-900 leading-tight">Verified & Profile Completed</h4>
+                              <p className="text-sm text-slate-500 mt-1">Your professional identity is active with <span className="font-semibold text-slate-700">{verifiedOrgEmail}</span></p>
+                            </div>
+                            <button
+                              onClick={handleResetVerification}
+                              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2 group"
+                            >
+                              <span className="material-symbols-outlined text-[18px] group-hover:rotate-12 transition-transform">edit</span>
+                              Change
+                            </button>
                           </div>
-                          <button className="bg-sage text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-sage-dark transition-all whitespace-nowrap shadow-sm active:scale-95">
-                            Send Code
-                          </button>
                         </div>
-                      </div>
+                      )}
+                      {verificationStep !== 'verified' && (
+                        <div className="space-y-4 pt-4 border-t border-slate-50 mt-4">
+                          <label className="block text-sm font-medium text-slate-700">Organization Email <span className="text-red-500">*</span></label>
+
+                          {message && (
+                            <div className={`p-3 rounded-lg text-sm font-medium ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                              {message.text}
+                            </div>
+                          )}
+
+                          {verificationStep === 'input' && (
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              <div className="relative flex-grow">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <span className="material-symbols-outlined text-slate-500 text-[20px]">mail</span>
+                                </div>
+                                <input
+                                  className="block w-full rounded-lg border border-slate-500 bg-white pl-10 py-2.5 text-slate-900 placeholder:text-slate-500 focus:ring-sage focus:border-sage sm:text-sm shadow-sm transition-all"
+                                  placeholder="name@company.com"
+                                  type="email"
+                                  value={organizationEmail}
+                                  onChange={(e) => setOrganizationEmail(e.target.value)}
+                                />
+                              </div>
+                              <button
+                                onClick={handleSendVerificationCode}
+                                disabled={loading || !organizationEmail || !organizationEmail.includes('@')}
+                                className="bg-sage text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-sage-dark transition-all whitespace-nowrap shadow-sm active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                              >
+                                {loading ? 'Sending...' : 'Send Code'}
+                              </button>
+                            </div>
+                          )}
+
+                          {verificationStep === 'otp' && (
+                            <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                              <p className="text-sm text-slate-500">We've sent a 6-digit code to {organizationEmail}. Please enter it below.</p>
+                              <div className="flex flex-wrap gap-3">
+                                <input
+                                  className="block w-full max-w-[200px] rounded-lg border border-slate-900 bg-white px-4 py-2.5 text-center text-xl font-bold tracking-widest text-slate-900 focus:ring-sage focus:border-sage shadow-sm transition-all"
+                                  placeholder="000000"
+                                  maxLength={6}
+                                  value={verificationOtp}
+                                  onChange={(e) => setVerificationOtp(e.target.value.replace(/\D/g, ''))}
+                                />
+                                <button
+                                  onClick={handleVerifyOTP}
+                                  disabled={isVerifying || verificationOtp.length !== 6}
+                                  className="bg-slate-900 text-white px-8 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
+                                >
+                                  {isVerifying ? 'Verifying...' : 'Confirm'}
+                                </button>
+                              </div>
+                              <button onClick={() => setVerificationStep('input')} className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider">Change Email</button>
+                            </div>
+                          )}
+
+                          {verificationStep === 'seniority' && (
+                            <div className="pt-2">
+                              <SenioritySelector onSave={handleSaveProfessionalIdentity} isLoading={loading} />
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </details>

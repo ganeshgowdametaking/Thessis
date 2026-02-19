@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, Briefcase, GraduationCap, Award, Edit3, Plus, X, Trash2, Share } from 'lucide-react';
+import { MapPin, Briefcase, GraduationCap, Award, Edit3, Plus, X, Trash2, Share, Waves } from 'lucide-react';
 import debounce from 'lodash.debounce';
 import { profileService } from '../services/profileService';
 import { postService } from '../services/postService';
 import { connectionService } from '../services/connectionService';
+import { tidePointsService } from '../services/tidePointsService';
 import { useAuthContext } from '../contexts/AuthContext';
 import ConnectionsModal from './ConnectionsModal';
 import PostsModal from './PostsModal';
@@ -11,6 +12,9 @@ import LoadingSpinner from './LoadingSpinner';
 import CountryPicker from './CountryPicker';
 import { iso2ToIso3 } from '../utils/countryMapping';
 import ImageCropper from './ImageCropper';
+import { TalentScoutBadge } from './TalentScoutBadge';
+import { hireVerificationService, UserBadge } from '../services/hireVerificationService';
+import { trustService } from '../services/TrustService';
 
 interface Experience {
   id: number;
@@ -70,6 +74,8 @@ const ProfilePage: React.FC = () => {
     skills: [] as Skill[],
     achievements: [] as Achievement[],
     country_code: '',
+    work_email: '',
+    work_email_verified: false,
   });
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -78,7 +84,9 @@ const ProfilePage: React.FC = () => {
     connections: 0,
     expYears: 0,
     rating: 5.0,
+    tidePoints: 0,
   });
+  const [badges, setBadges] = useState<UserBadge[]>([]);
 
   // Location autocomplete state
   const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
@@ -93,6 +101,13 @@ const ProfilePage: React.FC = () => {
   const [isCropping, setIsCropping] = useState(false);
   const [isCroppingCover, setIsCroppingCover] = useState(false);
   const [tempImage, setTempImage] = useState<string | null>(null);
+
+  // Work Email Verification State
+  const [verifyingWorkEmail, setVerifyingWorkEmail] = useState(false);
+  const [verificationStep, setVerificationStep] = useState<'input' | 'code' | 'verified'>('input');
+  const [workEmailInput, setWorkEmailInput] = useState('');
+  const [verificationCodeInput, setVerificationCodeInput] = useState('');
+  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -109,6 +124,8 @@ const ProfilePage: React.FC = () => {
         skills: profile.skills || [],
         achievements: profile.achievements || [],
         country_code: profile.country_code || '',
+        work_email: (profile as any).work_email || '',
+        work_email_verified: (profile as any).work_email_verified || false,
       });
       setLocationQuery(profile.location || '');
       // If country_code is missing, try to auto-detect
@@ -224,11 +241,19 @@ const ProfilePage: React.FC = () => {
         posts: userPosts.length,
         connections: userConnections.length,
         expYears,
-        rating: parseFloat(rating)
+        rating: parseFloat(rating),
+        tidePoints: await tidePointsService.getPointsBalance(user?.id || '')
       });
+
+      // 4. Fetch Badges
+      if (profile?.id) {
+        const userBadges = await hireVerificationService.getUserBadges(profile.id);
+        setBadges(userBadges);
+      }
+
     } catch (error) {
       console.error('Error loading real counts:', error);
-      setRealCounts({ posts: 0, connections: 0, expYears: 0, rating: 4.5 });
+      setRealCounts({ posts: 0, connections: 0, expYears: 0, rating: 4.5, tidePoints: 0 });
     }
   };
 
@@ -421,8 +446,77 @@ const ProfilePage: React.FC = () => {
         skills: profile.skills || [],
         achievements: profile.achievements || [],
         country_code: profile.country_code || '',
+
+        work_email: (profile as any).work_email || '',
+        work_email_verified: (profile as any).work_email_verified || false,
       });
+      // Reset Verification State
+      setVerifyingWorkEmail(false);
+      setVerificationStep('input');
+      setWorkEmailInput('');
+      setVerificationCodeInput('');
+      setVerificationError(null);
     }
+  };
+
+  const handleStartVerification = async () => {
+    if (!workEmailInput) {
+      setVerificationError('Please enter a valid work email.');
+      return;
+    }
+    if (!workEmailInput.includes('@')) {
+      setVerificationError('Invalid email format.');
+      return;
+    }
+
+    setVerifyingWorkEmail(true);
+    setVerificationError(null);
+
+    const { success, error } = await trustService.startWorkEmailVerification(user?.id || '', workEmailInput);
+
+    if (success) {
+      setVerificationStep('code');
+    } else {
+      setVerificationError(error || 'Failed to send verification code.');
+      setVerifyingWorkEmail(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!verificationCodeInput || verificationCodeInput.length < 6) {
+      setVerificationError('Please enter a valid 6-digit code.');
+      return;
+    }
+
+    setVerifyingWorkEmail(true);
+    setVerificationError(null);
+
+    const { success, error } = await trustService.verifyWorkEmail(user?.id || '', workEmailInput, verificationCodeInput);
+
+    if (success) {
+      setVerificationStep('verified');
+      setEditForm(prev => ({
+        ...prev,
+        work_email: workEmailInput,
+        work_email_verified: true
+      }));
+      // Prepare for refresh? Maybe reload profile
+      if (user?.id) {
+        profileService.getProfile(user.id).then(p => {
+          if (p) updateProfile(p);
+        })
+      }
+    } else {
+      setVerificationError(error || 'Invalid code. Please try again.');
+    }
+    setVerifyingWorkEmail(false);
+  };
+
+  const cancelVerification = () => {
+    setVerifyingWorkEmail(false);
+    setVerificationStep('input');
+    setVerificationError(null);
+    setVerificationCodeInput('');
   };
 
   const formatDate = (dateString: string) => {
@@ -491,6 +585,19 @@ const ProfilePage: React.FC = () => {
                 <MapPin className="text-[18px]" />
                 <span>{editForm.location || 'Location'}</span>
               </div>
+
+              {/* Badges Section */}
+              {badges.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2 mt-3 mb-1 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  {badges.map(badge => (
+                    <TalentScoutBadge
+                      key={badge.id}
+                      type={badge.badge_type}
+                      metadata={badge.metadata}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap justify-center gap-4 md:gap-8 w-full border-y border-slate-border-divider py-5 my-2">
@@ -498,6 +605,24 @@ const ProfilePage: React.FC = () => {
                 <span className="text-text-main text-xl font-bold">{realCounts.connections}</span>
                 <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Connections</span>
               </div>
+              <div className="w-px bg-slate-border-divider h-10 self-center"></div>
+
+              {/* Tide Points */}
+              <div className="flex flex-col items-center px-4 group/points relative cursor-help">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-text-main text-xl font-bold">{realCounts.tidePoints}</span>
+                  <Waves className="w-4 h-4 text-teal-500" />
+                </div>
+                <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Tide Pts</span>
+
+                {/* Tooltip */}
+                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 p-3 bg-slate-800 text-white text-xs rounded-lg opacity-0 invisible group-hover/points:opacity-100 group-hover/points:visible transition-all z-20 text-center shadow-xl">
+                  Social Capital<br />
+                  <span className="opacity-75">Earn points by verifying skills & responding fast.</span>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-800"></div>
+                </div>
+              </div>
+
               <div className="w-px bg-slate-border-divider h-10 self-center"></div>
               <div className="flex flex-col items-center px-4">
                 <span className="text-text-main text-xl font-bold">{realCounts.rating.toFixed(1)}/5</span>
@@ -768,6 +893,105 @@ const ProfilePage: React.FC = () => {
                       className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
                       disabled={isSaving}
                     />
+                  </div>
+                </div>
+              </div>
+
+
+              {/* 🛡️ Work Email Verification Section */}
+              <div className="md:col-span-2 bg-blue-50/50 rounded-xl border border-blue-100 p-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600 mt-1">
+                    <Briefcase className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Work Verification</h3>
+                    <p className="text-sm text-slate-600 mb-4">
+                      Verify your work email to get a "Verified Employee" badge and build trust with candidates.
+                    </p>
+
+                    {editForm.work_email_verified ? (
+                      <div className="flex items-center gap-2 text-emerald-600 bg-white border border-emerald-100 px-4 py-3 rounded-lg shadow-sm">
+                        <div className="bg-emerald-100 p-1 rounded-full">
+                          <Award className="w-4 h-4" />
+                        </div>
+                        <span className="font-bold">Verified at {editForm.work_email?.split('@')[1]}</span>
+                        <span className="text-slate-400 text-sm ml-auto">{editForm.work_email}</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Step 1: Input Email */}
+                        {verificationStep === 'input' && (
+                          <div className="flex gap-3">
+                            <input
+                              type="email"
+                              placeholder="name@company.com"
+                              className="flex-1 bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                              value={workEmailInput}
+                              onChange={(e) => setWorkEmailInput(e.target.value)}
+                              disabled={verifyingWorkEmail}
+                            />
+                            <button
+                              type="button"
+                              onClick={handleStartVerification}
+                              disabled={verifyingWorkEmail || !workEmailInput}
+                              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors flex items-center gap-2"
+                            >
+                              {verifyingWorkEmail ? <LoadingSpinner size="small" /> : 'Verify'}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Step 2: Input Code */}
+                        {verificationStep === 'code' && (
+                          <div className="space-y-3">
+                            <p className="text-sm font-medium text-slate-700">
+                              Enter the 6-digit code sent to <span className="font-bold">{workEmailInput}</span>
+                            </p>
+                            <div className="flex gap-3">
+                              <input
+                                type="text"
+                                placeholder="123456"
+                                maxLength={6}
+                                className="w-40 bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-center text-lg tracking-widest font-mono text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                                value={verificationCodeInput}
+                                onChange={(e) => setVerificationCodeInput(e.target.value)}
+                                disabled={verifyingWorkEmail}
+                              />
+                              <button
+                                type="button"
+                                onClick={handleVerifyCode}
+                                disabled={verifyingWorkEmail || verificationCodeInput.length !== 6}
+                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors"
+                              >
+                                {verifyingWorkEmail ? 'Checking...' : 'Confirm Code'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelVerification}
+                                className="px-4 py-2.5 text-slate-500 hover:text-slate-700 font-medium hover:bg-slate-100 rounded-lg transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Step 3: Success State (Transient) */}
+                        {verificationStep === 'verified' && (
+                          <div className="text-emerald-600 font-bold flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+                            <Award className="w-5 h-5" />
+                            You are now a verified employee!
+                          </div>
+                        )}
+
+                        {verificationError && (
+                          <p className="text-red-500 text-sm font-medium animate-in fade-in slide-in-from-top-1">
+                            {verificationError}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1249,40 +1473,42 @@ const ProfilePage: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div >
       )}
 
       {/* Share Success Modal */}
-      {showShareModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 text-center shadow-2xl">
-            <div className="mb-4">
-              {shareSuccess ? (
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                  </svg>
-                </div>
-              ) : (
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                  </svg>
-                </div>
-              )}
+      {
+        showShareModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 text-center shadow-2xl">
+              <div className="mb-4">
+                {shareSuccess ? (
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
+                {shareSuccess ? 'Link Copied!' : 'Copy Failed'}
+              </h3>
+              <p className="text-slate-600 text-sm">
+                {shareSuccess
+                  ? 'Profile link has been copied to your clipboard.'
+                  : 'Failed to copy link. Please try again.'
+                }
+              </p>
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">
-              {shareSuccess ? 'Link Copied!' : 'Copy Failed'}
-            </h3>
-            <p className="text-slate-600 text-sm">
-              {shareSuccess
-                ? 'Profile link has been copied to your clipboard.'
-                : 'Failed to copy link. Please try again.'
-              }
-            </p>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Connections Modal */}
       <ConnectionsModal
@@ -1293,27 +1519,31 @@ const ProfilePage: React.FC = () => {
       />
 
       {/* Image Cropper Modals */}
-      {isCropping && tempImage && (
-        <ImageCropper
-          image={tempImage}
-          onCropComplete={handleCropComplete}
-          onCancel={handleCropCancel}
-          aspect={1}
-          cropShape="round"
-          title="Crop Profile Picture"
-        />
-      )}
+      {
+        isCropping && tempImage && (
+          <ImageCropper
+            image={tempImage}
+            onCropComplete={handleCropComplete}
+            onCancel={handleCropCancel}
+            aspect={1}
+            cropShape="round"
+            title="Crop Profile Picture"
+          />
+        )
+      }
 
-      {isCroppingCover && tempImage && (
-        <ImageCropper
-          image={tempImage}
-          onCropComplete={handleCoverCropComplete}
-          onCancel={handleCropCancel}
-          aspect={3 / 1}
-          cropShape="rect"
-          title="Crop Cover Image"
-        />
-      )}
+      {
+        isCroppingCover && tempImage && (
+          <ImageCropper
+            image={tempImage}
+            onCropComplete={handleCoverCropComplete}
+            onCancel={handleCropCancel}
+            aspect={3 / 1}
+            cropShape="rect"
+            title="Crop Cover Image"
+          />
+        )
+      }
       <PostsModal
         isOpen={showPostsModal}
         onClose={() => setShowPostsModal(false)}
@@ -1321,7 +1551,7 @@ const ProfilePage: React.FC = () => {
           setShowPostsModal(false);
         }}
       />
-    </div>
+    </div >
   );
 };
 

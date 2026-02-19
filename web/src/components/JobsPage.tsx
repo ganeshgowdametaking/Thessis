@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 // Cache buster: 2025-01-25-15:30
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, MapPin, Calendar, Briefcase, Star, Building, Clock, Users, ChevronDown, X, CheckCircle, ArrowLeft, User, Share2, Copy, ArrowUpRight, List, School, DollarSign, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, Filter, MapPin, Calendar, Briefcase, Building, Clock, Users, ChevronDown, X, CheckCircle, ArrowLeft, User, Share2, Copy, ArrowUpRight, List, School, DollarSign, CheckCircle2, Upload } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { jobService } from '../services/jobService';
 import { blockingService } from '../services/blockingService';
@@ -61,7 +61,9 @@ const JobsPage: React.FC = () => {
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showJobTypeDropdown, setShowJobTypeDropdown] = useState(false);
   const [showExperienceDropdown, setShowExperienceDropdown] = useState(false);
+
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+
 
   const jobUrl = selectedJob ? `${window.location.origin}/jobs/${selectedJob.id}` : '';
 
@@ -421,12 +423,15 @@ const JobsPage: React.FC = () => {
       navigate('/create-referral');
       return;
     }
-    if (!profile?.secondary_email_verified) {
+    const canPostReferral = Boolean((profile as any)?.work_email_verified || profile?.secondary_email_verified);
+    if (!canPostReferral) {
       setShowVerificationModal(true);
       return;
     }
     navigate('/create-referral');
   };
+
+
 
   if (loading) {
     return (
@@ -544,7 +549,22 @@ const JobsPage: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm font-medium text-slate-500 truncate">{job.company}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-sm font-medium text-slate-500 truncate">{job.company}</p>
+                        {(job as any).created_by_profile?.work_email_verified && (
+                          <div className="text-blue-500" title={`Verified Employee at ${(job as any).created_by_profile?.work_email?.split('@')[1] || 'Company'}`}>
+                            <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white" />
+                          </div>
+                        )}
+                        {(job as any).created_by_profile?.response_metric && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${['24h', '3d'].includes((job as any).created_by_profile?.response_metric)
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                            }`}>
+                            ⚡️ {(job as any).created_by_profile?.response_metric}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 mt-2 text-xs text-slate-500 font-medium">
                         <span className="flex items-center gap-1">
                           <MapPin className="text-[14px]" />
@@ -608,7 +628,22 @@ const JobsPage: React.FC = () => {
                     {selectedJob.title}
                   </h1>
                   <div className="flex flex-wrap items-center gap-4 text-slate-500 text-sm font-medium">
-                    <span className="text-lg text-slate-900 font-bold">{selectedJob.company}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-lg text-slate-900 font-bold">{selectedJob.company}</span>
+                      {selectedJob && (selectedJob as any).created_by_profile?.work_email_verified && (
+                        <div title="Verified Work Email">
+                          <CheckCircle2 className="w-4 h-4 text-blue-500 fill-white" />
+                        </div>
+                      )}
+                      {selectedJob && (selectedJob as any).created_by_profile?.response_metric && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${['24h', '3d'].includes((selectedJob as any).created_by_profile?.response_metric)
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                          }`} title="Median Response Time">
+                          ⚡️ Responds in {(selectedJob as any).created_by_profile?.response_metric}
+                        </span>
+                      )}
+                    </div>
                     <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                     <span className="flex items-center gap-1">
                       <MapPin className="text-[18px]" />
@@ -711,6 +746,9 @@ const JobsPage: React.FC = () => {
                   </div>
                 </section>
               </div>
+
+
+
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -724,204 +762,154 @@ const JobsPage: React.FC = () => {
             </div>
           )}
         </section>
-      </main>      {/* F
-ilter Modal */}
-      {showFilters && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setShowFilters(false)}>
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto relative" onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-900">Filter Jobs</h3>
-                <button
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                  onClick={() => setShowFilters(false)}
-                  aria-label="Close"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+      </main>
+
+      {/* Filter Modal */}
+      {
+        showFilters && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setShowFilters(false)}>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto relative" onClick={e => e.stopPropagation()}>
+              <div className="bg-white border-b border-gray-200 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900">Filter Jobs</h3>
+                  <button
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    onClick={() => setShowFilters(false)}
+                    aria-label="Close"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Content */}
-            <div className="p-6">
-              {/* Sort & Job Type Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Sort By</label>
-                  <div className="relative">
-                    {/* Most Relevant Button */}
-                    <button
-                      onClick={() => {
-                        handleFilterChange('sortBy', '');
-                        setShowSortDropdown(false);
-                      }}
-                      className={`w-full px-4 py-3 text-left border-2 rounded-lg transition-colors ${(filters.sortBy || '') === ''
-                        ? 'bg-green-50 text-green-700 font-semibold'
-                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                        }`}
-                      style={{
-                        borderColor: '#5F7261'
-                      }}
-                    >
-                      <span>{filters.sortBy === '' ? 'Most Relevant' : filters.sortBy === 'newest' ? 'Newest First' : 'Oldest First'}</span>
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowSortDropdown(!showSortDropdown);
-                        }}
-                        className="ml-2 p-1 hover:bg-gray-200 rounded cursor-pointer"
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">Sort By</label>
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowSortDropdown(!showSortDropdown)}
+                        className={`w-full px-4 py-3 text-left border-2 rounded-lg transition-colors flex items-center justify-between ${filters.sortBy
+                          ? 'bg-green-50 text-green-700 font-semibold border-[#5F7261]'
+                          : 'bg-white text-gray-700 border-slate-200 hover:bg-gray-50'
+                          }`}
                       >
-                        <ChevronDown className={`h-4 w-4 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
-                      </span>
-                    </button>
+                        <span>
+                          {filters.sortBy === 'newest' ? 'Newest First' :
+                            filters.sortBy === 'oldest' ? 'Oldest First' :
+                              'Most Relevant'}
+                        </span>
+                        <ChevronDown className={`h-5 w-5 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
+                      </button>
 
-                    {/* Dropdown Options */}
-                    {showSortDropdown && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 rounded-lg shadow-lg z-10" style={{ borderColor: '#5F7261' }}>
-                        {[
-                          { value: 'newest', label: 'Newest First' },
-                          { value: 'oldest', label: 'Oldest First' }
-                        ].map((option) => (
+                      {showSortDropdown && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg">
                           <button
-                            key={option.value}
                             onClick={() => {
-                              handleFilterChange('sortBy', option.value);
+                              handleFilterChange('sortBy', '');
                               setShowSortDropdown(false);
                             }}
-                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${filters.sortBy === option.value
-                              ? 'bg-green-50 text-green-700 font-semibold'
-                              : 'text-gray-700'
-                              }`}
+                            className="w-full px-4 py-3 text-left hover:bg-slate-50 text-slate-700 border-b border-slate-100"
                           >
-                            {option.label}
+                            Most Relevant
                           </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Job Type</label>
-                  <div className="relative">
-                    {/* All Types Button */}
-                    <button
-                      onClick={() => {
-                        handleFilterChange('jobType', '');
-                        setShowJobTypeDropdown(false);
-                      }}
-                      className={`w-full px-4 py-3 text-left border-2 rounded-lg transition-colors ${filters.jobType === ''
-                        ? 'bg-green-50 text-green-700 font-semibold'
-                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                        }`}
-                      style={{
-                        borderColor: '#5F7261'
-                      }}
-                    >
-                      <span>{filters.jobType === '' ? 'All Types' : filters.jobType}</span>
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowJobTypeDropdown(!showJobTypeDropdown);
-                        }}
-                        className="ml-2 p-1 hover:bg-gray-200 rounded cursor-pointer"
-                      >
-                        <ChevronDown className={`h-4 w-4 transition-transform ${showJobTypeDropdown ? 'rotate-180' : ''}`} />
-                      </span>
-                    </button>
-
-                    {/* Dropdown Options */}
-                    {showJobTypeDropdown && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 rounded-lg shadow-lg z-10" style={{ borderColor: '#5F7261' }}>
-                        {[
-                          { value: 'Full-time', label: 'Full-time' },
-                          { value: 'Part-time', label: 'Part-time' },
-                          { value: 'Contract', label: 'Contract' },
-                          { value: 'Internship', label: 'Internship' },
-                          { value: 'Freelance', label: 'Freelance' }
-                        ].map((option) => (
                           <button
-                            key={option.value}
                             onClick={() => {
-                              handleFilterChange('jobType', option.value);
+                              handleFilterChange('sortBy', 'newest');
+                              setShowSortDropdown(false);
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-slate-50 text-slate-700 border-b border-slate-100"
+                          >
+                            Newest First
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleFilterChange('sortBy', 'oldest');
+                              setShowSortDropdown(false);
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-slate-50 text-slate-700"
+                          >
+                            Oldest First
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">Job Type</label>
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowJobTypeDropdown(!showJobTypeDropdown)}
+                        className={`w-full px-4 py-3 text-left border-2 rounded-lg transition-colors flex items-center justify-between ${filters.jobType
+                          ? 'bg-green-50 text-green-700 font-semibold border-[#5F7261]'
+                          : 'bg-white text-gray-700 border-slate-200 hover:bg-gray-50'
+                          }`}
+                      >
+                        <span>{filters.jobType || 'Any Job Type'}</span>
+                        <ChevronDown className={`h-5 w-5 transition-transform ${showJobTypeDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {showJobTypeDropdown && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          <button
+                            onClick={() => {
+                              handleFilterChange('jobType', '');
                               setShowJobTypeDropdown(false);
                             }}
-                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${filters.jobType === option.value
-                              ? 'bg-green-50 text-green-700 font-semibold'
-                              : 'text-gray-700'
-                              }`}
+                            className="w-full px-4 py-3 text-left hover:bg-slate-50 text-slate-700 border-b border-slate-100"
                           >
-                            {option.label}
+                            Any Job Type
+                          </button>
+                          {['Full-time', 'Part-time', 'Contract', 'Internship'].map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => {
+                                handleFilterChange('jobType', type);
+                                setShowJobTypeDropdown(false);
+                              }}
+                              className="w-full px-4 py-3 text-left hover:bg-slate-50 text-slate-700 border-b border-slate-100 last:border-0"
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Location</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={locationQuery}
+                      onChange={handleLocationInput}
+                      placeholder="Enter city, state, or country"
+                      className={`w-full pl-12 pr-4 py-3 border-2 rounded-lg focus:ring-0 transition-colors ${locationError
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-slate-200 focus:border-[#5F7261]'
+                        }`}
+                    />
+                    {locationSuggestions.length > 0 && (
+                      <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {locationSuggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:outline-none"
+                            onClick={() => handleLocationSelect(suggestion)}
+                          >
+                            {suggestion.place_name}
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
-                </div>
-              </div>
-
-              {/* Location Section */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Location</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={locationQuery}
-                    onChange={handleLocationInput}
-                    onBlur={() => setLocationTouched(true)}
-                    placeholder="City, State, or Country"
-                    data-filter-input="true"
-                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-colors bg-white text-gray-900 font-medium placeholder-gray-400 shadow-sm ${locationError ? 'focus:ring-red-500' : 'focus:ring-green-500'
-                      }`}
-                    style={{
-                      borderColor: locationError ? '#ef4444' : '#5F7261',
-                      minHeight: '48px',
-                      boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.05)'
-                    }}
-                    autoComplete="off"
-                  />
-                  {locationSuggestions.length > 0 && (
-                    <ul className="absolute z-10 bg-white border-2 rounded-lg mt-1 w-full max-h-56 overflow-y-auto shadow-xl" style={{ borderColor: '#5F7261' }}>
-                      {locationSuggestions.map((suggestion) => (
-                        <li
-                          key={suggestion.place_id}
-                          className="px-4 py-3 cursor-pointer hover:bg-green-50 text-gray-900 border-b border-gray-100 last:border-b-0"
-                          onMouseDown={() => handleLocationSelect(suggestion)}
-                        >
-                          {suggestion.display_name}
-                        </li>
-                      ))}
-                    </ul>
+                  {locationError && (
+                    <p className="mt-1 text-sm text-red-500">{locationError}</p>
                   )}
-                  {locationError && locationTouched && (
-                    <p className="text-red-600 text-sm mt-2 flex items-center gap-1">
-                      <span className="text-red-500">⚠</span>
-                      {locationError}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Remote & Experience Level Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Work Style</label>
-                  <div className="flex items-center space-x-3 p-3 border-2 rounded-lg bg-green-50" style={{ borderColor: '#5F7261' }}>
-                    <input
-                      type="checkbox"
-                      id="remote-only"
-                      checked={filters.remote}
-                      onChange={e => handleFilterChange('remote', e.target.checked)}
-                      data-filter-input="true"
-                      className="rounded border-2 h-4 w-4"
-                      style={{
-                        borderColor: '#5F7261',
-                        accentColor: '#5F7261'
-                      }}
-                    />
-                    <label htmlFor="remote-only" className="text-gray-700 font-medium cursor-pointer">Remote Only</label>
-                  </div>
                 </div>
 
                 <div>
@@ -950,131 +938,160 @@ ilter Modal */}
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Footer */}
-            <div className="bg-gray-50 border-t border-gray-200 px-6 py-4">
-              <div className="flex justify-between items-center gap-4">
-                <button
-                  onClick={handleClearFilters}
-                  className="px-6 py-2 text-gray-600 hover:text-gray-900 font-semibold transition-colors hover:bg-gray-100 rounded-lg"
-                >
-                  Clear Filters
+              <div className="bg-gray-50 border-t border-gray-200 px-6 py-4">
+                <div className="flex justify-between items-center gap-4">
+                  <button
+                    onClick={handleClearFilters}
+                    className="px-6 py-2 text-gray-600 hover:text-gray-900 font-semibold transition-colors hover:bg-gray-100 rounded-lg"
+                  >
+                    Clear Filters
+                  </button>
+                  <button
+                    onClick={() => { handleApplyFilters(); setShowFilters(false); }}
+                    className="px-8 py-2 text-white font-semibold rounded-lg transition-colors shadow-sm"
+                    style={{
+                      backgroundColor: '#5F7261'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4a5c4d'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#5F7261'}
+                  >
+                    Apply Filters
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
+      {/* Share Modal */}
+      {
+        showShareModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setShowShareModal(false)}>
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-slate-900">Share Job</h3>
+                <button onClick={() => setShowShareModal(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-5 h-5" />
                 </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 break-all text-sm text-slate-600">
+                  {jobUrl}
+                </div>
                 <button
-                  onClick={() => { handleApplyFilters(); setShowFilters(false); }}
-                  className="px-8 py-2 text-white font-semibold rounded-lg transition-colors shadow-sm"
-                  style={{
-                    backgroundColor: '#5F7261'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4a5c4d'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#5F7261'}
+                  onClick={handleCopy}
+                  className={`w-full h-12 rounded-lg font-bold flex items-center justify-center gap-2 transition-all ${copied
+                    ? 'bg-green-500 text-white'
+                    : 'bg-primary text-white hover:bg-primary-hover'
+                    }`}
                 >
-                  Apply Filters
+                  {copied ? <CheckCircle className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                  <span>{copied ? 'Copied!' : 'Copy Link'}</span>
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
-      {/* Share Modal */}
-      {showShareModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={() => setShowShareModal(false)}>
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative" onClick={e => e.stopPropagation()}>
-            <button className="absolute top-2 right-2 text-slate-400 hover:text-slate-600" onClick={() => setShowShareModal(false)} aria-label="Close">
-              <X className="h-5 w-5" />
-            </button>
-            <h3 className="text-lg font-bold mb-4 text-slate-900">Share this job</h3>
-            <div className="flex items-center space-x-2 mb-4">
-              <input
-                type="text"
-                value={jobUrl}
-                readOnly
-                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-slate-700 bg-slate-50 focus:outline-none"
-              />
-              <button
-                onClick={handleCopy}
-                className="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-                aria-label="Copy job link"
-              >
-                <Copy className="h-5 w-5 text-slate-600" />
-              </button>
-            </div>
-            {copied && <div className="text-green-600 text-sm font-medium">Copied!</div>}
-            <div className="text-slate-500 text-xs mt-2">Copy and share this link anywhere.</div>
-          </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Application Modal */}
-      {showApplicationModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-slate-900">Apply for {selectedJob?.title}</h2>
-              <button
-                onClick={() => setShowApplicationModal(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
+      {
+        showApplicationModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setShowApplicationModal(false)}>
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
+              {applicationStep === 1 ? (
+                <>
+                  <div className="px-6 py-4 border-b border-stone-divider flex items-center justify-between bg-stone-50">
+                    <h3 className="text-xl font-bold text-slate-900">Apply for {selectedJob?.title}</h3>
+                    <button onClick={() => setShowApplicationModal(false)} className="text-slate-400 hover:text-slate-600">
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+                  <div className="p-6 space-y-6">
+                    {applicationError && (
+                      <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200 text-sm font-medium flex items-center gap-2">
+                        <X className="w-4 h-4" />
+                        {applicationError}
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Full Name</label>
+                        <input
+                          disabled
+                          value={user?.user_metadata?.full_name || ''}
+                          className="w-full px-4 py-2.5 rounded-lg border border-slate-300 bg-slate-100 text-slate-500 cursor-not-allowed"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Email *</label>
+                        <input
+                          type="email"
+                          value={applicationForm.email}
+                          onChange={(e) => handleApplicationInputChange('email', e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                          placeholder="your@email.com"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Resume *</label>
+                        <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 hover:bg-slate-50 transition-colors text-center cursor-pointer relative">
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx"
+                            onChange={(e) => handleApplicationInputChange('resume', e.target.files?.[0] || null)}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          <div className="flex flex-col items-center gap-2">
+                            {applicationForm.resume ? (
+                              <>
+                                <CheckCircle2 className="w-8 h-8 text-green-500" />
+                                <span className="font-medium text-slate-900">{applicationForm.resume.name}</span>
+                                <span className="text-xs text-slate-500">Click to change</span>
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
+                                  <Upload className="w-5 h-5 text-slate-500" />
+                                </div>
+                                <span className="font-medium text-primary">Click to upload resume</span>
+                                <span className="text-xs text-slate-500">PDF, DOC, DOCX (Max 5MB)</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        onClick={handleApplicationSubmit}
+                        className="w-full h-12 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+                      >
+                        <span>Submit Application</span>
+                        <ArrowUpRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="p-12 text-center">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-in zoom-in duration-300">
+                    <CheckCircle2 className="w-10 h-10 text-green-600" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900 mb-2">Application Sent!</h3>
+                  <p className="text-slate-600 mb-8">
+                    Thanks for applying. The hiring team has been notified and will review your application shortly.
+                  </p>
+                </div>
+              )}
             </div>
-
-            {applicationStep === 1 && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Email <span className="text-red-500">*</span></label>
-                  <input
-                    type="email"
-                    value={applicationForm.email}
-                    onChange={(e) => handleApplicationInputChange('email', e.target.value)}
-                    placeholder="your.email@example.com"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Resume <span className="text-red-500">*</span></label>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={(e) => handleApplicationInputChange('resume', e.target.files ? e.target.files[0] : null)}
-                    className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-                    required
-                  />
-                </div>
-                {applicationError && (
-                  <p className="text-red-500 text-sm">{applicationError}</p>
-                )}
-                <div className="flex justify-end space-x-4">
-                  <button
-                    onClick={() => setShowApplicationModal(false)}
-                    className="px-6 py-2 text-slate-700 bg-slate-200 rounded-lg hover:bg-slate-300 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleApplicationSubmit}
-                    className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
-                  >
-                    Submit Application
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {applicationStep === 2 && (
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900">Application Submitted!</h3>
-                <p className="text-slate-600">Your application for {selectedJob?.title} has been submitted successfully.</p>
-              </div>
-            )}
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Secondary Email Verification Modal */}
       <SecondaryEmailVerificationModal
@@ -1082,7 +1099,7 @@ ilter Modal */}
         onClose={() => setShowVerificationModal(false)}
         onNavigateToSettings={handleNavigateToSettings}
       />
-    </div>
+    </div >
   );
 };
 

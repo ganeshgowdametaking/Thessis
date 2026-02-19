@@ -30,8 +30,14 @@ export interface Database {
           is_eu_user: boolean
           country_code: string | null
           role: string
+          seniority: string | null
+          display_title: string | null
+          tide_points_balance: number
           created_at: string
           updated_at: string
+          work_email: string | null
+          work_email_verified: boolean
+          work_email_verified_at: string | null
         }
         Insert: {
           id: string
@@ -53,8 +59,14 @@ export interface Database {
           is_eu_user?: boolean
           country_code?: string | null
           role?: string
+          seniority?: string | null
+          display_title?: string | null
+          tide_points_balance?: number
           created_at?: string
           updated_at?: string
+          work_email?: string | null
+          work_email_verified?: boolean
+          work_email_verified_at?: string | null
         }
         Update: {
           id?: string
@@ -76,8 +88,98 @@ export interface Database {
           is_eu_user?: boolean
           country_code?: string | null
           role?: string
+          seniority?: string | null
+          display_title?: string | null
+          tide_points_balance?: number
           created_at?: string
           updated_at?: string
+          work_email?: string | null
+          work_email_verified?: boolean
+          work_email_verified_at?: string | null
+        }
+      }
+      hire_verifications: {
+        Row: {
+          id: string
+          application_id: string
+          applicant_id: string
+          referrer_id: string
+          applicant_response: 'yes' | 'no' | 'snooze' | null
+          referrer_response: 'yes' | 'no' | 'idk' | null
+          status: 'pending' | 'verified' | 'disputed' | 'rejected' | 'snoozed'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          application_id: string
+          applicant_id: string
+          referrer_id: string
+          applicant_response?: 'yes' | 'no' | 'snooze' | null
+          referrer_response?: 'yes' | 'no' | 'idk' | null
+          status?: 'pending' | 'verified' | 'disputed' | 'rejected' | 'snoozed'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          application_id?: string
+          applicant_id?: string
+          referrer_id?: string
+          applicant_response?: 'yes' | 'no' | 'snooze' | null
+          referrer_response?: 'yes' | 'no' | 'idk' | null
+          status?: 'pending' | 'verified' | 'disputed' | 'rejected' | 'snoozed'
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_badges: {
+        Row: {
+          id: string
+          user_id: string
+          badge_type: string
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          badge_type: string
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          badge_type?: string
+          metadata?: Json | null
+          created_at?: string
+        }
+      }
+      tide_points_ledger: {
+        Row: {
+          id: string
+          user_id: string
+          amount: number
+          action_type: string
+          entity_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          amount: number
+          action_type: string
+          entity_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          amount?: number
+          action_type?: string
+          entity_id?: string | null
+          created_at?: string
         }
       }
       jobs: {
@@ -430,6 +532,27 @@ export interface Database {
           connection_id: string
         }
         Returns: Json
+      }
+      generate_verification_code: {
+        Args: {
+          p_user_id: string
+          p_email: string
+        }
+        Returns: string
+      }
+      verify_work_email: {
+        Args: {
+          p_user_id: string
+          p_email: string
+          p_code: string
+        }
+        Returns: boolean
+      }
+      get_referrer_response_metric: {
+        Args: {
+          referrer_id: string
+        }
+        Returns: string | null
       }
     }
     Enums: {
