@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
 import SenioritySelector, { SeniorityBucket } from './SenioritySelector';
 import { trustService } from '../services/TrustService';
+import { supabase } from '../lib/supabase';
 
 const SettingsPage: React.FC = () => {
   const { signOut, updatePassword, updateProfile, user, profile } = useAuthContext();
@@ -30,6 +31,8 @@ const SettingsPage: React.FC = () => {
   const [deleteReason, setDeleteReason] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -218,6 +221,43 @@ const SettingsPage: React.FC = () => {
   const handleResetVerification = () => {
     setVerificationStep('input');
     setMessage(null);
+  };
+
+  const handleSendAdminInvite = async () => {
+    const normalizedEmail = inviteEmail.trim().toLowerCase();
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      setInviteMessage({ type: 'error', text: 'Please enter a valid email address.' });
+      return;
+    }
+
+    setInviteLoading(true);
+    setInviteMessage(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-admin-invite', {
+        body: { email: normalizedEmail },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to send invitation.');
+      }
+
+      if (data?.success) {
+        setInviteMessage({ type: 'success', text: 'Invitation sent successfully.' });
+        setInviteEmail('');
+        setTimeout(() => {
+          setShowInviteModal(false);
+          setInviteMessage(null);
+        }, 1200);
+        return;
+      }
+
+      throw new Error(data?.error || 'Failed to send invitation.');
+    } catch (err: any) {
+      setInviteMessage({ type: 'error', text: err?.message || 'Failed to send invitation.' });
+    } finally {
+      setInviteLoading(false);
+    }
   };
 
   return (
@@ -549,10 +589,24 @@ const SettingsPage: React.FC = () => {
                   className="block w-full rounded-lg border border-stone-border bg-white py-2.5 px-3 text-slate-900 placeholder:text-slate-500 focus:ring-sage focus:border-sage sm:text-sm"
                 />
               </div>
+              {inviteMessage && (
+                <div className={`p-3 rounded-lg text-sm font-medium ${inviteMessage.type === 'success'
+                  ? 'bg-green-50 text-green-700 border border-green-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                  {inviteMessage.text}
+                </div>
+              )}
               <div className="flex gap-3 pt-2">
-                <button className="flex-1 bg-sage text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-sage-dark transition-colors">Send Invitation</button>
                 <button
-                  onClick={() => { setShowInviteModal(false); setInviteEmail(''); }}
+                  onClick={handleSendAdminInvite}
+                  disabled={inviteLoading || !inviteEmail.trim()}
+                  className="flex-1 bg-sage text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-sage-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {inviteLoading ? 'Sending...' : 'Send Invitation'}
+                </button>
+                <button
+                  onClick={() => { setShowInviteModal(false); setInviteEmail(''); setInviteMessage(null); }}
                   className="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
                 >
                   Cancel
