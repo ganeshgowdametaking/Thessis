@@ -29,6 +29,9 @@ const SettingsPage: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [deleteReason, setDeleteReason] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -257,6 +260,42 @@ const SettingsPage: React.FC = () => {
       setInviteMessage({ type: 'error', text: err?.message || 'Failed to send invitation.' });
     } finally {
       setInviteLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user?.id) {
+      setDeleteMessage({ type: 'error', text: 'Please sign in again and retry.' });
+      return;
+    }
+
+    setDeleteLoading(true);
+    setDeleteMessage(null);
+    setShowDeleteConfirmModal(false);
+
+    try {
+      const { data, error } = await supabase.rpc('delete_my_account', {
+        delete_reason: deleteReason.trim() || null,
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to delete account.');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to delete account.');
+      }
+
+      // Account is already deleted server-side; avoid calling auth logout afterwards
+      // because GoTrue can return 403 for a just-deleted user.
+      window.location.replace('/');
+    } catch (err: any) {
+      setDeleteMessage({
+        type: 'error',
+        text: err?.message || 'Failed to delete account. Please try again.',
+      });
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -504,7 +543,21 @@ const SettingsPage: React.FC = () => {
                         value={deleteReason}
                         onChange={(e) => setDeleteReason(e.target.value)}
                       />
-                      <button className="bg-red-500 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-red-600 transition-colors shadow-sm active:scale-95">Delete My Account</button>
+                      {deleteMessage && (
+                        <div className={`p-3 rounded-lg text-sm font-medium ${deleteMessage.type === 'success'
+                          ? 'bg-green-50 text-green-700 border border-green-200'
+                          : 'bg-red-50 text-red-700 border border-red-200'
+                          }`}>
+                          {deleteMessage.text}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => setShowDeleteConfirmModal(true)}
+                        disabled={deleteLoading}
+                        className="bg-red-500 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-red-600 transition-colors shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deleteLoading ? 'Deleting...' : 'Delete My Account'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -612,6 +665,38 @@ const SettingsPage: React.FC = () => {
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 text-red-600">
+                <span className="material-symbols-outlined">warning</span>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Confirm Account Deletion</h3>
+            </div>
+            <p className="text-sm text-slate-600 leading-relaxed mb-6">
+              Are you sure you want to permanently delete your account? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirmModal(false)}
+                disabled={deleteLoading}
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading}
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleteLoading ? 'Deleting...' : 'Yes, Delete'}
+              </button>
             </div>
           </div>
         </div>

@@ -22,6 +22,14 @@ interface ApplicationFormData {
   customFields: { [key: string]: string };
 }
 
+interface LocationSuggestion {
+  place_id?: number | string;
+  display_name?: string;
+  place_name?: string;
+  address?: Record<string, string>;
+  label?: string;
+}
+
 const JobsPage: React.FC = () => {
   const { user, profile } = useAuthContext();
   const navigate = useNavigate();
@@ -54,13 +62,16 @@ const JobsPage: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const isMobile = useMediaQuery({ maxWidth: 767 });
-  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
+  const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
   const [locationQuery, setLocationQuery] = useState(filters.location);
   const [locationError, setLocationError] = useState('');
   const [locationTouched, setLocationTouched] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showJobTypeDropdown, setShowJobTypeDropdown] = useState(false);
   const [showExperienceDropdown, setShowExperienceDropdown] = useState(false);
+  const sortDropdownRef = React.useRef<HTMLDivElement>(null);
+  const jobTypeDropdownRef = React.useRef<HTMLDivElement>(null);
+  const locationDropdownRef = React.useRef<HTMLDivElement>(null);
 
   const [showVerificationModal, setShowVerificationModal] = useState(false);
 
@@ -79,15 +90,38 @@ const JobsPage: React.FC = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showSortDropdown) setShowSortDropdown(false);
-      if (showJobTypeDropdown) setShowJobTypeDropdown(false);
+      const target = event.target as Node;
+
+      if (
+        showSortDropdown &&
+        sortDropdownRef.current &&
+        !sortDropdownRef.current.contains(target)
+      ) {
+        setShowSortDropdown(false);
+      }
+
+      if (
+        showJobTypeDropdown &&
+        jobTypeDropdownRef.current &&
+        !jobTypeDropdownRef.current.contains(target)
+      ) {
+        setShowJobTypeDropdown(false);
+      }
+
+      if (
+        locationSuggestions.length > 0 &&
+        locationDropdownRef.current &&
+        !locationDropdownRef.current.contains(target)
+      ) {
+        setLocationSuggestions([]);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showSortDropdown, showJobTypeDropdown]);
+  }, [showSortDropdown, showJobTypeDropdown, locationSuggestions.length]);
 
   // Separate effect to load user-specific data when user ID changes
   const lastUserIdRef = React.useRef<string | null>(null);
@@ -192,6 +226,22 @@ const JobsPage: React.FC = () => {
     }));
   };
 
+  const formatLocationSuggestion = (suggestion: LocationSuggestion): string => {
+    const address = suggestion.address || {};
+    const city =
+      address.city ||
+      address.town ||
+      address.village ||
+      address.county ||
+      address.state_district ||
+      '';
+    const state = address.state || '';
+    const country = address.country || '';
+
+    const compact = [city, state, country].filter(Boolean).join(', ');
+    return compact || suggestion.display_name || suggestion.place_name || '';
+  };
+
   // Debounced fetch for location suggestions
   const fetchLocationSuggestions = React.useCallback(
     debounce(async (query: string) => {
@@ -204,7 +254,16 @@ const JobsPage: React.FC = () => {
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=8`
         );
         const data = await response.json();
-        setLocationSuggestions(data);
+        const normalized = Array.isArray(data)
+          ? data
+            .map((item: any) => ({
+              ...item,
+              label: formatLocationSuggestion(item),
+            }))
+            .filter((item: LocationSuggestion) => Boolean(item.label))
+          : [];
+
+        setLocationSuggestions(normalized);
       } catch (error) {
         setLocationSuggestions([]);
       }
@@ -227,8 +286,8 @@ const JobsPage: React.FC = () => {
     setFilters(prev => ({ ...prev, location: '' }));
   };
 
-  const handleLocationSelect = (suggestion: any) => {
-    const displayName = suggestion.display_name;
+  const handleLocationSelect = (suggestion: LocationSuggestion) => {
+    const displayName = suggestion.label || formatLocationSuggestion(suggestion);
     setFilters(prev => ({ ...prev, location: displayName }));
     setLocationQuery(displayName);
     setLocationSuggestions([]);
@@ -236,10 +295,20 @@ const JobsPage: React.FC = () => {
   };
 
   const validateLocation = () => {
-    if (!filters.location || !locationQuery || filters.location !== locationQuery) {
-      setLocationError('Select a valid location.');
-      return false;
+    const typedLocation = locationQuery.trim();
+
+    // Location is optional. If user typed free text without picking a suggestion,
+    // still use it as a valid filter value.
+    if (!typedLocation) {
+      setFilters(prev => ({ ...prev, location: '' }));
+      setLocationError('');
+      return true;
     }
+
+    if (!filters.location || filters.location !== typedLocation) {
+      setFilters(prev => ({ ...prev, location: typedLocation }));
+    }
+
     setLocationError('');
     return true;
   };
@@ -786,7 +855,7 @@ const JobsPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-3">Sort By</label>
-                    <div className="relative">
+                    <div className="relative" ref={sortDropdownRef}>
                       <button
                         onClick={() => setShowSortDropdown(!showSortDropdown)}
                         className={`w-full px-4 py-3 text-left border-2 rounded-lg transition-colors flex items-center justify-between ${filters.sortBy
@@ -838,7 +907,7 @@ const JobsPage: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-3">Job Type</label>
-                    <div className="relative">
+                    <div className="relative" ref={jobTypeDropdownRef}>
                       <button
                         onClick={() => setShowJobTypeDropdown(!showJobTypeDropdown)}
                         className={`w-full px-4 py-3 text-left border-2 rounded-lg transition-colors flex items-center justify-between ${filters.jobType
@@ -861,7 +930,7 @@ const JobsPage: React.FC = () => {
                           >
                             Any Job Type
                           </button>
-                          {['Full-time', 'Part-time', 'Contract', 'Internship'].map((type) => (
+                          {['Full-time', 'Part-time', 'Contract'].map((type) => (
                             <button
                               key={type}
                               onClick={() => {
@@ -881,7 +950,7 @@ const JobsPage: React.FC = () => {
 
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-gray-700 mb-3">Location</label>
-                  <div className="relative">
+                  <div className="relative" ref={locationDropdownRef}>
                     <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <input
                       type="text"
@@ -897,11 +966,11 @@ const JobsPage: React.FC = () => {
                       <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                         {locationSuggestions.map((suggestion, index) => (
                           <button
-                            key={index}
-                            className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:outline-none"
+                            key={suggestion.place_id || index}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:outline-none text-slate-800"
                             onClick={() => handleLocationSelect(suggestion)}
                           >
-                            {suggestion.place_name}
+                            {suggestion.label}
                           </button>
                         ))}
                       </div>
@@ -926,6 +995,7 @@ const JobsPage: React.FC = () => {
                       }}
                     >
                       <option value="">All Levels</option>
+                      <option value="Internship">Internship</option>
                       <option value="Entry Level">Entry Level (0-2 years)</option>
                       <option value="Mid Level">Mid Level (3-5 years)</option>
                       <option value="Senior Level">Senior Level (5+ years)</option>

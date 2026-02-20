@@ -255,88 +255,6 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     }
   };
 
-  // Mock data functions
-  const getMockExperiences = (): Experience[] => [
-    {
-      id: 1,
-      title: 'Senior Product Manager',
-      company: 'TechFlow',
-      location: 'San Francisco, CA',
-      startDate: '2020-01-01',
-      endDate: '',
-      current: true,
-      description: 'Leading the core platform team. Increased user retention by 25% through data-driven feature optimization. Implemented new agile workflows that reduced deployment time by 40%. Mentoring junior PMs and driving product strategy.',
-      logo: '/api/placeholder/48/48'
-    },
-    {
-      id: 2,
-      title: 'Product Manager',
-      company: 'StartUp Inc',
-      location: 'San Francisco, CA',
-      startDate: '2018-01-01',
-      endDate: '2020-01-01',
-      current: false,
-      description: 'Spearheaded the mobile app development from concept to launch, achieving 100k downloads within the first year. Managed stakeholder expectations and quarterly roadmap planning.',
-      logo: '/api/placeholder/48/48'
-    }
-  ];
-
-  const getMockEducation = (): Education[] => [
-    {
-      id: 1,
-      degree: 'Master of Business Administration (MBA)',
-      school: 'Stanford University',
-      startDate: '2016-01-01',
-      endDate: '2018-01-01',
-      description: 'Focus on Technology Management and Entrepreneurship',
-      gpa: '3.9'
-    },
-    {
-      id: 2,
-      degree: 'B.S. Computer Science',
-      school: 'University of California, Berkeley',
-      startDate: '2012-01-01',
-      endDate: '2016-01-01',
-      description: 'Concentration in Human-Computer Interaction',
-      gpa: '3.8'
-    }
-  ];
-
-  const getMockSkills = (): Skill[] => [
-    { id: 1, name: 'Product Strategy', level: 95, category: 'Management' },
-    { id: 2, name: 'UX Research', level: 85, category: 'Design' },
-    { id: 3, name: 'Agile / Scrum', level: 90, category: 'Process' },
-    { id: 4, name: 'Data Analysis (SQL)', level: 75, category: 'Technical' },
-    { id: 5, name: 'Figma', level: 80, category: 'Design' }
-  ];
-
-  const getMockAchievements = (): Achievement[] => [
-    {
-      id: 1,
-      title: 'Product Leader of the Year',
-      organization: 'Tech Industry Awards',
-      date: '2022-01-01',
-      type: 'Award',
-      description: 'Recognized for outstanding contribution to SaaS innovation.'
-    },
-    {
-      id: 2,
-      title: 'Best Mobile App Design',
-      organization: 'UX Design Association',
-      date: '2019-01-01',
-      type: 'Award',
-      description: 'Awarded for the StartUp Inc mobile application redesign.'
-    },
-    {
-      id: 3,
-      title: 'Certified Scrum Master',
-      organization: 'Scrum Alliance',
-      date: '2018-01-01',
-      type: 'Certification',
-      description: ''
-    }
-  ];
-
   const handleConnect = async () => {
     if (!user || userId === user.id) return;
     try {
@@ -376,7 +294,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
     try {
       // Navigate to messages page with user ID - don't create conversation yet
-      navigate('/messages', {
+      navigate(`/messages?user=${encodeURIComponent(userId)}`, {
         state: {
           selectedApplicant: userId,
           msgNavTs: Date.now() // Add timestamp to ensure navigation happens
@@ -526,6 +444,13 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     );
   }
 
+  const displayName = profile.full_name?.trim() || profile.username?.trim() || 'User';
+  const title = profile.title?.trim() || '';
+  const company = profile.company?.trim() || '';
+  const location = profile.location?.trim() || '';
+  const bio = profile.bio?.trim() || '';
+  const hasHeadline = Boolean(title || company);
+
   console.log('Rendering profile page for:', profile.full_name);
 
   return (
@@ -571,20 +496,26 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-                            {profile.full_name || 'Alex Sterling'}
+                            {displayName}
                           </h1>
                           {profile.verified && (
                             <span className="material-symbols-outlined text-blue-500 text-xl" title="Verified User">verified</span>
                           )}
                         </div>
-                        <p className="text-slate-700 text-lg font-medium">
-                          {profile.title || 'Senior Product Manager'} at <span className="text-slate-900 font-semibold">{profile.company || 'TechFlow'}</span>
-                        </p>
+                        {hasHeadline && (
+                          <p className="text-slate-700 text-lg font-medium">
+                            {title}
+                            {title && company ? ' at ' : ''}
+                            {company && <span className="text-slate-900 font-semibold">{company}</span>}
+                          </p>
+                        )}
                         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2 text-sm text-slate-500 font-medium">
-                          <span className="flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-lg text-slate-400">location_on</span>
-                            {profile.location || 'San Francisco, CA'}
-                          </span>
+                          {location && (
+                            <span className="flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-lg text-slate-400">location_on</span>
+                              {location}
+                            </span>
+                          )}
                           <span className="flex items-center gap-1.5">
                             <span className="material-symbols-outlined text-lg text-slate-400">group</span>
                             <span className="text-slate-900 font-bold">{realCounts.connections}</span> Connections
@@ -598,9 +529,11 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                             <span className="text-slate-900 font-bold">{realCounts.expYears}yr</span> Exp
                           </span>
                         </div>
-                        <p className="mt-4 text-slate-700 max-w-2xl text-sm leading-relaxed">
-                          {profile.bio || 'Passionate about user-centric design and agile methodologies. Proven track record of scaling product teams and driving revenue growth. Bridging the gap between engineering and business.'}
-                        </p>
+                        {bio && (
+                          <p className="mt-4 text-slate-700 max-w-2xl text-sm leading-relaxed">
+                            {bio}
+                          </p>
+                        )}
                       </div>
 
                       {/* Action Buttons */}

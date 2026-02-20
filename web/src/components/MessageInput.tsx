@@ -13,7 +13,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 interface MessageInputProps {
-    onSendMessage: (text: string) => void;
+    onSendMessage: (text: string) => Promise<boolean> | boolean;
     onTyping: () => void;
     disabled: boolean;
 }
@@ -45,22 +45,25 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
         inputRef.current?.focus();
     };
 
-    const handleSend = (e?: React.FormEvent) => {
+    const handleSend = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         if (!newMessage.trim()) return;
 
-        onSendMessage(newMessage);
-        setNewMessage('');
-        // Reset height
-        if (inputRef.current) {
-            inputRef.current.style.height = 'auto';
+        const textToSend = newMessage;
+        const sent = await onSendMessage(textToSend);
+        if (sent !== false) {
+            setNewMessage('');
+            // Reset height
+            if (inputRef.current) {
+                inputRef.current.style.height = 'auto';
+            }
         }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSend();
+            void handleSend();
         }
     };
 
@@ -153,7 +156,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
 
                     {newMessage.trim() && (
                         <button
-                            onClick={() => handleSend()}
+                            onClick={() => void handleSend()}
                             className="p-1.5 text-sage hover:text-sage-dark transition-colors rounded-lg h-8 w-8 flex items-center justify-center animate-in fade-in zoom-in duration-200"
                         >
                             <Send className="text-[18px]" />

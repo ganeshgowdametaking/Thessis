@@ -43,8 +43,6 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Add a ref to track if we've already handled the navigation state
-  const stateHandledRef = useRef<number | null>(null);
   const isInitialMount = useRef(true);
 
 
@@ -126,12 +124,14 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   useEffect(() => {
     if (!selectedChat) return;
 
+    let typingChannel: any = null;
+
     // Add a tiny delay to let the component stabilize before connecting
     // This prevents "WebSocket closed" errors during React Strict Mode's unmount/remount cycle
     const timer = setTimeout(() => {
-      const channel = supabase.channel(`typing:${selectedChat}`)
+      typingChannel = supabase.channel(`typing:${selectedChat}`)
         .on('presence', { event: 'sync' }, () => {
-          const state = channel.presenceState();
+          const state = typingChannel.presenceState();
           // Check if anyone else is typing
           const othersTyping = Object.values(state).flat().some((p: any) => p.user !== user?.id && p.isTyping);
           setOtherUserTyping(othersTyping);
@@ -139,18 +139,16 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
             // Track presence
-            await channel.track({ user: user?.id, isTyping: false });
+            await typingChannel.track({ user: user?.id, isTyping: false });
           }
         });
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     }, 100);
 
     return () => {
       clearTimeout(timer);
-      supabase.removeAllChannels(); // Cleanup all if unmounting
+      if (typingChannel) {
+        supabase.removeChannel(typingChannel);
+      }
     };
   }, [selectedChat, user?.id]);
 
@@ -185,26 +183,29 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   }, []);
 
 
-  // Add a ref to track if we've already handled the current processing state
-  const isProcessingState = useRef<number | null>(null);
+  // Track last processed target + navigation timestamp to avoid duplicate work.
+  const processedMessageNav = useRef<string | null>(null);
 
   // Handle "Message" click from other pages
   useEffect(() => {
     // Determine the target applicant from props OR location state
     const targetApplicant = selectedApplicant || location.state?.selectedApplicant;
+    const navTs = location.state?.msgNavTs;
 
-    // Use a ref to prevent this logic from re-running if we've already 
-    // processed this specific navigation timestamp
-    if (!targetApplicant || isProcessingState.current === location.state?.msgNavTs) return;
+    // Wait until auth is available so DB query uses a real user id.
+    if (!targetApplicant || !user?.id) return;
 
-    if (location.state?.msgNavTs) {
-      isProcessingState.current = location.state.msgNavTs;
-    }
+    const navKey = `${targetApplicant}:${navTs ?? 'no-ts'}`;
+    if (processedMessageNav.current === navKey) return;
+    processedMessageNav.current = navKey;
 
     const syncConversation = async () => {
       console.log('🔍 Opening chat for applicant ID:', targetApplicant);
 
       setIsSettingUpPendingChat(true);
+      // Keep target user context so chat panel can render even if conversation list
+      // is empty/hidden by filters during initial load.
+      setPendingChatUserId(targetApplicant);
 
       // 1. Check local state (fastest)
       const existingConv = (conversations || []).find(
@@ -215,22 +216,30 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
         console.log('🔍 Found existing conversation (local):', existingConv.id);
         setSelectedChat(existingConv.id);
         loadMessages(existingConv.id);
-        setPendingChatUserId(null);
       } else {
         // 2. SEARCH DATABASE DIRECTLY (Don't wait for sidebar load)
         // This stops the 30-second "pending" wait if the generic list is slow
         try {
           const { data: dbConv } = await supabase
             .from('conversations')
-            .select('id')
-            .or(`and(participant_1.eq.${user?.id},participant_2.eq.${targetApplicant}),and(participant_1.eq.${targetApplicant},participant_2.eq.${user?.id})`)
+            .select('id, participant_1, participant_2, deleted_by_p1, deleted_by_p2')
+            .or(`and(participant_1.eq.${user.id},participant_2.eq.${targetApplicant}),and(participant_1.eq.${targetApplicant},participant_2.eq.${user.id})`)
             .maybeSingle();
 
           if (dbConv) {
-            console.log('🔍 Found existing conversation (DB):', dbConv.id);
-            setSelectedChat(dbConv.id);
-            loadMessages(dbConv.id);
-            setPendingChatUserId(null);
+            const isCurrentUserP1 = dbConv.participant_1 === user.id;
+            const hiddenForCurrentUser = isCurrentUserP1 ? dbConv.deleted_by_p1 === true : dbConv.deleted_by_p2 === true;
+
+            if (hiddenForCurrentUser) {
+              console.log('🔍 Conversation exists but is hidden for current user, starting pending chat:', dbConv.id);
+              setPendingChatUserId(targetApplicant);
+              setSelectedChat(null);
+              setMessages([]);
+            } else {
+              console.log('🔍 Found existing conversation (DB):', dbConv.id);
+              setSelectedChat(dbConv.id);
+              loadMessages(dbConv.id);
+            }
           } else {
             console.log('🔍 No existing conversation found in DB, setting pendingChatUserId to:', targetApplicant);
             setPendingChatUserId(targetApplicant);
@@ -245,11 +254,6 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
       setShowConversationsList(false); // Hide conversations list on mobile when chat is selected
 
-      // Also mark stateHandledRef for double safety (historic ref)
-      if (location.state?.msgNavTs) {
-        stateHandledRef.current = location.state.msgNavTs;
-      }
-
       // Clear the flag after a short delay
       setTimeout(() => {
         setIsSettingUpPendingChat(false);
@@ -257,7 +261,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     };
 
     syncConversation();
-  }, [selectedApplicant, location.state, conversations]);
+  }, [selectedApplicant, location.state?.selectedApplicant, location.state?.msgNavTs, user?.id]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -507,7 +511,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const handleSendMessage = useCallback(async (e?: React.FormEvent, text?: string) => {
     if (e) e.preventDefault();
     const contentToSend = text || '';
-    if (!contentToSend.trim()) return;
+    if (!contentToSend.trim()) return false;
 
     try {
       let conversationId = selectedChat;
@@ -518,7 +522,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
         const conversation = await messageService.createOrGetConversation(pendingChatUserId);
         conversationId = conversation.id;
         setSelectedChat(conversationId);
-        setPendingChatUserId(null); // Clear pending state
+        // Keep pending state until the conversation is visible in list;
+        // prevents chat panel from disappearing when sending first message.
         // Reload conversations to include the new one
         await loadConversations();
       }
@@ -541,10 +546,15 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
         // Reload messages to confirm sync
         await loadMessages(conversationId);
+        // Ensure sidebar/history reflects newly active conversation even if realtime is delayed.
+        await loadConversations();
+        return true;
       }
+      return false;
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Failed to send message. Please try again.');
+      return false;
     }
   }, [selectedChat, pendingChatUserId, user?.id]);
 
@@ -566,7 +576,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   // Helper function to get profile picture with fallback
 
   const getOtherParticipant = (conversation: any) => {
-    if (!user) return null;
+    if (!user || !conversation) return null;
 
     if (conversation.participant_1 === user.id) {
       return conversation.participant_2_profile;
@@ -574,6 +584,10 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       return conversation.participant_1_profile;
     }
   };
+
+  const activeOtherParticipant = currentConversation
+    ? getOtherParticipant(currentConversation)
+    : pendingUserInfo;
 
 
 
@@ -680,36 +694,26 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                   </button>
 
                   <div className="relative">
-                    {(() => {
-                      const otherParticipant = currentConversation ? getOtherParticipant(currentConversation) : pendingUserInfo;
-                      return (
-                        <div
-                          className="cursor-pointer"
-                          onClick={() => otherParticipant && handleProfileClick(otherParticipant.id)}
-                        >
-                          <Avatar profile={otherParticipant} size="md" />
-                        </div>
-                      );
-                    })()}
+                    <div
+                      className="cursor-pointer"
+                      onClick={() => activeOtherParticipant && handleProfileClick(activeOtherParticipant.id)}
+                    >
+                      <Avatar profile={activeOtherParticipant} size="md" />
+                    </div>
                     <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-white"></span>
                   </div>
                   <div>
-                    {(() => {
-                      const otherParticipant = currentConversation ? getOtherParticipant(currentConversation) : pendingUserInfo;
-                      return (
-                        <>
-                          <h3
-                            className="text-lg font-bold text-slate-900 leading-tight cursor-pointer hover:text-sage transition-colors"
-                            onClick={() => otherParticipant && handleProfileClick(otherParticipant.id)}
-                          >
-                            {otherParticipant?.full_name || 'User'}
-                          </h3>
-                          <p className="text-sm text-slate-500">
-                            {otherParticipant?.title || 'Professional'}
-                          </p>
-                        </>
-                      );
-                    })()}
+                    <>
+                      <h3
+                        className="text-lg font-bold text-slate-900 leading-tight cursor-pointer hover:text-sage transition-colors"
+                        onClick={() => activeOtherParticipant && handleProfileClick(activeOtherParticipant.id)}
+                      >
+                        {activeOtherParticipant?.full_name || 'User'}
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        {activeOtherParticipant?.title || 'Professional'}
+                      </p>
+                    </>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -764,9 +768,9 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                 </div>
 
                 {messages.length > 0 ? (
-                  messages.map((message, index) => {
+                  messages.map((message) => {
                     const isOwnMessage = message.sender_id === user?.id;
-                    const otherParticipant = getOtherParticipant(currentConversation);
+                    const otherParticipant = activeOtherParticipant;
 
                     return (
                       <div key={message.id} className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
@@ -802,7 +806,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                       <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-slate-900 mb-2">Start a conversation</h3>
                       <p className="text-slate-600">
-                        Send a message to begin chatting with {currentConversation ? getOtherParticipant(currentConversation)?.full_name : pendingUserInfo?.full_name}
+                        Send a message to begin chatting with {activeOtherParticipant?.full_name}
                       </p>
                     </div>
                   </div>

@@ -309,7 +309,6 @@ const CreateReferralPage: React.FC = () => {
   const normalizeJobType = (jobType: string | undefined, title: string, description: string) => {
     const source = `${jobType || ''} ${title || ''} ${description || ''}`.toLowerCase();
     if (/\bfull[\s-]*time\b/i.test(source)) return 'Full-time';
-    if (/\b(intern|internship|trainee|apprentice)\b/i.test(source)) return 'Internship';
     if (/\bcontract\b/i.test(source)) return 'Contract';
     if (/\bpart[\s-]*time\b/i.test(source)) return 'Part-time';
     if (/\bfreelance\b/i.test(source)) return 'Freelance';
@@ -318,6 +317,8 @@ const CreateReferralPage: React.FC = () => {
 
   const normalizeExperienceLevel = (rawLevel: string | undefined, title: string, description: string) => {
     const source = `${rawLevel || ''} ${title || ''} ${description || ''}`;
+    if (/\b(intern|internship|trainee|apprentice)\b/i.test(source)) return 'Internship';
+
     const range = source.match(/(\d+)\s*[-–to]+\s*(\d+)\s*(?:years?|yrs?)/i);
     const plus = source.match(/(\d+)\+?\s*(?:years?|yrs?)\s*(?:of\s+experience)?/i);
     const years = range ? Number(range[1]) : plus ? Number(plus[1]) : 0;
@@ -325,11 +326,10 @@ const CreateReferralPage: React.FC = () => {
     if (years >= 2) return 'Mid Level (2-4 yrs)';
     if (years > 0) return 'Entry Level';
 
-    if (rawLevel && ['Entry Level', 'Mid Level (2-4 yrs)', 'Senior (5+ yrs)', 'Lead / Manager'].includes(rawLevel)) {
+    if (rawLevel && ['Internship', 'Entry Level', 'Mid Level (2-4 yrs)', 'Senior (5+ yrs)', 'Lead / Manager'].includes(rawLevel)) {
       return rawLevel;
     }
 
-    if (/\b(intern|internship|trainee|apprentice)\b/i.test(source)) return 'Entry Level';
     return 'Entry Level';
   };
 
@@ -702,7 +702,6 @@ const CreateReferralPage: React.FC = () => {
                           <option>Part-time</option>
                           <option>Contract</option>
                           <option>Freelance</option>
-                          <option>Internship</option>
                         </select>
                         <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[18px]">expand_more</span>
                       </div>
@@ -719,6 +718,7 @@ const CreateReferralPage: React.FC = () => {
                           value={formData.experience_level}
                           onChange={(e) => handleInputChange('experience_level', e.target.value)}
                         >
+                          <option>Internship</option>
                           <option>Entry Level</option>
                           <option>Mid Level (2-4 yrs)</option>
                           <option>Senior (5+ yrs)</option>

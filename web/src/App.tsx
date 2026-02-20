@@ -85,7 +85,9 @@ function ApplicationsPageWrapper() {
 
   const handleMessage = (applicantId: string) => {
     // Navigate to messages page and pass applicantId as state, always include a unique timestamp
-    navigate('/messages', { state: { selectedApplicant: applicantId, msgNavTs: Date.now() } });
+    navigate(`/messages?user=${encodeURIComponent(applicantId)}`, {
+      state: { selectedApplicant: applicantId, msgNavTs: Date.now() }
+    });
   };
 
   const handleViewProfile = (userId: string) => {
@@ -229,8 +231,9 @@ function HomePageWrapper() {
 // Add a wrapper for MessagesPage to read selectedApplicant from location state
 function MessagesPageWrapper() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   // Read selectedApplicant from navigation state (if present)
-  const selectedApplicant = location.state?.selectedApplicant;
+  const selectedApplicant = location.state?.selectedApplicant || searchParams.get('user');
 
   return <MessagesPage selectedApplicant={selectedApplicant} />;
 }
