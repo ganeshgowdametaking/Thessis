@@ -44,6 +44,10 @@ const SettingsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+  // Demote Admin Modal State
+  const [showDemoteConfirmModal, setShowDemoteConfirmModal] = useState(false);
+  const [targetAdmin, setTargetAdmin] = useState<{ id: string, email: string } | null>(null);
+
   // Feedback State
   const [feedback, setFeedback] = useState('');
   const [feedbackSubject, setFeedbackSubject] = useState('General Feedback');
@@ -125,29 +129,28 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleDemoteAdmin = async (adminId: string, adminEmail: string) => {
-    if (adminEmail === user?.email) {
-      return; // Safety check
-    }
-
-    if (!window.confirm(`Are you sure you want to remove administrative access for ${adminEmail}?`)) {
+  const handleDemoteAdmin = async () => {
+    if (!targetAdmin || targetAdmin.email === user?.email) {
       return;
     }
 
     setAdminsLoading(true);
+    setShowDemoteConfirmModal(false);
+
     try {
-      const { error } = await supabase.rpc('demote_admin', { admin_id: adminId });
+      const { error } = await (supabase.rpc as any)('demote_admin', { admin_id: targetAdmin.id });
       if (error) throw error;
 
       // Refresh list
       await fetchAdministrators();
-      setMessage({ type: 'success', text: `Access revoked for ${adminEmail}` });
+      setMessage({ type: 'success', text: `Access revoked for ${targetAdmin.email}` });
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
       console.error('Error demoting admin:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to revoke access' });
     } finally {
       setAdminsLoading(false);
+      setTargetAdmin(null);
     }
   };
 
@@ -702,7 +705,10 @@ const SettingsPage: React.FC = () => {
                               <td className="py-4 px-4 text-right">
                                 {admin.email !== user?.email ? (
                                   <button
-                                    onClick={() => handleDemoteAdmin(admin.id, admin.email)}
+                                    onClick={() => {
+                                      setTargetAdmin({ id: admin.id, email: admin.email });
+                                      setShowDemoteConfirmModal(true);
+                                    }}
                                     className="p-2 text-slate-300 hover:text-red-500 transition-colors flex items-center justify-center ml-auto group"
                                     title="Remove Administrator Access"
                                   >
@@ -859,6 +865,43 @@ const SettingsPage: React.FC = () => {
                 className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleteLoading ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDemoteConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 text-red-600">
+                <span className="material-symbols-outlined">person_remove</span>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Revoke Admin Access</h3>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-xl mb-6 border border-slate-100">
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Are you sure you want to remove administrative access for:
+              </p>
+              <p className="text-sm font-bold text-slate-900 mt-1 truncate">
+                {targetAdmin?.email}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowDemoteConfirmModal(false); setTargetAdmin(null); }}
+                disabled={adminsLoading}
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDemoteAdmin}
+                disabled={adminsLoading}
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm shadow-red-200 disabled:opacity-50"
+              >
+                {adminsLoading ? 'Removing...' : 'Confirm Removal'}
               </button>
             </div>
           </div>
