@@ -281,8 +281,10 @@ const SettingsPage: React.FC = () => {
         throw new Error((data as any)?.error || 'Failed to delete account.');
       }
 
-      // Account is already deleted server-side; avoid calling auth logout afterwards
-      // because GoTrue can return 403 for a just-deleted user.
+      // Explicitly clear the local session and storage to prevent "Zombie Session" errors
+      await supabase.auth.signOut();
+      localStorage.clear(); // Nuclear option to ensure all cached data is gone
+
       window.location.replace('/');
     } catch (err: any) {
       setDeleteMessage({
