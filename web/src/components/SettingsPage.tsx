@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase';
 const SettingsPage: React.FC = () => {
   const { signOut, updatePassword, updateProfile, user, profile } = useAuthContext();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'account' | 'feedback'>('account');
+  const [activeTab, setActiveTab] = useState<'account' | 'feedback' | 'admin'>('account');
 
   // Sync organization email and step when profile loads
   React.useEffect(() => {
@@ -31,6 +31,11 @@ const SettingsPage: React.FC = () => {
   const [deleteReason, setDeleteReason] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Super User / Admin Management State
+  const [administrators, setAdministrators] = useState<any[]>([]);
+  const [adminsLoading, setAdminsLoading] = useState(false);
+  const isSuperUser = user?.email === 'ganeshgowdaapplication@gmail.com';
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -97,6 +102,26 @@ const SettingsPage: React.FC = () => {
       navigate('/', { replace: true });
     } catch (error) {
       console.error('Logout failed:', error);
+    }
+  };
+
+  // Fetch administrators for Super User
+  React.useEffect(() => {
+    if (activeTab === 'admin' && isSuperUser) {
+      fetchAdministrators();
+    }
+  }, [activeTab, isSuperUser]);
+
+  const fetchAdministrators = async () => {
+    setAdminsLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_all_administrators');
+      if (error) throw error;
+      setAdministrators(data || []);
+    } catch (err: any) {
+      console.error('Error fetching administrators:', err);
+    } finally {
+      setAdminsLoading(false);
     }
   };
 
@@ -324,6 +349,18 @@ const SettingsPage: React.FC = () => {
                   <span className={`material-symbols-outlined transition-colors ${activeTab === 'feedback' ? 'text-sage' : 'text-slate-400 group-hover:text-slate-600'}`}>rate_review</span>
                   Feedback
                 </button>
+                {isSuperUser && (
+                  <button
+                    onClick={() => setActiveTab('admin')}
+                    className={`w-full group flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg border transition-all ${activeTab === 'admin'
+                      ? 'bg-slate-900 text-white border-transparent shadow-sm'
+                      : 'text-slate-500 border-transparent hover:bg-stone-off/50'
+                      }`}
+                  >
+                    <span className={`material-symbols-outlined transition-colors ${activeTab === 'admin' ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-600'}`}>security</span>
+                    Admin Management
+                  </button>
+                )}
                 <div className="pt-4 mt-4 border-t border-slate-100"></div>
                 <button onClick={handleLogout} className="w-full group flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg text-red-500 hover:bg-red-50 transition-colors">
                   <span className="material-symbols-outlined text-red-500 group-hover:text-red-600">logout</span>
@@ -559,6 +596,95 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </div>
               </>
+            ) : activeTab === 'admin' && isSuperUser ? (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 text-blue-600">
+                        <span className="material-symbols-outlined text-[28px]">shield_person</span>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900">Admin Management</h3>
+                        <p className="text-sm text-slate-500">Overview of all users with administrative privileges</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={fetchAdministrators}
+                      className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                      title="Refresh list"
+                    >
+                      <span className={`material-symbols-outlined ${adminsLoading ? 'animate-spin' : ''}`}>refresh</span>
+                    </button>
+                  </div>
+
+                  {adminsLoading ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                      <div className="flex gap-1 mb-4">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                      <p className="text-sm font-medium text-slate-500">Loading administrator registry...</p>
+                    </div>
+                  ) : administrators.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-100">
+                            <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">User</th>
+                            <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Role</th>
+                            <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Joined</th>
+                            <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Verification</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {administrators.map((admin) => (
+                            <tr key={admin.id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold">
+                                    {admin.full_name?.charAt(0) || admin.email?.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-bold text-slate-900">{admin.full_name || 'Anonymous User'}</div>
+                                    <div className="text-xs text-slate-500 font-medium">{admin.email}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 uppercase">
+                                  {admin.role}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="text-sm text-slate-500 font-medium">
+                                  {new Date(admin.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4 text-right">
+                                {admin.work_email_verified ? (
+                                  <div className="flex items-center justify-end gap-1.5 text-sage">
+                                    <span className="text-[10px] font-bold uppercase">Verified</span>
+                                    <span className="material-symbols-outlined text-[16px]">verified</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-slate-300 uppercase">Unverified</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-100">
+                      <span className="material-symbols-outlined text-slate-300 text-[48px] mb-4">group_off</span>
+                      <p className="text-slate-500 font-medium">No administrators found</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="p-6">
