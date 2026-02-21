@@ -13,7 +13,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 interface MessageInputProps {
-    onSendMessage: (text: string) => Promise<boolean> | boolean;
+    onSendMessage: (text: string, file?: File) => Promise<boolean> | boolean;
     onTyping: () => void;
     disabled: boolean;
 }
@@ -23,7 +23,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [emojiSearch, setEmojiSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState('smileys');
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [filePreview, setFilePreview] = useState<string | null>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
 
     // Filter emojis based on search
@@ -47,12 +50,15 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
 
     const handleSend = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
-        if (!newMessage.trim()) return;
+        if (!newMessage.trim() && !selectedFile) return;
 
         const textToSend = newMessage;
-        const sent = await onSendMessage(textToSend);
+        const fileToSend = selectedFile || undefined;
+        const sent = await onSendMessage(textToSend, fileToSend);
         if (sent !== false) {
             setNewMessage('');
+            setSelectedFile(null);
+            setFilePreview(null);
             // Reset height
             if (inputRef.current) {
                 inputRef.current.style.height = 'auto';
@@ -75,6 +81,33 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
         // Auto-resize
         e.target.style.height = 'auto';
         e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validation: Image or PDF
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+            if (!validTypes.includes(file.type)) {
+                alert('Please select an image or a PDF file.');
+                return;
+            }
+
+            setSelectedFile(file);
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = () => setFilePreview(reader.result as string);
+                reader.readAsDataURL(file);
+            } else {
+                setFilePreview(null); // No preview for PDF
+            }
+        }
+    };
+
+    const handleRemoveFile = () => {
+        setSelectedFile(null);
+        setFilePreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     // Close emoji picker on outside click
@@ -127,9 +160,46 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
                 </div>
             )}
 
+            {/* File Input (Hidden) */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*,application/pdf"
+                onChange={handleFileSelect}
+            />
+
+            {/* Pending Attachment Preview */}
+            {selectedFile && (
+                <div className="mb-2 p-2 bg-stone-off rounded-lg border border-stone-border flex items-center justify-between animate-in slide-in-from-bottom-2 duration-200">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                        {filePreview ? (
+                            <img src={filePreview} alt="Preview" className="h-10 w-10 object-cover rounded border border-stone-border" />
+                        ) : (
+                            <div className="h-10 w-10 flex items-center justify-center bg-white rounded border border-stone-border">
+                                <span className="material-symbols-outlined text-[20px] text-slate-400">description</span>
+                            </div>
+                        )}
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-sm font-medium text-slate-900 truncate">{selectedFile.name}</span>
+                            <span className="text-xs text-slate-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleRemoveFile}
+                        className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
+            )}
+
             {/* Input Area */}
             <div className="relative flex items-end gap-2 bg-white rounded-lg p-1.5 shadow-sm border border-stone-border focus-within:ring-2 focus-within:ring-sage focus-within:border-transparent transition-all">
-                <button className="p-1.5 text-slate-500 hover:text-sage transition-colors rounded-lg h-8 w-8 flex items-center justify-center shrink-0">
+                <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-1.5 text-slate-500 hover:text-sage transition-colors rounded-lg h-8 w-8 flex items-center justify-center shrink-0"
+                >
                     <PlusCircle className="text-[20px]" />
                 </button>
 
@@ -154,7 +224,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
                         <Smile className="text-[18px]" />
                     </button>
 
-                    {newMessage.trim() && (
+                    {(newMessage.trim() || selectedFile) && (
                         <button
                             onClick={() => void handleSend()}
                             className="p-1.5 text-sage hover:text-sage-dark transition-colors rounded-lg h-8 w-8 flex items-center justify-center animate-in fade-in zoom-in duration-200"

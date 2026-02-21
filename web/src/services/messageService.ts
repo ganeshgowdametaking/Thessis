@@ -1,8 +1,6 @@
 import { supabase } from '../lib/supabase'
-import { Database } from '../lib/database.types'
 
-type Message = Database['public']['Tables']['messages']['Row']
-type Conversation = Database['public']['Tables']['conversations']['Row']
+// Types removed as they were unused and causing lint warnings
 
 export const messageService = {
   // Get user's conversations (Optimized)
@@ -11,37 +9,38 @@ export const messageService = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
+    // Optimized: Use more targeted query to reduce payload and heavy JS filtering.
+    // Note: participant profile joins are necessary for the sidebar, but we minimize fields.
     const { data: conversations, error } = await supabase
       .from('conversations')
       .select(`
         id,
         last_message_at,
+        last_message_preview,
+        last_message_sender_id,
+        unread_count_p1,
+        unread_count_p2,
         participant_1,
         participant_2,
         deleted_by_p1,
         deleted_by_p2,
         participant_1_profile:profiles!conversations_participant_1_fkey(id, full_name, avatar_url, verified, title),
-        participant_2_profile:profiles!conversations_participant_2_fkey(id, full_name, avatar_url, verified, title),
-        messages(
-          content,
-          created_at,
-          sender_id,
-          read
-        )
+        participant_2_profile:profiles!conversations_participant_2_fkey(id, full_name, avatar_url, verified, title)
       `)
       .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
       .order('last_message_at', { ascending: false })
-      .order('created_at', { foreignTable: 'messages', ascending: false })
-      .limit(1, { foreignTable: 'messages' })
 
     if (error) throw error
     if (!conversations) return []
 
-    // Filter out conversations hidden by the current user and those with no messages.
+    // Unified Visibility Logic:
+    // Only show chats that have SOME history (preview OR timestamp),
+    // and ensure we don't accidentally hide legacy data that lacks a preview.
     return conversations.filter((conv: any) => {
       const isP1 = conv.participant_1 === user.id
-      const hiddenForCurrentUser = isP1 ? conv.deleted_by_p1 === true : conv.deleted_by_p2 === true
-      return !hiddenForCurrentUser && conv.messages && conv.messages.length > 0
+      const isHidden = isP1 ? conv.deleted_by_p1 === true : conv.deleted_by_p2 === true
+      const hasHistory = !!conv.last_message_preview || !!conv.last_message_at
+      return !isHidden && hasHistory
     })
   },
 
@@ -113,13 +112,12 @@ export const messageService = {
     }
 
     // Create new conversation
-    const { data, error } = await supabase
+    const { data, error } = await (supabase
       .from('conversations')
       .insert({
         participant_1: user.id,
         participant_2: otherUserId,
-        last_message_at: new Date().toISOString()
-      })
+      } as any) as any)
       .select()
       .single()
 
@@ -128,17 +126,25 @@ export const messageService = {
   },
 
   // Send message
-  sendMessage: async (conversationId: string, content: string) => {
+  sendMessage: async (conversationId: string, content: string, attachment?: { url: string, type: string, name: string }) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    const { data, error } = await supabase
+    const messageData: any = {
+      conversation_id: conversationId,
+      sender_id: user.id,
+      content
+    }
+
+    if (attachment) {
+      messageData.attachment_url = attachment.url
+      messageData.attachment_type = attachment.type
+      messageData.attachment_name = attachment.name
+    }
+
+    const { data, error } = await (supabase
       .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        sender_id: user.id,
-        content
-      })
+      .insert(messageData as any) as any)
       .select(`
         *,
         sender:profiles!messages_sender_id_fkey(*)
@@ -147,27 +153,36 @@ export const messageService = {
 
     if (error) throw error
 
-    // Update conversation timestamp and un-hide only for sender.
-    // Keep deleted_at cutoff intact so old messages remain hidden for this user.
-    const { data: conv } = await supabase
-      .from('conversations')
-      .select('participant_1, participant_2')
-      .eq('id', conversationId)
-      .maybeSingle()
-
-    if (conv) {
-      const isP1 = (conv as any).participant_1 === user.id
-      await supabase
-        .from('conversations')
-        .update(
-          isP1
-            ? { last_message_at: new Date().toISOString(), deleted_by_p1: false }
-            : { last_message_at: new Date().toISOString(), deleted_by_p2: false }
-        )
-        .eq('id', conversationId)
-    }
+    // Note: Manual conversation timestamp/visibility updates removed.
+    // These are now handled atomically on the server via the 'tr_on_message_inserted' trigger.
 
     return data
+  },
+
+  // Upload attachment to Supabase Storage
+  uploadAttachment: async (file: File) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`
+    const filePath = `${fileName}`
+
+    const { data, error } = await supabase.storage
+      .from('message-attachments')
+      .upload(filePath, file)
+
+    if (error) throw error
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('message-attachments')
+      .getPublicUrl(filePath)
+
+    return {
+      url: publicUrl,
+      type: file.type,
+      name: file.name
+    }
   },
 
   // Mark messages as read
@@ -175,13 +190,30 @@ export const messageService = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    const { error } = await supabase
+    // 1. Mark individual messages as read (for history)
+    const { error } = await (supabase
       .from('messages')
-      .update({ read: true })
+      .update({ read: true } as any) as any)
       .eq('conversation_id', conversationId)
       .neq('sender_id', user.id)
 
     if (error) throw error
+
+    // 2. Reset the cached unread count for this user in the conversation 
+    // This is a safety measure to ensure the badge clears immediately even if the trigger has a tiny delay.
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('participant_1')
+      .eq('id', conversationId)
+      .single()
+
+    if (conv) {
+      const isP1 = (conv as any).participant_1 === user.id
+      await (supabase
+        .from('conversations')
+        .update(isP1 ? { unread_count_p1: 0 } : { unread_count_p2: 0 } as any) as any)
+        .eq('id', conversationId)
+    }
   },
 
   // Soft Delete conversation
@@ -213,14 +245,14 @@ export const messageService = {
         return { success: true }; // Treat as success if already gone
       }
 
-      const isP1 = conv.participant_1 === user.id;
-      const isP2 = conv.participant_2 === user.id;
+      const isP1 = (conv as any).participant_1 === user.id;
+      const isP2 = (conv as any).participant_2 === user.id;
 
       if (!isP1 && !isP2) {
         throw new Error('You do not have permission to delete this conversation.')
       }
 
-      const alreadyDeleted = isP1 ? conv.deleted_by_p1 === true : conv.deleted_by_p2 === true
+      const alreadyDeleted = isP1 ? (conv as any).deleted_by_p1 === true : (conv as any).deleted_by_p2 === true
       if (alreadyDeleted) {
         return { success: true }
       }
@@ -231,9 +263,9 @@ export const messageService = {
         ? { deleted_by_p1: true, deleted_at_p1: nowIso }
         : { deleted_by_p2: true, deleted_at_p2: nowIso };
 
-      const { data: updatedConvs, error } = await supabase
+      const { data: updatedConvs, error } = await (supabase
         .from('conversations')
-        .update(updateData)
+        .update(updateData as any) as any)
         .eq('id', conversationId)
         .eq(isP1 ? 'participant_1' : 'participant_2', user.id)
         .select('id');
@@ -256,31 +288,24 @@ export const messageService = {
   getUnreadMessagesCount: async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
-    // Get all conversations for the user
-    const { data: conversations, error } = await supabase
+
+    // Super-Optimized: Single sum query on the conversations table.
+    // No more ID-gathering or message scanning.
+    const { data, error } = await supabase
       .from('conversations')
-      .select('id, participant_1, participant_2, deleted_by_p1, deleted_by_p2')
+      .select('unread_count_p1, unread_count_p2, participant_1, deleted_by_p1, deleted_by_p2')
       .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`);
+
     if (error) throw error;
-    if (!conversations || conversations.length === 0) return 0;
+    if (!data) return 0;
 
-    const visibleConversationIds = (conversations as any[])
-      .filter((conv: any) => {
-        const isP1 = conv.participant_1 === user.id
-        return isP1 ? conv.deleted_by_p1 !== true : conv.deleted_by_p2 !== true
-      })
-      .map((conv: any) => conv.id)
+    return data.reduce((total: number, conv: any) => {
+      const isP1 = conv.participant_1 === user.id;
+      const isHidden = isP1 ? conv.deleted_by_p1 : conv.deleted_by_p2;
+      if (isHidden) return total;
 
-    if (visibleConversationIds.length === 0) return 0
-
-    // Get count of unread messages in all conversations where the user is not the sender
-    const { count, error: countError } = await supabase
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .in('conversation_id', visibleConversationIds)
-      .eq('read', false)
-      .neq('sender_id', user.id);
-    if (countError) throw countError;
-    return count || 0;
+      const count = isP1 ? (conv.unread_count_p1 || 0) : (conv.unread_count_p2 || 0);
+      return total + count;
+    }, 0);
   }
 }

@@ -14,7 +14,6 @@ import { iso2ToIso3 } from '../utils/countryMapping';
 import ImageCropper from './ImageCropper';
 import { TalentScoutBadge } from './TalentScoutBadge';
 import { hireVerificationService, UserBadge } from '../services/hireVerificationService';
-import { trustService } from '../services/TrustService';
 
 interface Experience {
   id: number;
@@ -102,12 +101,6 @@ const ProfilePage: React.FC = () => {
   const [isCroppingCover, setIsCroppingCover] = useState(false);
   const [tempImage, setTempImage] = useState<string | null>(null);
 
-  // Work Email Verification State
-  const [verifyingWorkEmail, setVerifyingWorkEmail] = useState(false);
-  const [verificationStep, setVerificationStep] = useState<'input' | 'code' | 'verified'>('input');
-  const [workEmailInput, setWorkEmailInput] = useState('');
-  const [verificationCodeInput, setVerificationCodeInput] = useState('');
-  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -179,11 +172,20 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleLocationSelect = (suggestion: any) => {
-    setLocationQuery(suggestion.display_name);
     setEditForm({ ...editForm, location: suggestion.display_name });
-    setLocationSuggestions([]);
+    setLocationQuery(suggestion.display_name);
     setShowLocationSuggestions(false);
     setLocationError('');
+  };
+
+  const handleDeleteAvatar = () => {
+    setEditForm({ ...editForm, profile_picture_url: null as any });
+    setProfilePictureFile(null);
+  };
+
+  const handleDeleteCover = () => {
+    setEditForm({ ...editForm, cover_image_url: null as any });
+    setCoverImageFile(null);
   };
 
   const validateLocation = () => {
@@ -364,6 +366,8 @@ const ProfilePage: React.FC = () => {
         skills: editForm.skills,
         achievements: editForm.achievements,
         country_code: editForm.country_code,
+        avatar_url: editForm.profile_picture_url || null,
+        cover_image_url: editForm.cover_image_url || null,
       };
 
       // Handle profile picture file
@@ -405,9 +409,7 @@ const ProfilePage: React.FC = () => {
 
       await profileService.updateProfile(user.id, updates);
       await updateProfile({
-        ...profile, ...updates,
-        avatar_url: updates.avatar_url || profile.avatar_url,
-        cover_image_url: updates.cover_image_url || profile.cover_image_url
+        ...profile, ...updates
       });
       setIsEditing(false);
       setProfilePictureFile(null);
@@ -450,74 +452,9 @@ const ProfilePage: React.FC = () => {
         work_email: (profile as any).work_email || '',
         work_email_verified: (profile as any).work_email_verified || false,
       });
-      // Reset Verification State
-      setVerifyingWorkEmail(false);
-      setVerificationStep('input');
-      setWorkEmailInput('');
-      setVerificationCodeInput('');
-      setVerificationError(null);
     }
   };
 
-  const handleStartVerification = async () => {
-    if (!workEmailInput) {
-      setVerificationError('Please enter a valid work email.');
-      return;
-    }
-    if (!workEmailInput.includes('@')) {
-      setVerificationError('Invalid email format.');
-      return;
-    }
-
-    setVerifyingWorkEmail(true);
-    setVerificationError(null);
-
-    const { success, error } = await trustService.startWorkEmailVerification(user?.id || '', workEmailInput);
-
-    if (success) {
-      setVerificationStep('code');
-    } else {
-      setVerificationError(error || 'Failed to send verification code.');
-      setVerifyingWorkEmail(false);
-    }
-  };
-
-  const handleVerifyCode = async () => {
-    if (!verificationCodeInput || verificationCodeInput.length < 6) {
-      setVerificationError('Please enter a valid 6-digit code.');
-      return;
-    }
-
-    setVerifyingWorkEmail(true);
-    setVerificationError(null);
-
-    const { success, error } = await trustService.verifyWorkEmail(user?.id || '', workEmailInput, verificationCodeInput);
-
-    if (success) {
-      setVerificationStep('verified');
-      setEditForm(prev => ({
-        ...prev,
-        work_email: workEmailInput,
-        work_email_verified: true
-      }));
-      // Prepare for refresh? Maybe reload profile
-      if (user?.id) {
-        profileService.getProfile(user.id).then(p => {
-          if (p) updateProfile(p);
-        })
-      }
-    } else {
-      setVerificationError(error || 'Invalid code. Please try again.');
-    }
-    setVerifyingWorkEmail(false);
-  };
-
-  const cancelVerification = () => {
-    setVerifyingWorkEmail(false);
-    setVerificationStep('input');
-    setVerificationError(null);
-    setVerificationCodeInput('');
-  };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
@@ -822,13 +759,6 @@ const ProfilePage: React.FC = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full border-t border-slate-border-divider bg-white py-8 mt-auto">
-        <div className="max-w-[1024px] mx-auto px-4 text-center">
-
-        </div>
-      </footer>
-
       {/* Edit Profile Modal */}
       {isEditing && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -852,15 +782,28 @@ const ProfilePage: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Profile Picture</label>
                   <div className="flex items-center space-x-4">
-                    <div className="relative group">
-                      <img
-                        src={getProfilePicture()}
-                        alt="Preview"
-                        className="w-20 h-20 rounded-full object-cover border-2 border-slate-200 shadow-sm"
-                      />
-                      <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
-                        <Edit3 className="text-white h-5 w-5" />
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="relative group">
+                        <img
+                          src={getProfilePicture()}
+                          alt="Preview"
+                          className="w-20 h-20 rounded-full object-cover border-2 border-slate-200 shadow-sm"
+                        />
+                        <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                          <Edit3 className="text-white h-5 w-5" />
+                        </div>
                       </div>
+                      {editForm.profile_picture_url && (
+                        <button
+                          type="button"
+                          onClick={handleDeleteAvatar}
+                          className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
+                          disabled={isSaving}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Delete
+                        </button>
+                      )}
                     </div>
                     <input
                       type="file"
@@ -876,15 +819,28 @@ const ProfilePage: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Cover Image (Background)</label>
                   <div className="flex items-center space-x-4">
-                    <div className="relative group flex-1">
-                      <div
-                        className="h-20 w-full rounded-lg bg-cover bg-center border-2 border-slate-200 shadow-sm overflow-hidden bg-gradient-to-br from-stone-off via-stone-border to-slate-200"
-                        style={editForm.cover_image_url ? { backgroundImage: `url("${editForm.cover_image_url}")` } : {}}
-                      >
+                    <div className="flex-1 flex flex-col gap-2">
+                      <div className="relative group">
+                        <div
+                          className="h-20 w-full rounded-lg bg-cover bg-center border-2 border-slate-200 shadow-sm overflow-hidden bg-gradient-to-br from-stone-off via-stone-border to-slate-200"
+                          style={editForm.cover_image_url ? { backgroundImage: `url("${editForm.cover_image_url}")` } : {}}
+                        >
+                        </div>
+                        <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                          <Edit3 className="text-white h-5 w-5" />
+                        </div>
                       </div>
-                      <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
-                        <Edit3 className="text-white h-5 w-5" />
-                      </div>
+                      {editForm.cover_image_url && (
+                        <button
+                          type="button"
+                          onClick={handleDeleteCover}
+                          className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700 transition-colors w-fit"
+                          disabled={isSaving}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Delete Cover
+                        </button>
+                      )}
                     </div>
                     <input
                       type="file"
@@ -898,103 +854,6 @@ const ProfilePage: React.FC = () => {
               </div>
 
 
-              {/* 🛡️ Work Email Verification Section */}
-              <div className="md:col-span-2 bg-blue-50/50 rounded-xl border border-blue-100 p-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600 mt-1">
-                    <Briefcase className="w-6 h-6" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-slate-900 mb-1">Work Verification</h3>
-                    <p className="text-sm text-slate-600 mb-4">
-                      Verify your work email to get a "Verified Employee" badge and build trust with candidates.
-                    </p>
-
-                    {editForm.work_email_verified ? (
-                      <div className="flex items-center gap-2 text-emerald-600 bg-white border border-emerald-100 px-4 py-3 rounded-lg shadow-sm">
-                        <div className="bg-emerald-100 p-1 rounded-full">
-                          <Award className="w-4 h-4" />
-                        </div>
-                        <span className="font-bold">Verified at {editForm.work_email?.split('@')[1]}</span>
-                        <span className="text-slate-400 text-sm ml-auto">{editForm.work_email}</span>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {/* Step 1: Input Email */}
-                        {verificationStep === 'input' && (
-                          <div className="flex gap-3">
-                            <input
-                              type="email"
-                              placeholder="name@company.com"
-                              className="flex-1 bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                              value={workEmailInput}
-                              onChange={(e) => setWorkEmailInput(e.target.value)}
-                              disabled={verifyingWorkEmail}
-                            />
-                            <button
-                              type="button"
-                              onClick={handleStartVerification}
-                              disabled={verifyingWorkEmail || !workEmailInput}
-                              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors flex items-center gap-2"
-                            >
-                              {verifyingWorkEmail ? <LoadingSpinner size="small" /> : 'Verify'}
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Step 2: Input Code */}
-                        {verificationStep === 'code' && (
-                          <div className="space-y-3">
-                            <p className="text-sm font-medium text-slate-700">
-                              Enter the 6-digit code sent to <span className="font-bold">{workEmailInput}</span>
-                            </p>
-                            <div className="flex gap-3">
-                              <input
-                                type="text"
-                                placeholder="123456"
-                                maxLength={6}
-                                className="w-40 bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-center text-lg tracking-widest font-mono text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                                value={verificationCodeInput}
-                                onChange={(e) => setVerificationCodeInput(e.target.value)}
-                                disabled={verifyingWorkEmail}
-                              />
-                              <button
-                                type="button"
-                                onClick={handleVerifyCode}
-                                disabled={verifyingWorkEmail || verificationCodeInput.length !== 6}
-                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors"
-                              >
-                                {verifyingWorkEmail ? 'Checking...' : 'Confirm Code'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={cancelVerification}
-                                className="px-4 py-2.5 text-slate-500 hover:text-slate-700 font-medium hover:bg-slate-100 rounded-lg transition-colors"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Step 3: Success State (Transient) */}
-                        {verificationStep === 'verified' && (
-                          <div className="text-emerald-600 font-bold flex items-center gap-2 animate-in fade-in zoom-in duration-300">
-                            <Award className="w-5 h-5" />
-                            You are now a verified employee!
-                          </div>
-                        )}
-
-                        {verificationError && (
-                          <p className="text-red-500 text-sm font-medium animate-in fade-in slide-in-from-top-1">
-                            {verificationError}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
 
               {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

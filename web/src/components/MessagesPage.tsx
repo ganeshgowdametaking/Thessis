@@ -26,6 +26,14 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const [pendingChatUserId, setPendingChatUserId] = useState<string | null>(null); // New state for pending chats
   const [isSettingUpPendingChat, setIsSettingUpPendingChat] = useState(false); // Flag to prevent auto-selection
   // newMessage state removed - moved to MessageInput
+  // Track selection in a ref to avoid closure staleness issues in real-time callbacks
+  const selectionRef = useRef<string | null>(null);
+  const pendingChatRef = useRef<string | null>(null);
+
+  // Sync state to refs
+  useEffect(() => { selectionRef.current = selectedChat; }, [selectedChat]);
+  useEffect(() => { pendingChatRef.current = pendingChatUserId; }, [pendingChatUserId]);
+
   const [conversations, setConversations] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,52 +64,77 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   // Pending User Info (for header when chat is pending)
   const [pendingUserInfo, setPendingUserInfo] = useState<any>(null);
 
+  // Optimized Real-time Subscriptions
   useEffect(() => {
-    // Global Subscription for New Messages
-    let channel: any;
+    if (!user?.id) return;
 
-    // Add a tiny delay to allow component to settle
-    const stabilityTimer = setTimeout(() => {
-      channel = supabase.channel('global-messages')
+    let convChannelP1: any;
+    let convChannelP2: any;
+    let messageChannel: any;
+
+    // 1. Subscribe to updates on conversations the user is part of (Sidebar sync)
+    // We listen for both INSERT (new chats) and UPDATE (new messages in existing chats)
+    convChannelP1 = supabase.channel(`user-convs-p1:${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversations', filter: `participant_1=eq.${user.id}` },
+        () => {
+          console.log('🔄 Conversation (P1) changed, reloading list...');
+          loadConversations();
+        }
+      ).subscribe();
+
+    convChannelP2 = supabase.channel(`user-convs-p2:${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversations', filter: `participant_2=eq.${user.id}` },
+        () => {
+          console.log('🔄 Conversation (P2) changed, reloading list...');
+          loadConversations();
+        }
+      ).subscribe();
+
+    // 2. Focused subscription for the ACTIVE conversation messages
+    if (selectedChat) {
+      messageChannel = supabase.channel(`active-chat:${selectedChat}`)
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'messages' },
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedChat}` },
           async (payload) => {
             const newMessage = payload.new as any;
-            console.log('🔔 Real-time message received:', newMessage);
+            if (newMessage.sender_id === user.id) return; // Already handled by optimistic UI or sender logic
 
-            // 1. If currently viewing this conversation, append message
-            if (selectedChat === newMessage.conversation_id) {
-              // Fetch sender profile to enrich the message
-              try {
-                const fullMsg = await messageService.getConversationMessages(newMessage.conversation_id, 1);
-                if (fullMsg && fullMsg.length > 0 && fullMsg[0].id === newMessage.id) {
-                  setMessages(prev => [...prev, fullMsg[0]]);
-                }
-              } catch (err) {
-                console.error('Error fetching new real-time message details', err);
-              }
-            }
+            console.log('🔔 New message in current chat:', newMessage);
 
-            // 2. Update conversation list preview & unread counts
-            loadConversations();
+            // Enrich message with sender details if needed, or just append
+            try {
+              // We use a small delay or check to avoid duplicates if the fetch is slow
+              setMessages(prev => {
+                const exists = prev.some(m => m.id === newMessage.id);
+                if (exists) return prev;
+                return [...prev, newMessage];
+              });
 
-            // 3. Handle "First Message Received" for Pending Chat
-            if (pendingChatUserId && newMessage.sender_id === pendingChatUserId) {
-              console.log('✨ First message received from pending user! Switching to real chat.');
-              const newConvId = newMessage.conversation_id;
-              setSelectedChat(newConvId);
-              setPendingChatUserId(null);
+              // Mark as read since user is viewing this chat
+              messageService.markMessagesAsRead(selectedChat);
+            } catch (err) {
+              console.error('Error handling real-time message', err);
             }
           }
         ).subscribe();
-    }, 100);
+    }
+
+    // 3. Handle pending chat first-message logic
+    // we still need a way to know if a message arrived from pendingChatUserId
+    // Since we now have convChannelP1/P2, if a new conversation is inserted, 
+    // loadConversations() will find it and sync.
 
     return () => {
-      clearTimeout(stabilityTimer);
-      if (channel) supabase.removeChannel(channel);
+      if (convChannelP1) supabase.removeChannel(convChannelP1);
+      if (convChannelP2) supabase.removeChannel(convChannelP2);
+      if (messageChannel) supabase.removeChannel(messageChannel);
     };
-  }, [selectedChat, pendingChatUserId]);
+  }, [user?.id, selectedChat, pendingChatUserId]);
 
   // FIX: Fetch Pending User Info when pendingChatUserId changes
   useEffect(() => {
@@ -227,8 +260,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
             .maybeSingle();
 
           if (dbConv) {
-            const isCurrentUserP1 = dbConv.participant_1 === user.id;
-            const hiddenForCurrentUser = isCurrentUserP1 ? dbConv.deleted_by_p1 === true : dbConv.deleted_by_p2 === true;
+            const isCurrentUserP1 = (dbConv as any).participant_1 === user.id;
+            const hiddenForCurrentUser = isCurrentUserP1 ? (dbConv as any).deleted_by_p1 === true : (dbConv as any).deleted_by_p2 === true;
 
             if (hiddenForCurrentUser) {
               console.log('🔍 Conversation exists but is hidden for current user, starting pending chat:', dbConv.id);
@@ -316,7 +349,11 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
   const loadConversations = async () => {
     try {
-      setLoading(true);
+      // Only show full loading spinner on initial load, not on refreshes/background updates
+      if (conversations.length === 0) {
+        setLoading(true);
+      }
+
       const userConversations = await messageService.getConversations();
 
       // Ensure we have an array
@@ -327,8 +364,9 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       // const filteredConversations = await blockingService.filterBlockedUsers(allConversations);
       setConversations(allConversations);
 
-      // If we have a selectedApplicant or pendingChatUserId, check if it now exists in the conversation list
-      const targetUserId = selectedApplicant || pendingChatUserId;
+      // SYNC: If we are looking for a specific user (pending or active), ensure they are selected.
+      // We check BOTH the state and the ref to survive closure staleness.
+      const targetUserId = selectedApplicant || pendingChatUserId || pendingChatRef.current;
       if (targetUserId) {
         const matchingConv = allConversations.find(
           (conv: any) => conv.participant_1 === targetUserId || conv.participant_2 === targetUserId
@@ -337,25 +375,18 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
           console.log('🔍 Sync: Found matching conversation after load:', matchingConv.id);
           setSelectedChat(matchingConv.id);
           setPendingChatUserId(null);
-          return; // STOP HERE - don't proceed to auto-selection logic
+          return;
         }
       }
 
-      // Only auto-select first conversation on desktop (not mobile) and only if no pending chat or selectedApplicant
-      console.log('🔍 Auto-selection check:', {
-        hasConversations: allConversations.length > 0,
-        selectedChat,
-        isMobile,
-        pendingChatUserId,
-        selectedApplicant,
-        isSettingUpPendingChat,
-        shouldAutoSelect: allConversations.length > 0 && !selectedChat && !isMobile && !pendingChatUserId && !selectedApplicant && !isSettingUpPendingChat
-      });
+      // AUTO-SELECTION: Only if nothing is selected (state AND ref) and we aren't mid-setup.
+      const currentSelection = selectedChat || selectionRef.current;
+      const isTransitioning = isSettingUpPendingChat || !!targetUserId;
 
-      if (allConversations.length > 0 && !selectedChat && !isMobile && !pendingChatUserId && !selectedApplicant && !isSettingUpPendingChat) {
+      if (allConversations.length > 0 && !currentSelection && !isMobile && !isTransitioning) {
         console.log('🔍 Auto-selecting first conversation:', allConversations[0].id);
         setSelectedChat(allConversations[0].id);
-        setShowConversationsList(false); // Auto-hide on desktop when conversation is loaded
+        setShowConversationsList(false);
       }
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -395,8 +426,9 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const handleLoadMore = async () => {
     if (!selectedChat || messages.length === 0) return;
 
-    // Create a variable for scroll position preservation
+    // Preserve scroll position
     const container = messagesContainerRef.current;
+    const scrollHeight = container?.scrollHeight || 0;
 
     try {
       const oldestMessage = messages[0];
@@ -508,8 +540,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
   const currentConversation = conversations.find(conv => conv.id === selectedChat);
 
-  const handleSendMessage = useCallback(async (e?: React.FormEvent, text?: string) => {
-    if (e) e.preventDefault();
+  const handleSendMessage = useCallback(async (text?: string, file?: File) => {
     const contentToSend = text || '';
     if (!contentToSend.trim()) return false;
 
@@ -531,7 +562,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       if (conversationId) {
         // Optimistic UI: Add temporary message immediately
         const tempId = `temp-${Date.now()}`;
-        const optimisticMessage = {
+        const optimisticMessage: any = {
           id: tempId,
           content: contentToSend,
           sender_id: user?.id,
@@ -540,13 +571,30 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
           status: 'sending'
         };
 
+        if (file) {
+          optimisticMessage.attachment_name = file.name;
+          optimisticMessage.attachment_type = file.type;
+          if (file.type.startsWith('image/')) {
+            optimisticMessage.attachment_url = URL.createObjectURL(file);
+          }
+        }
+
         setMessages(prev => [...prev, optimisticMessage]);
 
-        await messageService.sendMessage(conversationId, contentToSend);
+        let attachment = undefined;
+        if (file) {
+          attachment = await messageService.uploadAttachment(file);
+        }
 
-        // Reload messages to confirm sync
-        await loadMessages(conversationId);
-        // Ensure sidebar/history reflects newly active conversation even if realtime is delayed.
+        const sentMessage = await messageService.sendMessage(conversationId, contentToSend, attachment);
+
+        // Update optimistic message with real message from server
+        if (sentMessage) {
+          setMessages(prev => prev.map(m => m.id === tempId ? sentMessage : m));
+        }
+
+        // Silent Reload: Ensure the sidebar reflects the new 'last_message_at' immediately.
+        // The 'silent' version of loadConversations prevents the UI blink.
         await loadConversations();
         return true;
       }
@@ -790,11 +838,56 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                               })}
                             </span>
                           </div>
-                          <div className={`p-3 rounded-2xl text-sm leading-relaxed ${isOwnMessage
-                            ? 'bg-sage rounded-tr-none shadow-sm text-white'
-                            : 'bg-stone-off rounded-tl-none text-slate-900'
-                            }`}>
-                            <p>{message.content}</p>
+                          <div
+                            className={`max-w-[70%] rounded-2xl p-4 shadow-sm ${isOwnMessage
+                              ? 'bg-sage text-white rounded-tr-none'
+                              : 'bg-stone-off text-slate-900 rounded-tl-none'
+                              }`}
+                          >
+                            {/* Attachment Rendering */}
+                            {message.attachment_url && (
+                              <div className="mb-2">
+                                {message.attachment_type?.startsWith('image/') ? (
+                                  <a href={message.attachment_url} target="_blank" rel="noopener noreferrer">
+                                    <img
+                                      src={message.attachment_url}
+                                      alt={message.attachment_name || 'Attachment'}
+                                      className="max-w-full rounded-lg border border-black/5 hover:opacity-90 transition-opacity cursor-pointer"
+                                      style={{ maxHeight: '300px' }}
+                                    />
+                                  </a>
+                                ) : (
+                                  <a
+                                    href={message.attachment_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`flex items-center gap-3 p-3 rounded-lg border shadow-inner transition-colors ${isOwnMessage
+                                      ? 'bg-white/10 hover:bg-white/20 border-white/20'
+                                      : 'bg-white hover:bg-slate-50 border-stone-border'
+                                      }`}
+                                  >
+                                    <div className={`p-2 rounded-lg ${isOwnMessage ? 'bg-white/20' : 'bg-slate-100'}`}>
+                                      <span className="material-symbols-outlined text-[24px]">description</span>
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                      <span className={`text-sm font-bold truncate ${isOwnMessage ? 'text-white' : 'text-slate-900'}`}>
+                                        {message.attachment_name || 'Document.pdf'}
+                                      </span>
+                                      <span className={`text-[10px] uppercase tracking-wider font-bold opacity-70 ${isOwnMessage ? 'text-white' : 'text-slate-500'}`}>
+                                        PDF DOCUMENT
+                                      </span>
+                                    </div>
+                                    <span className={`material-symbols-outlined text-[20px] ml-auto ${isOwnMessage ? 'text-white/60' : 'text-slate-400'}`}>
+                                      download
+                                    </span>
+                                  </a>
+                                )}
+                              </div>
+                            )}
+
+                            {message.content && (
+                              <p className="text-base leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -829,7 +922,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
               {/* Message Input */}
               <MessageInput
-                onSendMessage={(text) => handleSendMessage(undefined, text)}
+                onSendMessage={(text, file) => handleSendMessage(text, file)}
                 onTyping={handleTyping}
                 disabled={!selectedChat && !pendingChatUserId}
               />

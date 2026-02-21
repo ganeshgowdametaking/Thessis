@@ -17,8 +17,19 @@ export const ConversationItem: React.FC<ConversationItemProps> = memo(({
     profile,
 
 }) => {
-    const lastMessage = conversation.messages && conversation.messages[0];
-    const unreadCount = 0; // TODO: Implement real unread count logic if available from DB
+    // Simplified: Use denormalized message data if available, fallback to nested messages array.
+    const lastMessage = conversation.last_message_preview
+        ? {
+            content: conversation.last_message_preview,
+            created_at: conversation.last_message_at,
+            sender_id: conversation.last_message_sender_id
+        }
+        : (conversation.messages && conversation.messages[0]);
+
+    // Determine unread count based on our role in the conversation
+    const unreadCount = conversation.participant_1 === profile?.id
+        ? (conversation.unread_count_p2 || 0)
+        : (conversation.unread_count_p1 || 0);
 
     return (
         <button

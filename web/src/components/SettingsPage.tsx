@@ -108,21 +108,16 @@ const SettingsPage: React.FC = () => {
     setFeedbackLoading(true);
     setFeedbackMessage(null);
     try {
-      const response = await fetch('http://localhost:3001/send-feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          subject: feedbackSubject,
-          message: feedback,
-          userEmail: user?.email,
-          userName: user?.user_metadata?.full_name || user?.email?.split('@')[0]
-        }),
+      const { error } = await (supabase.from('feedback') as any).insert({
+        subject: feedbackSubject,
+        message: feedback,
+        user_email: user?.email,
+        user_name: profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0],
+        user_id: user?.id
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to send feedback');
+      if (error) {
+        throw new Error(error.message || 'Failed to send feedback');
       }
 
       setFeedbackMessage({ type: 'success', text: 'Thank you for your feedback! Your message has been sent to our team.' });
@@ -237,27 +232,27 @@ const SettingsPage: React.FC = () => {
     setInviteMessage(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('send-admin-invite', {
-        body: { email: normalizedEmail },
-      });
+      const { data, error } = await (supabase.rpc('promote_user_to_admin_by_email', {
+        user_email: normalizedEmail
+      }) as any);
 
       if (error) {
-        throw new Error(error.message || 'Failed to send invitation.');
+        throw new Error(error.message || 'Failed to promote user.');
       }
 
       if (data?.success) {
-        setInviteMessage({ type: 'success', text: 'Invitation sent successfully.' });
+        setInviteMessage({ type: 'success', text: `User ${normalizedEmail} has been promoted to Administrator successfully!` });
         setInviteEmail('');
         setTimeout(() => {
           setShowInviteModal(false);
           setInviteMessage(null);
-        }, 1200);
+        }, 3000);
         return;
       }
 
-      throw new Error(data?.error || 'Failed to send invitation.');
+      throw new Error(data?.error || 'Failed to promote user.');
     } catch (err: any) {
-      setInviteMessage({ type: 'error', text: err?.message || 'Failed to send invitation.' });
+      setInviteMessage({ type: 'error', text: err?.message || 'Failed to promote user.' });
     } finally {
       setInviteLoading(false);
     }
@@ -274,16 +269,16 @@ const SettingsPage: React.FC = () => {
     setShowDeleteConfirmModal(false);
 
     try {
-      const { data, error } = await supabase.rpc('delete_my_account', {
+      const { data, error } = await (supabase.rpc('delete_my_account', {
         delete_reason: deleteReason.trim() || null,
-      });
+      }) as any);
 
       if (error) {
         throw new Error(error.message || 'Failed to delete account.');
       }
 
-      if (!data?.success) {
-        throw new Error(data?.error || 'Failed to delete account.');
+      if (!(data as any)?.success) {
+        throw new Error((data as any)?.error || 'Failed to delete account.');
       }
 
       // Account is already deleted server-side; avoid calling auth logout afterwards
@@ -517,7 +512,7 @@ const SettingsPage: React.FC = () => {
                         <p className="text-sm text-slate-500 mb-6 leading-relaxed">Admins have full access to your organization's settings, billing, and user management. Only invite trusted team members.</p>
                         <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors shadow-sm">
                           <span className="material-symbols-outlined text-[18px]">add</span>
-                          Invite New Admin
+                          Promote New Admin
                         </button>
                       </div>
                     </div>
@@ -630,7 +625,7 @@ const SettingsPage: React.FC = () => {
       {showInviteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">Invite Administrator</h3>
+            <h3 className="text-lg font-bold text-slate-900 mb-4">Promote User to Administrator</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>

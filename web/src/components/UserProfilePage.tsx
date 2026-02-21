@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { profileService } from '../services/profileService';
 import { connectionService } from '../services/connectionService';
@@ -77,6 +77,24 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const [education, setEducation] = useState<Education[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
+
+  // Click outside handler to close the actions menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+        setShowActionsMenu(false);
+      }
+    };
+
+    if (showActionsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showActionsMenu]);
 
   useEffect(() => {
     loadUserProfile();
@@ -556,7 +574,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                             Message
                           </button>
 
-                          <div className="relative group/menu">
+                          <div className="relative group/menu" ref={actionsMenuRef}>
                             <button
                               className="h-10 w-10 flex items-center justify-center bg-white border border-stone-border hover:bg-stone-off rounded-lg text-slate-500 transition-colors"
                               onClick={() => setShowActionsMenu(!showActionsMenu)}
@@ -766,10 +784,6 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
           </div>
         </div>
       </main>
-
-      <footer className="py-6 text-center text-sm text-slate-500 border-t border-stone-border bg-white">
-        <p>© 2024 TankTide. All rights reserved.</p>
-      </footer>
     </div>
   );
 };
