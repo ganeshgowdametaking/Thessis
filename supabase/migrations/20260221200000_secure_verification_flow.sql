@@ -1,5 +1,4 @@
--- 1. Secure the generate_verification_code function
--- We change it to RETURNS VOID so the secret code never leaves the database
+-- 1. Secure and Unique-enforced generate_verification_code function
 CREATE OR REPLACE FUNCTION public.generate_verification_code(
   p_user_id UUID,
   p_email TEXT
@@ -12,14 +11,25 @@ AS $$
 DECLARE
   v_code TEXT;
 BEGIN
+  -- Security: Only the user themselves can request a code
   IF auth.uid() IS DISTINCT FROM p_user_id THEN
     RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  -- Uniqueness Check: Ensure no other profile has ALREADY verified this email
+  IF EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE work_email = p_email 
+    AND work_email_verified = TRUE
+    AND id <> p_user_id -- Allow the user to re-verify their own email if needed, but not others
+  ) THEN
+    RAISE EXCEPTION 'This organization email is already verified';
   END IF;
 
   -- Generate 6-digit code
   v_code := lpad((floor(random() * 1000000))::INT::TEXT, 6, '0');
 
-  -- Invalidate old codes
+  -- Invalidate old codes for this specific request
   UPDATE public.verification_codes
   SET expires_at = NOW()
   WHERE user_id = p_user_id
@@ -30,8 +40,6 @@ BEGIN
   -- Insert new code
   INSERT INTO public.verification_codes (user_id, email, code, expires_at)
   VALUES (p_user_id, p_email, v_code, NOW() + INTERVAL '15 minutes');
-
-  -- We no longer RETURN v_code. It stays in the DB and is sent via Trigger.
 END;
 $$;
 
