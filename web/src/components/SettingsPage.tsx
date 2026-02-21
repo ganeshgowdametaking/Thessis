@@ -125,6 +125,32 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleDemoteAdmin = async (adminId: string, adminEmail: string) => {
+    if (adminEmail === user?.email) {
+      return; // Safety check
+    }
+
+    if (!window.confirm(`Are you sure you want to remove administrative access for ${adminEmail}?`)) {
+      return;
+    }
+
+    setAdminsLoading(true);
+    try {
+      const { error } = await supabase.rpc('demote_admin', { admin_id: adminId });
+      if (error) throw error;
+
+      // Refresh list
+      await fetchAdministrators();
+      setMessage({ type: 'success', text: `Access revoked for ${adminEmail}` });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      console.error('Error demoting admin:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to revoke access' });
+    } finally {
+      setAdminsLoading(false);
+    }
+  };
+
   const handleSubmitFeedback = async () => {
     if (!feedback) {
       setFeedbackMessage({ type: 'error', text: 'Please enter your message' });
@@ -635,7 +661,8 @@ const SettingsPage: React.FC = () => {
                             <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">User</th>
                             <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Role</th>
                             <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Joined</th>
-                            <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Verification</th>
+                            <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Verification</th>
+                            <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -662,14 +689,27 @@ const SettingsPage: React.FC = () => {
                                   {new Date(admin.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </span>
                               </td>
-                              <td className="py-4 px-4 text-right">
+                              <td className="py-4 px-4">
                                 {admin.work_email_verified ? (
-                                  <div className="flex items-center justify-end gap-1.5 text-sage">
+                                  <div className="flex items-center gap-1.5 text-sage">
                                     <span className="text-[10px] font-bold uppercase">Verified</span>
                                     <span className="material-symbols-outlined text-[16px]">verified</span>
                                   </div>
                                 ) : (
                                   <span className="text-[10px] font-bold text-slate-300 uppercase">Unverified</span>
+                                )}
+                              </td>
+                              <td className="py-4 px-4 text-right">
+                                {admin.email !== user?.email ? (
+                                  <button
+                                    onClick={() => handleDemoteAdmin(admin.id, admin.email)}
+                                    className="p-2 text-slate-300 hover:text-red-500 transition-colors flex items-center justify-center ml-auto group"
+                                    title="Remove Administrator Access"
+                                  >
+                                    <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">person_remove</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-slate-300 uppercase px-2 italic">You</span>
                                 )}
                               </td>
                             </tr>
