@@ -83,11 +83,11 @@ const SettingsPage: React.FC = () => {
     setMessage(null);
 
     try {
-      const { error } = await updatePassword(newPassword);
+      const { error } = await updatePassword(newPassword, { logoutOthers: true });
       if (error) {
         setMessage({ type: 'error', text: error.message });
       } else {
-        setMessage({ type: 'success', text: 'Password updated successfully!' });
+        setMessage({ type: 'success', text: 'Password updated successfully! Other devices have been logged out.' });
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');

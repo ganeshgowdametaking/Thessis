@@ -118,6 +118,9 @@ const PasswordResetPage: React.FC = () => {
 
       if (error) throw error
 
+      // Global sign-out for other devices
+      await supabase.auth.signOut({ scope: 'others' })
+
       setSuccess('Password updated successfully! Redirecting you back to the app...')
       setTimeout(() => {
         if (isIOS) {

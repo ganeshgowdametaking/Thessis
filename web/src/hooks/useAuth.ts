@@ -110,10 +110,10 @@ export function useAuth() {
     }
   }
 
-  const signOut = async () => {
+  const signOut = async (options?: { scope?: 'local' | 'global' | 'others' }) => {
     try {
       setError(null)
-      const { error } = await auth.signOut()
+      const { error } = await auth.signOut(options)
       if (error) setError(error.message)
       return { error }
     } catch (error: any) {
@@ -188,10 +188,10 @@ export function useAuth() {
     }
   }
 
-  const updatePassword = async (password: string) => {
+  const updatePassword = async (password: string, options?: { logoutOthers?: boolean }) => {
     try {
       setError(null)
-      const { data, error } = await auth.updatePassword(password)
+      const { data, error } = await auth.updatePassword(password, options)
       if (error) setError(error.message)
       return { data, error }
     } catch (error: any) {

@@ -18,12 +18,12 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<any>
   signInWithGoogle: () => Promise<any>
   signInWithLinkedIn: () => Promise<any>
-  signOut: () => Promise<any>
+  signOut: (options?: { scope?: 'local' | 'global' | 'others' }) => Promise<any>
   verifyOTP: (email: string, token: string, type?: 'signup' | 'recovery') => Promise<any>
   resendOTP: (email: string) => Promise<any>
   resetPassword: (email: string) => Promise<any>
   updateProfile: (updates: any) => Promise<void>
-  updatePassword: (password: string) => Promise<any>
+  updatePassword: (password: string, options?: { logoutOthers?: boolean }) => Promise<any>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)

@@ -93,14 +93,15 @@ export const auth = {
     }
   },
 
-  signOut: async () => {
-    console.log('🔐 Signing out...')
+  signOut: async (options?: { scope?: 'local' | 'global' | 'others' }) => {
+    const scope = options?.scope || 'local'
+    console.log(`🔐 Signing out (${scope})...`)
     try {
-      const { error } = await supabase.auth.signOut()
+      const { error } = await supabase.auth.signOut({ scope })
       if (error) {
         console.error('❌ Sign out error:', error)
       } else {
-        console.log('✅ Sign out successful')
+        console.log(`✅ Sign out (${scope}) successful`)
       }
       return { error }
     } catch (error) {
@@ -245,7 +246,7 @@ export const auth = {
     }
   },
 
-  updatePassword: async (password: string) => {
+  updatePassword: async (password: string, options?: { logoutOthers?: boolean }) => {
     console.log('🔐 Attempting password update...')
     try {
       const { data, error } = await supabase.auth.updateUser({
@@ -256,6 +257,12 @@ export const auth = {
         return { data: null, error }
       } else {
         console.log('✅ Password update successful')
+
+        if (options?.logoutOthers) {
+          console.log('🔐 Triggering global sign-out for other devices...')
+          await supabase.auth.signOut({ scope: 'others' })
+        }
+
         return { data, error: null }
       }
     } catch (error) {
