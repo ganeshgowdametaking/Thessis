@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, Briefcase, GraduationCap, Award, Edit3, Plus, X, Trash2, Share, Waves } from 'lucide-react';
+import { MapPin, Briefcase, Building, GraduationCap, Award, Edit3, Plus, X, Trash2, Waves, Share2, Pencil } from 'lucide-react';
+import { jobTitles } from '../data/jobTitles';
 import debounce from 'lodash.debounce';
 import { profileService } from '../services/profileService';
 import { postService } from '../services/postService';
@@ -98,6 +99,9 @@ const ProfilePage: React.FC = () => {
 
   // Cropping state
   const [isCropping, setIsCropping] = useState(false);
+  const [activeExperienceLocationId, setActiveExperienceLocationId] = useState<number | null>(null);
+  const [activeExperienceTitleId, setActiveExperienceTitleId] = useState<number | null>(null);
+  const [filteredJobTitles, setFilteredJobTitles] = useState<string[]>([]);
   const [isCroppingCover, setIsCroppingCover] = useState(false);
   const [tempImage, setTempImage] = useState<string | null>(null);
 
@@ -139,6 +143,22 @@ const ProfilePage: React.FC = () => {
     loadRealCounts();
   }, [profile]);
 
+  const formatLocationSuggestion = (suggestion: any): string => {
+    const address = suggestion.address || {};
+    const city =
+      address.city ||
+      address.town ||
+      address.village ||
+      address.county ||
+      address.state_district ||
+      '';
+    const state = address.state || '';
+    const country = address.country || '';
+
+    const compact = [city, state, country].filter(Boolean).join(', ');
+    return compact || suggestion.display_name || suggestion.place_name || '';
+  };
+
   // Debounced fetch for location suggestions
   const fetchLocationSuggestions = useCallback(
     debounce(async (query: string) => {
@@ -151,7 +171,13 @@ const ProfilePage: React.FC = () => {
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=8`
         );
         const data = await response.json();
-        setLocationSuggestions(data);
+        const normalized = Array.isArray(data)
+          ? data.map((item: any) => ({
+            ...item,
+            label: formatLocationSuggestion(item),
+          })).filter((item: any) => Boolean(item.label))
+          : [];
+        setLocationSuggestions(normalized);
       } catch (error) {
         setLocationSuggestions([]);
       }
@@ -164,6 +190,8 @@ const ProfilePage: React.FC = () => {
     setLocationQuery(value);
     setLocationError('');
     setShowLocationSuggestions(true);
+    setActiveExperienceLocationId(null); // Reset experience search
+    setActiveExperienceTitleId(null); // Reset title search
     if (value) {
       fetchLocationSuggestions(value);
     } else {
@@ -172,10 +200,52 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleLocationSelect = (suggestion: any) => {
-    setEditForm({ ...editForm, location: suggestion.display_name });
-    setLocationQuery(suggestion.display_name);
+    const displayName = suggestion.label || formatLocationSuggestion(suggestion);
+    setEditForm({ ...editForm, location: displayName });
+    setLocationQuery(displayName);
     setShowLocationSuggestions(false);
     setLocationError('');
+  };
+
+  const handleExperienceLocationInput = (expId: number, value: string) => {
+    updateItem('experiences', expId, { location: value });
+    setActiveExperienceLocationId(expId);
+    setActiveExperienceTitleId(null); // Reset title search
+    setShowLocationSuggestions(false); // Reset main search
+    if (value) {
+      fetchLocationSuggestions(value);
+    } else {
+      setLocationSuggestions([]);
+    }
+  };
+
+  const handleExperienceLocationSelect = (expId: number, suggestion: any) => {
+    const displayName = suggestion.label || formatLocationSuggestion(suggestion);
+    updateItem('experiences', expId, { location: displayName });
+    setActiveExperienceLocationId(null);
+    setLocationSuggestions([]);
+  };
+
+  const handleExperienceTitleInput = (expId: number, value: string) => {
+    updateItem('experiences', expId, { title: value });
+    setActiveExperienceTitleId(expId);
+    setActiveExperienceLocationId(null); // Reset location search
+    setShowLocationSuggestions(false); // Reset main search
+
+    if (value.trim()) {
+      const filtered = jobTitles
+        .filter((t: string) => t.toLowerCase().includes(value.toLowerCase()))
+        .slice(0, 10);
+      setFilteredJobTitles(filtered);
+    } else {
+      setFilteredJobTitles([]);
+    }
+  };
+
+  const handleExperienceTitleSelect = (expId: number, title: string) => {
+    updateItem('experiences', expId, { title });
+    setActiveExperienceTitleId(null);
+    setFilteredJobTitles([]);
   };
 
   const handleDeleteAvatar = () => {
@@ -498,7 +568,35 @@ const ProfilePage: React.FC = () => {
             {!profile?.cover_image_url && (
               <div className="absolute inset-0 bg-gradient-to-br from-stone-off via-stone-border to-slate-200"></div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent"></div>
+
+            {/* Cover Photo Icons */}
+            <div className="absolute top-4 right-4 flex gap-4 z-20">
+              <button
+                onClick={() => setIsEditing(true)}
+                className="size-8 flex items-center justify-center bg-[#5F7261] rounded-full transition-all transform hover:scale-110 shadow-sm"
+                title="Edit Cover"
+              >
+                <Pencil className="w-4 h-4 text-white fill-white" />
+              </button>
+              <button
+                onClick={() => {
+                  const profileUrl = `${window.location.origin}/user/${user?.id}`;
+                  navigator.clipboard.writeText(profileUrl).then(() => {
+                    setShareSuccess(true);
+                    setShowShareModal(true);
+                    setTimeout(() => {
+                      setShowShareModal(false);
+                      setShareSuccess(false);
+                    }, 2000);
+                  });
+                }}
+                className="size-8 flex items-center justify-center bg-[#5F7261] rounded-full transition-all transform hover:scale-110 shadow-sm"
+                title="Share Profile"
+              >
+                <Share2 className="w-4 h-4 text-white" strokeWidth={3} />
+              </button>
+            </div>
           </div>
 
           <div className="relative z-10 flex flex-col items-center gap-4 w-full max-w-2xl mt-28 mb-10">
@@ -572,38 +670,6 @@ const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex w-full max-w-sm gap-4 mt-2">
-              <button
-                onClick={() => {
-                  const profileUrl = `${window.location.origin}/user/${user?.id}`;
-                  navigator.clipboard.writeText(profileUrl).then(() => {
-                    setShareSuccess(true);
-                    setShowShareModal(true);
-                    setTimeout(() => {
-                      setShowShareModal(false);
-                      setShareSuccess(false);
-                    }, 2000);
-                  }).catch(() => {
-                    setShareSuccess(false);
-                    setShowShareModal(true);
-                    setTimeout(() => {
-                      setShowShareModal(false);
-                    }, 2000);
-                  });
-                }}
-                className="flex-1 h-11 px-6 rounded-lg bg-sage-green hover:bg-dark-sage active:bg-dark-olive text-white text-sm font-bold tracking-wide transition-all shadow-lg shadow-sage-green/25 hover:shadow-sage-green/40 flex items-center justify-center gap-2"
-              >
-                <Share className="text-[20px]" />
-                Share
-              </button>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex-1 h-11 px-6 rounded-lg border border-stone-border hover:bg-off-stone bg-white text-slate-900 text-sm font-bold tracking-wide transition-all flex items-center justify-center gap-2"
-              >
-                <Edit3 className="text-[20px]" />
-                Edit Profile
-              </button>
-            </div>
 
             {/* Bio Section */}
             {editForm.bio && (
@@ -618,44 +684,67 @@ const ProfilePage: React.FC = () => {
           <div className="lg:col-span-2 flex flex-col gap-10">
             {/* Experience Section */}
             <section>
-              <div className="flex items-center gap-3 mb-6 px-1">
-                <div className="p-1.5 bg-off-stone rounded-md text-slate-meta">
-                  <Briefcase className="text-2xl" />
+              <div className="flex items-center gap-3 mb-10 px-1">
+                <div className="p-2 bg-slate-50 rounded-lg text-slate-400">
+                  <Briefcase size={20} />
                 </div>
-                <h2 className="text-text-main text-xl font-bold tracking-tight">Experience</h2>
+                <h2 className="text-slate-900 text-lg font-black uppercase tracking-[0.2em] pt-0.5">Experience</h2>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-border-card p-6 md:p-8 shadow-sm">
-                <div className="relative space-y-12">
-                  {editForm.experiences.length > 0 && (
-                    <div className="absolute left-[27px] top-3 bottom-3 w-0.5 bg-off-stone"></div>
-                  )}
-                  {editForm.experiences.length > 0 ? (
-                    editForm.experiences.map((exp) => (
-                      <div key={exp.id} className="relative flex gap-6 group">
-                        <div className="relative z-10 shrink-0">
-                          <div className="size-[54px] rounded-full bg-white border border-stone-border flex items-center justify-center p-1 group-hover:border-sage-green group-hover:shadow-md transition-all duration-300">
-                            <div
-                              className="bg-center bg-no-repeat bg-contain rounded-full size-full"
-                              style={{ backgroundImage: `url("${exp.logo}")` }}
-                            ></div>
+
+              <div className="relative space-y-20 pl-2">
+                {editForm.experiences.length > 0 && (
+                  <div className="absolute left-[31px] top-6 bottom-6 w-px bg-slate-100"></div>
+                )}
+                {editForm.experiences.length > 0 ? (
+                  editForm.experiences.map((exp) => (
+                    <div key={exp.id} className="relative flex gap-10 group">
+                      <div className="relative z-10 shrink-0">
+                        <div className="bg-center bg-no-repeat bg-contain bg-white rounded-xl size-20 shadow-sm border border-slate-100 p-2">
+                          <div className="w-full h-full bg-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
+                            {exp.logo ? (
+                              <img src={exp.logo} alt={exp.company} className="w-full h-full object-contain p-1" />
+                            ) : (
+                              <Building className="h-8 w-8 text-slate-400" />
+                            )}
                           </div>
-                        </div>
-                        <div className="flex flex-col flex-1 pt-1.5">
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 mb-1">
-                            <h3 className="text-text-main text-lg font-bold">{exp.title}</h3>
-                            <span className="text-slate-meta text-sm font-medium">
-                              {formatDate(exp.startDate)} - {exp.current ? 'Present' : formatDate(exp.endDate)}
-                            </span>
-                          </div>
-                          <p className="text-sage-green font-semibold text-sm mb-3">{exp.company}</p>
-                          <p className="text-text-secondary text-base leading-relaxed">{exp.description}</p>
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-slate-500">No experiences added yet.</p>
-                  )}
-                </div>
+
+                      <div className="flex flex-col flex-1 pt-1">
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <h3 className="text-slate-900 text-base font-black uppercase tracking-[0.1em] leading-tight group-hover:text-sage transition-colors duration-300">
+                              {exp.title}
+                            </h3>
+                            <div className="flex items-center gap-2.5">
+                              <span className="text-sage font-bold text-[10px] uppercase tracking-wider">{exp.company}</span>
+                              {exp.location && (
+                                <>
+                                  <span className="text-slate-200 text-xs">/</span>
+                                  <span className="text-slate-400 text-xs font-semibold tracking-tight">{exp.location}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 pt-0.5">
+                            <span className="px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-slate-400 text-[9px] font-black uppercase tracking-widest whitespace-nowrap">
+                              {formatDate(exp.startDate)} — {exp.current ? 'Present' : formatDate(exp.endDate)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="text-slate-500 text-[14px] leading-[1.8] mt-6 max-w-2xl font-medium opacity-80 group-hover:opacity-100 transition-opacity duration-500 whitespace-pre-line">
+                          {exp.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-10 text-center border-2 border-dashed border-slate-100 rounded-3xl">
+                    <p className="text-slate-400 text-sm font-medium">No professional highlights added yet.</p>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -760,580 +849,609 @@ const ProfilePage: React.FC = () => {
       </main>
 
       {/* Edit Profile Modal */}
-      {isEditing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="p-6 border-b border-slate-200 bg-gray-50">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-slate-900">Edit Profile</h2>
-                <button
-                  onClick={handleCancel}
-                  className="text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-slate-100 rounded-full"
-                  disabled={isSaving}
-                >
-                  <X className="h-6 w-6" />
-                </button>
+      {
+        isEditing && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div className="p-6 border-b border-slate-200 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-slate-900">Edit Profile</h2>
+                  <button
+                    onClick={handleCancel}
+                    className="text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-slate-100 rounded-full"
+                    disabled={isSaving}
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
               </div>
+              <form onSubmit={handleEditSubmit} className="p-8 space-y-8">
+                {/* Profile Images */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Profile Picture */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Profile Picture</label>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="relative group">
+                          <img
+                            src={getProfilePicture()}
+                            alt="Preview"
+                            className="w-20 h-20 rounded-full object-cover border-2 border-slate-200 shadow-sm"
+                          />
+                          <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                            <Edit3 className="text-white h-5 w-5" />
+                          </div>
+                        </div>
+                        {editForm.profile_picture_url && (
+                          <button
+                            type="button"
+                            onClick={handleDeleteAvatar}
+                            className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
+                            disabled={isSaving}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfilePictureChange}
+                        className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
+                        disabled={isSaving}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Cover Image */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Cover Image (Background)</label>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-1 flex flex-col gap-2">
+                        <div className="relative group">
+                          <div
+                            className="h-20 w-full rounded-lg bg-cover bg-center border-2 border-slate-200 shadow-sm overflow-hidden bg-gradient-to-br from-stone-off via-stone-border to-slate-200"
+                            style={editForm.cover_image_url ? { backgroundImage: `url("${editForm.cover_image_url}")` } : {}}
+                          >
+                          </div>
+                          <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                            <Edit3 className="text-white h-5 w-5" />
+                          </div>
+                        </div>
+                        {editForm.cover_image_url && (
+                          <button
+                            type="button"
+                            onClick={handleDeleteCover}
+                            className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700 transition-colors w-fit"
+                            disabled={isSaving}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Delete Cover
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCoverImageChange}
+                        className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
+                        disabled={isSaving}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+
+
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
+                    <input
+                      type="text"
+                      value={editForm.full_name}
+                      onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={isSaving}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
+                    <input
+                      type="text"
+                      value={editForm.title}
+                      onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={isSaving}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Company</label>
+                    <input
+                      type="text"
+                      value={editForm.company}
+                      onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={isSaving}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Country</label>
+                    <CountryPicker
+                      value={editForm.country_code}
+                      onChange={val => setEditForm({ ...editForm, country_code: val })}
+                      required
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
+                    <input
+                      type="text"
+                      value={locationQuery}
+                      onChange={handleLocationInput}
+                      onBlur={() => {
+                        setLocationTouched(true);
+                        setTimeout(() => setShowLocationSuggestions(false), 200);
+                      }}
+                      onFocus={() => setShowLocationSuggestions(true)}
+                      className={`w-full px-4 py-2 border ${locationError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      placeholder="Type a city, state, or country..."
+                      disabled={isSaving}
+                      autoComplete="off"
+                    />
+                    {showLocationSuggestions && locationSuggestions.length > 0 && (
+                      <ul className="absolute z-10 bg-white border border-slate-200 rounded-lg mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
+                        {locationSuggestions.map((suggestion) => (
+                          <li
+                            key={suggestion.place_id}
+                            className="px-4 py-2 cursor-pointer hover:bg-blue-100"
+                            onMouseDown={() => handleLocationSelect(suggestion)}
+                          >
+                            {suggestion.label}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {locationError && locationTouched && (
+                      <p className="text-red-600 text-xs mt-1">{locationError}</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Bio</label>
+                  <textarea
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                    rows={4}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    disabled={isSaving}
+                  />
+                </div>
+
+                {/* Experiences */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-sm font-medium text-slate-700">Experience</label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        addItem('experiences', {
+                          title: '',
+                          company: '',
+                          location: '',
+                          startDate: '',
+                          endDate: '',
+                          current: false,
+                          description: '',
+                          logo: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
+                        })
+                      }
+                      className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                      disabled={isSaving}
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+
+                  {editForm.experiences.map((exp) => (
+                    <div key={exp.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
+                      <button
+                        type="button"
+                        onClick={() => deleteItem('experiences', exp.id)}
+                        className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                        disabled={isSaving}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="relative">
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Title</label>
+                          <input
+                            type="text"
+                            value={exp.title}
+                            onChange={(e) => handleExperienceTitleInput(exp.id, e.target.value)}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                            autoComplete="off"
+                          />
+                          {activeExperienceTitleId === exp.id && filteredJobTitles.length > 0 && (
+                            <ul className="absolute z-10 bg-white border border-slate-200 rounded-lg mt-1 w-full max-h-40 overflow-y-auto shadow-lg">
+                              {filteredJobTitles.map((title, idx) => (
+                                <li
+                                  key={idx}
+                                  className="px-3 py-1.5 text-xs cursor-pointer hover:bg-blue-100"
+                                  onMouseDown={() => handleExperienceTitleSelect(exp.id, title)}
+                                >
+                                  {title}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Company</label>
+                          <input
+                            type="text"
+                            value={exp.company}
+                            onChange={(e) => updateItem('experiences', exp.id, { ...exp, company: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div className="relative">
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Location</label>
+                          <input
+                            type="text"
+                            value={exp.location}
+                            onChange={(e) => handleExperienceLocationInput(exp.id, e.target.value)}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Type a city, state, or country..."
+                            disabled={isSaving}
+                            autoComplete="off"
+                          />
+                          {activeExperienceLocationId === exp.id && locationSuggestions.length > 0 && (
+                            <ul className="absolute z-10 bg-white border border-slate-200 rounded-lg mt-1 w-full max-h-40 overflow-y-auto shadow-lg">
+                              {locationSuggestions.map((suggestion) => (
+                                <li
+                                  key={suggestion.place_id}
+                                  className="px-3 py-1.5 text-xs cursor-pointer hover:bg-blue-100"
+                                  onMouseDown={() => handleExperienceLocationSelect(exp.id, suggestion)}
+                                >
+                                  {suggestion.label}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Start Date</label>
+                          <input
+                            type="date"
+                            value={exp.startDate}
+                            onChange={(e) => updateItem('experiences', exp.id, { ...exp, startDate: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">End Date</label>
+                          <input
+                            type="date"
+                            value={exp.endDate}
+                            onChange={(e) => updateItem('experiences', exp.id, { ...exp, endDate: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={exp.current || isSaving}
+                          />
+                        </div>
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={exp.current}
+                            onChange={(e) => updateItem('experiences', exp.id, { ...exp, current: e.target.checked, endDate: e.target.checked ? '' : exp.endDate })}
+                            className="mr-2"
+                            disabled={isSaving}
+                          />
+                          <label className="text-xs font-medium text-slate-700">Current</label>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
+                          <textarea
+                            value={exp.description}
+                            onChange={(e) => updateItem('experiences', exp.id, { ...exp, description: e.target.value })}
+                            rows={3}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            disabled={isSaving}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Education */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-sm font-medium text-slate-700">Education</label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        addItem('education', {
+                          degree: '',
+                          school: '',
+                          startDate: '',
+                          endDate: '',
+                          description: '',
+                          gpa: '',
+                        })
+                      }
+                      className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                      disabled={isSaving}
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+                  {Array.isArray(editForm.education) ? editForm.education.map((edu) => (
+                    <div key={edu.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
+                      <button
+                        type="button"
+                        onClick={() => deleteItem('education', edu.id)}
+                        className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                        disabled={isSaving}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Degree</label>
+                          <input
+                            type="text"
+                            value={edu.degree}
+                            onChange={(e) => updateItem('education', edu.id, { ...edu, degree: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">School</label>
+                          <input
+                            type="text"
+                            value={edu.school}
+                            onChange={(e) => updateItem('education', edu.id, { ...edu, school: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Start Date</label>
+                          <input
+                            type="date"
+                            value={edu.startDate}
+                            onChange={(e) => updateItem('education', edu.id, { ...edu, startDate: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">End Date</label>
+                          <input
+                            type="date"
+                            value={edu.endDate}
+                            onChange={(e) => updateItem('education', edu.id, { ...edu, endDate: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">GPA</label>
+                          <input
+                            type="text"
+                            value={edu.gpa}
+                            onChange={(e) => updateItem('education', edu.id, { ...edu, gpa: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
+                          <textarea
+                            value={edu.description}
+                            onChange={(e) => updateItem('education', edu.id, { ...edu, description: e.target.value })}
+                            rows={3}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            disabled={isSaving}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )) : null}
+                </div>
+
+                {/* Skills */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-sm font-medium text-slate-700">Skills</label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        addItem('skills', {
+                          name: '',
+                          level: 50,
+                          category: '',
+                        })
+                      }
+                      className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                      disabled={isSaving}
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+                  {editForm.skills.map((skill) => (
+                    <div key={skill.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
+                      <button
+                        type="button"
+                        onClick={() => deleteItem('skills', skill.id)}
+                        className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                        disabled={isSaving}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Name</label>
+                          <input
+                            type="text"
+                            value={skill.name}
+                            onChange={(e) => updateItem('skills', skill.id, { ...skill, name: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Level (0-100)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={skill.level}
+                            onChange={(e) => updateItem('skills', skill.id, { ...skill, level: parseInt(e.target.value) || 0 })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Category</label>
+                          <input
+                            type="text"
+                            value={skill.category}
+                            onChange={(e) => updateItem('skills', skill.id, { ...skill, category: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Achievements */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-sm font-medium text-slate-700">Achievements</label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        addItem('achievements', {
+                          title: '',
+                          organization: '',
+                          date: '',
+                          type: '',
+                          description: '',
+                        })
+                      }
+                      className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                      disabled={isSaving}
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+                  {Array.isArray(editForm.achievements) ? editForm.achievements.map((achievement) => (
+                    <div key={achievement.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
+                      <button
+                        type="button"
+                        onClick={() => deleteItem('achievements', achievement.id)}
+                        className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                        disabled={isSaving}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Title</label>
+                          <input
+                            type="text"
+                            value={achievement.title}
+                            onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, title: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Organization</label>
+                          <input
+                            type="text"
+                            value={achievement.organization}
+                            onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, organization: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Date</label>
+                          <input
+                            type="date"
+                            value={achievement.date}
+                            onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, date: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Type</label>
+                          <input
+                            type="text"
+                            value={achievement.type}
+                            onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, type: e.target.value })}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
+                          <textarea
+                            value={achievement.description}
+                            onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, description: e.target.value })}
+                            rows={3}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            disabled={isSaving}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )) : null}
+                </div>
+
+                {/* Feedback Messages */}
+                {isSaving && <p className="text-blue-500 text-sm">Saving changes...</p>}
+                {saveError && <p className="text-red-500 text-sm">{saveError}</p>}
+
+                <div className="flex items-center justify-end space-x-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="px-6 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors"
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={handleEditSubmit} className="p-8 space-y-8">
-              {/* Profile Images */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Profile Picture */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Profile Picture</label>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="relative group">
-                        <img
-                          src={getProfilePicture()}
-                          alt="Preview"
-                          className="w-20 h-20 rounded-full object-cover border-2 border-slate-200 shadow-sm"
-                        />
-                        <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
-                          <Edit3 className="text-white h-5 w-5" />
-                        </div>
-                      </div>
-                      {editForm.profile_picture_url && (
-                        <button
-                          type="button"
-                          onClick={handleDeleteAvatar}
-                          className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
-                          disabled={isSaving}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProfilePictureChange}
-                      className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
-                      disabled={isSaving}
-                    />
-                  </div>
-                </div>
-
-                {/* Cover Image */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Cover Image (Background)</label>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-1 flex flex-col gap-2">
-                      <div className="relative group">
-                        <div
-                          className="h-20 w-full rounded-lg bg-cover bg-center border-2 border-slate-200 shadow-sm overflow-hidden bg-gradient-to-br from-stone-off via-stone-border to-slate-200"
-                          style={editForm.cover_image_url ? { backgroundImage: `url("${editForm.cover_image_url}")` } : {}}
-                        >
-                        </div>
-                        <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
-                          <Edit3 className="text-white h-5 w-5" />
-                        </div>
-                      </div>
-                      {editForm.cover_image_url && (
-                        <button
-                          type="button"
-                          onClick={handleDeleteCover}
-                          className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700 transition-colors w-fit"
-                          disabled={isSaving}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          Delete Cover
-                        </button>
-                      )}
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleCoverImageChange}
-                      className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
-                      disabled={isSaving}
-                    />
-                  </div>
-                </div>
-              </div>
-
-
-
-              {/* Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    value={editForm.full_name}
-                    onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={isSaving}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
-                  <input
-                    type="text"
-                    value={editForm.title}
-                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={isSaving}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Company</label>
-                  <input
-                    type="text"
-                    value={editForm.company}
-                    onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={isSaving}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Country</label>
-                  <CountryPicker
-                    value={editForm.country_code}
-                    onChange={val => setEditForm({ ...editForm, country_code: val })}
-                    required
-                  />
-                </div>
-                <div className="relative">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
-                  <input
-                    type="text"
-                    value={locationQuery}
-                    onChange={handleLocationInput}
-                    onBlur={() => {
-                      setLocationTouched(true);
-                      setTimeout(() => setShowLocationSuggestions(false), 200);
-                    }}
-                    onFocus={() => setShowLocationSuggestions(true)}
-                    className={`w-full px-4 py-2 border ${locationError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    placeholder="Type a city, state, or country..."
-                    disabled={isSaving}
-                    autoComplete="off"
-                  />
-                  {showLocationSuggestions && locationSuggestions.length > 0 && (
-                    <ul className="absolute z-10 bg-white border border-slate-200 rounded-lg mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
-                      {locationSuggestions.map((suggestion) => (
-                        <li
-                          key={suggestion.place_id}
-                          className="px-4 py-2 cursor-pointer hover:bg-blue-100"
-                          onMouseDown={() => handleLocationSelect(suggestion)}
-                        >
-                          {suggestion.display_name}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {locationError && locationTouched && (
-                    <p className="text-red-600 text-xs mt-1">{locationError}</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Bio</label>
-                <textarea
-                  value={editForm.bio}
-                  onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                  rows={4}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  disabled={isSaving}
-                />
-              </div>
-
-              {/* Experiences */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-medium text-slate-700">Experience</label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      addItem('experiences', {
-                        title: '',
-                        company: '',
-                        location: '',
-                        startDate: '',
-                        endDate: '',
-                        current: false,
-                        description: '',
-                        logo: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-                      })
-                    }
-                    className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
-                    disabled={isSaving}
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Add</span>
-                  </button>
-                </div>
-
-                {editForm.experiences.map((exp) => (
-                  <div key={exp.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
-                    <button
-                      type="button"
-                      onClick={() => deleteItem('experiences', exp.id)}
-                      className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                      disabled={isSaving}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Title</label>
-                        <input
-                          type="text"
-                          value={exp.title}
-                          onChange={(e) => updateItem('experiences', exp.id, { ...exp, title: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Company</label>
-                        <input
-                          type="text"
-                          value={exp.company}
-                          onChange={(e) => updateItem('experiences', exp.id, { ...exp, company: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div className="relative">
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Location</label>
-                        <input
-                          type="text"
-                          value={exp.location}
-                          onChange={(e) => updateItem('experiences', exp.id, { ...exp, location: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Type a city, state, or country..."
-                          disabled={isSaving}
-                          autoComplete="off"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Start Date</label>
-                        <input
-                          type="date"
-                          value={exp.startDate}
-                          onChange={(e) => updateItem('experiences', exp.id, { ...exp, startDate: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">End Date</label>
-                        <input
-                          type="date"
-                          value={exp.endDate}
-                          onChange={(e) => updateItem('experiences', exp.id, { ...exp, endDate: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={exp.current || isSaving}
-                        />
-                      </div>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={exp.current}
-                          onChange={(e) => updateItem('experiences', exp.id, { ...exp, current: e.target.checked, endDate: e.target.checked ? '' : exp.endDate })}
-                          className="mr-2"
-                          disabled={isSaving}
-                        />
-                        <label className="text-xs font-medium text-slate-700">Current</label>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
-                        <textarea
-                          value={exp.description}
-                          onChange={(e) => updateItem('experiences', exp.id, { ...exp, description: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                          disabled={isSaving}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Education */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-medium text-slate-700">Education</label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      addItem('education', {
-                        degree: '',
-                        school: '',
-                        startDate: '',
-                        endDate: '',
-                        description: '',
-                        gpa: '',
-                      })
-                    }
-                    className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
-                    disabled={isSaving}
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Add</span>
-                  </button>
-                </div>
-                {Array.isArray(editForm.education) ? editForm.education.map((edu) => (
-                  <div key={edu.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
-                    <button
-                      type="button"
-                      onClick={() => deleteItem('education', edu.id)}
-                      className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                      disabled={isSaving}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Degree</label>
-                        <input
-                          type="text"
-                          value={edu.degree}
-                          onChange={(e) => updateItem('education', edu.id, { ...edu, degree: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">School</label>
-                        <input
-                          type="text"
-                          value={edu.school}
-                          onChange={(e) => updateItem('education', edu.id, { ...edu, school: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Start Date</label>
-                        <input
-                          type="date"
-                          value={edu.startDate}
-                          onChange={(e) => updateItem('education', edu.id, { ...edu, startDate: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">End Date</label>
-                        <input
-                          type="date"
-                          value={edu.endDate}
-                          onChange={(e) => updateItem('education', edu.id, { ...edu, endDate: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">GPA</label>
-                        <input
-                          type="text"
-                          value={edu.gpa}
-                          onChange={(e) => updateItem('education', edu.id, { ...edu, gpa: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
-                        <textarea
-                          value={edu.description}
-                          onChange={(e) => updateItem('education', edu.id, { ...edu, description: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                          disabled={isSaving}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )) : null}
-              </div>
-
-              {/* Skills */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-medium text-slate-700">Skills</label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      addItem('skills', {
-                        name: '',
-                        level: 50,
-                        category: '',
-                      })
-                    }
-                    className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
-                    disabled={isSaving}
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Add</span>
-                  </button>
-                </div>
-                {editForm.skills.map((skill) => (
-                  <div key={skill.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
-                    <button
-                      type="button"
-                      onClick={() => deleteItem('skills', skill.id)}
-                      className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                      disabled={isSaving}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Name</label>
-                        <input
-                          type="text"
-                          value={skill.name}
-                          onChange={(e) => updateItem('skills', skill.id, { ...skill, name: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Level (0-100)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={skill.level}
-                          onChange={(e) => updateItem('skills', skill.id, { ...skill, level: parseInt(e.target.value) || 0 })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Category</label>
-                        <input
-                          type="text"
-                          value={skill.category}
-                          onChange={(e) => updateItem('skills', skill.id, { ...skill, category: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Achievements */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-medium text-slate-700">Achievements</label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      addItem('achievements', {
-                        title: '',
-                        organization: '',
-                        date: '',
-                        type: '',
-                        description: '',
-                      })
-                    }
-                    className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
-                    disabled={isSaving}
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Add</span>
-                  </button>
-                </div>
-                {Array.isArray(editForm.achievements) ? editForm.achievements.map((achievement) => (
-                  <div key={achievement.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
-                    <button
-                      type="button"
-                      onClick={() => deleteItem('achievements', achievement.id)}
-                      className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                      disabled={isSaving}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Title</label>
-                        <input
-                          type="text"
-                          value={achievement.title}
-                          onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, title: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Organization</label>
-                        <input
-                          type="text"
-                          value={achievement.organization}
-                          onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, organization: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Date</label>
-                        <input
-                          type="date"
-                          value={achievement.date}
-                          onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, date: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Type</label>
-                        <input
-                          type="text"
-                          value={achievement.type}
-                          onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, type: e.target.value })}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
-                        <textarea
-                          value={achievement.description}
-                          onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, description: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                          disabled={isSaving}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )) : null}
-              </div>
-
-              {/* Feedback Messages */}
-              {isSaving && <p className="text-blue-500 text-sm">Saving changes...</p>}
-              {saveError && <p className="text-red-500 text-sm">{saveError}</p>}
-
-              <div className="flex items-center justify-end space-x-4 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="px-6 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors"
-                  disabled={isSaving}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
-                  disabled={isSaving}
-                >
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div >
-      )}
+          </div >
+        )
+      }
 
       {/* Share Success Modal */}
       {

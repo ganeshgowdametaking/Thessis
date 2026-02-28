@@ -160,7 +160,7 @@ const PasswordResetPage: React.FC = () => {
           <img
             src="/logo2.png"
             alt="TankTide Logo"
-            className="w-16 h-16 object-contain"
+            className="w-16 h-16 object-contain filter-sage"
           />
         </div>
 

@@ -2,6 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
 import { notificationService } from '../services/notificationService';
+import referralIcon from '../assets/referral-icon.png';
+import messagesIcon from '../assets/messages-icon.png';
+import notificationsIcon from '../assets/notifications-icon.png';
+import profileIcon from '../assets/profile-icon.png';
+import settingsIcon from '../assets/settings-icon.png';
 
 
 // Add global type for refreshUnreadCounts
@@ -185,7 +190,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
                 <img
                   src="/logo2.png"
                   alt="TankTide Logo"
-                  className="h-12 w-12 object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                  className="h-12 w-12 object-contain cursor-pointer hover:opacity-80 transition-opacity filter-sage"
                 />
               </Link>
             </div>
@@ -213,7 +218,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
             <img
               src="/logo2.png"
               alt="TankTide Logo"
-              className="h-16 w-16 object-contain rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
+              className="h-16 w-16 object-contain rounded-xl cursor-pointer hover:opacity-80 transition-opacity filter-sage"
             />
           </Link>
         </div>
@@ -234,55 +239,58 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-8 xl:gap-12 shrink-0">
-        <nav className="hidden xl:flex items-center gap-10">
-          {(profile?.role === 'admin' || profile?.role?.toLowerCase() === 'founder' || profile?.role?.toLowerCase() === 'co_founder') && (
-            <Link className="text-[#354038] font-semibold text-[17px] hover:text-primary transition-colors flex items-center h-10" to="/analytics">
-              Dashboard
-            </Link>
-          )}
-          <Link className="text-[#354038] font-semibold text-[17px] hover:text-primary transition-colors flex items-center h-10" to="/jobs">
-            Referrals
-          </Link>
-          <Link className="text-[#354038] font-semibold text-[17px] hover:text-primary transition-colors flex items-center h-10" to="/messages">
-            Messages
-          </Link>
-        </nav>
-
+      <div className="flex items-center gap-6 shrink-0">
         <div className="flex items-center gap-6">
+          {/* Referral Icon Container */}
+          <Link to="/jobs" className="group flex items-center justify-center h-10 w-10 transition-colors">
+            <img
+              src={referralIcon}
+              alt="Referrals"
+              className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
+            />
+          </Link>
 
+          {/* Messages Icon Container */}
+          <Link to="/messages" className="group flex items-center justify-center h-10 w-10 transition-colors">
+            <img
+              src={messagesIcon}
+              alt="Messages"
+              className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
+            />
+          </Link>
 
-          <Link to="/notifications" className="relative text-[#354038] hover:text-primary transition-colors p-1 group flex items-center justify-center h-10 w-10">
-            <span className="material-symbols-outlined text-[28px] filled group-hover:opacity-80 transition-opacity">notifications</span>
+          {/* Notifications Icon Container */}
+          <Link to="/notifications" className="relative group flex items-center justify-center h-10 w-10 transition-colors">
+            <img
+              src={notificationsIcon}
+              alt="Notifications"
+              className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
+            />
             {unreadNotifications > 0 && (
-              <span className="absolute top-1 right-1.5 w-2.5 h-2.5 bg-[#ef4444] rounded-full border-2 border-white"></span>
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
             )}
           </Link>
 
-          <Link className="block relative group" to="/profile">
-            <div className="h-10 w-10 rounded-full bg-cover bg-center border-[1.5px] border-[#e2e8f0] shadow-sm group-hover:border-primary/50 transition-colors">
-              {profile?.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt={profile.full_name || 'Profile'}
-                  className="h-10 w-10 rounded-full object-cover"
-                />
-              ) : (
-                <div className="h-10 w-10 rounded-full bg-[#5f7261] flex items-center justify-center">
-                  <span className="text-white font-medium text-sm">
-                    {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                  </span>
-                </div>
-              )}
-            </div>
+          {/* Profile Icon Container */}
+          <Link to="/profile" className="group flex items-center justify-center h-10 w-10 transition-colors">
+            <img
+              src={profile?.avatar_url || profileIcon}
+              alt={profile?.full_name || "Profile"}
+              className="h-8 w-8 object-cover rounded-full transition-all duration-200 group-hover:scale-110"
+            />
           </Link>
 
+          {/* Settings Icon Container */}
           <div className="relative" ref={settingsDropdownRef}>
             <button
-              className="text-[#354038] hover:text-primary transition-colors p-1 group flex items-center justify-center h-10 w-10"
+              className="group flex items-center justify-center h-10 w-10 transition-colors"
               onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
             >
-              <span className="material-symbols-outlined text-[28px] filled group-hover:opacity-80 transition-opacity">settings</span>
+              <img
+                src={settingsIcon}
+                alt="Settings"
+                className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
+              />
             </button>
 
             {showSettingsDropdown && (

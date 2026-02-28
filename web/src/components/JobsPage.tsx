@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 // Cache buster: 2025-01-25-15:30
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, MapPin, Calendar, Briefcase, Building, Clock, Users, ChevronDown, X, CheckCircle, ArrowLeft, User, Share2, Copy, ArrowUpRight, List, School, DollarSign, CheckCircle2, Upload } from 'lucide-react';
+import { Plus, Search, Filter, MapPin, Calendar, Briefcase, Building, Clock, Users, ChevronDown, X, CheckCircle, ArrowLeft, User, Copy, ArrowUpRight, List, School, DollarSign, CheckCircle2, Upload } from 'lucide-react';
+import shareIcon from '../assets/share-icon.png';
 import { useAuthContext } from '../contexts/AuthContext';
 import { jobService } from '../services/jobService';
 import { blockingService } from '../services/blockingService';
@@ -686,9 +687,13 @@ const JobsPage: React.FC = () => {
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowShareModal(true)}
-                      className="flex items-center justify-center size-10 rounded-lg border border-stone-divider text-slate-500 hover:bg-stone-sidebar transition-colors"
+                      className="group flex items-center justify-center h-10 w-10 transition-colors"
                     >
-                      <Share2 className="text-[20px]" />
+                      <img
+                        src={shareIcon}
+                        alt="Share"
+                        className="h-6 w-6 object-contain transition-all duration-200 group-hover:scale-110"
+                      />
                     </button>
                   </div>
                 </div>

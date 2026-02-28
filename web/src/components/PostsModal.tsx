@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, MessageCircle, Send, MoreHorizontal, Trash2, Share2 } from 'lucide-react';
+import { X, MessageCircle, Send, MoreHorizontal, Trash2 } from 'lucide-react';
+import shareIcon from '../assets/share-icon.png';
 import { postService } from '../services/postService';
 import { useAuthContext } from '../contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
@@ -56,28 +57,28 @@ const PostsModal: React.FC<PostsModalProps> = ({ isOpen, onClose, onViewProfile 
     try {
       // Create a shareable URL for the post
       const postUrl = `${window.location.origin}/posts/${postId}`;
-      
+
       // Copy to clipboard silently using the modern Clipboard API
       await navigator.clipboard.writeText(postUrl);
-      
+
       // Show brief success indicator
       setShareSuccess(postId);
       setTimeout(() => setShareSuccess(null), 2000);
-      
+
       // Optionally increment the share count in the database
       await postService.sharePost(postId.toString());
-      
+
       // Update local state to reflect the new share count
-      setPosts(posts.map(post => 
-        post.id === postId 
+      setPosts(posts.map(post =>
+        post.id === postId
           ? { ...post, shares_count: (post.shares_count || 0) + 1 }
           : post
       ));
-      
+
       console.log('✅ Post URL copied to clipboard silently');
     } catch (error) {
       console.error('Error copying to clipboard:', error);
-      
+
       // Fallback for browsers that don't support Clipboard API
       try {
         // Create a temporary textarea element
@@ -89,11 +90,11 @@ const PostsModal: React.FC<PostsModalProps> = ({ isOpen, onClose, onViewProfile 
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
+
         // Use the older execCommand method
         const successful = document.execCommand('copy');
         document.body.removeChild(textArea);
-        
+
         if (successful) {
           setShareSuccess(postId);
           setTimeout(() => setShareSuccess(null), 2000);
@@ -114,14 +115,14 @@ const PostsModal: React.FC<PostsModalProps> = ({ isOpen, onClose, onViewProfile 
     if (newComment.trim()) {
       try {
         const comment = await postService.addComment(postId.toString(), newComment);
-        
-        setPosts(posts.map(post => 
-          post.id === postId 
-            ? { 
-                ...post, 
-                comments: [...(post.comments || []), comment],
-                comments_count: (post.comments_count || 0) + 1
-              }
+
+        setPosts(posts.map(post =>
+          post.id === postId
+            ? {
+              ...post,
+              comments: [...(post.comments || []), comment],
+              comments_count: (post.comments_count || 0) + 1
+            }
             : post
         ));
         setNewComment('');
@@ -135,19 +136,19 @@ const PostsModal: React.FC<PostsModalProps> = ({ isOpen, onClose, onViewProfile 
     const date = new Date(dateString);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
-    
+
     const diffInWeeks = Math.floor(diffInDays / 7);
     if (diffInWeeks < 4) return `${diffInWeeks} week${diffInWeeks > 1 ? 's' : ''} ago`;
-    
+
     const diffInMonths = Math.floor(diffInDays / 30);
     return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
   };
@@ -156,22 +157,22 @@ const PostsModal: React.FC<PostsModalProps> = ({ isOpen, onClose, onViewProfile 
     if (author?.avatar_url) {
       return author.avatar_url;
     }
-    
+
     const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
     const colorIndex = author?.id ? author.id.charCodeAt(0) % colors.length : 0;
     const backgroundColor = colors[colorIndex];
-    
+
     const initials = author?.full_name
       ? author.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
       : 'U';
-    
+
     const svg = `
       <svg width="150" height="150" xmlns="http://www.w3.org/2000/svg">
         <rect width="150" height="150" fill="${backgroundColor}"/>
         <text x="75" y="85" font-family="Arial, sans-serif" font-size="60" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
       </svg>
     `;
-    
+
     return `data:image/svg+xml;base64,${btoa(svg)}`;
   };
 
@@ -221,7 +222,7 @@ const PostsModal: React.FC<PostsModalProps> = ({ isOpen, onClose, onViewProfile 
                         />
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
-                            <h3 
+                            <h3
                               className="font-bold text-slate-900 cursor-pointer hover:text-blue-600 transition-colors"
                               onClick={() => onViewProfile(post.author?.id)}
                             >
@@ -241,16 +242,16 @@ const PostsModal: React.FC<PostsModalProps> = ({ isOpen, onClose, onViewProfile 
                           </p>
                         </div>
                       </div>
-                      
+
                       {/* 3-dot menu with delete option */}
                       <div className="relative">
-                        <button 
+                        <button
                           onClick={() => setShowPostMenu(showPostMenu === post.id ? null : post.id)}
                           className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-lg hover:bg-slate-100"
                         >
                           <MoreHorizontal className="h-5 w-5" />
                         </button>
-                        
+
                         {showPostMenu === post.id && (
                           <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 overflow-hidden">
                             <div className="py-2">
@@ -281,7 +282,7 @@ const PostsModal: React.FC<PostsModalProps> = ({ isOpen, onClose, onViewProfile 
                           src={post.image_url}
                           alt="Post content"
                           className="w-full h-auto block"
-                          style={{ 
+                          style={{
                             maxWidth: '100%',
                             height: 'auto',
                             objectFit: 'contain'
@@ -296,15 +297,16 @@ const PostsModal: React.FC<PostsModalProps> = ({ isOpen, onClose, onViewProfile 
                     <div className="flex items-center justify-start">
                       <button
                         onClick={() => handleSharePost(post.id)}
-                        className={`flex items-center space-x-1 p-2 rounded-lg transition-all ${
-                          shareSuccess === post.id 
-                            ? 'text-green-600 bg-green-50' 
-                            : 'text-slate-500 hover:text-blue-600 hover:bg-slate-50'
-                        }`}
+                        className="flex items-center space-x-1 p-2 transition-all group"
                         title="Share post"
                       >
-                        <Share2 className="h-4 w-4" />
-                        <span className="text-sm">
+                        <img
+                          src={shareIcon}
+                          alt="Share"
+                          className="h-4 w-4 object-contain transition-all duration-200 group-hover:scale-110"
+                        />
+                        <span className={`text-sm ${shareSuccess === post.id ? 'text-green-600' : 'text-slate-500'
+                          }`}>
                           {shareSuccess === post.id ? 'Copied!' : 'Share'}
                         </span>
                       </button>
@@ -327,7 +329,7 @@ const PostsModal: React.FC<PostsModalProps> = ({ isOpen, onClose, onViewProfile 
                             <div className="flex-1">
                               <div className="bg-white rounded-lg p-3 border border-slate-200">
                                 <div className="flex items-center space-x-2 mb-1">
-                                  <span 
+                                  <span
                                     className="font-medium text-slate-900 text-sm cursor-pointer hover:text-blue-600 transition-colors"
                                     onClick={() => onViewProfile(comment.author?.id)}
                                   >

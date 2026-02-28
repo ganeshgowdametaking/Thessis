@@ -22,7 +22,7 @@ const CompanyLandingPage: React.FC = () => {
       // Try to get location from browser
       const response = await fetch('https://ipapi.co/json/');
       const data = await response.json();
-      
+
       setUserLocation({
         country: data.country_code || 'US',
         currency: getCurrencyForCountry(data.country_code),
@@ -112,7 +112,7 @@ const CompanyLandingPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between p-6 relative z-10">
         <div className="flex items-center space-x-2">
-          <img src="/new-logo.png" alt="TankTide Logo" className="h-12 w-auto" />
+          <img src="/new-logo.png" alt="TankTide Logo" className="h-12 w-auto filter-sage" />
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2 text-white text-sm">
@@ -137,7 +137,7 @@ const CompanyLandingPage: React.FC = () => {
           <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
             {getLocalizedSubheadline()}
           </p>
-          
+
           {/* CTA Button */}
           <button
             onClick={handlePostJobClick}

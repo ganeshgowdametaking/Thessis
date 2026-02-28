@@ -5,6 +5,11 @@ import { AuthProvider } from './contexts/AuthContext';
 import './index.css';
 import { analyticsService } from './services/analyticsService.ts';
 import { gdprService } from './services/gdprService.ts';
+import { PostHogProvider } from '@posthog/react';
+
+const posthogOptions = {
+  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+} as const;
 
 if (import.meta.env.DEV) {
   import('./utils/trackingTestUtils.ts');
@@ -46,8 +51,13 @@ observer.observe(document.body, {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <PostHogProvider
+      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY as string}
+      options={posthogOptions}
+    >
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </PostHogProvider>
   </StrictMode>
 );

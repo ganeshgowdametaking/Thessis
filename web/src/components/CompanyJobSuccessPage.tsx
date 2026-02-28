@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CheckCircle, Share2, Copy, Twitter, Mail, Link, ArrowRight, Building } from 'lucide-react';
+import { CheckCircle, Copy, Twitter, Mail, Link, ArrowRight, Building } from 'lucide-react';
+import shareIcon from '../assets/share-icon.png';
 
 const CompanyJobSuccessPage: React.FC = () => {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ Thanks for your help!
 
 Best regards,
 [Your Name]`;
-    
+
     const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(mailtoUrl);
   };
@@ -93,7 +94,7 @@ Best regards,
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Your job is live! 🎉
           </h1>
-          
+
           <p className="text-xl text-gray-600 mb-8">
             Your job posting has been successfully published and is now visible to candidates.
           </p>
@@ -136,7 +137,7 @@ Best regards,
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Share Your Job
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button
                 onClick={handleShareTwitter}
@@ -156,9 +157,13 @@ Best regards,
 
               <button
                 onClick={handleCopyLink}
-                className="flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors group"
               >
-                <Share2 className="h-5 w-5" />
+                <img
+                  src={shareIcon}
+                  alt="Share"
+                  className="h-5 w-5 object-contain brightness-0 invert transition-all duration-200 group-hover:scale-110"
+                />
                 <span>Copy link</span>
               </button>
             </div>

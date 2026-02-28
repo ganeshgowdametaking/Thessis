@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building, MapPin, DollarSign, Calendar, FileText, Users, Share2, ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
+import { Building, MapPin, DollarSign, Calendar, FileText, Users, ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
+import shareIcon from '../assets/share-icon.png';
 import LoadingSpinner from './LoadingSpinner';
 
 interface JobData {
@@ -143,10 +144,10 @@ const CompanyOnboardingPage: React.FC = () => {
       // Here you would typically save the job to your database
       // For now, we'll simulate the process
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Redirect to success page
-      navigate('/company-job-success', { 
-        state: { jobData } 
+      navigate('/company-job-success', {
+        state: { jobData }
       });
     } catch (error) {
       console.error('Error publishing job:', error);
@@ -162,12 +163,12 @@ const CompanyOnboardingPage: React.FC = () => {
   const renderJobPreview = () => (
     <div className="bg-white rounded-lg p-6 shadow-lg">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Job Preview</h3>
-      
+
       <div className="border border-gray-200 rounded-lg p-4">
         <h4 className="font-semibold text-lg text-gray-900 mb-2">
           {jobData.title || 'Software Engineer'}
         </h4>
-        
+
         <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
           <div className="flex items-center space-x-1">
             <Building className="h-4 w-4" />
@@ -505,12 +506,20 @@ Best regards,
       </div>
 
       <div className="flex space-x-4">
-        <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-          <Share2 className="h-4 w-4" />
+        <button className="group flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 transition-colors">
+          <img
+            src={shareIcon}
+            alt="LinkedIn"
+            className="h-4 w-4 object-contain transition-all duration-200 group-hover:scale-110"
+          />
           <span>Share on LinkedIn</span>
         </button>
-        <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-          <Share2 className="h-4 w-4" />
+        <button className="group flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 transition-colors">
+          <img
+            src={shareIcon}
+            alt="Twitter"
+            className="h-4 w-4 object-contain transition-all duration-200 group-hover:scale-110"
+          />
           <span>Share on Twitter</span>
         </button>
       </div>
@@ -548,7 +557,7 @@ Best regards,
             <span className="text-sm text-gray-600">Step {currentStep} of 3</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
+            <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${getProgressPercentage()}%` }}
             ></div>

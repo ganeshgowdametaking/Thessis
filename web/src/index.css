@@ -332,21 +332,6 @@ body {
   background: #a1a1a1;
 }
 
-/* Cracked Earth Background Effect */
-.cracked-wrapper {
-  position: relative;
-}
-
-.cracked-earth {
-  position: absolute;
-  inset: 0;
-  background-color: #191919;
-  filter: url(#cracks);
-  opacity: 0.35;
-  border-radius: 20px;
-  z-index: 0;
-  pointer-events: none;
-}
 
 /* Remove default focus outline from specific inputs (not filter inputs) */
 input:focus:not([data-filter-input]),
@@ -361,4 +346,9 @@ input[type="text"]:focus:not([data-filter-input]),
 input[type="search"]:focus {
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* Sage Green Filter for black icons (#5f7261) */
+.filter-sage {
+  filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(712%) hue-rotate(85deg) brightness(97%) contrast(85%);
 }
