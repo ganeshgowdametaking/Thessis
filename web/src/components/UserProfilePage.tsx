@@ -17,7 +17,7 @@ interface UserProfilePageProps {
 }
 
 interface Experience {
-  id: number;
+  id: number | string;
   title: string;
   company: string;
   location: string;
@@ -29,7 +29,7 @@ interface Experience {
 }
 
 interface Education {
-  id: number;
+  id: number | string;
   degree: string;
   school: string;
   startDate: string;
@@ -39,14 +39,14 @@ interface Education {
 }
 
 interface Skill {
-  id: number;
+  id: number | string;
   name: string;
   level: number;
   category: string;
 }
 
 interface Achievement {
-  id: number;
+  id: number | string;
   title: string;
   organization: string;
   date: string;
@@ -78,6 +78,75 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const [skills, setSkills] = useState<Skill[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
+
+  const tryParseJson = (value: string): unknown => {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  };
+
+  const parsePgJsonArrayLiteral = (value: string): unknown[] => {
+    if (!(value.startsWith('{') && value.endsWith('}'))) return [];
+
+    const matches = value.match(/"((?:\\.|[^"\\])*)"/g);
+    if (!matches) return [];
+
+    return matches
+      .map((entry) => {
+        const unquoted = entry
+          .slice(1, -1)
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, '\\');
+
+        return tryParseJson(unquoted) ?? unquoted;
+      })
+      .filter((entry) => entry !== null && entry !== undefined);
+  };
+
+  const toArray = (value: unknown): unknown[] => {
+    if (Array.isArray(value)) return value;
+
+    if (typeof value === 'string') {
+      const parsed = tryParseJson(value);
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === 'object') return [parsed];
+
+      const pgParsed = parsePgJsonArrayLiteral(value);
+      if (pgParsed.length > 0) return pgParsed;
+    }
+
+    return [];
+  };
+
+  function normalizeSectionItems<T extends Record<string, any>>(value: unknown): Array<T & { id: number | string }> {
+    const sourceItems = toArray(value);
+
+    return sourceItems
+      .map((item) => {
+        if (item && typeof item === 'object') return item;
+        if (typeof item !== 'string') return null;
+
+        const parsed = tryParseJson(item) ?? tryParseJson(item.replace(/\\"/g, '"'));
+        return parsed && typeof parsed === 'object' ? parsed : null;
+      })
+      .filter((item): item is T & { id?: number | string } => Boolean(item))
+      .map((item, index) => {
+        const normalizedItem = item as T & { id?: number | string };
+        return {
+          ...normalizedItem,
+          id: normalizedItem.id ?? `${Date.now()}-${index}`,
+        };
+      });
+  }
+
+  const getNormalizedProfileSections = (source: any) => ({
+    experiences: normalizeSectionItems<Experience>(source?.experiences),
+    education: normalizeSectionItems<Education>(source?.education),
+    skills: normalizeSectionItems<Skill>(source?.skills),
+    achievements: normalizeSectionItems<Achievement>(source?.achievements),
+  });
 
   // Click outside handler to close the actions menu
   useEffect(() => {
@@ -127,11 +196,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
         const cachedProfile = getCachedData(`profile_${userId}`);
         if (cachedProfile) {
           console.log('Using cached profile data');
+          const normalizedSections = getNormalizedProfileSections(cachedProfile);
           setProfile(cachedProfile.profile);
-          setExperiences(cachedProfile.experiences || []);
-          setEducation(cachedProfile.education || []);
-          setSkills(cachedProfile.skills || []);
-          setAchievements(cachedProfile.achievements || []);
+          setExperiences(normalizedSections.experiences as Experience[]);
+          setEducation(normalizedSections.education as Education[]);
+          setSkills(normalizedSections.skills as Skill[]);
+          setAchievements(normalizedSections.achievements as Achievement[]);
         } else {
           console.log('No cached profile available');
           setProfile(null);
@@ -156,14 +226,11 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
           console.log('Profile achievements:', userProfile.achievements);
 
           // Use real data if available, otherwise show empty sections
-          const experiences = Array.isArray(userProfile.experiences) && userProfile.experiences.length > 0
-            ? userProfile.experiences : [];
-          const education = Array.isArray(userProfile.education) && userProfile.education.length > 0
-            ? userProfile.education : [];
-          const skills = Array.isArray(userProfile.skills) && userProfile.skills.length > 0
-            ? userProfile.skills : [];
-          const achievements = Array.isArray(userProfile.achievements) && userProfile.achievements.length > 0
-            ? userProfile.achievements : [];
+          const normalizedSections = getNormalizedProfileSections(userProfile);
+          const experiences = normalizedSections.experiences as Experience[];
+          const education = normalizedSections.education as Education[];
+          const skills = normalizedSections.skills as Skill[];
+          const achievements = normalizedSections.achievements as Achievement[];
 
           setExperiences(experiences);
           setEducation(education);
@@ -190,11 +257,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
         const cachedProfile = getCachedData(`profile_${userId}`);
         if (cachedProfile) {
           console.log('Using cached profile due to error');
+          const normalizedSections = getNormalizedProfileSections(cachedProfile);
           setProfile(cachedProfile.profile);
-          setExperiences(cachedProfile.experiences || []);
-          setEducation(cachedProfile.education || []);
-          setSkills(cachedProfile.skills || []);
-          setAchievements(cachedProfile.achievements || []);
+          setExperiences(normalizedSections.experiences as Experience[]);
+          setEducation(normalizedSections.education as Education[]);
+          setSkills(normalizedSections.skills as Skill[]);
+          setAchievements(normalizedSections.achievements as Achievement[]);
           return;
         }
       }

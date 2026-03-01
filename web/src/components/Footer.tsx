@@ -39,13 +39,28 @@ const Footer: React.FC = () => {
             <div className="flex flex-col items-center md:items-start gap-3">
               <span className="text-slate-900 font-bold text-sm uppercase tracking-wider mb-2">Socials</span>
               <div className="flex gap-4 items-center">
-                <a href="#" className="hover:opacity-70 transition-opacity">
+                <a
+                  href="https://x.com/tanktide?s=21"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-70 transition-opacity"
+                >
                   <img src={socialX} alt="X" className="h-5 w-5 object-contain brightness-0" />
                 </a>
-                <a href="#" className="hover:opacity-70 transition-opacity">
+                <a
+                  href="https://www.instagram.com/tanktideorg?igsh=MWJ2YXhreWRkbjhjOA=="
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-70 transition-opacity"
+                >
                   <img src={socialInstagram} alt="Instagram" className="h-6 w-6 object-contain brightness-0" />
                 </a>
-                <a href="#" className="hover:opacity-70 transition-opacity">
+                <a
+                  href="https://www.linkedin.com/company/tanktide/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-70 transition-opacity"
+                >
                   <img src={socialLinkedin} alt="LinkedIn" className="h-6 w-6 object-contain brightness-0" />
                 </a>
               </div>

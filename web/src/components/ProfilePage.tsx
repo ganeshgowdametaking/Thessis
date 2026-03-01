@@ -16,7 +16,7 @@ import { TalentScoutBadge } from './TalentScoutBadge';
 import { hireVerificationService, UserBadge } from '../services/hireVerificationService';
 
 interface Experience {
-  id: number;
+  id: number | string;
   title: string;
   company: string;
   location: string;
@@ -28,7 +28,7 @@ interface Experience {
 }
 
 interface Education {
-  id: number;
+  id: number | string;
   degree: string;
   school: string;
   startDate: string;
@@ -38,14 +38,14 @@ interface Education {
 }
 
 interface Skill {
-  id: number;
+  id: number | string;
   name: string;
   level: number;
   category: string;
 }
 
 interface Achievement {
-  id: number;
+  id: number | string;
   title: string;
   organization: string;
   date: string;
@@ -54,6 +54,77 @@ interface Achievement {
 }
 
 const ProfilePage: React.FC = () => {
+  const createClientItemId = () => Date.now() + Math.floor(Math.random() * 1000000);
+
+  const tryParseJson = (value: string): unknown => {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  };
+
+  const parsePgJsonArrayLiteral = (value: string): unknown[] => {
+    if (!(value.startsWith('{') && value.endsWith('}'))) return [];
+
+    const matches = value.match(/"((?:\\.|[^"\\])*)"/g);
+    if (!matches) return [];
+
+    return matches
+      .map((entry) => {
+        const unquoted = entry
+          .slice(1, -1)
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, '\\');
+
+        return tryParseJson(unquoted) ?? unquoted;
+      })
+      .filter((entry) => entry !== null && entry !== undefined);
+  };
+
+  const toArray = (value: unknown): unknown[] => {
+    if (Array.isArray(value)) return value;
+
+    if (typeof value === 'string') {
+      const parsed = tryParseJson(value);
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === 'object') return [parsed];
+
+      const pgParsed = parsePgJsonArrayLiteral(value);
+      if (pgParsed.length > 0) return pgParsed;
+    }
+
+    return [];
+  };
+
+  function normalizeSectionItems<T extends Record<string, any>>(value: unknown): Array<T & { id: number | string }> {
+    const sourceItems = toArray(value);
+
+    return sourceItems
+      .map((item) => {
+        if (item && typeof item === 'object') return item;
+        if (typeof item !== 'string') return null;
+
+        const parsed = tryParseJson(item) ?? tryParseJson(item.replace(/\\"/g, '"'));
+        return parsed && typeof parsed === 'object' ? parsed : null;
+      })
+      .filter((item): item is T & { id?: number | string } => Boolean(item))
+      .map((item, index) => {
+        const normalizedItem = item as T & { id?: number | string };
+        return {
+          ...normalizedItem,
+          id: normalizedItem.id ?? `${Date.now()}-${index}`,
+        };
+      });
+  }
+
+  const getNormalizedProfileSections = (source: any) => ({
+    experiences: normalizeSectionItems<Experience>(source?.experiences),
+    education: normalizeSectionItems<Education>(source?.education),
+    skills: normalizeSectionItems<Skill>(source?.skills),
+    achievements: normalizeSectionItems<Achievement>(source?.achievements),
+  });
+
   const { user, profile, updateProfile } = useAuthContext();
   const [isEditing, setIsEditing] = useState(false);
   const [showConnectionsModal, setShowConnectionsModal] = useState(false);
@@ -98,8 +169,8 @@ const ProfilePage: React.FC = () => {
 
   // Cropping state
   const [isCropping, setIsCropping] = useState(false);
-  const [activeExperienceLocationId, setActiveExperienceLocationId] = useState<number | null>(null);
-  const [activeExperienceTitleId, setActiveExperienceTitleId] = useState<number | null>(null);
+  const [activeExperienceLocationId, setActiveExperienceLocationId] = useState<number | string | null>(null);
+  const [activeExperienceTitleId, setActiveExperienceTitleId] = useState<number | string | null>(null);
   const [filteredJobTitles, setFilteredJobTitles] = useState<string[]>([]);
   const [isCroppingCover, setIsCroppingCover] = useState(false);
   const [tempImage, setTempImage] = useState<string | null>(null);
@@ -107,6 +178,7 @@ const ProfilePage: React.FC = () => {
 
   useEffect(() => {
     if (profile) {
+      const normalizedSections = getNormalizedProfileSections(profile);
       setEditForm({
         full_name: profile.full_name || '',
         title: profile.title || '',
@@ -115,10 +187,10 @@ const ProfilePage: React.FC = () => {
         bio: profile.bio || '',
         profile_picture_url: profile.avatar_url || '',
         cover_image_url: profile.cover_image_url || '',
-        experiences: profile.experiences || [],
-        education: profile.education || [],
-        skills: profile.skills || [],
-        achievements: profile.achievements || [],
+        experiences: normalizedSections.experiences as Experience[],
+        education: normalizedSections.education as Education[],
+        skills: normalizedSections.skills as Skill[],
+        achievements: normalizedSections.achievements as Achievement[],
         country_code: profile.country_code || '',
         work_email: (profile as any).work_email || '',
         work_email_verified: (profile as any).work_email_verified || false,
@@ -206,7 +278,7 @@ const ProfilePage: React.FC = () => {
     setLocationError('');
   };
 
-  const handleExperienceLocationInput = (expId: number, value: string) => {
+  const handleExperienceLocationInput = (expId: number | string, value: string) => {
     updateItem('experiences', expId, { location: value });
     setActiveExperienceLocationId(expId);
     setActiveExperienceTitleId(null); // Reset title search
@@ -218,14 +290,14 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleExperienceLocationSelect = (expId: number, suggestion: any) => {
+  const handleExperienceLocationSelect = (expId: number | string, suggestion: any) => {
     const displayName = suggestion.label || formatLocationSuggestion(suggestion);
     updateItem('experiences', expId, { location: displayName });
     setActiveExperienceLocationId(null);
     setLocationSuggestions([]);
   };
 
-  const handleExperienceTitleInput = (expId: number, value: string) => {
+  const handleExperienceTitleInput = (expId: number | string, value: string) => {
     updateItem('experiences', expId, { title: value });
     setActiveExperienceTitleId(expId);
     setActiveExperienceLocationId(null); // Reset location search
@@ -241,7 +313,7 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleExperienceTitleSelect = (expId: number, title: string) => {
+  const handleExperienceTitleSelect = (expId: number | string, title: string) => {
     updateItem('experiences', expId, { title });
     setActiveExperienceTitleId(null);
     setFilteredJobTitles([]);
@@ -383,24 +455,28 @@ const ProfilePage: React.FC = () => {
 
 
   const addItem = (section: keyof typeof editForm, newItem: any) => {
-    setEditForm({
-      ...editForm,
-      [section]: Array.isArray(editForm[section]) ? [...editForm[section], { ...newItem, id: Date.now() }] : [{ ...newItem, id: Date.now() }],
-    });
+    setEditForm((prev) => ({
+      ...prev,
+      [section]: Array.isArray(prev[section])
+        ? [...prev[section], { ...newItem, id: createClientItemId() }]
+        : [{ ...newItem, id: createClientItemId() }],
+    }));
   };
 
-  const updateItem = (section: keyof typeof editForm, id: number, updatedItem: any) => {
-    setEditForm({
-      ...editForm,
-      [section]: Array.isArray(editForm[section]) ? editForm[section].map((item: any) => (item.id === id ? { ...item, ...updatedItem } : item)) : [],
-    });
+  const updateItem = (section: keyof typeof editForm, id: number | string, updatedItem: any) => {
+    setEditForm((prev) => ({
+      ...prev,
+      [section]: Array.isArray(prev[section])
+        ? prev[section].map((item: any) => (String(item.id) === String(id) ? { ...item, ...updatedItem } : item))
+        : [],
+    }));
   };
 
-  const deleteItem = (section: keyof typeof editForm, id: number) => {
-    setEditForm({
-      ...editForm,
-      [section]: Array.isArray(editForm[section]) ? editForm[section].filter((item: any) => item.id !== id) : [],
-    });
+  const deleteItem = (section: keyof typeof editForm, id: number | string) => {
+    setEditForm((prev) => ({
+      ...prev,
+      [section]: Array.isArray(prev[section]) ? prev[section].filter((item: any) => String(item.id) !== String(id)) : [],
+    }));
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -424,16 +500,18 @@ const ProfilePage: React.FC = () => {
     setIsSaving(true);
     setSaveError(null);
     try {
+      const normalizedSections = getNormalizedProfileSections(editForm);
+
       const updates: any = {
         full_name: editForm.full_name,
         title: editForm.title,
         company: editForm.company,
         location: editForm.location,
         bio: editForm.bio,
-        experiences: editForm.experiences,
-        education: editForm.education,
-        skills: editForm.skills,
-        achievements: editForm.achievements,
+        experiences: normalizedSections.experiences,
+        education: normalizedSections.education,
+        skills: normalizedSections.skills,
+        achievements: normalizedSections.achievements,
         country_code: editForm.country_code,
         avatar_url: editForm.profile_picture_url || null,
         cover_image_url: editForm.cover_image_url || null,
@@ -504,6 +582,7 @@ const ProfilePage: React.FC = () => {
     setProfilePictureFile(null);
     setCoverImageFile(null);
     if (profile) {
+      const normalizedSections = getNormalizedProfileSections(profile);
       setEditForm({
         full_name: profile.full_name || '',
         title: profile.title || '',
@@ -512,10 +591,10 @@ const ProfilePage: React.FC = () => {
         bio: profile.bio || '',
         profile_picture_url: profile.avatar_url || '',
         cover_image_url: profile.cover_image_url || '',
-        experiences: profile.experiences || [],
-        education: profile.education || [],
-        skills: profile.skills || [],
-        achievements: profile.achievements || [],
+        experiences: normalizedSections.experiences as Experience[],
+        education: normalizedSections.education as Education[],
+        skills: normalizedSections.skills as Skill[],
+        achievements: normalizedSections.achievements as Achievement[],
         country_code: profile.country_code || '',
 
         work_email: (profile as any).work_email || '',
@@ -528,7 +607,29 @@ const ProfilePage: React.FC = () => {
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+  };
+
+  const formatDateRange = (startDate?: string, endDate?: string, current?: boolean) => {
+    const start = startDate ? formatDate(startDate) : '';
+    const end = current ? 'Present' : (endDate ? formatDate(endDate) : '');
+
+    if (start && end) return `${start} — ${end}`;
+    if (start) return start;
+    if (end) return end;
+    return 'Date not set';
+  };
+
+  const timelineTextClass = 'text-slate-900 text-xs font-black uppercase tracking-wide whitespace-nowrap';
+
+  const getMonogram = (label?: string) => {
+    if (!label) return 'TT';
+    return label
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || 'TT';
   };
 
   const getProfilePicture = () => {
@@ -662,11 +763,6 @@ const ProfilePage: React.FC = () => {
                 <span className="text-text-main text-xl font-bold">{realCounts.rating.toFixed(1)}/5</span>
                 <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Rating</span>
               </div>
-              <div className="w-px bg-slate-border-divider h-10 self-center"></div>
-              <div className="flex flex-col items-center px-4">
-                <span className="text-text-main text-xl font-bold">{realCounts.expYears}yr</span>
-                <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Exp</span>
-              </div>
             </div>
 
 
@@ -679,24 +775,22 @@ const ProfilePage: React.FC = () => {
           </div>
         </section>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 flex flex-col gap-10">
+        <div className="flex flex-col gap-10">
+          <div className="flex flex-col gap-10">
             {/* Experience Section */}
             <section>
-              <div className="flex items-center gap-3 mb-10 px-1">
-                <div className="p-2 bg-slate-50 rounded-lg text-slate-400">
-                  <Briefcase size={20} />
-                </div>
-                <h2 className="text-slate-900 text-lg font-black uppercase tracking-[0.2em] pt-0.5">Experience</h2>
+              <div className="flex items-center mb-6 px-1">
+                <h2 className="text-slate-900 text-2xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Experience</h2>
               </div>
 
-              <div className="relative space-y-20 pl-2">
+              <div className="relative pl-2">
                 {editForm.experiences.length > 0 && (
                   <div className="absolute left-[31px] top-6 bottom-6 w-px bg-slate-100"></div>
                 )}
                 {editForm.experiences.length > 0 ? (
-                  editForm.experiences.map((exp) => (
-                    <div key={exp.id} className="relative flex gap-10 group">
+                  <div className="space-y-14">
+                    {editForm.experiences.map((exp) => (
+                      <div key={exp.id} className="relative flex gap-10">
                       <div className="relative z-10 shrink-0">
                         <div className="bg-white rounded-xl size-20 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
                           <img src="/company-placeholder.png" alt={exp.company} className="w-full h-full object-contain" />
@@ -706,33 +800,34 @@ const ProfilePage: React.FC = () => {
                       <div className="flex flex-col flex-1 pt-1">
                         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                           <div className="flex flex-col gap-1.5">
-                            <h3 className="text-slate-900 text-base font-black uppercase tracking-[0.1em] leading-tight group-hover:text-sage transition-colors duration-300">
+                            <h3 className="text-slate-900 text-lg font-black uppercase tracking-[0.1em] leading-tight">
                               {exp.title}
                             </h3>
                             <div className="flex items-center gap-2.5">
-                              <span className="text-sage font-bold text-[10px] uppercase tracking-wider">{exp.company}</span>
+                              <span className="text-slate-900 font-bold text-xs uppercase tracking-wider">{exp.company}</span>
                               {exp.location && (
                                 <>
                                   <span className="text-slate-200 text-xs">/</span>
-                                  <span className="text-slate-400 text-xs font-semibold tracking-tight">{exp.location}</span>
+                                  <span className="text-slate-400 text-sm font-semibold tracking-tight">{exp.location}</span>
                                 </>
                               )}
                             </div>
                           </div>
 
                           <div className="shrink-0 pt-0.5">
-                            <span className="px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-slate-400 text-[9px] font-black uppercase tracking-widest whitespace-nowrap">
+                            <span className={timelineTextClass}>
                               {formatDate(exp.startDate)} — {exp.current ? 'Present' : formatDate(exp.endDate)}
                             </span>
                           </div>
                         </div>
 
-                        <p className="text-slate-500 text-[14px] leading-[1.8] mt-6 max-w-2xl font-medium opacity-80 group-hover:opacity-100 transition-opacity duration-500 whitespace-pre-line">
+                        <p className="text-slate-500 text-[14px] leading-[1.8] mt-6 max-w-2xl font-medium whitespace-pre-line">
                           {exp.description}
                         </p>
                       </div>
-                    </div>
-                  ))
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <div className="py-10 text-center border-2 border-dashed border-slate-100 rounded-3xl">
                     <p className="text-slate-400 text-sm font-medium">No professional highlights added yet.</p>
@@ -743,29 +838,26 @@ const ProfilePage: React.FC = () => {
 
             {/* Education Section */}
             <section>
-              <div className="flex items-center gap-3 mb-6 px-1">
-                <div className="p-1.5 bg-off-stone rounded-md text-slate-meta">
-                  <GraduationCap className="text-2xl" />
-                </div>
-                <h2 className="text-text-main text-xl font-bold tracking-tight">Education</h2>
+              <div className="flex items-center mb-6 px-1">
+                <h2 className="text-slate-900 text-2xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Education</h2>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-border-card p-6 md:p-8 shadow-sm">
+              <div className="px-1">
                 <div className="relative space-y-10">
                   {Array.isArray(editForm.education) && editForm.education.length > 0 && (
-                    <div className="absolute left-[27px] top-3 bottom-3 w-0.5 bg-off-stone"></div>
+                    <div className="absolute left-[40px] top-3 bottom-3 w-0.5 bg-off-stone"></div>
                   )}
                   {Array.isArray(editForm.education) && editForm.education.length > 0 ? (
                     editForm.education.map((edu) => (
-                      <div key={edu.id} className="relative flex gap-6 group">
+                      <div key={edu.id} className="relative flex gap-6">
                         <div className="relative z-10 shrink-0">
-                          <div className="size-[54px] rounded-full bg-white border border-stone-border flex items-center justify-center text-slate-meta group-hover:text-sage-green group-hover:border-sage-green transition-colors">
+                          <div className="size-20 rounded-xl bg-white border border-stone-border flex items-center justify-center text-slate-meta">
                             <GraduationCap />
                           </div>
                         </div>
                         <div className="flex flex-col flex-1 pt-2">
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 mb-1">
                             <h3 className="text-text-main text-lg font-bold">{edu.degree}</h3>
-                            <span className="text-slate-meta text-sm font-medium">{formatDate(edu.endDate)}</span>
+                            <span className={timelineTextClass}>{formatDate(edu.endDate)}</span>
                           </div>
                           <p className="text-text-secondary text-base">{edu.school}</p>
                         </div>
@@ -779,22 +871,19 @@ const ProfilePage: React.FC = () => {
             </section>
           </div>
 
-          <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-10">
             {/* Skills Section */}
             <section>
-              <div className="flex items-center gap-3 mb-6 px-1">
-                <div className="p-1.5 bg-off-stone rounded-md text-slate-meta">
-                  <Award className="text-2xl" />
-                </div>
-                <h2 className="text-text-main text-xl font-bold tracking-tight">Skills</h2>
+              <div className="flex items-center mb-6 px-1">
+                <h2 className="text-slate-900 text-2xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Skills</h2>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-border-card p-6 shadow-sm">
+              <div className="px-1">
                 <div className="flex flex-wrap gap-2">
                   {editForm.skills.length > 0 ? (
                     editForm.skills.map((skill) => (
                       <span
                         key={skill.id}
-                        className="px-3 py-1.5 rounded-md bg-white text-slate-body hover:bg-sage-green/10 hover:text-sage-green cursor-default text-sm font-bold tracking-wide transition-colors border border-stone-border"
+                        className="px-3 py-1.5 rounded-md bg-white text-slate-body cursor-default text-sm font-bold tracking-wide border border-stone-border"
                       >
                         {skill.name}
                       </span>
@@ -808,30 +897,23 @@ const ProfilePage: React.FC = () => {
 
             {/* Achievements Section */}
             <section>
-              <div className="flex items-center gap-3 mb-6 px-1">
-                <div className="p-1.5 bg-off-stone rounded-md text-slate-meta">
-                  <Award className="text-2xl" />
-                </div>
-                <h2 className="text-text-main text-xl font-bold tracking-tight">Achievements</h2>
+              <div className="flex items-center mb-6 px-1">
+                <h2 className="text-slate-900 text-2xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Achievements</h2>
               </div>
               <div className="flex flex-col gap-4">
                 {Array.isArray(editForm.achievements) && editForm.achievements.length > 0 ? (
                   editForm.achievements.map((achievement) => (
-                    <div key={achievement.id} className="bg-white rounded-2xl border border-slate-border-card p-5 flex gap-4 items-start hover:border-sage-green/50 hover:shadow-sm transition-all cursor-default shadow-sm">
-                      <div className="bg-off-stone border border-stone-border text-slate-meta p-2.5 rounded-lg shrink-0">
-                        <Award />
-                      </div>
-                      <div>
+                    <div key={achievement.id} className="px-1 py-1 flex items-start justify-between gap-4">
+                      <div className="min-w-0">
                         <h4 className="text-text-main font-bold text-base leading-tight">{achievement.title}</h4>
-                        <p className="text-slate-meta text-xs mt-1 font-bold uppercase tracking-wider">
-                          {achievement.organization} • {formatDate(achievement.date)}
-                        </p>
+                        <p className="text-slate-meta text-sm mt-1 font-semibold">{achievement.organization}</p>
                         <p className="text-text-secondary text-sm mt-2 leading-snug">{achievement.description}</p>
                       </div>
+                      <span className={`${timelineTextClass} shrink-0 pt-0.5`}>{formatDate(achievement.date)}</span>
                     </div>
                   ))
                 ) : (
-                  <div className="bg-white rounded-2xl border border-slate-border-card p-5 shadow-sm">
+                  <div className="px-1 py-1">
                     <p className="text-slate-500">No achievements added yet.</p>
                   </div>
                 )}
@@ -1283,35 +1365,13 @@ const ProfilePage: React.FC = () => {
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4">
                         <div>
                           <label className="block text-xs font-medium text-slate-700 mb-1">Name</label>
                           <input
                             type="text"
                             value={skill.name}
                             onChange={(e) => updateItem('skills', skill.id, { ...skill, name: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={isSaving}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-700 mb-1">Level (0-100)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={skill.level}
-                            onChange={(e) => updateItem('skills', skill.id, { ...skill, level: parseInt(e.target.value) || 0 })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={isSaving}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-700 mb-1">Category</label>
-                          <input
-                            type="text"
-                            value={skill.category}
-                            onChange={(e) => updateItem('skills', skill.id, { ...skill, category: e.target.value })}
                             className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             disabled={isSaving}
                           />
@@ -1381,26 +1441,6 @@ const ProfilePage: React.FC = () => {
                             value={achievement.date}
                             onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, date: e.target.value })}
                             className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={isSaving}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-700 mb-1">Type</label>
-                          <input
-                            type="text"
-                            value={achievement.type}
-                            onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, type: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={isSaving}
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
-                          <textarea
-                            value={achievement.description}
-                            onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, description: e.target.value })}
-                            rows={3}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                             disabled={isSaving}
                           />
                         </div>
