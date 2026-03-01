@@ -38,6 +38,10 @@ export interface Database {
           work_email: string | null
           work_email_verified: boolean
           work_email_verified_at: string | null
+          experiences: any[] | null
+          education: any[] | null
+          skills: any[] | null
+          achievements: any[] | null
         }
         Insert: {
           id: string
@@ -67,6 +71,10 @@ export interface Database {
           work_email?: string | null
           work_email_verified?: boolean
           work_email_verified_at?: string | null
+          experiences?: any[] | null
+          education?: any[] | null
+          skills?: any[] | null
+          achievements?: any[] | null
         }
         Update: {
           id?: string
@@ -96,6 +104,10 @@ export interface Database {
           work_email?: string | null
           work_email_verified?: boolean
           work_email_verified_at?: string | null
+          experiences?: any[] | null
+          education?: any[] | null
+          skills?: any[] | null
+          achievements?: any[] | null
         }
       }
       hire_verifications: {

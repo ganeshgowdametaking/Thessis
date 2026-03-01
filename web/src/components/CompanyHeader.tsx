@@ -29,7 +29,7 @@ const CompanyHeader: React.FC = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/company-dashboard" className="flex items-center">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+              <div className="w-8 h-8 bg-[#5f7261] rounded-lg flex items-center justify-center mr-3">
                 <span className="text-white font-bold text-sm">T</span>
               </div>
               <span className="text-xl font-bold text-gray-900">Tanktide</span>
@@ -41,15 +41,14 @@ const CompanyHeader: React.FC = () => {
           <nav className="hidden md:flex space-x-8">
             <Link
               to="/company-dashboard"
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive('/company-dashboard') 
-                  ? 'text-blue-600 bg-blue-50' 
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/company-dashboard')
+                  ? 'text-blue-600 bg-blue-50'
                   : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Dashboard
             </Link>
-            
+
             <div className="relative group">
               <button className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors">
                 Hiring

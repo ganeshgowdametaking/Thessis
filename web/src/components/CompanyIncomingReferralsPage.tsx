@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Share2, Users, Eye, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Eye, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
+import shareIcon from '../assets/share-icon.png';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -98,7 +99,7 @@ const CompanyIncomingReferralsPage: React.FC = () => {
     }
   };
 
-  const filteredReferrals = referrals.filter(referral => 
+  const filteredReferrals = referrals.filter(referral =>
     filter === 'all' || referral.status === filter
   );
 
@@ -123,11 +124,10 @@ const CompanyIncomingReferralsPage: React.FC = () => {
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key as any)}
-              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                filter === tab.key
+              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === tab.key
                   ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+                }`}
             >
               {tab.label} ({tab.count})
             </button>
@@ -142,11 +142,15 @@ const CompanyIncomingReferralsPage: React.FC = () => {
         </div>
       ) : filteredReferrals.length === 0 ? (
         <div className="text-center py-12">
-          <Share2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <img
+            src={shareIcon}
+            alt="No referrals"
+            className="h-12 w-12 object-contain mx-auto mb-4 opacity-40"
+          />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No referrals found</h3>
           <p className="text-gray-600">
-            {filter === 'all' 
-              ? "You haven't received any referrals yet." 
+            {filter === 'all'
+              ? "You haven't received any referrals yet."
               : `No ${filter} referrals found.`
             }
           </p>
@@ -160,8 +164,8 @@ const CompanyIncomingReferralsPage: React.FC = () => {
                   <div className="flex-shrink-0">
                     <div className="relative">
                       {referral.referrer.avatar_url ? (
-                        <img 
-                          src={referral.referrer.avatar_url} 
+                        <img
+                          src={referral.referrer.avatar_url}
                           alt={referral.referrer.full_name}
                           className="h-12 w-12 rounded-full"
                         />
@@ -177,7 +181,7 @@ const CompanyIncomingReferralsPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-1">
                       <h3 className="text-lg font-semibold text-gray-900">
@@ -211,7 +215,7 @@ const CompanyIncomingReferralsPage: React.FC = () => {
                   >
                     <MessageSquare className="h-4 w-4" />
                   </button>
-                  
+
                   {/* Status Actions */}
                   <div className="flex items-center space-x-1">
                     <button

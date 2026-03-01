@@ -1,0 +1,9 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="profile-cutout">
+      <rect width="40" height="40" fill="white" />
+      <path d="M20 9C16.6863 9 14 11.6863 14 15C14 18.3137 16.6863 21 20 21C23.3137 21 26 18.3137 26 15C26 11.6863 23.3137 9 20 9ZM20 23C13.3333 23 7 26.3333 7 33V35H33V33C33 26.3333 26.6667 23 20 23Z" fill="black" />
+    </mask>
+  </defs>
+  <circle cx="20" cy="20" r="20" fill="#5F7261" mask="url(#profile-cutout)" />
+</svg>

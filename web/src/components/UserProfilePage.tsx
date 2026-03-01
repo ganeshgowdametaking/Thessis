@@ -626,8 +626,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                   <div className="space-y-8">
                     {Array.isArray(experiences) && experiences.map((exp) => (
                       <div key={exp.id} className="flex gap-4 group">
-                        <div className="w-12 h-12 rounded-lg bg-stone-off text-slate-500 flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
-                          <span className="material-symbols-outlined text-2xl">waves</span>
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm mt-1 overflow-hidden border border-stone-border">
+                          <img src="/company-placeholder.png" alt={exp.company} className="w-full h-full object-contain" />
                         </div>
                         <div className="flex-1">
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">

@@ -160,7 +160,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
 
         <div className="pt-8 px-8 pb-0">
           <div className="flex justify-center mb-6">
-            <img src="/logo2.png" alt="Logo" className="w-10 h-10 object-contain" />
+            <img src="/logo2.png" alt="Logo" className="w-10 h-10 object-contain filter-sage" />
           </div>
 
           {(mode === 'signin' || mode === 'signup') && (

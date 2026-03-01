@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, Briefcase, Building, GraduationCap, Award, Edit3, Plus, X, Trash2, Waves, Share2, Pencil } from 'lucide-react';
+import { MapPin, Briefcase, GraduationCap, Award, Edit3, Plus, X, Trash2, Waves, Share2, Pencil } from 'lucide-react';
 import { jobTitles } from '../data/jobTitles';
 import debounce from 'lodash.debounce';
-import { profileService } from '../services/profileService';
 import { postService } from '../services/postService';
 import { connectionService } from '../services/connectionService';
 import { tidePointsService } from '../services/tidePointsService';
@@ -477,10 +476,10 @@ const ProfilePage: React.FC = () => {
 
       console.log('Submitting profile updates:', updates);
 
-      await profileService.updateProfile(user.id, updates);
-      await updateProfile({
-        ...profile, ...updates
-      });
+      // We ONLY call updateProfile from AuthContext which handles both 
+      // the API call and the local post-update state refresh.
+      await updateProfile(updates);
+
       setIsEditing(false);
       setProfilePictureFile(null);
       setCoverImageFile(null);
@@ -699,14 +698,8 @@ const ProfilePage: React.FC = () => {
                   editForm.experiences.map((exp) => (
                     <div key={exp.id} className="relative flex gap-10 group">
                       <div className="relative z-10 shrink-0">
-                        <div className="bg-center bg-no-repeat bg-contain bg-white rounded-xl size-20 shadow-sm border border-slate-100 p-2">
-                          <div className="w-full h-full bg-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
-                            {exp.logo ? (
-                              <img src={exp.logo} alt={exp.company} className="w-full h-full object-contain p-1" />
-                            ) : (
-                              <Building className="h-8 w-8 text-slate-400" />
-                            )}
-                          </div>
+                        <div className="bg-white rounded-xl size-20 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
+                          <img src="/company-placeholder.png" alt={exp.company} className="w-full h-full object-contain" />
                         </div>
                       </div>
 
@@ -1045,7 +1038,7 @@ const ProfilePage: React.FC = () => {
                           endDate: '',
                           current: false,
                           description: '',
-                          logo: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
+                          logo: '',
                         })
                       }
                       className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
@@ -1252,16 +1245,6 @@ const ProfilePage: React.FC = () => {
                             value={edu.gpa}
                             onChange={(e) => updateItem('education', edu.id, { ...edu, gpa: e.target.value })}
                             className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={isSaving}
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
-                          <textarea
-                            value={edu.description}
-                            onChange={(e) => updateItem('education', edu.id, { ...edu, description: e.target.value })}
-                            rows={3}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                             disabled={isSaving}
                           />
                         </div>
