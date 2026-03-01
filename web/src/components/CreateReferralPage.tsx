@@ -8,6 +8,7 @@ import LoadingSpinner from './LoadingSpinner';
 import debounce from 'lodash.debounce';
 import * as pdfjsLib from 'pdfjs-dist';
 import BackArrowIcon from './icons/BackArrowIcon';
+import { useMediaQuery } from 'react-responsive';
 
 // Use the local worker from the node_modules
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
@@ -23,6 +24,8 @@ const CreateReferralPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [myReferrals, setMyReferrals] = useState<Job[]>([]);
   const [loadingReferrals, setLoadingReferrals] = useState(true);
+  const isMobile = useMediaQuery({ maxWidth: 767 });
+  const [mobileFormStep, setMobileFormStep] = useState(1);
 
   // Form state
   const [formData, setFormData] = useState<JobInsert>({
@@ -52,12 +55,14 @@ const CreateReferralPage: React.FC = () => {
   const [aiError, setAiError] = useState<string | null>(null);
   const [referralLink, setReferralLink] = useState('');
 
+  const fieldShellClass = 'rounded-lg p-1 border border-slate-200 bg-white md:border-2 md:border-[#5f7261]';
+
   // Fetch user's jobs (acting as referrals)
   const fetchMyReferrals = useCallback(async () => {
     if (!user?.id) return;
     setLoadingReferrals(true);
     try {
-      const jobs = await jobService.getUserJobs();
+      const jobs = await jobService.getUserJobs(user.id);
       setMyReferrals(jobs || []);
     } catch (error) {
       console.error('Error fetching referrals:', error);
@@ -464,9 +469,9 @@ const CreateReferralPage: React.FC = () => {
 
   return (
     <div className="bg-stone-50 font-display text-slate-700 antialiased min-h-screen flex flex-col">
-      <main className="flex-grow w-full px-6 md:px-12 py-10 max-w-5xl mx-auto">
+      <main className="flex-grow w-full px-4 md:px-12 py-6 md:py-10 max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col gap-6 mb-10">
+        <div className="flex flex-col gap-4 md:gap-6 mb-6 md:mb-10">
           <button
             className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#5f7261] transition-colors w-fit group"
             onClick={() => navigate('/jobs')}
@@ -483,8 +488,8 @@ const CreateReferralPage: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-          <div className="bg-white p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-10">
+          <div className="bg-white p-4 md:p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-wider font-bold text-slate-500">Total Referrals</p>
               <p className="text-2xl font-bold text-slate-900 mt-1">{myReferrals.length}</p>
@@ -494,7 +499,7 @@ const CreateReferralPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
+          <div className="bg-white p-4 md:p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-wider font-bold text-slate-500">Applications Received</p>
               <p className="text-2xl font-bold text-slate-900 mt-1">
@@ -506,7 +511,7 @@ const CreateReferralPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
+          <div className="bg-white p-4 md:p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-wider font-bold text-slate-500">Active Referrals</p>
               <p className="text-2xl font-bold text-slate-900 mt-1">
@@ -520,9 +525,9 @@ const CreateReferralPage: React.FC = () => {
         </div>
 
         {/* AI Auto-fill Section */}
-        <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="bg-[#5f7261]/5 border border-[#5f7261]/20 rounded-xl p-8 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
+        <div className="mb-6 md:mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="bg-[#5f7261]/5 border border-[#5f7261]/20 rounded-xl p-4 md:p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-4 md:mb-6">
               <div className="bg-[#5f7261] p-2 rounded-lg text-white">
                 <span className="material-symbols-outlined text-[24px]">magic_button</span>
               </div>
@@ -532,10 +537,10 @@ const CreateReferralPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
               {/* PDF Upload */}
               <div className="relative">
-                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-[#5f7261]/30 rounded-xl bg-white hover:bg-[#5f7261]/10 transition-all cursor-pointer group">
+                <label className="flex flex-col items-center justify-center w-full h-32 md:h-40 border-2 border-dashed border-[#5f7261]/30 rounded-xl bg-white hover:bg-[#5f7261]/10 transition-all cursor-pointer group">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <span className="material-symbols-outlined text-[#5f7261] text-[32px] mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
                     <p className="mb-1 text-sm text-slate-700 font-bold">Upload Job Description PDF</p>
@@ -604,223 +609,294 @@ const CreateReferralPage: React.FC = () => {
           {/* Left Column - Create Form */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl border border-slate-100 shadow-card overflow-hidden">
-              <div className="px-8 py-6 border-b border-stone-100 bg-white">
+              <div className="px-4 py-4 md:px-8 md:py-6 border-b border-stone-100 bg-white">
                 <h3 className="text-lg font-bold text-slate-900">Referral Details</h3>
                 <p className="text-sm text-slate-500 mt-0.5">Fill in the details for the position you are referring for.</p>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-8 space-y-8">
-                {/* Basic Info Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <label>
-                    <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Job Title</span>
-                    <div className="border-2 border-[#5f7261] rounded-lg p-1">
-                      <input
-                        className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
-                        placeholder="e.g. Senior Product Designer"
-                        type="text"
-                        required
-                        value={formData.title}
-                        onChange={(e) => handleInputChange('title', e.target.value)}
-                      />
-                    </div>
-                  </label>
-
-                  <label>
-                    <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Company</span>
-                    <div className="border-2 border-[#5f7261] rounded-lg p-1">
-                      <input
-                        className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
-                        placeholder="e.g. Acme Corp"
-                        type="text"
-                        required
-                        value={formData.company}
-                        onChange={(e) => handleInputChange('company', e.target.value)}
-                      />
-                    </div>
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <label>
-                    <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department</span>
-                    <div className="border-2 border-[#5f7261] rounded-lg p-1">
-                      <input
-                        className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
-                        placeholder="e.g. Product Design"
-                        type="text"
-                        required
-                        value={formData.department || ''}
-                        onChange={(e) => handleInputChange('department', e.target.value)}
-                      />
-                    </div>
-                  </label>
-
-                  <label>
-                    <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Location</span>
-                    <div className="border-2 border-[#5f7261] rounded-lg p-1">
-                      <div className="relative">
-                        <input
-                          className="w-full h-11 pl-10 pr-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
-                          placeholder="City, State or Remote"
-                          type="text"
-                          required
-                          value={locationQuery}
-                          onChange={handleLocationInput}
-                        />
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px]">location_on</span>
-
-                        {locationSuggestions.length > 0 && (
-                          <ul className="absolute z-10 bg-white border border-stone-200 rounded-md mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
-                            {locationSuggestions.map((suggestion) => (
-                              <li
-                                key={suggestion.place_id}
-                                className="px-4 py-2 cursor-pointer hover:bg-[#f2f1ec]"
-                                onMouseDown={() => handleLocationSelect(suggestion)}
-                              >
-                                {suggestion.display_name}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    </div>
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <label>
-                    <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Job Type</span>
-                    <div className="border-2 border-[#5f7261] rounded-lg p-1">
-                      <div className="relative">
-                        <select
-                          className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
-                          required
-                          value={formData.job_type}
-                          onChange={(e) => handleInputChange('job_type', e.target.value)}
-                        >
-                          <option>Full-time</option>
-                          <option>Part-time</option>
-                          <option>Contract</option>
-                          <option>Freelance</option>
-                        </select>
-                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[18px]">expand_more</span>
-                      </div>
-                    </div>
-                  </label>
-
-                  <label>
-                    <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Experience Level</span>
-                    <div className="border-2 border-[#5f7261] rounded-lg p-1">
-                      <div className="relative">
-                        <select
-                          className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
-                          required
-                          value={formData.experience_level}
-                          onChange={(e) => handleInputChange('experience_level', e.target.value)}
-                        >
-                          <option>Internship</option>
-                          <option>Entry Level</option>
-                          <option>Mid Level (2-4 yrs)</option>
-                          <option>Senior (5+ yrs)</option>
-                          <option>Lead / Manager</option>
-                        </select>
-                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[18px]">expand_more</span>
-                      </div>
-                    </div>
-                  </label>
-                </div>
-
-                <label className="block">
-                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Job Description</span>
-                  <div className="border-2 border-[#5f7261] rounded-lg p-1">
-                    <textarea
-                      className="w-full p-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm min-h-[120px] resize-y"
-                      placeholder="Briefly describe the role requirements and responsibilities..."
-                      required
-                      value={formData.description}
-                      onChange={(e) => handleInputChange('description', e.target.value)}
-                    ></textarea>
-                  </div>
-                </label>
-
-                <div className="space-y-3">
-                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Required Skills</span>
-                  <div className="flex items-center gap-2">
-                    <div className="border-2 border-[#5f7261] rounded-lg p-1 flex-grow">
-                      <div className="relative">
-                        <input
-                          className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
-                          placeholder="Add a skill..."
-                          type="text"
-                          value={skillInput}
-                          onChange={(e) => setSkillInput(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-                        />
-                      </div>
-                    </div>
-                    <button
-                      className="size-11 flex-none flex items-center justify-center rounded-md bg-[#5f7261] text-white shadow-sm hover:bg-[#4b5c4d] transition-colors"
-                      type="button"
-                      onClick={addSkill}
-                    >
-                      <span className="material-symbols-outlined">add</span>
-                    </button>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {formData.skills?.map((skill, index) => (
-                      <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sage-50 text-[#5f7261] border border-sage-200">
-                        {skill}
+              <form onSubmit={handleSubmit} className="p-4 md:p-8 space-y-4 md:space-y-8">
+                {isMobile && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Basics', 'Role', 'Skills'].map((label, index) => {
+                      const step = index + 1;
+                      const isActive = mobileFormStep === step;
+                      return (
                         <button
-                          className="hover:text-red-500 flex items-center"
+                          key={label}
                           type="button"
-                          onClick={() => removeSkill(skill)}
+                          onClick={() => setMobileFormStep(step)}
+                          className={`h-9 rounded-md text-xs font-bold tracking-wide transition-colors ${isActive ? 'bg-[#5f7261] text-white' : 'bg-stone-100 text-slate-600'}`}
                         >
-                          <span className="material-symbols-outlined text-[14px]">close</span>
+                          {step}. {label}
                         </button>
-                      </span>
-                    ))}
+                      );
+                    })}
                   </div>
-                </div>
+                )}
 
-                <div className="flex flex-wrap gap-6 pt-2 border-t border-stone-100 mt-2">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                      className="w-4 h-4 rounded text-[#5f7261] border-stone-300 focus:ring-[#5f7261] cursor-pointer"
-                      type="checkbox"
-                      checked={formData.remote_available}
-                      onChange={(e) => handleInputChange('remote_available', e.target.checked)}
-                    />
-                    <span className="text-sm font-medium text-slate-700 group-hover:text-[#5f7261] transition-colors">Remote Friendly</span>
-                  </label>
-
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                      className="w-4 h-4 rounded text-[#5f7261] border-stone-300 focus:ring-[#5f7261] cursor-pointer"
-                      type="checkbox"
-                      checked={formData.urgent_hiring}
-                      onChange={(e) => handleInputChange('urgent_hiring', e.target.checked)}
-                    />
-                    <span className="text-sm font-medium text-slate-700 group-hover:text-[#5f7261] transition-colors">Urgent Priority</span>
-                  </label>
-                </div>
-
-                <div className="pt-4">
+                <section className="rounded-xl border border-slate-200/80 md:border-0 md:rounded-none overflow-hidden">
                   <button
-                    className="w-full h-12 rounded-md bg-[#5f7261] text-white font-bold text-sm shadow-sm hover:bg-[#4b5c4d] transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
-                    type="submit"
-                    disabled={loading}
+                    type="button"
+                    onClick={() => setMobileFormStep(1)}
+                    className="md:hidden w-full px-4 h-11 bg-stone-50 text-left text-sm font-bold text-slate-800 border-b border-slate-200/70"
                   >
-                    {loading ? 'Creating...' : 'Create Referral'}
+                    Step 1: Basic Details
                   </button>
-                </div>
+                  <div className={`${isMobile && mobileFormStep !== 1 ? 'hidden' : 'block'} p-4 md:p-0 space-y-6`}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <label>
+                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Job Title</span>
+                        <div className={fieldShellClass}>
+                          <input
+                            className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                            placeholder="e.g. Senior Product Designer"
+                            type="text"
+                            required
+                            value={formData.title}
+                            onChange={(e) => handleInputChange('title', e.target.value)}
+                          />
+                        </div>
+                      </label>
+
+                      <label>
+                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Company</span>
+                        <div className={fieldShellClass}>
+                          <input
+                            className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                            placeholder="e.g. Acme Corp"
+                            type="text"
+                            required
+                            value={formData.company}
+                            onChange={(e) => handleInputChange('company', e.target.value)}
+                          />
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <label>
+                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department</span>
+                        <div className={fieldShellClass}>
+                          <input
+                            className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                            placeholder="e.g. Product Design"
+                            type="text"
+                            required
+                            value={formData.department || ''}
+                            onChange={(e) => handleInputChange('department', e.target.value)}
+                          />
+                        </div>
+                      </label>
+
+                      <label>
+                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Location</span>
+                        <div className={fieldShellClass}>
+                          <div className="relative">
+                            <input
+                              className="w-full h-11 pl-10 pr-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                              placeholder="City, State or Remote"
+                              type="text"
+                              required
+                              value={locationQuery}
+                              onChange={handleLocationInput}
+                            />
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px]">location_on</span>
+
+                            {locationSuggestions.length > 0 && (
+                              <ul className="absolute z-10 bg-white border border-stone-200 rounded-md mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
+                                {locationSuggestions.map((suggestion) => (
+                                  <li
+                                    key={suggestion.place_id}
+                                    className="px-4 py-2 cursor-pointer hover:bg-[#f2f1ec]"
+                                    onMouseDown={() => handleLocationSelect(suggestion)}
+                                  >
+                                    {suggestion.display_name}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+
+                    {isMobile && (
+                      <button
+                        type="button"
+                        onClick={() => setMobileFormStep(2)}
+                        className="w-full h-10 rounded-md border border-slate-200 text-slate-700 text-sm font-semibold"
+                      >
+                        Continue to Role Details
+                      </button>
+                    )}
+                  </div>
+                </section>
+
+                <section className="rounded-xl border border-slate-200/80 md:border-0 md:rounded-none overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setMobileFormStep(2)}
+                    className="md:hidden w-full px-4 h-11 bg-stone-50 text-left text-sm font-bold text-slate-800 border-b border-slate-200/70"
+                  >
+                    Step 2: Role Details
+                  </button>
+                  <div className={`${isMobile && mobileFormStep !== 2 ? 'hidden' : 'block'} p-4 md:p-0 space-y-6`}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <label>
+                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Job Type</span>
+                        <div className={fieldShellClass}>
+                          <div className="relative">
+                            <select
+                              className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
+                              required
+                              value={formData.job_type}
+                              onChange={(e) => handleInputChange('job_type', e.target.value)}
+                            >
+                              <option>Full-time</option>
+                              <option>Part-time</option>
+                              <option>Contract</option>
+                              <option>Freelance</option>
+                            </select>
+                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[18px]">expand_more</span>
+                          </div>
+                        </div>
+                      </label>
+
+                      <label>
+                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Experience Level</span>
+                        <div className={fieldShellClass}>
+                          <div className="relative">
+                            <select
+                              className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
+                              required
+                              value={formData.experience_level}
+                              onChange={(e) => handleInputChange('experience_level', e.target.value)}
+                            >
+                              <option>Internship</option>
+                              <option>Entry Level</option>
+                              <option>Mid Level (2-4 yrs)</option>
+                              <option>Senior (5+ yrs)</option>
+                              <option>Lead / Manager</option>
+                            </select>
+                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[18px]">expand_more</span>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+
+                    <label className="block">
+                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Job Description</span>
+                      <div className={fieldShellClass}>
+                        <textarea
+                          className="w-full p-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm min-h-[120px] resize-y"
+                          placeholder="Briefly describe the role requirements and responsibilities..."
+                          required
+                          value={formData.description}
+                          onChange={(e) => handleInputChange('description', e.target.value)}
+                        ></textarea>
+                      </div>
+                    </label>
+
+                    {isMobile && (
+                      <button
+                        type="button"
+                        onClick={() => setMobileFormStep(3)}
+                        className="w-full h-10 rounded-md border border-slate-200 text-slate-700 text-sm font-semibold"
+                      >
+                        Continue to Skills & Publish
+                      </button>
+                    )}
+                  </div>
+                </section>
+
+                <section className="rounded-xl border border-slate-200/80 md:border-0 md:rounded-none overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setMobileFormStep(3)}
+                    className="md:hidden w-full px-4 h-11 bg-stone-50 text-left text-sm font-bold text-slate-800 border-b border-slate-200/70"
+                  >
+                    Step 3: Skills & Publish
+                  </button>
+                  <div className={`${isMobile && mobileFormStep !== 3 ? 'hidden' : 'block'} p-4 md:p-0 space-y-6`}>
+                    <div className="space-y-3">
+                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Required Skills</span>
+                      <div className="flex items-center gap-2">
+                        <div className={`${fieldShellClass} flex-grow`}>
+                          <div className="relative">
+                            <input
+                              className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                              placeholder="Add a skill..."
+                              type="text"
+                              value={skillInput}
+                              onChange={(e) => setSkillInput(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                            />
+                          </div>
+                        </div>
+                        <button
+                          className="size-11 flex-none flex items-center justify-center rounded-md bg-[#5f7261] text-white shadow-sm hover:bg-[#4b5c4d] transition-colors"
+                          type="button"
+                          onClick={addSkill}
+                        >
+                          <span className="material-symbols-outlined">add</span>
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {formData.skills?.map((skill, index) => (
+                          <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sage-50 text-[#5f7261] border border-sage-200">
+                            {skill}
+                            <button
+                              className="hover:text-red-500 flex items-center"
+                              type="button"
+                              onClick={() => removeSkill(skill)}
+                            >
+                              <span className="material-symbols-outlined text-[14px]">close</span>
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-6 pt-2 border-t border-stone-100 mt-2">
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <input
+                          className="w-4 h-4 rounded text-[#5f7261] border-stone-300 focus:ring-[#5f7261] cursor-pointer"
+                          type="checkbox"
+                          checked={formData.remote_available}
+                          onChange={(e) => handleInputChange('remote_available', e.target.checked)}
+                        />
+                        <span className="text-sm font-medium text-slate-700 group-hover:text-[#5f7261] transition-colors">Remote Friendly</span>
+                      </label>
+
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <input
+                          className="w-4 h-4 rounded text-[#5f7261] border-stone-300 focus:ring-[#5f7261] cursor-pointer"
+                          type="checkbox"
+                          checked={formData.urgent_hiring}
+                          onChange={(e) => handleInputChange('urgent_hiring', e.target.checked)}
+                        />
+                        <span className="text-sm font-medium text-slate-700 group-hover:text-[#5f7261] transition-colors">Urgent Priority</span>
+                      </label>
+                    </div>
+
+                    <div className="pt-2 md:pt-4">
+                      <button
+                        className="w-full h-12 rounded-md bg-[#5f7261] text-white font-bold text-sm shadow-sm hover:bg-[#4b5c4d] transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                        type="submit"
+                        disabled={loading}
+                      >
+                        {loading ? 'Creating...' : 'Create Referral'}
+                      </button>
+                    </div>
+                  </div>
+                </section>
               </form>
             </div>
           </div>
 
           {/* Right Column - My Referrals */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-4 md:space-y-6">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-xl font-bold text-slate-900">My Referrals</h3>
               <button
@@ -831,77 +907,119 @@ const CreateReferralPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {loadingReferrals ? (
                 <LoadingSpinner text="Loading referrals..." />
               ) : myReferrals.length === 0 ? (
-                <div className="bg-white rounded-lg border border-slate-100 p-8 text-center">
+                <div className="bg-white rounded-lg border border-slate-100 p-6 md:p-8 text-center">
                   <span className="material-symbols-outlined text-4xl text-slate-300 mb-4 block">work</span>
                   <p className="text-slate-500 text-sm">No referrals created yet</p>
                 </div>
               ) : (
-                myReferrals.slice(0, 3).map((job) => (
-                  <div
-                    key={job.id}
-                    className="group bg-white rounded-lg border border-slate-100 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer"
-                    onClick={() => handleViewApplications(job.id)}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      {getStatusBadge(job.status)}
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                isMobile ? (
+                  <div className="bg-white rounded-lg border border-slate-100 divide-y divide-stone-100">
+                    {myReferrals.slice(0, 4).map((job) => (
+                      <div
+                        key={job.id}
+                        className="px-4 py-3 cursor-pointer"
+                        onClick={() => handleViewApplications(job.id)}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-900 truncate">{job.title}</p>
+                            <p className="text-xs text-slate-500 truncate mt-0.5">{job.company} • {job.department || 'General'}</p>
+                          </div>
+                          {getStatusBadge(job.status)}
+                        </div>
+                        <div className="mt-2 flex items-center justify-between">
+                          <button
+                            className="flex items-center gap-1 text-xs text-slate-600 font-medium"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewApplications(job.id);
+                            }}
+                          >
+                            <span className="material-symbols-outlined text-[16px]">visibility</span>
+                            {job.applications_count || 0} Applicants
+                          </button>
+                          <button
+                            className="h-8 w-8 rounded-md text-red-600 bg-red-50 border border-red-100 inline-flex items-center justify-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteReferral(job.id);
+                            }}
+                            aria-label="Delete referral"
+                            title="Delete referral"
+                          >
+                            <span className="material-symbols-outlined text-[17px]">delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  myReferrals.slice(0, 3).map((job) => (
+                    <div
+                      key={job.id}
+                      className="group bg-white rounded-lg border border-slate-100 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer"
+                      onClick={() => handleViewApplications(job.id)}
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        {getStatusBadge(job.status)}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            className="p-1.5 text-slate-500 hover:text-[#5f7261] rounded-md hover:bg-stone-50 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewApplications(job.id);
+                            }}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">visibility</span>
+                          </button>
+                          <button
+                            className="p-1.5 text-slate-500 hover:text-red-500 rounded-md hover:bg-stone-50 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteReferral(job.id);
+                            }}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <h4 className="font-bold text-slate-900 text-lg leading-tight">{job.title}</h4>
+                      <p className="text-sm text-slate-500 mb-4">{job.company} • {job.department || 'General'}</p>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-stone-100">
+                        <div className="flex -space-x-2">
+                          {job.applications_count > 0 && (
+                            <>
+                              <div className="size-6 rounded-full ring-2 ring-white bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-700">
+                                {job.title.charAt(0)}
+                              </div>
+                              {job.applications_count > 1 && (
+                                <div className="size-6 rounded-full ring-2 ring-white bg-amber-100 flex items-center justify-center text-[9px] font-bold text-amber-700">
+                                  {job.company.charAt(0)}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
                         <button
-                          className="p-1.5 text-slate-500 hover:text-[#5f7261] rounded-md hover:bg-stone-50 transition-colors"
+                          className="flex items-center gap-1.5 text-slate-500 text-xs font-medium hover:text-[#5f7261] transition-colors cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleViewApplications(job.id);
                           }}
                         >
-                          <span className="material-symbols-outlined text-[18px]">visibility</span>
-                        </button>
-                        <button
-                          className="p-1.5 text-slate-500 hover:text-red-500 rounded-md hover:bg-stone-50 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteReferral(job.id);
-                          }}
-                        >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                          <span className="material-symbols-outlined text-[16px]">visibility</span>
+                          {job.applications_count || 0} Applicants
                         </button>
                       </div>
                     </div>
-
-                    <h4 className="font-bold text-slate-900 text-lg leading-tight">{job.title}</h4>
-                    <p className="text-sm text-slate-500 mb-4">{job.company} • {job.department || 'General'}</p>
-
-                    <div className="flex items-center justify-between pt-3 border-t border-stone-100">
-                      <div className="flex -space-x-2">
-                        {/* Mock applicant avatars */}
-                        {job.applications_count > 0 && (
-                          <>
-                            <div className="size-6 rounded-full ring-2 ring-white bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-700">
-                              {job.title.charAt(0)}
-                            </div>
-                            {job.applications_count > 1 && (
-                              <div className="size-6 rounded-full ring-2 ring-white bg-amber-100 flex items-center justify-center text-[9px] font-bold text-amber-700">
-                                {job.company.charAt(0)}
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                      <button
-                        className="flex items-center gap-1.5 text-slate-500 text-xs font-medium hover:text-[#5f7261] transition-colors cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewApplications(job.id);
-                        }}
-                      >
-                        <span className="material-symbols-outlined text-[16px]">visibility</span>
-                        {job.applications_count || 0} Applicants
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  ))
+                )
               )}
             </div>
           </div>

@@ -2,7 +2,69 @@ import socialX from '../assets/social-x.png';
 import socialInstagram from '../assets/social-instagram.png';
 import socialLinkedin from '../assets/social-linkedin.png';
 
-const Footer: React.FC = () => {
+interface FooterProps {
+  compact?: boolean;
+}
+
+const Footer: React.FC<FooterProps> = ({ compact = false }) => {
+  if (compact) {
+    return (
+      <footer className="bg-stone border-t border-slate-200">
+        <div className="mx-auto max-w-7xl px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center text-slate-900 min-w-0">
+              <img
+                src="/logo2.png"
+                alt="TankTide Logo"
+                className="h-7 w-7 object-contain filter-sage shrink-0"
+              />
+              <span className="ml-2 font-bold text-sm text-slate-900 truncate">TankTide</span>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <a
+                href="https://x.com/tanktide?s=21"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-80 hover:opacity-100 transition-opacity"
+                aria-label="X"
+              >
+                <img src={socialX} alt="X" className="h-4 w-4 object-contain brightness-0" />
+              </a>
+              <a
+                href="https://www.instagram.com/tanktideorg?igsh=MWJ2YXhreWRkbjhjOA=="
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-80 hover:opacity-100 transition-opacity"
+                aria-label="Instagram"
+              >
+                <img src={socialInstagram} alt="Instagram" className="h-5 w-5 object-contain brightness-0" />
+              </a>
+              <a
+                href="https://www.linkedin.com/company/tanktide/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-80 hover:opacity-100 transition-opacity"
+                aria-label="LinkedIn"
+              >
+                <img src={socialLinkedin} alt="LinkedIn" className="h-5 w-5 object-contain brightness-0" />
+              </a>
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
+            <a className="hover:text-sage transition-colors" href="/privacy-policy">
+              Privacy
+            </a>
+            <span>•</span>
+            <a className="hover:text-sage transition-colors" href="/terms">
+              Terms
+            </a>
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
   return (
     <footer className="bg-stone border-t border-slate-200">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">

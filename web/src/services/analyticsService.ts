@@ -177,12 +177,11 @@ const initializeSession = (): void => {
 const trackInteraction = async (interaction: Omit<UserInteraction, 'timestamp' | 'sessionId' | 'userId'>): Promise<void> => {
   if (!window._analyticsInitialized) return;
 
-  const { data: { user } } = await supabase.auth.getUser();
   const interactionData: UserInteraction = {
     ...interaction,
     timestamp: new Date().toISOString(),
     sessionId: window._sessionId,
-    userId: user?.id
+    userId: undefined
   };
 
   window._interactions.push(interactionData);
@@ -369,14 +368,13 @@ export const analyticsService = {
       analyticsService.init();
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
     /* 
     const pageViewEvent: PageViewEvent = {
       page,
       referrer: document.referrer,
       timestamp: new Date().toISOString(),
       sessionId: window._sessionId,
-      userId: user?.id,
+      userId: undefined,
       isFirstVisit: window._firstVisit,
       userAgent: navigator.userAgent,
       screenResolution: `${screen.width}x${screen.height}`
@@ -415,14 +413,13 @@ export const analyticsService = {
       analyticsService.init();
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
     /*
     const userEvent: UserEvent = {
       eventType,
       eventData,
       timestamp: new Date().toISOString(),
       sessionId: window._sessionId,
-      userId: user?.id,
+      userId: undefined,
       page: window.location.pathname
     };
     */

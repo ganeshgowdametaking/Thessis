@@ -501,11 +501,165 @@ const JobsPage: React.FC = () => {
     navigate('/create-referral');
   };
 
+  const renderSelectedJobDetails = () => {
+    if (!selectedJob) return null;
+
+    return (
+      <div className="max-w-4xl mx-auto p-8 lg:p-12 pb-24">
+        {/* Job Header */}
+        <div className="flex flex-col gap-6 border-b border-stone-divider pb-8 mb-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="bg-center bg-no-repeat bg-contain bg-white rounded-xl size-20 shadow-sm border border-slate-100 p-2">
+              {/* Company logo placeholder */}
+              <div className="w-full h-full bg-slate-100 rounded-xl flex items-center justify-center">
+                <Building className="h-8 w-8 text-slate-400" />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="group flex items-center justify-center h-10 w-10 transition-colors"
+              >
+                <img
+                  src={shareIcon}
+                  alt="Share"
+                  className="h-6 w-6 object-contain transition-all duration-200 group-hover:scale-110"
+                />
+              </button>
+            </div>
+          </div>
+          <div>
+            <h1 className="text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
+              {selectedJob.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-4 text-slate-500 text-sm font-medium">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-lg text-slate-900 font-bold">{selectedJob.company}</span>
+                {selectedJob && (selectedJob as any).created_by_profile?.work_email_verified && (
+                  <div title="Verified Work Email">
+                    <CheckCircle2 className="w-4 h-4 text-blue-500 fill-white" />
+                  </div>
+                )}
+                {selectedJob && (selectedJob as any).created_by_profile?.response_metric && (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${['24h', '3d'].includes((selectedJob as any).created_by_profile?.response_metric)
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                    }`} title="Median Response Time">
+                    ⚡️ Responds in {(selectedJob as any).created_by_profile?.response_metric}
+                  </span>
+                )}
+              </div>
+              <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+              <span className="flex items-center gap-1">
+                <MapPin className="text-[18px]" />
+                {selectedJob.location}
+              </span>
+              <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+              <span>Posted {formatTimeAgo(selectedJob.created_at)}</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {selectedJob.benefits && selectedJob.benefits.length > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-50 border border-slate-200 text-xs font-semibold text-slate-700">
+                <DollarSign className="text-[16px]" />
+                {selectedJob.benefits[0]}
+              </div>
+            )}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-50 border border-slate-200 text-xs font-semibold text-slate-700">
+              <Clock className="text-[16px]" />
+              {selectedJob.job_type}
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-50 border border-slate-200 text-xs font-semibold text-slate-700">
+              <School className="text-[16px]" />
+              {selectedJob.experience_level}
+            </div>
+          </div>
+          <div className="pt-2">
+            {appliedJobs.includes(selectedJob.id) ? (
+              <button
+                type="button"
+                disabled
+                className="w-full sm:w-auto px-8 h-12 rounded-lg bg-slate-300 text-slate-500 font-bold text-sm tracking-wide cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <span>Applied</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleApplyToJob}
+                disabled={!user}
+                className="w-full sm:w-auto px-8 h-12 rounded-lg bg-primary hover:bg-primary-hover text-white font-bold text-sm tracking-wide transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
+              >
+                <span>Apply Now</span>
+                <ArrowUpRight className="text-[18px]" />
+              </button>
+            )}
+          </div>
+        </div>
+        {/* Job Content */}
+        <div className="space-y-10 text-slate-700 leading-relaxed">
+          <section>
+            <h3 className="text-xl font-bold text-slate-900 mb-4">About the Role</h3>
+            <div className="text-slate-700 leading-relaxed whitespace-pre-line text-justify">
+              {selectedJob.description || "We are looking for a talented professional to join our team. In this role, you will be responsible for delivering high-quality work and collaborating with cross-functional teams to achieve our goals."}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xl font-bold text-slate-900 mb-4">Responsibilities</h3>
+            <ul className="space-y-3 list-none">
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="text-primary mt-0.5 text-[20px]" />
+                <span>Lead projects across the entire product lifecycle and multiple product launches.</span>
+              </li>
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="text-primary mt-0.5 text-[20px]" />
+                <span>Set the vision for the user experience and create the space for others to collaborate.</span>
+              </li>
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="text-primary mt-0.5 text-[20px]" />
+                <span>Work with small multi-disciplinary teams. You'll partner closely with engineering, product, and business folks.</span>
+              </li>
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="text-primary mt-0.5 text-[20px]" />
+                <span>Rapidly produce multiple concepts and prototypes; knowing when to apply pixel-perfect attention to detail.</span>
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-xl font-bold text-slate-900 mb-4">Skills & Requirements</h3>
+            <div className="flex flex-wrap gap-2">
+              {selectedJob.skills && selectedJob.skills.length > 0 ? (
+                selectedJob.skills.map((skill: string, index: number) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1.5 rounded-md bg-stone-50 text-slate-700 text-sm font-semibold border border-stone-divider"
+                  >
+                    {skill}
+                  </span>
+                ))
+              ) : (
+                <>
+                  <span className="px-3 py-1.5 rounded-md bg-stone-50 text-slate-700 text-sm font-semibold border border-stone-divider">Figma</span>
+                  <span className="px-3 py-1.5 rounded-md bg-stone-50 text-slate-700 text-sm font-semibold border border-stone-divider">System Design</span>
+                  <span className="px-3 py-1.5 rounded-md bg-stone-50 text-slate-700 text-sm font-semibold border border-stone-divider">Prototyping</span>
+                  <span className="px-3 py-1.5 rounded-md bg-white text-slate-700 text-sm font-medium border border-slate-200">HTML/CSS</span>
+                  <span className="px-3 py-1.5 rounded-md bg-white text-slate-700 text-sm font-medium border border-slate-200">User Research</span>
+                  <span className="px-3 py-1.5 rounded-md bg-white text-slate-700 text-sm font-medium border border-slate-200">React</span>
+                </>
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  };
+
 
 
   if (loading) {
     return (
-      <div className="bg-stone text-slate-700 font-display overflow-hidden h-screen flex flex-col selection:bg-primary selection:text-white">
+      <div className="bg-stone text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
         <div className="flex items-center justify-center h-full">
           <LoadingSpinner text="Loading jobs..." />
         </div>
@@ -515,7 +669,7 @@ const JobsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-stone text-slate-700 font-display overflow-hidden h-screen flex flex-col selection:bg-primary selection:text-white">
+      <div className="bg-stone text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
         <div className="flex items-center justify-center h-full">
           <div className="max-w-md mx-auto text-center p-8">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -536,8 +690,8 @@ const JobsPage: React.FC = () => {
   }
 
   return (
-    <div className="bg-stone text-slate-700 font-display overflow-hidden h-screen flex flex-col selection:bg-primary selection:text-white">
-      <main className="flex flex-1 overflow-hidden">
+    <div className="bg-stone text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
+      <main className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar */}
         <aside className="w-full md:max-w-[480px] flex flex-col border-r border-stone-divider bg-stone-sidebar relative z-10">
           {/* Sidebar Header */}
@@ -671,159 +825,10 @@ const JobsPage: React.FC = () => {
             )}
           </div>
         </aside>
-        {/* Main Content */}
-        <section className="flex-1 overflow-y-auto bg-white scroll-smooth">
+        {/* Main Content (Desktop only) */}
+        <section className="hidden md:block flex-1 overflow-y-auto bg-white scroll-smooth">
           {selectedJob ? (
-            <div className="max-w-4xl mx-auto p-8 lg:p-12 pb-24">
-              {/* Job Header */}
-              <div className="flex flex-col gap-6 border-b border-stone-divider pb-8 mb-8">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="bg-center bg-no-repeat bg-contain bg-white rounded-xl size-20 shadow-sm border border-slate-100 p-2">
-                    {/* Company logo placeholder */}
-                    <div className="w-full h-full bg-slate-100 rounded-xl flex items-center justify-center">
-                      <Building className="h-8 w-8 text-slate-400" />
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setShowShareModal(true)}
-                      className="group flex items-center justify-center h-10 w-10 transition-colors"
-                    >
-                      <img
-                        src={shareIcon}
-                        alt="Share"
-                        className="h-6 w-6 object-contain transition-all duration-200 group-hover:scale-110"
-                      />
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <h1 className="text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
-                    {selectedJob.title}
-                  </h1>
-                  <div className="flex flex-wrap items-center gap-4 text-slate-500 text-sm font-medium">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-lg text-slate-900 font-bold">{selectedJob.company}</span>
-                      {selectedJob && (selectedJob as any).created_by_profile?.work_email_verified && (
-                        <div title="Verified Work Email">
-                          <CheckCircle2 className="w-4 h-4 text-blue-500 fill-white" />
-                        </div>
-                      )}
-                      {selectedJob && (selectedJob as any).created_by_profile?.response_metric && (
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${['24h', '3d'].includes((selectedJob as any).created_by_profile?.response_metric)
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                          }`} title="Median Response Time">
-                          ⚡️ Responds in {(selectedJob as any).created_by_profile?.response_metric}
-                        </span>
-                      )}
-                    </div>
-                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="text-[18px]" />
-                      {selectedJob.location}
-                    </span>
-                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                    <span>Posted {formatTimeAgo(selectedJob.created_at)}</span>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  {selectedJob.benefits && selectedJob.benefits.length > 0 && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-50 border border-slate-200 text-xs font-semibold text-slate-700">
-                      <DollarSign className="text-[16px]" />
-                      {selectedJob.benefits[0]}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-50 border border-slate-200 text-xs font-semibold text-slate-700">
-                    <Clock className="text-[16px]" />
-                    {selectedJob.job_type}
-                  </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-50 border border-slate-200 text-xs font-semibold text-slate-700">
-                    <School className="text-[16px]" />
-                    {selectedJob.experience_level}
-                  </div>
-                </div>
-                <div className="pt-2">
-                  {appliedJobs.includes(selectedJob.id) ? (
-                    <button
-                      type="button"
-                      disabled
-                      className="w-full sm:w-auto px-8 h-12 rounded-lg bg-slate-300 text-slate-500 font-bold text-sm tracking-wide cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      <span>Applied</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleApplyToJob}
-                      disabled={!user}
-                      className="w-full sm:w-auto px-8 h-12 rounded-lg bg-primary hover:bg-primary-hover text-white font-bold text-sm tracking-wide transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
-                    >
-                      <span>Apply Now</span>
-                      <ArrowUpRight className="text-[18px]" />
-                    </button>
-                  )}
-                </div>
-              </div>
-              {/* Job Content */}
-              <div className="space-y-10 text-slate-700 leading-relaxed">
-                <section>
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">About the Role</h3>
-                  <div className="text-slate-700 leading-relaxed whitespace-pre-line">
-                    {selectedJob.description || "We are looking for a talented professional to join our team. In this role, you will be responsible for delivering high-quality work and collaborating with cross-functional teams to achieve our goals."}
-                  </div>
-                </section>
-
-                <section>
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">Responsibilities</h3>
-                  <ul className="space-y-3 list-none">
-                    <li className="flex gap-3 items-start">
-                      <CheckCircle2 className="text-primary mt-0.5 text-[20px]" />
-                      <span>Lead projects across the entire product lifecycle and multiple product launches.</span>
-                    </li>
-                    <li className="flex gap-3 items-start">
-                      <CheckCircle2 className="text-primary mt-0.5 text-[20px]" />
-                      <span>Set the vision for the user experience and create the space for others to collaborate.</span>
-                    </li>
-                    <li className="flex gap-3 items-start">
-                      <CheckCircle2 className="text-primary mt-0.5 text-[20px]" />
-                      <span>Work with small multi-disciplinary teams. You'll partner closely with engineering, product, and business folks.</span>
-                    </li>
-                    <li className="flex gap-3 items-start">
-                      <CheckCircle2 className="text-primary mt-0.5 text-[20px]" />
-                      <span>Rapidly produce multiple concepts and prototypes; knowing when to apply pixel-perfect attention to detail.</span>
-                    </li>
-                  </ul>
-                </section>
-
-                <section>
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">Skills & Requirements</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedJob.skills && selectedJob.skills.length > 0 ? (
-                      selectedJob.skills.map((skill: string, index: number) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1.5 rounded-md bg-stone-50 text-slate-700 text-sm font-semibold border border-stone-divider"
-                        >
-                          {skill}
-                        </span>
-                      ))
-                    ) : (
-                      <>
-                        <span className="px-3 py-1.5 rounded-md bg-stone-50 text-slate-700 text-sm font-semibold border border-stone-divider">Figma</span>
-                        <span className="px-3 py-1.5 rounded-md bg-stone-50 text-slate-700 text-sm font-semibold border border-stone-divider">System Design</span>
-                        <span className="px-3 py-1.5 rounded-md bg-stone-50 text-slate-700 text-sm font-semibold border border-stone-divider">Prototyping</span>
-                        <span className="px-3 py-1.5 rounded-md bg-white text-slate-700 text-sm font-medium border border-slate-200">HTML/CSS</span>
-                        <span className="px-3 py-1.5 rounded-md bg-white text-slate-700 text-sm font-medium border border-slate-200">User Research</span>
-                        <span className="px-3 py-1.5 rounded-md bg-white text-slate-700 text-sm font-medium border border-slate-200">React</span>
-                      </>
-                    )}
-                  </div>
-                </section>
-              </div>
-
-
-
-            </div>
+            renderSelectedJobDetails()
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -837,6 +842,28 @@ const JobsPage: React.FC = () => {
           )}
         </section>
       </main>
+
+      {/* Mobile Full-Screen Job Details */}
+      {isMobile && selectedJob && (
+        <div className="fixed inset-0 z-50 bg-white md:hidden slide-up-drawer">
+          <div className="h-full flex flex-col">
+            <div className="shrink-0 h-14 px-3 border-b border-stone-divider flex items-center justify-between bg-white">
+              <button
+                onClick={() => setSelectedJob(null)}
+                className="h-10 w-10 rounded-lg flex items-center justify-center text-slate-600 hover:bg-stone-100"
+                aria-label="Back to jobs list"
+              >
+                <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+              </button>
+              <h2 className="text-sm font-bold tracking-wide text-slate-900 uppercase">Job Details</h2>
+              <span className="h-10 w-10" aria-hidden="true"></span>
+            </div>
+            <div className="flex-1 overflow-y-auto bg-white">
+              {renderSelectedJobDetails()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filter Modal */}
       {

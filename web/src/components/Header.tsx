@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
 import { notificationService } from '../services/notificationService';
 import referralIcon from '../assets/referral-icon.png';
@@ -24,6 +24,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   const { user, signOut, profile } = useAuthContext();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,6 +96,11 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
     window.refreshUnreadCounts = fetchCounts;
     return () => { clearInterval(interval); window.refreshUnreadCounts = undefined; };
   }, []);
+
+  useEffect(() => {
+    setIsMenuOpen(false);
+    setShowSettingsDropdown(false);
+  }, [location.pathname]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,155 +215,205 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
     );
   }
 
+  const primaryMobileRoutes = ['/jobs', '/messages', '/notifications', '/profile'];
+  const shouldShowBackButton = location.pathname !== '/' && !primaryMobileRoutes.includes(location.pathname);
+
+  const handleMobileLeadingAction = () => {
+    if (shouldShowBackButton) {
+      navigate(-1);
+      return;
+    }
+    setIsMenuOpen((prev) => !prev);
+  };
 
   return (
-    <header className="bg-white border-b border-stone-200 h-20 shrink-0 flex items-center justify-between px-6 lg:px-10 z-40 relative">
-      <div className="flex items-center gap-6 xl:gap-10 w-full lg:w-auto">
-        <div className="flex items-center shrink-0">
-          <Link to="/jobs" className="block">
-            <img
-              src="/logo2.png"
-              alt="TankTide Logo"
-              className="h-16 w-16 object-contain rounded-xl cursor-pointer hover:opacity-80 transition-opacity filter-sage"
-            />
-          </Link>
+    <header className="bg-white border-b border-stone-200 shrink-0 z-40 relative">
+      <div className="md:hidden h-16 px-2 grid grid-cols-[88px_1fr_88px] items-center">
+        <div className="flex items-center justify-start">
+          <button
+            onClick={handleMobileLeadingAction}
+            className="h-11 w-11 flex items-center justify-center rounded-lg text-[#354038] hover:bg-stone-100 transition-colors"
+            aria-label={shouldShowBackButton ? 'Go back' : (isMenuOpen ? 'Close menu' : 'Open menu')}
+          >
+            {shouldShowBackButton ? (
+              <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+            ) : (
+              <span className="material-symbols-outlined text-[22px]">{isMenuOpen ? 'close' : 'menu'}</span>
+            )}
+          </button>
         </div>
 
-        <div className="hidden lg:flex items-center bg-[#f2f1ec] rounded-full px-5 py-2.5 w-[540px] border border-[#e6e5e0] transition-colors focus-within:border-primary/50 focus-within:bg-[#efeee9] shadow-sm">
-          <span className="material-symbols-outlined text-slate-500 text-[22px]">search</span>
-          <form onSubmit={handleSearch} className="flex-1">
-            <input
-              className="bg-transparent border-none p-0 ml-3 w-full text-slate-700 placeholder:text-slate-500 focus:ring-0 text-[15px] font-medium"
-              placeholder="Search..."
-              type="text"
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
-              onKeyDown={handleInputKeyDown}
-              onKeyPress={handleSearchKeyPress}
-            />
-          </form>
-        </div>
-      </div>
+        <Link to="/jobs" className="flex items-center justify-self-center min-w-0">
+          <img
+            src="/logo2.png"
+            alt="TankTide Logo"
+            className="h-10 w-10 object-contain filter-sage"
+          />
+        </Link>
 
-      <div className="flex items-center gap-6 shrink-0">
-        <div className="flex items-center gap-6">
-          {/* Referral Icon Container */}
-          <Link to="/jobs" className="group flex items-center justify-center h-10 w-10 transition-colors">
-            <img
-              src={referralIcon}
-              alt="Referrals"
-              className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
-            />
-          </Link>
-
-          {/* Messages Icon Container */}
-          <Link to="/messages" className="group flex items-center justify-center h-10 w-10 transition-colors">
-            <img
-              src={messagesIcon}
-              alt="Messages"
-              className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
-            />
-          </Link>
-
-          {/* Notifications Icon Container */}
-          <Link to="/notifications" className="relative group flex items-center justify-center h-10 w-10 transition-colors">
+        <div className="flex items-center justify-end gap-1">
+          <Link to="/notifications" className="relative h-11 w-11 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" aria-label="Notifications">
             <img
               src={notificationsIcon}
               alt="Notifications"
-              className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
+              className="h-5 w-5 object-contain filter-sage"
             />
             {unreadNotifications > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
             )}
           </Link>
-
-          {/* Profile Icon Container */}
-          <Link to="/profile" className="group flex items-center justify-center h-10 w-10 transition-colors">
+          <Link to="/profile" className="h-11 w-11 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" aria-label="Profile">
             <img
               src={profile?.avatar_url || profileIcon}
-              alt={profile?.full_name || "Profile"}
-              className="h-8 w-8 object-cover rounded-full transition-all duration-200 group-hover:scale-110"
+              alt={profile?.full_name || 'Profile'}
+              className="h-8 w-8 object-cover rounded-full"
             />
           </Link>
-
-          {/* Settings Icon Container */}
-          <div className="relative" ref={settingsDropdownRef}>
-            <button
-              className="group flex items-center justify-center h-10 w-10 transition-colors"
-              onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-            >
-              <img
-                src={settingsIcon}
-                alt="Settings"
-                className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
-              />
-            </button>
-
-            {showSettingsDropdown && (
-              <div className="absolute right-0 z-50 mt-2 w-48 rounded-md bg-white border border-slate-200 shadow-lg py-1">
-                <Link
-                  to="/settings"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-[#f2f1ec]"
-                  onClick={() => setShowSettingsDropdown(false)}
-                >
-                  Settings
-                </Link>
-                <button
-                  onClick={() => {
-                    signOut();
-                    setShowSettingsDropdown(false);
-                  }}
-                  className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-[#f2f1ec]"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Mobile Menu Button */}
-      <div className="xl:hidden">
-        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-1 text-[#354038]">
-          <div className="flex h-6 w-6 items-center justify-center">
-            {isMenuOpen ? (
-              <span className="material-symbols-outlined text-[24px]">close</span>
-            ) : (
-              <span className="material-symbols-outlined text-[24px]">menu</span>
-            )}
+      <div className="hidden md:flex h-20 items-center justify-between px-6 lg:px-10">
+        <div className="flex items-center gap-6 xl:gap-10 w-full lg:w-auto">
+          <div className="flex items-center shrink-0">
+            <Link to="/jobs" className="block">
+              <img
+                src="/logo2.png"
+                alt="TankTide Logo"
+                className="h-16 w-16 object-contain rounded-xl cursor-pointer hover:opacity-80 transition-opacity filter-sage"
+              />
+            </Link>
           </div>
-        </button>
+
+          <div className="hidden lg:flex items-center bg-[#f2f1ec] rounded-full px-5 py-2.5 w-[540px] border border-[#e6e5e0] transition-colors focus-within:border-primary/50 focus-within:bg-[#efeee9] shadow-sm">
+            <span className="material-symbols-outlined text-slate-500 text-[22px]">search</span>
+            <form onSubmit={handleSearch} className="flex-1">
+              <input
+                className="bg-transparent border-none p-0 ml-3 w-full text-slate-700 placeholder:text-slate-500 focus:ring-0 text-[15px] font-medium"
+                placeholder="Search..."
+                type="text"
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
+                onKeyDown={handleInputKeyDown}
+                onKeyPress={handleSearchKeyPress}
+              />
+            </form>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-6 shrink-0">
+          <div className="flex items-center gap-6">
+            {/* Referral Icon Container */}
+            <Link to="/jobs" className="group flex items-center justify-center h-10 w-10 transition-colors">
+              <img
+                src={referralIcon}
+                alt="Referrals"
+                className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
+              />
+            </Link>
+
+            {/* Messages Icon Container */}
+            <Link to="/messages" className="group flex items-center justify-center h-10 w-10 transition-colors">
+              <img
+                src={messagesIcon}
+                alt="Messages"
+                className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
+              />
+            </Link>
+
+            {/* Notifications Icon Container */}
+            <Link to="/notifications" className="relative group flex items-center justify-center h-10 w-10 transition-colors">
+              <img
+                src={notificationsIcon}
+                alt="Notifications"
+                className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
+              />
+              {unreadNotifications > 0 && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              )}
+            </Link>
+
+            {/* Profile Icon Container */}
+            <Link to="/profile" className="group flex items-center justify-center h-10 w-10 transition-colors">
+              <img
+                src={profile?.avatar_url || profileIcon}
+                alt={profile?.full_name || "Profile"}
+                className="h-8 w-8 object-cover rounded-full transition-all duration-200 group-hover:scale-110"
+              />
+            </Link>
+
+            {/* Settings Icon Container */}
+            <div className="relative" ref={settingsDropdownRef}>
+              <button
+                className="group flex items-center justify-center h-10 w-10 transition-colors"
+                onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
+              >
+                <img
+                  src={settingsIcon}
+                  alt="Settings"
+                  className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
+                />
+              </button>
+
+              {showSettingsDropdown && (
+                <div className="absolute right-0 z-50 mt-2 w-48 rounded-md bg-white border border-slate-200 shadow-lg py-1">
+                  <Link
+                    to="/settings"
+                    className="block px-4 py-2 text-sm text-slate-700 hover:bg-[#f2f1ec]"
+                    onClick={() => setShowSettingsDropdown(false)}
+                  >
+                    Settings
+                  </Link>
+                  <button
+                    onClick={() => {
+                      signOut();
+                      setShowSettingsDropdown(false);
+                    }}
+                    className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-[#f2f1ec]"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="absolute top-full left-0 right-0 bg-white border-b border-stone-200 xl:hidden">
-          <div className="px-6 py-4 space-y-3">
+        <div className="absolute top-full left-0 right-0 bg-white border-b border-stone-200 md:hidden shadow-sm">
+          <div className="px-4 py-3 space-y-1.5">
             <Link
               to="/jobs"
-              className="block text-[#354038] font-semibold text-[16px] hover:text-primary transition-colors py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Dashboard
-            </Link>
-            <Link
-              to="/jobs"
-              className="block text-[#354038] font-semibold text-[16px] hover:text-primary transition-colors py-2"
+              className="block text-[#354038] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
               onClick={() => setIsMenuOpen(false)}
             >
               Referrals
             </Link>
             <Link
               to="/messages"
-              className="block text-[#354038] font-semibold text-[16px] hover:text-primary transition-colors py-2"
+              className="block text-[#354038] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
               onClick={() => setIsMenuOpen(false)}
             >
               Messages
             </Link>
             <Link
+              to="/notifications"
+              className="block text-[#354038] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Notifications
+            </Link>
+            <Link
+              to="/profile"
+              className="block text-[#354038] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Profile
+            </Link>
+            <Link
               to="/settings"
-              className="block text-[#354038] font-semibold text-[16px] hover:text-primary transition-colors py-2"
+              className="block text-[#354038] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
               onClick={() => setIsMenuOpen(false)}
             >
               Settings
@@ -365,7 +421,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
 
             <button
               onClick={() => { setIsMenuOpen(false); signOut(); }}
-              className="block w-full text-left text-red-600 font-semibold text-[16px] py-2"
+              className="block w-full text-left text-red-600 font-semibold text-[15px] py-2.5"
             >
               Logout
             </button>
@@ -377,7 +433,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="absolute top-full left-6 right-6 lg:left-[200px] lg:right-auto lg:w-[540px] bg-white border border-slate-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50"
+          className="hidden md:block absolute top-full left-6 right-6 lg:left-[200px] lg:right-auto lg:w-[540px] bg-white border border-slate-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50"
         >
           {suggestions.map((suggestion, index) => (
             <SuggestionItem key={index} suggestion={suggestion} index={index} />

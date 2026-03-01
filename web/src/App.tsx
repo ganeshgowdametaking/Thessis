@@ -52,31 +52,42 @@ function ApplicationsPageWrapper() {
   const { referralId } = useParams<{ referralId: string }>();
   const navigate = useNavigate();
   const [referralTitle, setReferralTitle] = useState('Job Referral');
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchJobTitle = async () => {
-      if (!referralId) return;
+      if (!referralId) {
+        return;
+      }
 
       try {
-        const { data, error } = await supabase
+        const timeoutMs = 10000;
+        const queryPromise = supabase
           .from('jobs')
           .select('title')
           .eq('id', referralId as any)
           .single();
 
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Job title request timed out')), timeoutMs)
+        );
+
+        const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as Awaited<typeof queryPromise>;
+
         if (error) throw error;
-        if (data) {
+        if (data && isMounted) {
           setReferralTitle((data as any).title);
         }
       } catch (error) {
         console.error('Error fetching job title:', error);
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchJobTitle();
+
+    return () => {
+      isMounted = false;
+    };
   }, [referralId]);
 
   const handleBack = () => {
@@ -96,10 +107,6 @@ function ApplicationsPageWrapper() {
 
   if (!referralId) {
     return <Navigate to="/jobs" />;
-  }
-
-  if (loading) {
-    return <LoadingSpinner text="Loading job details..." />;
   }
 
   return (
@@ -241,7 +248,7 @@ function MessagesPageWrapper() {
 function App() {
   return (
     <LoadingProvider>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ScrollToTop />
         <Routes>
           <Route path="/*" element={<AppContent />} />
@@ -409,7 +416,9 @@ function AppContent() {
       <main className="flex-grow">
         {routes}
       </main>
-      {!(isMobile && location.pathname === '/messages') && <Footer />}
+      {!(isMobile && location.pathname === '/messages') && (
+        <Footer compact={isMobile} />
+      )}
 
       {/* Auth Modal */}
       <AuthModal

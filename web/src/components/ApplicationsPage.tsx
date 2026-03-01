@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import LoadingSpinner from './LoadingSpinner';
 import BackArrowIcon from './icons/BackArrowIcon';
 import { applicationService } from '../services/applicationService';
+import { useMediaQuery } from 'react-responsive';
 
 interface Application {
   id: string;
@@ -88,6 +89,8 @@ export default function ApplicationsPage({
   const [aiLastRunKey, setAiLastRunKey] = useState<string>('');
   const [applicationToDelete, setApplicationToDelete] = useState<Application | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const isMobile = useMediaQuery({ maxWidth: 767 });
+  const [isAiPanelExpanded, setIsAiPanelExpanded] = useState(false);
 
   const configuredRankingApi = (import.meta.env.VITE_RESUME_RANKING_API || '/api/ranking').trim();
   const resumeRankingApiBase = configuredRankingApi.replace(/\/+$/, '');
@@ -100,45 +103,70 @@ export default function ApplicationsPage({
     try {
       setLoading(true);
       setError(null);
+      const maxAttempts = 2;
+      let lastError: unknown = null;
 
-      const { data, error } = await supabase
-        .from('applications')
-        .select(`
-          *,
-          user_profile:profiles!applications_applicant_id_fkey (
-            id,
-            full_name,
-            email,
-            avatar_url,
-            company,
-            title,
-            location
-          )
-        `)
-        .eq('job_id', referralId)
-        .order('applied_at', { ascending: false });
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const timeoutMs = 20000;
+          const queryPromise = supabase
+            .from('applications')
+            .select(`
+              *,
+              user_profile:profiles!applications_applicant_id_fkey (
+                id,
+                full_name,
+                email,
+                avatar_url,
+                company,
+                title,
+                location
+              )
+            `)
+            .eq('job_id', referralId)
+            .order('applied_at', { ascending: false });
 
-      if (error) {
-        console.error('Database error:', error);
-        setError('Failed to load applications');
-        setApplications([]);
-      } else {
-        // Map the data to match the expected interface
-        const mappedData = (data || []).map(app => ({
-          ...app,
-          user_id: app.applicant_id,
-          created_at: app.applied_at,
-          user_profile: app.user_profile ? {
-            ...app.user_profile,
-            current_company: app.user_profile.company,
-            current_position: app.user_profile.title
-          } : null
-        }));
-        setApplications(mappedData);
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Applications request timed out')), timeoutMs)
+          );
+
+          const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as Awaited<typeof queryPromise>;
+
+          if (error) {
+            throw error;
+          }
+
+          const mappedData = (data || []).map(app => ({
+            ...app,
+            user_id: app.applicant_id,
+            created_at: app.applied_at,
+            user_profile: app.user_profile ? {
+              ...app.user_profile,
+              current_company: app.user_profile.company,
+              current_position: app.user_profile.title
+            } : null
+          }));
+          setApplications(mappedData);
+          lastError = null;
+          break;
+        } catch (attemptError) {
+          lastError = attemptError;
+          const transient = attemptError instanceof Error &&
+            (attemptError.message.includes('timed out') || attemptError.name === 'AbortError');
+
+          if (!transient || attempt === maxAttempts) {
+            throw attemptError;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        }
+      }
+
+      if (lastError) {
+        throw lastError;
       }
     } catch (error) {
       console.error('Error fetching applications:', error);
-      setError('Failed to load applications');
+      setError(error instanceof Error ? error.message : 'Failed to load applications');
       setApplications([]);
     } finally {
       setLoading(false);
@@ -498,6 +526,7 @@ export default function ApplicationsPage({
   };
 
   const statusCounts = getStatusCounts();
+  const showAiPanelDetails = !isMobile || isAiPanelExpanded;
 
   if (loading) {
     return <LoadingSpinner text="Loading applications..." />;
@@ -506,7 +535,7 @@ export default function ApplicationsPage({
   return (
     <div className="min-h-screen bg-[#F9F9F7] flex flex-col overflow-hidden">
       {/* Page Header */}
-      <header className="bg-[#F9F9F7] pt-8 pb-4 px-8 shrink-0 z-10">
+      <header className="bg-[#F9F9F7] pt-5 md:pt-8 pb-3 md:pb-4 px-4 md:px-8 shrink-0 z-10">
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-6">
           <div
             className="flex items-center gap-2 text-slate-500 hover:text-[#5f7261] transition-colors cursor-pointer w-fit"
@@ -608,10 +637,22 @@ export default function ApplicationsPage({
       </header>
 
       {/* Applications Grid */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:py-6">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-lg p-5 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
+          {error && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-center justify-between gap-3">
+              <p className="text-sm text-amber-800">{error}</p>
+              <button
+                className="h-8 px-3 rounded-md bg-white border border-amber-200 text-amber-800 text-xs font-semibold"
+                onClick={fetchApplications}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          <div className="bg-white rounded-lg p-4 md:p-5 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-2 md:mb-3">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">AI Resume Ranking</h2>
                 <p className="text-sm text-slate-500">
@@ -630,14 +671,24 @@ export default function ApplicationsPage({
               </div>
             </div>
 
-            {aiRankingError && (
-              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2 mb-3">
+            {isMobile && (
+              <button
+                className="h-9 px-3 rounded-md border border-slate-200 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5"
+                onClick={() => setIsAiPanelExpanded((prev) => !prev)}
+              >
+                <span className="material-symbols-outlined text-[16px]">{isAiPanelExpanded ? 'expand_less' : 'expand_more'}</span>
+                {isAiPanelExpanded ? 'Collapse AI Details' : 'Expand AI Details'}
+              </button>
+            )}
+
+            {showAiPanelDetails && aiRankingError && (
+              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2 mt-3">
                 {aiRankingError}
               </div>
             )}
 
-            {aiLeaderboard && (
-              <div className="space-y-3">
+            {showAiPanelDetails && aiLeaderboard && (
+              <div className="space-y-3 mt-3">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="bg-[#f2f1ec] rounded-md p-3">
                     <p className="text-xs text-slate-500">Shortlisted</p>
@@ -693,11 +744,11 @@ export default function ApplicationsPage({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+            <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 md:gap-5">
               {filteredApplications.map((application) => (
                 <div
                   key={application.id}
-                  className="bg-white rounded-lg p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-shadow border border-slate-100 flex flex-col h-full group relative"
+                  className="bg-white rounded-lg p-4 md:p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-shadow border border-slate-100 flex flex-col h-full group relative"
                 >
                   {/* Profile Header */}
                   <div className="flex justify-between items-start mb-4">
@@ -774,23 +825,23 @@ export default function ApplicationsPage({
                       <span className="material-symbols-outlined text-[18px]">check_circle</span>
                       Shortlist
                     </button>
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <button
-                        className="flex-1 bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
+                        className="bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
                         onClick={() => setSelectedApplication(application)}
                       >
                         <span className="material-symbols-outlined text-[18px]">person</span>
                         View Details
                       </button>
                       <button
-                        className="flex-1 bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
+                        className="bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
                         onClick={() => handleViewResume(application)}
                       >
                         <span className="material-symbols-outlined text-[18px]">description</span>
                         Resume
                       </button>
                       <button
-                        className="flex-1 bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
+                        className="bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
                         onClick={() => onMessage(application.applicant_id)}
                       >
                         <span className="material-symbols-outlined text-[18px]">chat_bubble</span>
@@ -807,28 +858,28 @@ export default function ApplicationsPage({
 
       {/* Resume Modal */}
       {selectedApplication && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
+        <div className={`fixed inset-0 z-50 flex bg-slate-900/40 backdrop-blur-sm ${isMobile ? 'items-end justify-stretch p-0' : 'items-center justify-center p-4'}`}>
+          <div className={`bg-white w-full shadow-2xl flex flex-col overflow-hidden ${isMobile ? 'h-[92vh] rounded-t-2xl rounded-b-none' : 'max-w-3xl max-h-[90vh] rounded-xl'}`}>
+            <div className={`flex items-center justify-between border-b border-slate-100 shrink-0 ${isMobile ? 'p-4' : 'p-6'}`}>
               <div className="flex items-center gap-4">
-                <div className="h-16 w-16 rounded-full bg-cover bg-center bg-slate-200 flex items-center justify-center">
+                <div className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} rounded-full bg-cover bg-center bg-slate-200 flex items-center justify-center`}>
                   {selectedApplication.user_profile?.avatar_url ? (
                     <img
                       src={selectedApplication.user_profile.avatar_url}
                       alt={selectedApplication.user_profile.full_name}
-                      className="h-16 w-16 rounded-full object-cover"
+                      className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} rounded-full object-cover`}
                     />
                   ) : (
-                    <span className="text-slate-500 font-medium text-2xl">
+                    <span className={`${isMobile ? 'text-lg' : 'text-2xl'} text-slate-500 font-medium`}>
                       {selectedApplication.user_profile?.full_name?.charAt(0) || 'U'}
                     </span>
                   )}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900">
+                  <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-slate-900`}>
                     {selectedApplication.user_profile?.full_name || 'Unknown User'}
                   </h2>
-                  <p className="text-slate-500 text-sm">
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-500`}>
                     {selectedApplication.user_profile?.current_position} at {selectedApplication.user_profile?.current_company}
                   </p>
                 </div>
@@ -843,9 +894,9 @@ export default function ApplicationsPage({
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8">
-              <div className="grid grid-cols-3 gap-8">
-                <div className="col-span-1 flex flex-col gap-6 border-r border-slate-100 pr-8">
+            <div className={`flex-1 overflow-y-auto ${isMobile ? 'p-4' : 'p-8'}`}>
+              <div className={isMobile ? 'flex flex-col gap-6' : 'grid grid-cols-3 gap-8'}>
+                <div className={`${isMobile ? 'flex flex-col gap-6' : 'col-span-1 flex flex-col gap-6 border-r border-slate-100 pr-8'}`}>
                   <div>
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Contact</h4>
                     <div className="flex flex-col gap-3">
@@ -884,7 +935,7 @@ export default function ApplicationsPage({
                   )}
                 </div>
 
-                <div className="col-span-2 flex flex-col gap-8">
+                <div className={isMobile ? 'flex flex-col gap-6' : 'col-span-2 flex flex-col gap-8'}>
                   {selectedApplication.cover_letter && (
                     <section>
                       <h3 className="text-lg font-bold text-slate-900 mb-2">Cover Letter</h3>
@@ -897,15 +948,15 @@ export default function ApplicationsPage({
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-[#f2f1ec]/50 flex justify-end gap-3 shrink-0">
+            <div className={`border-t border-slate-100 bg-[#f2f1ec]/50 shrink-0 ${isMobile ? 'p-3 flex flex-col-reverse gap-2' : 'p-4 flex justify-end gap-3'}`}>
               <button
-                className="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-white transition-colors"
+                className={`${isMobile ? 'w-full' : ''} px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-white transition-colors`}
                 onClick={() => setSelectedApplication(null)}
               >
                 Dismiss
               </button>
               <button
-                className="px-5 py-2.5 rounded-lg bg-[#5f7261] text-white text-sm font-semibold hover:bg-[#4b5c4d] transition-colors flex items-center gap-2"
+                className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg bg-[#5f7261] text-white text-sm font-semibold hover:bg-[#4b5c4d] transition-colors flex items-center gap-2`}
                 onClick={() => {
                   handleStatusUpdate(selectedApplication.id, 'shortlisted');
                   setSelectedApplication(null);

@@ -266,14 +266,18 @@ export const jobService = {
   },
 
   // Get user's jobs with accurate application counts
-  getUserJobs: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+  getUserJobs: async (userId?: string) => {
+    let ownerId = userId;
+    if (!ownerId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      ownerId = user?.id;
+    }
+    if (!ownerId) throw new Error('Not authenticated');
 
     const { data: jobs, error: jobsError } = await supabase
       .from('jobs')
       .select('*')
-      .eq('created_by', user.id)
+      .eq('created_by', ownerId)
       .order('created_at', { ascending: false });
 
     if (jobsError) throw jobsError;
