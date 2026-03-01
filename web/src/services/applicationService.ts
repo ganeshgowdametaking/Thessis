@@ -10,7 +10,7 @@ export const applicationService = {
   // Get applications for a job
   getJobApplications: async (jobId: string) => {
     console.log('🔍 Fetching applications for job ID:', jobId);
-    
+
     try {
       // Try with applicant_id first
       let { data, error } = await supabase
@@ -44,7 +44,7 @@ export const applicationService = {
           `)
           .eq('job_id', jobId as any)
           .order('applied_at', { ascending: false });
-          
+
         data = result.data as any;
         error = result.error;
       }
@@ -53,7 +53,7 @@ export const applicationService = {
         console.error('❌ Supabase error fetching applications:', error);
         throw error;
       }
-      
+
       console.log('✅ Successfully fetched applications:', data);
       return (data as any[]) || [];
     } catch (error) {
@@ -182,5 +182,15 @@ export const applicationService = {
     }
 
     return data
+  },
+
+  // Delete application
+  deleteApplication: async (id: string) => {
+    const { error } = await supabase
+      .from('applications')
+      .delete()
+      .eq('id', id as any);
+
+    if (error) throw error;
   }
 }

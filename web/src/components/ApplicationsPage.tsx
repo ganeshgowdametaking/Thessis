@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from './LoadingSpinner';
 import BackArrowIcon from './icons/BackArrowIcon';
+import { applicationService } from '../services/applicationService';
 
 interface Application {
   id: string;
@@ -85,6 +86,8 @@ export default function ApplicationsPage({
   const [aiLeaderboard, setAiLeaderboard] = useState<AIRankingLeaderboard | null>(null);
   const [aiLastUpdatedAt, setAiLastUpdatedAt] = useState<string | null>(null);
   const [aiLastRunKey, setAiLastRunKey] = useState<string>('');
+  const [applicationToDelete, setApplicationToDelete] = useState<Application | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const configuredRankingApi = (import.meta.env.VITE_RESUME_RANKING_API || '/api/ranking').trim();
   const resumeRankingApiBase = configuredRankingApi.replace(/\/+$/, '');
@@ -436,6 +439,29 @@ export default function ApplicationsPage({
     }
   };
 
+  const handleDeleteApplication = (application: Application) => {
+    setApplicationToDelete(application);
+  };
+
+  const confirmDelete = async () => {
+    if (!applicationToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      await applicationService.deleteApplication(applicationToDelete.id);
+      setApplications(prev => prev.filter(app => app.id !== applicationToDelete.id));
+      if (selectedApplication?.id === applicationToDelete.id) {
+        setSelectedApplication(null);
+      }
+      setApplicationToDelete(null);
+    } catch (error) {
+      console.error('Error deleting application:', error);
+      alert('Failed to delete application. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -701,7 +727,11 @@ export default function ApplicationsPage({
                         </p>
                       </div>
                     </button>
-                    <button className="text-slate-300 hover:text-red-500 transition-colors p-1">
+                    <button
+                      className="text-slate-300 hover:text-red-500 transition-colors p-1"
+                      onClick={() => handleDeleteApplication(application)}
+                      title="Remove Applicant"
+                    >
                       <span className="material-symbols-outlined text-[20px]">close</span>
                     </button>
                   </div>
@@ -883,6 +913,46 @@ export default function ApplicationsPage({
               >
                 <span className="material-symbols-outlined text-[18px]">check_circle</span>
                 Shortlist Candidate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Custom Delete Confirmation Modal */}
+      {applicationToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => !isDeleting && setApplicationToDelete(null)}
+          ></div>
+          <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl relative z-10 overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-8 text-center">
+              <div className="size-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-6">
+                <span className="material-symbols-outlined text-red-600 text-[32px]">delete_forever</span>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Remove Applicant?</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">
+                Are you sure you want to remove <strong>{applicationToDelete.user_profile?.full_name}</strong>? This action will permanently delete their application.
+              </p>
+            </div>
+            <div className="flex border-t border-slate-100">
+              <button
+                className="flex-1 px-6 py-4 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors border-r border-slate-100 disabled:opacity-50"
+                onClick={() => setApplicationToDelete(null)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                className="flex-1 px-6 py-4 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <div className="size-4 border-2 border-red-600/30 border-t-red-600 rounded-full animate-spin"></div>
+                ) : (
+                  'Yes, Remove'
+                )}
               </button>
             </div>
           </div>

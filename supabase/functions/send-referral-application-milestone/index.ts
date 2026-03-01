@@ -98,10 +98,35 @@ serve(async (req) => {
       return json(500, { error: "Failed to count applications", details: countError.message });
     }
 
-    const milestone = applicationsCount === 1 ? 1 : applicationsCount === 5 ? 5 : null;
-    if (!milestone) {
-      return json(200, { success: true, skipped: true, reason: "No milestone reached", applicationsCount });
+    // Threshold-based milestone detection: Find the highest milestone reached that hasn't been sent yet.
+    // Order is important: we check 5 first, then 1.
+    const possibleMilestones = [5, 1];
+    let candidateMilestone: number | null = null;
+
+    // Check existing milestones for this job
+    const { data: existingMilestones, error: existingMilestonesError } = await supabaseAdmin
+      .from("job_application_email_milestones")
+      .select("milestone")
+      .eq("job_id", jobId);
+
+    if (existingMilestonesError) {
+      return json(500, { error: "Failed to fetch existing milestones", details: existingMilestonesError.message });
     }
+
+    const sentMilestones = new Set((existingMilestones || []).map(m => m.milestone));
+
+    for (const m of possibleMilestones) {
+      if (applicationsCount >= m && !sentMilestones.has(m)) {
+        candidateMilestone = m;
+        break; // Found the highest unsent milestone
+      }
+    }
+
+    if (!candidateMilestone) {
+      return json(200, { success: true, skipped: true, reason: "No new milestone reached", applicationsCount, sentMilestones: Array.from(sentMilestones) });
+    }
+
+    const milestone = candidateMilestone;
 
     // Lock milestone (idempotency). If duplicate exists, we already sent this milestone email.
     const { data: milestoneRow, error: milestoneError } = await supabaseAdmin
@@ -109,7 +134,7 @@ serve(async (req) => {
       .insert({
         job_id: jobId,
         milestone,
-        application_count: applicationsCount ?? milestone,
+        application_count: applicationsCount,
       })
       .select("id")
       .maybeSingle();
@@ -137,68 +162,72 @@ serve(async (req) => {
     const applicationsPageUrl = `${frontendUrl}/applications/${jobId}`;
     const greetingName = creatorProfile.full_name?.trim() || "there";
 
+    // Premium Email Styles
+    const emailStyles = `
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1a1a1a;
+      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background-color: #ffffff;
+    `;
+
+    const buttonStyles = `
+      display: inline-block;
+      padding: 14px 28px;
+      background-color: #111827;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      margin-top: 24px;
+      letter-spacing: -0.01em;
+    `;
+
     let subject = "";
     let html = "";
 
     if (milestone === 1) {
-      subject = `You got a new application for ${job.title}`;
+      subject = `Momentum is building: Your first application for ${job.title}`;
       html = `
-        <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.6;">
-          <h2 style="margin: 0 0 12px;">Hi ${greetingName},</h2>
-          <p style="margin: 0 0 12px;">
-            Your referral <strong>${job.title}</strong>${job.company ? ` at <strong>${job.company}</strong>` : ""} just received its first application.
+        <div style="${emailStyles}">
+          <h1 style="font-size: 24px; font-weight: 800; tracking: -0.02em; margin-bottom: 24px;">First win for ${job.title}.</h1>
+          <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563;">
+            Hi ${greetingName}, your referral at <strong>${job.company || 'TankTide'}</strong> just received its first application.
           </p>
-          <p style="margin: 0 0 20px;">Open your Applications page to review the candidate.</p>
-          <a href="${applicationsPageUrl}" style="display:inline-block;padding:10px 16px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;">
-            View Applications
+          <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563;">
+            The right connection can change everything. Log in to review the candidate and see if they're a match for your referral.
+          </p>
+          <a href="${applicationsPageUrl}" style="${buttonStyles}">
+            View Application
           </a>
+          <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
+            <p style="font-size: 13px; color: #9ca3af;">Sent with care by the TankTide Team.</p>
+          </div>
         </div>
       `;
     } else {
-      const { data: topCandidates } = await supabaseAdmin
-        .from("applications")
-        .select(`
-          id,
-          rating,
-          shortlisted,
-          applied_at,
-          applicant:profiles!applications_applicant_id_fkey(full_name, title, company)
-        `)
-        .eq("job_id", jobId)
-        .order("shortlisted", { ascending: false })
-        .order("rating", { ascending: false, nullsFirst: false })
-        .order("applied_at", { ascending: true })
-        .limit(5);
-
-      const candidateItems = (topCandidates || [])
-        .map((candidate: any, index: number) => {
-          const applicant = candidate?.applicant || {};
-          const name = applicant?.full_name || "Candidate";
-          const headlineParts = [applicant?.title, applicant?.company].filter(Boolean);
-          const headline = headlineParts.length > 0 ? ` — ${headlineParts.join(" at ")}` : "";
-          const mlScore =
-            candidate?.rating !== null && candidate?.rating !== undefined
-              ? `${candidate.rating}/5`
-              : "Pending ML score";
-
-          return `<li style="margin: 0 0 8px;"><strong>${index + 1}. ${name}</strong>${headline} <span style="color:#4b5563;">(${mlScore})</span></li>`;
-        })
-        .join("");
-
-      subject = `${job.title} now has 5+ applications`;
+      subject = `Curated for you: TankTide's Top 5 Picks for ${job.title}`;
       html = `
-        <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.6;">
-          <h2 style="margin: 0 0 12px;">Hi ${greetingName},</h2>
-          <p style="margin: 0 0 12px;">
-            Your referral <strong>${job.title}</strong>${job.company ? ` at <strong>${job.company}</strong>` : ""} now has <strong>5 or more applicants</strong>.
+        <div style="${emailStyles}">
+          <h1 style="font-size: 24px; font-weight: 800; tracking: -0.02em; margin-bottom: 24px;">Your Top 5 Picks are ready.</h1>
+          <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563;">
+            Hi ${greetingName}, your referral for <strong>${job.title}</strong> has now surpassed 5 applicants.
           </p>
-          <p style="margin: 0 0 8px;">Top 5 candidates recommended by your ranking setup:</p>
-          <ol style="padding-left: 18px; margin: 0 0 20px;">
-            ${candidateItems || "<li>No ranked candidates available yet.</li>"}
-          </ol>
-          <a href="${applicationsPageUrl}" style="display:inline-block;padding:10px 16px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;">
-            Review Applications
+          <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563;">
+            Our ML engine has analyzed the pool and identified exactly <strong>5 high-potential matches</strong> based on your specific referral criteria. 
+          </p>
+          <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563; font-style: italic;">
+            Don't let top talent wait. Check your dashboard to unlock these recommendations.
+          </p>
+          <a href="${applicationsPageUrl}" style="${buttonStyles}">
+            Unlock My Top Picks
           </a>
+          <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
+            <p style="font-size: 13px; color: #9ca3af;">Sent with care by the TankTide Team.</p>
+          </div>
         </div>
       `;
     }
