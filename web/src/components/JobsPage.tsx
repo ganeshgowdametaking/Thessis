@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 // Cache buster: 2025-01-25-15:30
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, MapPin, Calendar, Briefcase, Building, Clock, Users, ChevronDown, X, CheckCircle, ArrowLeft, User, Copy, ArrowUpRight, List, School, DollarSign, CheckCircle2, Upload } from 'lucide-react';
+import { Plus, Search, Filter, MapPin, Calendar, Briefcase, Building, Clock, Users, ChevronDown, X, CheckCircle, User, Copy, ArrowUpRight, List, School, DollarSign, CheckCircle2, Upload } from 'lucide-react';
 import shareIcon from '../assets/share-icon.png';
 import { useAuthContext } from '../contexts/AuthContext';
 import { jobService } from '../services/jobService';

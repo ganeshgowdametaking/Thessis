@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building, Mail, Globe, ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Building, Mail, Globe, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from './LoadingSpinner';
 import './CompanyButton.css';
+import BackArrowIcon from './icons/BackArrowIcon';
 
 const CompanySignupPage: React.FC = () => {
   const navigate = useNavigate();
@@ -134,9 +135,7 @@ const CompanySignupPage: React.FC = () => {
           onClick={() => navigate('/companies')}
           className="company-back-btn"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
+          <BackArrowIcon className="h-5 w-5" />
           Back
         </button>
       </div>

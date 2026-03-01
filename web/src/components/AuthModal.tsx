@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
-import { X, Mail, Lock, User, Eye, EyeOff, ArrowLeft, Loader, CheckCircle } from 'lucide-react'
+import { X, Mail, Lock, User, Eye, EyeOff, Loader, CheckCircle } from 'lucide-react'
 import { useAuthContext } from '../contexts/AuthContext'
 import GoogleSignInButton from './GoogleSignInButton'
 import LinkedInSignInButton from './LinkedInSignInButton'
 import { supabase } from '../lib/supabase'
 import { getUTMForSignup, clearUTMData } from '../utils/utmHandler'
+import BackArrowIcon from './icons/BackArrowIcon'
 
 type AuthMode = 'signin' | 'signup' | 'verify-email' | 'forgot-password' | 'verify-reset-otp' | 'update-password'
 
@@ -246,7 +247,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
         {mode !== 'signin' && mode !== 'signup' && (
           <div className="p-4 text-center border-t border-slate-50 bg-slate-50/50">
             <button onClick={() => onModeChange('signin')} className="text-sm font-bold text-slate-400 hover:text-primary transition-colors flex items-center justify-center gap-2 w-full">
-              <ArrowLeft size={16} /> Back to Sign In
+              <BackArrowIcon className="h-4 w-4" /> Back to Sign In
             </button>
           </div>
         )}

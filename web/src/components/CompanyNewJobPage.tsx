@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Eye, ChevronDown, Search } from 'lucide-react';
+import { Save, Eye, ChevronDown, Search } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import BackArrowIcon from './icons/BackArrowIcon';
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface JobFormData {
@@ -272,7 +273,7 @@ const CompanyNewJobPage: React.FC = () => {
               onClick={() => navigate('/company-hiring/jobs')}
               className="p-2 text-gray-400 hover:text-gray-600"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <BackArrowIcon className="h-5 w-5" />
             </button>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Create New Job</h1>

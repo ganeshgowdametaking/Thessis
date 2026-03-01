@@ -453,6 +453,20 @@ export const jobService = {
         console.warn('Failed to send application notification:', notifErr);
       }
 
+      // Trigger backend milestone email notifications (1 and 5 applications).
+      try {
+        const { error: milestoneEmailError } = await supabase.functions.invoke(
+          'send-referral-application-milestone',
+          { body: { jobId: application.job_id } }
+        );
+
+        if (milestoneEmailError) {
+          console.warn('Failed to trigger referral milestone email:', milestoneEmailError);
+        }
+      } catch (milestoneInvokeError) {
+        console.warn('Failed to invoke referral milestone email function:', milestoneInvokeError);
+      }
+
       return data?.job_id;
     } catch (error: any) {
       console.error('Error in createApplication:', error);

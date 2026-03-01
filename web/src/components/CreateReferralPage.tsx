@@ -7,6 +7,7 @@ import { jobService } from '../services/jobService';
 import LoadingSpinner from './LoadingSpinner';
 import debounce from 'lodash.debounce';
 import * as pdfjsLib from 'pdfjs-dist';
+import BackArrowIcon from './icons/BackArrowIcon';
 
 // Use the local worker from the node_modules
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
@@ -470,7 +471,7 @@ const CreateReferralPage: React.FC = () => {
             className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#5f7261] transition-colors w-fit group"
             onClick={() => navigate('/jobs')}
           >
-            <span className="material-symbols-outlined text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
+            <BackArrowIcon className="h-[18px] w-[18px] group-hover:-translate-x-1 transition-transform" />
             Back to Jobs
           </button>
 

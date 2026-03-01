@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Download, Trash2, Edit3, Send, Check, Clock } from 'lucide-react';
+import { Download, Trash2, Edit3, Send, Check, Clock } from 'lucide-react';
 import { gdprService } from '../services/gdprService';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from './LoadingSpinner';
+import BackArrowIcon from './icons/BackArrowIcon';
 
 interface DataRequestFormProps {
   onBack: () => void;
@@ -116,7 +117,7 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
               onClick={handleBack}
               className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-100 transition-colors text-slate-900"
             >
-              <ArrowLeft className="text-[24px]" />
+              <BackArrowIcon className="h-6 w-6" />
             </button>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">GDPR Data Request</h1>
           </div>

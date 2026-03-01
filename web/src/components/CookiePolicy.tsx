@@ -1,4 +1,5 @@
 import React from 'react';
+import BackArrowIcon from './icons/BackArrowIcon';
 
 interface CookiePolicyProps {
   onBack: () => void;
@@ -12,7 +13,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
           onClick={onBack}
           className="group flex items-center justify-center rounded-lg h-10 pr-4 text-slate-500 gap-2 text-sm font-bold leading-normal tracking-[0.015em] transition-all hover:text-sage"
         >
-          <span className="material-symbols-outlined text-xl transition-transform group-hover:-translate-x-1">arrow_back</span>
+          <BackArrowIcon className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
           <span className="truncate">Back to Settings</span>
         </button>
       </div>

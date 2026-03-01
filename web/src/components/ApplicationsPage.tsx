@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from './LoadingSpinner';
+import BackArrowIcon from './icons/BackArrowIcon';
 
 interface Application {
   id: string;
@@ -485,7 +486,7 @@ export default function ApplicationsPage({
             className="flex items-center gap-2 text-slate-500 hover:text-[#5f7261] transition-colors cursor-pointer w-fit"
             onClick={onBack}
           >
-            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+            <BackArrowIcon className="h-5 w-5" />
             <span className="text-sm font-medium">Back to Referrals</span>
           </div>
 
@@ -805,12 +806,6 @@ export default function ApplicationsPage({
               <div className="flex items-center gap-2">
                 <button
                   className="p-2 text-slate-400 hover:bg-[#f2f1ec] rounded-lg transition-colors"
-                  onClick={() => handleDownloadResume(selectedApplication)}
-                >
-                  <span className="material-symbols-outlined">download</span>
-                </button>
-                <button
-                  className="p-2 text-slate-400 hover:bg-[#f2f1ec] rounded-lg transition-colors"
                   onClick={() => setSelectedApplication(null)}
                 >
                   <span className="material-symbols-outlined">close</span>
@@ -868,39 +863,6 @@ export default function ApplicationsPage({
                       </p>
                     </section>
                   )}
-
-                  <section>
-                    <h3 className="text-lg font-bold text-slate-900 mb-3">Resume</h3>
-                    <div className="bg-[#f2f1ec] border border-slate-200 rounded-lg p-4 flex items-center justify-between gap-4 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-10 bg-red-100 rounded flex items-center justify-center shrink-0">
-                          <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">
-                            {selectedApplication.user_profile?.full_name?.replace(' ', '_')}_Resume_2024.pdf
-                          </p>
-                          <p className="text-xs text-slate-500">2.4 MB • {formatDate(selectedApplication.created_at)}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors"
-                          onClick={() => handleViewResume(selectedApplication)}
-                        >
-                          <span className="material-symbols-outlined text-[16px]">visibility</span>
-                          View
-                        </button>
-                        <button
-                          className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors"
-                          onClick={() => handleDownloadResume(selectedApplication)}
-                        >
-                          <span className="material-symbols-outlined text-[16px]">download</span>
-                          Download
-                        </button>
-                      </div>
-                    </div>
-                  </section>
                 </div>
               </div>
             </div>

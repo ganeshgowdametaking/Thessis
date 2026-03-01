@@ -9,6 +9,7 @@ import LoadingSpinner from './LoadingSpinner';
 import OfflineMessage from './OfflineMessage';
 import { isOnline, getCachedData, setCachedData, getOfflineMessage } from '../utils/offlineUtils';
 import { supabase } from '../lib/supabase';
+import BackArrowIcon from './icons/BackArrowIcon';
 
 interface UserProfilePageProps {
   userId: string;
@@ -478,8 +479,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
   };
+
+  const timelineTextClass = 'text-slate-900 text-xs font-black uppercase tracking-wide whitespace-nowrap';
 
   console.log('UserProfilePage render - loading:', loading, 'profile:', profile);
 
@@ -550,7 +553,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
               onClick={onBack}
               aria-label="Go back"
             >
-              <span className="material-symbols-outlined text-xl block">arrow_back</span>
+              <BackArrowIcon className="h-5 w-5 block" />
             </button>
 
             {/* Header Section */}
@@ -609,10 +612,6 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                           <span className="flex items-center gap-1.5">
                             <span className="material-symbols-outlined text-lg text-slate-400">star</span>
                             <span className="text-slate-900 font-bold">{realCounts.rating.toFixed(1)}/5</span> Rating
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-lg text-slate-400">history</span>
-                            <span className="text-slate-900 font-bold">{realCounts.expYears}yr</span> Exp
                           </span>
                         </div>
                         {bio && (
@@ -678,176 +677,140 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
             <div className="border-b border-stone-border"></div>
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 min-h-96">
-              {/* Left Column - Experience & Education */}
-              <div className="lg:col-span-8 p-6 md:p-10 border-b lg:border-b-0 lg:border-r border-stone-border flex flex-col">
-                {/* Experience Section */}
-                <section className="mb-10">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-stone-off rounded-lg text-slate-500">
-                      <span className="material-symbols-outlined text-2xl">business_center</span>
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-900">Experience</h2>
-                  </div>
+            {/* Main Content */}
+            <div className="p-6 md:p-10 flex flex-col divide-y divide-stone-border">
+              {/* Experience Section */}
+              <section className="py-10 first:pt-0 last:pb-0">
+                <div className="flex items-center mb-6 px-1">
+                  <h2 className="text-slate-900 text-xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Experience</h2>
+                </div>
 
-                  <div className="space-y-8">
-                    {Array.isArray(experiences) && experiences.map((exp) => (
-                      <div key={exp.id} className="flex gap-4 group">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm mt-1 overflow-hidden border border-stone-border">
-                          <img src="/company-placeholder.png" alt={exp.company} className="w-full h-full object-contain" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
-                            <div>
-                              <h3 className="font-bold text-lg text-slate-900 leading-snug">{exp.title}</h3>
-                              <p className="text-slate-900 font-medium">{exp.company}</p>
+                <div className="relative pl-2">
+                  {Array.isArray(experiences) && experiences.length > 0 && (
+                    <div className="absolute left-[31px] top-6 bottom-6 w-px bg-slate-100"></div>
+                  )}
+                  {Array.isArray(experiences) && experiences.length > 0 ? (
+                    <div className="space-y-14">
+                      {experiences.map((exp) => (
+                        <div key={exp.id} className="relative flex gap-10">
+                          <div className="relative z-10 shrink-0">
+                            <div className="bg-white rounded-xl size-20 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
+                              <img src="/company-placeholder.png" alt={exp.company} className="w-full h-full object-contain" />
                             </div>
-                            <span className="text-sm font-medium text-slate-500 mt-1 sm:mt-0 whitespace-nowrap">
-                              {formatDate(exp.startDate)} - {exp.current ? 'Present' : formatDate(exp.endDate)}
-                            </span>
                           </div>
-                          <div className="mt-3 text-sm text-slate-700 leading-relaxed">
-                            <p>{exp.description}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {(!Array.isArray(experiences) || experiences.length === 0) && (
-                      <p className="text-slate-500 text-center py-8">No experience information available.</p>
-                    )}
-                  </div>
-                </section>
 
-                <div className="border-t border-stone-border my-8"></div>
+                          <div className="flex flex-col flex-1 pt-1">
+                            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                              <div className="flex flex-col gap-1.5">
+                                <h3 className="text-slate-900 text-lg font-black uppercase tracking-[0.1em] leading-tight">
+                                  {exp.title}
+                                </h3>
+                                <div className="flex items-center gap-2.5">
+                                  <span className="text-slate-900 font-bold text-xs uppercase tracking-wider">{exp.company}</span>
+                                  {exp.location && (
+                                    <>
+                                      <span className="text-slate-200 text-xs">/</span>
+                                      <span className="text-slate-400 text-sm font-semibold tracking-tight">{exp.location}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
 
-                {/* Education Section */}
-                <section className="mb-4">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-stone-off rounded-lg text-slate-500">
-                      <span className="material-symbols-outlined text-2xl">school</span>
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-900">Education</h2>
-                  </div>
-
-                  <div className="space-y-6">
-                    {Array.isArray(education) && education.map((edu) => (
-                      <div key={edu.id} className="flex gap-4 items-start">
-                        <div className="w-12 h-12 rounded-lg bg-stone-off text-slate-500 flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <span className="font-serif font-bold text-lg">{edu.school.charAt(0)}</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-bold text-slate-900">{edu.school}</h3>
-                              <p className="text-slate-500 text-sm">{edu.degree}</p>
-                              {edu.gpa && (
-                                <p className="text-xs font-semibold text-green-500 mt-1">GPA: {edu.gpa}</p>
-                              )}
+                              <div className="shrink-0 pt-0.5">
+                                <span className={timelineTextClass}>
+                                  {formatDate(exp.startDate)} — {exp.current ? 'Present' : formatDate(exp.endDate)}
+                                </span>
+                              </div>
                             </div>
-                            <span className="text-sm text-slate-500">
-                              {formatDate(edu.startDate)} - {formatDate(edu.endDate)}
-                            </span>
+
+                            {exp.description && (
+                              <p className="text-slate-500 text-[14px] leading-[1.8] mt-6 max-w-2xl font-medium whitespace-pre-line">
+                                {exp.description}
+                              </p>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    ))}
-                    {(!Array.isArray(education) || education.length === 0) && (
-                      <p className="text-slate-500 text-center py-8">No education information available.</p>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+
+              {/* Education Section */}
+              <section className="py-10 first:pt-0 last:pb-0">
+                <div className="flex items-center mb-6 px-1">
+                  <h2 className="text-slate-900 text-xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Education</h2>
+                </div>
+                <div className="px-1">
+                  <div className="relative space-y-10">
+                    {Array.isArray(education) && education.length > 0 && (
+                      <div className="absolute left-[40px] top-3 bottom-3 w-0.5 bg-off-stone"></div>
                     )}
+                    {Array.isArray(education) && education.length > 0 ? (
+                      education.map((edu) => (
+                        <div key={edu.id} className="relative flex gap-6">
+                          <div className="relative z-10 shrink-0">
+                            <div className="size-20 rounded-xl bg-white border border-stone-border flex items-center justify-center text-slate-meta">
+                              <span className="material-symbols-outlined text-3xl">school</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col flex-1 pt-2">
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 mb-1">
+                              <h3 className="text-text-main text-lg font-bold">{edu.degree}</h3>
+                              <span className={timelineTextClass}>{formatDate(edu.endDate)}</span>
+                            </div>
+                            <p className="text-text-secondary text-base">{edu.school}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : null}
                   </div>
-                </section>
-              </div>
+                </div>
+              </section>
 
-              {/* Right Column - Skills, Achievements, Links */}
-              <div className="lg:col-span-4 bg-stone-off p-6 md:p-8 flex flex-col gap-10 border-l border-stone-border">
-                {/* Skills Section */}
-                <section>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-5 flex items-center gap-2">
-                    Skills
-                    <div className="h-px bg-stone-border flex-1"></div>
-                  </h3>
-
-                  <div className="space-y-4">
-                    {Array.isArray(skills) && skills.map((skill) => (
-                      <div key={skill.id}>
-                        <div className="flex justify-between items-end mb-1">
-                          <span className="text-sm font-semibold text-slate-900">{skill.name}</span>
-                          <span className="text-xs font-bold text-green-500">{skill.level}%</span>
-                        </div>
-                        <div className="w-full bg-stone-border rounded-full h-2 overflow-hidden">
-                          <div
-                            className="bg-sage h-2 rounded-full transition-all duration-1000 ease-out"
-                            style={{ width: `${skill.level}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    ))}
-                    {(!Array.isArray(skills) || skills.length === 0) && (
-                      <p className="text-slate-500 text-center py-4">No skills information available.</p>
-                    )}
+              {/* Skills Section */}
+              <section className="py-10 first:pt-0 last:pb-0">
+                <div className="flex items-center mb-6 px-1">
+                  <h2 className="text-slate-900 text-xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Skills</h2>
+                </div>
+                <div className="px-1">
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(skills) && skills.length > 0 ? (
+                      skills.map((skill) => (
+                        <span
+                          key={skill.id}
+                          className="px-3 py-1.5 rounded-md bg-white text-slate-body cursor-default text-sm font-bold tracking-wide border border-stone-border"
+                        >
+                          {skill.name}
+                        </span>
+                      ))
+                    ) : null}
                   </div>
-                </section>
+                </div>
+              </section>
 
-                {/* Achievements Section */}
-                <section>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-5 flex items-center gap-2">
-                    Achievements
-                    <div className="h-px bg-stone-border flex-1"></div>
-                  </h3>
-
-                  <div className="space-y-4">
-                    {Array.isArray(achievements) && achievements.map((achievement) => (
-                      <div key={achievement.id} className="flex gap-3">
-                        <div className="text-slate-500 bg-white p-1.5 rounded-lg h-fit flex-shrink-0">
-                          <span className="material-symbols-outlined text-xl">
-                            {achievement.type === 'Award' ? 'emoji_events' :
-                              achievement.type === 'Certification' ? 'psychology' : 'workspace_premium'}
-                          </span>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-slate-900">{achievement.title}</h4>
-                          <p className="text-xs text-slate-500 font-medium">
-                            {achievement.organization} • {formatDate(achievement.date)}
-                          </p>
+              {/* Achievements Section */}
+              <section className="py-10 first:pt-0 last:pb-0">
+                <div className="flex items-center mb-6 px-1">
+                  <h2 className="text-slate-900 text-xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Achievements</h2>
+                </div>
+                <div className="flex flex-col gap-4">
+                  {Array.isArray(achievements) && achievements.length > 0 ? (
+                    achievements.map((achievement) => (
+                      <div key={achievement.id} className="px-1 py-1 flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <h4 className="text-text-main font-bold text-base leading-tight">{achievement.title}</h4>
+                          <p className="text-slate-meta text-sm mt-1 font-semibold">{achievement.organization}</p>
                           {achievement.description && (
-                            <p className="text-xs text-slate-700 mt-1">{achievement.description}</p>
+                            <p className="text-text-secondary text-sm mt-2 leading-snug">{achievement.description}</p>
                           )}
                         </div>
+                        <span className={`${timelineTextClass} shrink-0 pt-0.5`}>{formatDate(achievement.date)}</span>
                       </div>
-                    ))}
-                    {(!Array.isArray(achievements) || achievements.length === 0) && (
-                      <p className="text-slate-500 text-center py-4">No achievements information available.</p>
-                    )}
-                  </div>
-                </section>
-
-                {/* Links Section */}
-                <section>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-5 flex items-center gap-2">
-                    Links
-                    <div className="h-px bg-stone-border flex-1"></div>
-                  </h3>
-
-                  <div className="space-y-2">
-                    {profile.website && (
-                      <a className="group flex items-center gap-3 text-sm text-slate-900 py-2 px-2 -mx-2 rounded-lg hover:bg-white transition-colors" href={profile.website} target="_blank" rel="noopener noreferrer">
-                        <span className="material-symbols-outlined text-xl text-slate-500 group-hover:text-sage">language</span>
-                        <span className="font-medium">{profile.website}</span>
-                      </a>
-                    )}
-                    {profile.linkedin_url && (
-                      <a className="group flex items-center gap-3 text-sm text-slate-900 py-2 px-2 -mx-2 rounded-lg hover:bg-white transition-colors" href={profile.linkedin_url} target="_blank" rel="noopener noreferrer">
-                        <span className="material-symbols-outlined text-xl text-slate-500 group-hover:text-sage">link</span>
-                        <span className="font-medium">LinkedIn Profile</span>
-                      </a>
-                    )}
-                    {!profile.website && !profile.linkedin_url && (
-                      <p className="text-slate-500 text-center py-4">No links available.</p>
-                    )}
-                  </div>
-                </section>
-              </div>
+                    ))
+                  ) : null}
+                </div>
+              </section>
             </div>
           </div>
         </div>

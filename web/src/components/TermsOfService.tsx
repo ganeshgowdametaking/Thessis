@@ -1,4 +1,5 @@
 import React from 'react';
+import BackArrowIcon from './icons/BackArrowIcon';
 
 interface TermsOfServiceProps {
   onBack: () => void;
@@ -12,7 +13,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
           onClick={onBack}
           className="group flex items-center gap-2 rounded-lg py-2 pr-4 text-sm font-bold text-slate-600 transition-colors hover:text-slate-900"
         >
-          <span className="material-symbols-outlined text-[20px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+          <BackArrowIcon className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
           <span>Back to Settings</span>
         </button>
       </div>

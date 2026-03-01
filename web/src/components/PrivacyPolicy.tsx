@@ -1,6 +1,6 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import BackArrowIcon from './icons/BackArrowIcon';
 
 interface PrivacyPolicyProps {
   onBack: () => void;
@@ -24,7 +24,7 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
               aria-label="Go back"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <BackArrowIcon className="h-5 w-5" />
             </button>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Privacy Policy</h1>
           </div>

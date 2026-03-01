@@ -6,6 +6,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 import OfflineMessage from './OfflineMessage';
 import { isOnline, getCachedData, setCachedData, getOfflineMessage } from '../utils/offlineUtils';
+import BackArrowIcon from './icons/BackArrowIcon';
 
 interface SearchResultsPageProps {
   searchQuery: string;
@@ -192,7 +193,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
             className="flex items-center gap-2 text-sm font-medium text-txt-sub hover:text-primary-sage transition-colors w-fit"
             onClick={onBack}
           >
-            <span className="material-symbols-outlined text-lg">arrow_back</span>
+            <BackArrowIcon className="h-[18px] w-[18px]" />
             Back
           </button>
 

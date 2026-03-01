@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building, MapPin, DollarSign, Calendar, FileText, Users, ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
+import { Building, MapPin, DollarSign, Calendar, FileText, Users, ArrowRight, CheckCircle } from 'lucide-react';
 import shareIcon from '../assets/share-icon.png';
 import LoadingSpinner from './LoadingSpinner';
+import BackArrowIcon from './icons/BackArrowIcon';
 
 interface JobData {
   title: string;
@@ -537,7 +538,7 @@ Best regards,
                 onClick={() => navigate('/company-dashboard')}
                 className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <BackArrowIcon className="h-5 w-5" />
                 <span>Back to Dashboard</span>
               </button>
             </div>
@@ -586,7 +587,7 @@ Best regards,
                 disabled={currentStep === 1}
                 className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <BackArrowIcon className="h-4 w-4" />
                 <span>Previous</span>
               </button>
 

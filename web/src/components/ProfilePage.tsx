@@ -828,11 +828,7 @@ const ProfilePage: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="py-10 text-center border-2 border-dashed border-slate-100 rounded-3xl">
-                    <p className="text-slate-400 text-sm font-medium">No professional highlights added yet.</p>
-                  </div>
-                )}
+                ) : null}
               </div>
             </section>
 
@@ -863,9 +859,7 @@ const ProfilePage: React.FC = () => {
                         </div>
                       </div>
                     ))
-                  ) : (
-                    <p className="text-slate-500">No education added yet.</p>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </section>
@@ -888,9 +882,7 @@ const ProfilePage: React.FC = () => {
                         {skill.name}
                       </span>
                     ))
-                  ) : (
-                    <p className="text-slate-500">No skills added yet.</p>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </section>
@@ -912,11 +904,7 @@ const ProfilePage: React.FC = () => {
                       <span className={`${timelineTextClass} shrink-0 pt-0.5`}>{formatDate(achievement.date)}</span>
                     </div>
                   ))
-                ) : (
-                  <div className="px-1 py-1">
-                    <p className="text-slate-500">No achievements added yet.</p>
-                  </div>
-                )}
+                ) : null}
               </div>
             </section>
           </div>
