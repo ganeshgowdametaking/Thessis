@@ -5,7 +5,7 @@ import { notificationService } from './notificationService';
 type Job = Database['public']['Tables']['jobs']['Row'];
 type JobInsert = Database['public']['Tables']['jobs']['Insert'];
 type JobUpdate = Database['public']['Tables']['jobs']['Update'];
-type ApplicationInsert = Database['public']['Tables']['applications']['Insert'];
+// Removed unused ApplicationInsert type
 
 // Simple in-memory cache
 let cachedJobs: Job[] | null = null;
@@ -43,7 +43,7 @@ export const jobService = {
 
         let query = supabase
           .from('jobs')
-          .select('*, created_by_profile:profiles!jobs_created_by_fkey(response_metric)')
+          .select('*, created_by_profile:profiles!jobs_created_by_fkey(response_metric, work_email_verified, work_email)')
           .eq('status', 'active' as any)
           .order('created_at', { ascending: false });
 
@@ -100,7 +100,7 @@ export const jobService = {
       .from('jobs')
       .select(`
         *,
-        created_by_profile:profiles!jobs_created_by_fkey(*)
+        created_by_profile:profiles!jobs_created_by_fkey(id, full_name, role, work_email_verified, avatar_url, title, company, location, response_metric)
       `)
       .eq('id', id as any)
       .single();
@@ -244,8 +244,8 @@ export const jobService = {
 
   // Update job
   updateJob: async (id: string, updates: JobUpdate) => {
-    const { data, error } = await supabase
-      .from('jobs')
+    const { data, error } = await (supabase
+      .from('jobs') as any)
       .update(updates)
       .eq('id', id)
       .select()
@@ -274,8 +274,8 @@ export const jobService = {
     }
     if (!ownerId) throw new Error('Not authenticated');
 
-    const { data: jobs, error: jobsError } = await supabase
-      .from('jobs')
+    const { data: jobs, error: jobsError } = await (supabase
+      .from('jobs') as any)
       .select('*')
       .eq('created_by', ownerId)
       .order('created_at', { ascending: false });
@@ -283,9 +283,9 @@ export const jobService = {
     if (jobsError) throw jobsError;
 
     const jobsWithCounts = await Promise.all(
-      jobs.map(async (job) => {
-        const { data: applications, error: appError } = await supabase
-          .from('applications')
+      jobs.map(async (job: any) => {
+        const { data: applications, error: appError } = await (supabase
+          .from('applications') as any)
           .select('id')
           .eq('job_id', job.id);
 
@@ -303,7 +303,7 @@ export const jobService = {
 
   // Increment view count
   incrementViewCount: async (id: string) => {
-    const { error } = await supabase.rpc('increment_job_views', { job_id: id });
+    const { error } = await (supabase.rpc('increment_job_views', { job_id: id } as any) as any);
     if (error) throw error;
   },
 
@@ -432,9 +432,9 @@ export const jobService = {
           .eq('id', application.job_id)
           .single();
 
-        if (jobData && jobData.created_by) {
-          const { data: applicantProfile } = await supabase
-            .from('profiles')
+        if (jobData && (jobData as any).created_by) {
+          const { data: applicantProfile } = await (supabase
+            .from('profiles') as any)
             .select('full_name')
             .eq('id', user.id)
             .single();
@@ -442,16 +442,16 @@ export const jobService = {
           await notificationService.createNotification({
             type: 'job_application',
             title: 'New Job Application',
-            message: `${applicantProfile?.full_name || 'Someone'} has applied for your referral for ${jobData.title} at ${jobData.company}.`,
+            message: `${(applicantProfile as any)?.full_name || 'Someone'} has applied for your referral for ${(jobData as any).title} at ${(jobData as any).company}.`,
             actionable: true,
             priority: 'high',
             metadata: {
               job_id: application.job_id,
               applicant_id: user.id,
-              company: jobData.company,
-              title: jobData.title
+              company: (jobData as any).company,
+              title: (jobData as any).title
             }
-          }, jobData.created_by);
+          }, (jobData as any).created_by);
         }
       } catch (notifErr) {
         console.warn('Failed to send application notification:', notifErr);
@@ -471,7 +471,7 @@ export const jobService = {
         console.warn('Failed to invoke referral milestone email function:', milestoneInvokeError);
       }
 
-      return data?.job_id;
+      return (data as any)?.job_id;
     } catch (error: any) {
       console.error('Error in createApplication:', error);
       throw error;
@@ -512,7 +512,7 @@ export const jobService = {
       }
 
       console.log('Fetched user applications:', data);
-      return data?.map(app => app.job_id) || [];
+      return (data as any[])?.map((app: any) => app.job_id) || [];
     } catch (error: any) {
       console.error('Error in getUserApplications:', error);
       throw new Error('Failed to load your applications.');

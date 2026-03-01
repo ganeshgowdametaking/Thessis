@@ -2,15 +2,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import Header from './components/Header';
-import JobsPage from './components/JobsPage';
-import CreateReferralPage from './components/CreateReferralPage';
-import ApplicationsPage from './components/ApplicationsPage';
-import SearchResultsPage from './components/SearchResultsPage';
-import MessagesPage from './components/MessagesPage';
-import NotificationsPage from './components/NotificationsPage';
-import ProfilePage from './components/ProfilePage';
-import UserProfilePage from './components/UserProfilePage';
-import SettingsPage from './components/SettingsPage';
+import { supabase } from './lib/supabase';
+import { useMediaQuery } from 'react-responsive';
+import LoadingSpinner from './components/LoadingSpinner';
+import GDPRBanner from './components/GDPRBanner';
 import Hero from './components/Hero';
 import Services from './components/Services';
 import About from './components/About';
@@ -23,27 +18,34 @@ import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import { useAuthContext } from './contexts/AuthContext';
 import { LoadingProvider } from './contexts/LoadingContext';
-import { supabase } from './lib/supabase';
-import { useMediaQuery } from 'react-responsive';
-import LoadingSpinner from './components/LoadingSpinner';
-import GDPRBanner from './components/GDPRBanner';
+
+// Lazy load heavy components
+const JobsPage = React.lazy(() => import('./components/JobsPage'));
+const CreateReferralPage = React.lazy(() => import('./components/CreateReferralPage'));
+const ApplicationsPage = React.lazy(() => import('./components/ApplicationsPage'));
+const SearchResultsPage = React.lazy(() => import('./components/SearchResultsPage'));
+const MessagesPage = React.lazy(() => import('./components/MessagesPage'));
+const NotificationsPage = React.lazy(() => import('./components/NotificationsPage'));
+const ProfilePage = React.lazy(() => import('./components/ProfilePage'));
+const UserProfilePage = React.lazy(() => import('./components/UserProfilePage'));
+const SettingsPage = React.lazy(() => import('./components/SettingsPage'));
+const AnalyticsDashboard = React.lazy(() => import('./components/AnalyticsDashboard'));
+const CompanyDashboardPage = React.lazy(() => import('./components/CompanyDashboardPage'));
+const CompanyJobsPage = React.lazy(() => import('./components/CompanyJobsPage'));
+const CompanyNewJobPage = React.lazy(() => import('./components/CompanyNewJobPage'));
+const CompanyApplicantsPage = React.lazy(() => import('./components/CompanyApplicantsPage'));
+const CompanyIncomingReferralsPage = React.lazy(() => import('./components/CompanyIncomingReferralsPage'));
+const CompanyProfileBrandingPage = React.lazy(() => import('./components/CompanyProfileBrandingPage'));
+const CompanyOnboardingPage = React.lazy(() => import('./components/CompanyOnboardingPage'));
+const CompanyJobSuccessPage = React.lazy(() => import('./components/CompanyJobSuccessPage'));
+const CompanySignupPage = React.lazy(() => import('./components/CompanySignupPage'));
+const CompanyLoginPage = React.lazy(() => import('./components/CompanyLoginPage'));
+const CompanyConfirmationPage = React.lazy(() => import('./components/CompanyConfirmationPage'));
+const CompanyLandingPage = React.lazy(() => import('./components/CompanyLandingPage'));
+const AcceptAdminInvitePage = React.lazy(() => import('./components/AcceptAdminInvitePage'));
 import AuthCallback from './components/AuthCallback';
-import CompanyLandingPage from './components/CompanyLandingPage';
-import AcceptAdminInvitePage from './components/AcceptAdminInvitePage';
-import CompanySignupPage from './components/CompanySignupPage';
-import CompanyLoginPage from './components/CompanyLoginPage';
-import CompanyDashboardPage from './components/CompanyDashboardPage';
-import CompanyConfirmationPage from './components/CompanyConfirmationPage';
-import CompanyOnboardingPage from './components/CompanyOnboardingPage';
-import CompanyJobSuccessPage from './components/CompanyJobSuccessPage';
-import CompanyJobsPage from './components/CompanyJobsPage';
-import CompanyNewJobPage from './components/CompanyNewJobPage';
-import CompanyApplicantsPage from './components/CompanyApplicantsPage';
-import CompanyIncomingReferralsPage from './components/CompanyIncomingReferralsPage';
-import CompanyProfileBrandingPage from './components/CompanyProfileBrandingPage';
 import ScrollToTop from './components/ScrollToTop';
 import CompanyLayout from './components/CompanyLayout';
-import AnalyticsDashboard from './components/AnalyticsDashboard';
 import { analyticsService } from './services/analyticsService';
 import { captureUTMParams } from './utils/utmHandler';
 
@@ -55,17 +57,18 @@ function ApplicationsPageWrapper() {
 
   useEffect(() => {
     let isMounted = true;
-    const fetchJobTitle = async () => {
+    const fetchJobTitle = async (controller: AbortController) => {
       if (!referralId) {
         return;
       }
 
       try {
-        const timeoutMs = 10000;
+        const timeoutMs = 60000;
         const queryPromise = supabase
           .from('jobs')
           .select('title')
           .eq('id', referralId as any)
+          .abortSignal(controller.signal)
           .single();
 
         const timeoutPromise = new Promise<never>((_, reject) =>
@@ -78,15 +81,18 @@ function ApplicationsPageWrapper() {
         if (data && isMounted) {
           setReferralTitle((data as any).title);
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === 'AbortError') return;
         console.error('Error fetching job title:', error);
       }
     };
 
-    fetchJobTitle();
+    const controller = new AbortController();
+    fetchJobTitle(controller);
 
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [referralId]);
 
@@ -259,7 +265,7 @@ function App() {
 }
 
 function AppContent() {
-  const { user, loading, isAdmin, profile } = useAuthContext();
+  const { user, loading, isAdmin } = useAuthContext();
   const location = useLocation();
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchParams] = useSearchParams();
@@ -414,7 +420,9 @@ function AppContent() {
         onJoinNow={() => handleOpenAuthModal('signup')}
       />
       <main className="flex-grow">
-        {routes}
+        <React.Suspense fallback={<LoadingSpinner text="Loading page..." />}>
+          {routes}
+        </React.Suspense>
       </main>
       {!(isMobile && location.pathname === '/messages') && (
         <Footer compact={isMobile} />

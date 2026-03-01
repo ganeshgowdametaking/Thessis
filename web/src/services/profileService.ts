@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase'
 import { Database } from '../lib/database.types'
 
-type Profile = Database['public']['Tables']['profiles']['Row']
+// type Profile = ... (removed for linting)
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 
@@ -13,7 +13,7 @@ export const profileService = {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, email, full_name, role, work_email_verified, secondary_email_verified, avatar_url, title, company, location, experiences, education, skills, achievements')
       .eq('id', user.id)
       .single()
 
@@ -21,7 +21,7 @@ export const profileService = {
     if (error && error.code === 'PGRST116') {
       return null
     }
-    
+
     if (error) throw error
     return data
   },
@@ -30,7 +30,7 @@ export const profileService = {
   getProfile: async (id: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, full_name, role, work_email_verified, secondary_email_verified, avatar_url, title, company, location')
       .eq('id', id)
       .single()
 
@@ -40,8 +40,8 @@ export const profileService = {
 
   // Create profile
   createProfile: async (profile: ProfileInsert) => {
-    const { data, error } = await supabase
-      .from('profiles')
+    const { data, error } = await (supabase
+      .from('profiles') as any)
       .insert(profile)
       .select()
       .single()
@@ -52,8 +52,8 @@ export const profileService = {
 
   // Update profile
   updateProfile: async (id: string, updates: ProfileUpdate) => {
-    const { data, error } = await supabase
-      .from('profiles')
+    const { data, error } = await (supabase
+      .from('profiles') as any)
       .update(updates)
       .eq('id', id)
       .select()
@@ -114,7 +114,7 @@ export const profileService = {
   getSuggestedConnections: async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, full_name, title, company, avatar_url, verified')
       .limit(10)
 
     if (error) throw error

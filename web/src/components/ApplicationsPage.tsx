@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from './LoadingSpinner';
 import BackArrowIcon from './icons/BackArrowIcon';
@@ -96,80 +96,78 @@ export default function ApplicationsPage({
   const resumeRankingApiBase = configuredRankingApi.replace(/\/+$/, '');
 
   useEffect(() => {
-    fetchApplications();
+    const controller = new AbortController();
+    fetchApplications(controller);
+    return () => controller.abort();
   }, [referralId]);
 
-  const fetchApplications = async () => {
+  const fetchApplications = async (controller?: AbortController) => {
+    const fetchController = controller || new AbortController();
     try {
       setLoading(true);
       setError(null);
-      const maxAttempts = 2;
-      let lastError: unknown = null;
 
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-          const timeoutMs = 20000;
-          const queryPromise = supabase
-            .from('applications')
-            .select(`
-              *,
-              user_profile:profiles!applications_applicant_id_fkey (
-                id,
-                full_name,
-                email,
-                avatar_url,
-                company,
-                title,
-                location
-              )
-            `)
-            .eq('job_id', referralId)
-            .order('applied_at', { ascending: false });
+      const timeoutMs = 60000;
+      const queryPromise = (supabase
+        .from('applications') as any)
+        .select(`
+          id,
+          applicant_id,
+          job_id,
+          status,
+          applied_at,
+          updated_at,
+          cover_letter,
+          rating,
+          shortlisted,
+          notes,
+          user_profile:profiles!applications_applicant_id_fkey (
+            id,
+            full_name,
+            email,
+            avatar_url,
+            company,
+            title,
+            location
+          )
+        `)
+        .eq('job_id', referralId)
+        .order('applied_at', { ascending: false })
+        .abortSignal(fetchController.signal)
+        .range(0, 19);
 
-          const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Applications request timed out')), timeoutMs)
-          );
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Applications request timed out')), timeoutMs)
+      );
 
-          const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as Awaited<typeof queryPromise>;
+      const result = await Promise.race([queryPromise, timeoutPromise]) as any;
+      const data = result?.data;
+      const error = result?.error;
 
-          if (error) {
-            throw error;
-          }
-
-          const mappedData = (data || []).map(app => ({
-            ...app,
-            user_id: app.applicant_id,
-            created_at: app.applied_at,
-            user_profile: app.user_profile ? {
-              ...app.user_profile,
-              current_company: app.user_profile.company,
-              current_position: app.user_profile.title
-            } : null
-          }));
-          setApplications(mappedData);
-          lastError = null;
-          break;
-        } catch (attemptError) {
-          lastError = attemptError;
-          const transient = attemptError instanceof Error &&
-            (attemptError.message.includes('timed out') || attemptError.name === 'AbortError');
-
-          if (!transient || attempt === maxAttempts) {
-            throw attemptError;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 800));
-        }
+      if (error) {
+        throw error;
       }
 
-      if (lastError) {
-        throw lastError;
-      }
-    } catch (error) {
-      console.error('Error fetching applications:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load applications');
+      const mappedData = (data || []).map((app: any) => ({
+        ...app,
+        user_id: app.applicant_id,
+        created_at: app.applied_at,
+        user_profile: app.user_profile ? {
+          ...app.user_profile,
+          current_company: app.user_profile.company,
+          current_position: app.user_profile.title
+        } : null
+      }));
+      setApplications(mappedData as Application[]);
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
+      console.error('Error fetching applications:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load applications');
       setApplications([]);
     } finally {
-      setLoading(false);
+      if (!fetchController.signal.aborted) {
+        setLoading(false);
+      }
     }
   };
 
@@ -238,15 +236,15 @@ export default function ApplicationsPage({
 
   const getValidApplications = () =>
     applications.filter((application) => {
-      const hasResume = Boolean(application.resume_url);
+      // We no longer check resume_url here as it's fetched on-demand to save payload
       const hasEmail = Boolean(application.user_profile?.email);
       const hasName = Boolean(application.user_profile?.full_name);
-      return hasResume && hasEmail && hasName;
+      return hasEmail && hasName;
     });
 
   const buildAiRunKey = () => {
     const serial = getValidApplications()
-      .map((application) => `${application.id}:${application.updated_at || application.applied_at || ''}:${application.resume_url || ''}`)
+      .map((application) => `${application.id}:${application.updated_at || application.applied_at || (application as any).created_at || ''}`)
       .sort()
       .join('|');
     return `${referralId}|${serial}`;
@@ -299,14 +297,30 @@ export default function ApplicationsPage({
       const createdJob = (await createJobRes.json()) as { id: number };
       const rankingJobId = createdJob.id;
 
-      let submitted = 0;
-      for (const application of validApplications) {
+      // Submit all applications in parallel
+      const submissionPromises = validApplications.map(async (application) => {
         try {
+          // Fetch resume_url on demand if not present
+          let currentResumeUrl = (application as any).resume_url;
+          if (!currentResumeUrl) {
+            const { data: appData, error: appError } = await (supabase
+              .from('applications') as any)
+              .select('resume_url')
+              .eq('id', application.id)
+              .single();
+
+            if (appError || !(appData as any)?.resume_url) {
+              console.warn(`Could not fetch resume for application ${application.id}:`, appError);
+              return false;
+            }
+            currentResumeUrl = (appData as any).resume_url;
+          }
+
           const fullName = application.user_profile?.full_name || 'Unknown';
           const email = application.user_profile?.email || '';
-          const phone = application.user_profile?.phone || '';
+          const phone = (application.user_profile as any)?.phone || '';
           const profileText = buildProfileText(application);
-          const file = await resumeUrlToPdfFile(application.resume_url || '', fullName);
+          const file = await resumeUrlToPdfFile(currentResumeUrl as string, fullName);
 
           const appForm = new FormData();
           appForm.append('name', fullName);
@@ -321,12 +335,16 @@ export default function ApplicationsPage({
           });
 
           if (submitRes.ok) {
-            submitted += 1;
+            return true;
           }
         } catch (submissionError) {
           console.warn('Skipping applicant for AI ranking due to upload error:', submissionError);
         }
-      }
+        return false;
+      });
+
+      const results = await Promise.all(submissionPromises);
+      const submitted = results.filter(Boolean).length;
 
       if (submitted === 0) {
         throw new Error('Could not submit any applicant resumes to the ranking service.');
@@ -364,48 +382,60 @@ export default function ApplicationsPage({
     }
   };
 
-  useEffect(() => {
-    if (loading || aiRankingLoading) {
-      return;
-    }
-
+  // Manual trigger for AI ranking instead of automatic to save resources and improve initial load
+  const canRunAiRanking = useMemo(() => {
     const runKey = buildAiRunKey();
-    if (!runKey || runKey === aiLastRunKey) {
-      return;
-    }
-
     const validCount = getValidApplications().length;
-    if (validCount === 0) {
-      return;
+    return !loading && !aiRankingLoading && runKey && runKey !== aiLastRunKey && validCount > 0;
+  }, [applications, referralId, loading, aiRankingLoading, aiLastRunKey]);
+
+  const triggerAiRanking = () => {
+    if (canRunAiRanking) {
+      setAiLastRunKey(buildAiRunKey());
+      void handleRunAiRanking();
+    }
+  };
+
+  const handleViewResume = async (application: Application) => {
+    let resumeUrl = (application as any).resume_url;
+
+    if (!resumeUrl) {
+      try {
+        const { data, error } = await (supabase
+          .from('applications') as any)
+          .select('resume_url')
+          .eq('id', application.id)
+          .single();
+
+        if (error) throw error;
+        resumeUrl = data?.resume_url || undefined;
+      } catch (err) {
+        console.error('Error fetching resume URL:', err);
+      }
     }
 
-    setAiLastRunKey(runKey);
-    void handleRunAiRanking();
-  }, [applications, referralId, loading, aiRankingLoading]);
-
-  const handleViewResume = (application: Application) => {
-    if (!application.resume_url) {
+    if (!resumeUrl) {
       alert('No resume available for this application.');
       return;
     }
 
     try {
       // If it's a base64 data URL, open it in a new tab
-      if (application.resume_url.startsWith('data:')) {
+      if (resumeUrl && resumeUrl.startsWith('data:')) {
         const newWindow = window.open();
         if (newWindow) {
           newWindow.document.write(`
             <html>
               <head><title>Resume - ${application.user_profile?.full_name}</title></head>
               <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f5f5f5;">
-                <embed src="${application.resume_url}" width="100%" height="100%" type="application/pdf" />
+                <embed src="${resumeUrl}" width="100%" height="100%" type="application/pdf" />
               </body>
             </html>
           `);
         }
-      } else {
+      } else if (resumeUrl) {
         // If it's a URL, open it directly
-        window.open(application.resume_url, '_blank');
+        window.open(resumeUrl, '_blank');
       }
     } catch (error) {
       console.error('Error viewing resume:', error);
@@ -413,8 +443,25 @@ export default function ApplicationsPage({
     }
   };
 
-  const handleDownloadResume = (application: Application) => {
-    if (!application.resume_url) {
+  const handleDownloadResume = async (application: Application) => {
+    let resumeUrl = (application as any).resume_url;
+
+    if (!resumeUrl) {
+      try {
+        const { data, error } = await (supabase
+          .from('applications') as any)
+          .select('resume_url')
+          .eq('id', application.id)
+          .single();
+
+        if (error) throw error;
+        resumeUrl = data?.resume_url || undefined;
+      } catch (err) {
+        console.error('Error fetching resume URL:', err);
+      }
+    }
+
+    if (!resumeUrl) {
       alert('No resume available for this application.');
       return;
     }
@@ -422,18 +469,18 @@ export default function ApplicationsPage({
     try {
       const fileName = `${application.user_profile?.full_name?.replace(/\s+/g, '_') || 'Resume'}_${new Date().getFullYear()}.pdf`;
 
-      if (application.resume_url.startsWith('data:')) {
+      if (resumeUrl && resumeUrl.startsWith('data:')) {
         // Handle base64 data
         const link = document.createElement('a');
-        link.href = application.resume_url;
+        link.href = resumeUrl;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-      } else {
+      } else if (resumeUrl) {
         // Handle URL
         const link = document.createElement('a');
-        link.href = application.resume_url;
+        link.href = resumeUrl;
         link.download = fileName;
         link.target = '_blank';
         document.body.appendChild(link);
@@ -448,10 +495,12 @@ export default function ApplicationsPage({
 
   const handleStatusUpdate = async (applicationId: string, newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from('applications')
-        .update({ status: newStatus })
+      const response = await (supabase
+        .from('applications') as any)
+        .update({ status: newStatus } as any)
         .eq('id', applicationId);
+
+      const error = (response as any).error;
 
       if (error) throw error;
 
@@ -644,7 +693,7 @@ export default function ApplicationsPage({
               <p className="text-sm text-amber-800">{error}</p>
               <button
                 className="h-8 px-3 rounded-md bg-white border border-amber-200 text-amber-800 text-xs font-semibold"
-                onClick={fetchApplications}
+                onClick={() => fetchApplications()}
               >
                 Retry
               </button>
@@ -664,10 +713,20 @@ export default function ApplicationsPage({
                   </p>
                 )}
               </div>
-              <div className="w-full lg:w-auto">
+              <div className="w-full lg:w-auto flex flex-col sm:flex-row items-center gap-3">
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${aiRankingLoading ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                   {aiRankingLoading ? 'AI Ranking In Progress' : 'Auto Ranking Enabled'}
                 </span>
+                {canRunAiRanking && (
+                  <button
+                    onClick={triggerAiRanking}
+                    disabled={aiRankingLoading}
+                    className="h-9 px-4 rounded-md bg-[#5f7261] text-white text-xs font-bold hover:bg-[#4b5c4d] transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">bolt</span>
+                    Update AI Rankings
+                  </button>
+                )}
               </div>
             </div>
 
@@ -704,7 +763,7 @@ export default function ApplicationsPage({
                   </div>
                   <div className="bg-[#f2f1ec] rounded-md p-3">
                     <p className="text-xs text-slate-500">Failed</p>
-                    <p className="text-lg font-bold text-slate-900">{aiLeaderboard.failed_count}</p>
+                    <p className="text-lg font-bold text-slate-900">{(aiLeaderboard as any).failed_count}</p>
                   </div>
                 </div>
 
@@ -754,13 +813,13 @@ export default function ApplicationsPage({
                   <div className="flex justify-between items-start mb-4">
                     <button
                       className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                      onClick={() => onViewProfile(application.user_id)}
+                      onClick={() => application.user_id && onViewProfile(application.user_id)}
                     >
                       <div className="h-12 w-12 rounded-full bg-cover bg-center bg-slate-200 flex items-center justify-center">
                         {application.user_profile?.avatar_url ? (
                           <img
                             src={application.user_profile.avatar_url}
-                            alt={application.user_profile.full_name}
+                            alt={application.user_profile.full_name || 'User'}
                             className="h-12 w-12 rounded-full object-cover"
                           />
                         ) : (
@@ -799,7 +858,7 @@ export default function ApplicationsPage({
                     </div>
                     <div className="flex items-center gap-2 text-slate-500 text-xs">
                       <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                      <span>{formatDate(application.created_at)}</span>
+                      <span>{formatDate(application.created_at || (application as any).applied_at || new Date().toISOString())}</span>
                     </div>
                     <div className="flex items-center gap-2 text-slate-500 text-xs mt-1 pt-2 border-t border-slate-100">
                       <span className="material-symbols-outlined text-[16px]">mail</span>
@@ -866,7 +925,7 @@ export default function ApplicationsPage({
                   {selectedApplication.user_profile?.avatar_url ? (
                     <img
                       src={selectedApplication.user_profile.avatar_url}
-                      alt={selectedApplication.user_profile.full_name}
+                      alt={selectedApplication.user_profile.full_name || 'User'}
                       className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} rounded-full object-cover`}
                     />
                   ) : (
@@ -954,6 +1013,13 @@ export default function ApplicationsPage({
                 onClick={() => setSelectedApplication(null)}
               >
                 Dismiss
+              </button>
+              <button
+                className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-[#f2f1ec] transition-colors flex items-center gap-2`}
+                onClick={() => handleDownloadResume(selectedApplication)}
+              >
+                <span className="material-symbols-outlined text-[18px]">download</span>
+                Download Resume
               </button>
               <button
                 className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg bg-[#5f7261] text-white text-sm font-semibold hover:bg-[#4b5c4d] transition-colors flex items-center gap-2`}

@@ -272,27 +272,4 @@ export const auth = {
   }
 }
 
-// Enhanced connection test with better error handling
-const testConnection = async () => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('⚠️ Skipping connection test due to missing environment variables')
-    return
-  }
-
-  try {
-    console.log('🔄 Testing Supabase connection...')
-    const { data, error } = await supabase.from('profiles').select('count').limit(1).maybeSingle()
-    if (error && !error.message.includes('relation "profiles" does not exist')) {
-      console.error('❌ Supabase connection test failed:', error)
-    } else {
-      console.log('✅ Supabase connection test successful')
-    }
-  } catch (error) {
-    console.error('❌ Supabase connection test exception:', error)
-    console.warn('⚠️ This may be due to missing environment variables or network issues')
-  }
-}
-
-if (supabaseUrl && supabaseAnonKey) {
-  testConnection()
-}
+// Connection test removed to optimize initial load
