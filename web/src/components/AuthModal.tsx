@@ -152,22 +152,24 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
 
   if (!isOpen) return null
 
+  const actionAreaClass = 'mt-2 sticky sm:static bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 pt-3 sm:pt-0 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:pb-0 bg-white/95 sm:bg-transparent backdrop-blur supports-[backdrop-filter]:bg-white/75 border-t border-slate-100 sm:border-0'
+
   return (
-    <div className="fixed inset-0 bg-[#F9F9F7]/80 backdrop-blur-xl flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-[480px] bg-white border border-slate-200 rounded-xl shadow-2xl flex flex-col overflow-hidden relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
+    <div className="fixed inset-0 bg-[#F9F9F7]/80 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">
+      <div className="w-full max-w-[480px] h-[100dvh] sm:h-auto sm:max-h-[90vh] bg-white border-0 sm:border border-slate-200 rounded-none sm:rounded-xl shadow-2xl flex flex-col overflow-hidden relative">
+        <button onClick={onClose} className="absolute top-[max(12px,env(safe-area-inset-top))] right-4 text-slate-400 hover:text-slate-600 transition-colors z-10">
           <X size={24} />
         </button>
 
-        <div className="pt-8 px-8 pb-0">
-          <div className="flex justify-center mb-6">
+        <div className="pt-[max(16px,env(safe-area-inset-top))] sm:pt-8 px-4 sm:px-8 pb-0">
+          <div className="flex justify-center mb-4 sm:mb-6">
             <img src="/logo2.png" alt="Logo" className="w-10 h-10 object-contain filter-sage" />
           </div>
 
           {(mode === 'signin' || mode === 'signup') && (
             <div className="flex border-b border-slate-100">
-              <button onClick={() => onModeChange('signin')} className={`flex-1 pb-3 text-sm font-bold tracking-wide transition-colors ${mode === 'signin' ? 'border-b-2 border-primary text-primary' : 'text-slate-400 hover:text-slate-600'}`}>Sign In</button>
-              <button onClick={() => onModeChange('signup')} className={`flex-1 pb-3 text-sm font-bold tracking-wide transition-colors ${mode === 'signup' ? 'border-b-2 border-primary text-primary' : 'text-slate-400 hover:text-slate-600'}`}>Create Account</button>
+              <button onClick={() => onModeChange('signin')} className={`flex-1 pb-2.5 sm:pb-3 text-sm font-bold tracking-wide transition-colors ${mode === 'signin' ? 'border-b-2 border-primary text-primary' : 'text-slate-400 hover:text-slate-600'}`}>Sign In</button>
+              <button onClick={() => onModeChange('signup')} className={`flex-1 pb-2.5 sm:pb-3 text-sm font-bold tracking-wide transition-colors ${mode === 'signup' ? 'border-b-2 border-primary text-primary' : 'text-slate-400 hover:text-slate-600'}`}>Create Account</button>
             </div>
           )}
 
@@ -177,10 +179,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
           {mode === 'update-password' && <div className="text-center mb-4"><h2 className="text-xl font-bold">New Password</h2><p className="text-sm text-slate-500">Set a secure password for your account</p></div>}
         </div>
 
-        {error && <div className="mx-8 mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm">{error}</div>}
-        {success && <div className="mx-8 mt-4 p-3 bg-green-50 border border-green-100 rounded-lg text-green-600 text-sm flex items-center gap-2"><CheckCircle size={16} />{success}</div>}
+        {error && <div className="mx-4 sm:mx-8 mt-3 sm:mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm">{error}</div>}
+        {success && <div className="mx-4 sm:mx-8 mt-3 sm:mt-4 p-3 bg-green-50 border border-green-100 rounded-lg text-green-600 text-sm flex items-center gap-2"><CheckCircle size={16} />{success}</div>}
 
-        <div className="p-8 flex flex-col gap-5">
+        <div className="p-4 sm:p-8 flex flex-col gap-4 sm:gap-5 overflow-y-auto min-h-0">
           {mode === 'verify-email' || mode === 'verify-reset-otp' ? (
             <>
               <input
@@ -191,11 +193,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
                 placeholder="000000"
                 maxLength={6}
               />
-              <button onClick={handleSubmit} disabled={loading || formData.otp.length !== 6} className="w-full rounded-lg bg-primary py-3.5 text-sm font-bold text-white shadow-sm hover:bg-primary-hover disabled:opacity-50 transition-all flex items-center justify-center gap-2">
-                {loading && <Loader className="animate-spin" size={18} />}
-                {mode === 'verify-email' ? 'Verify Email' : 'Verify Identity'}
-              </button>
-              <button onClick={handleResendOTP} disabled={loading} className="text-sm font-semibold text-primary hover:underline">Resend Code</button>
+              <div className={actionAreaClass}>
+                <button onClick={handleSubmit} disabled={loading || formData.otp.length !== 6} className="w-full rounded-lg bg-primary py-3.5 text-sm font-bold text-white shadow-sm hover:bg-primary-hover disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                  {loading && <Loader className="animate-spin" size={18} />}
+                  {mode === 'verify-email' ? 'Verify Email' : 'Verify Identity'}
+                </button>
+                <button onClick={handleResendOTP} disabled={loading} className="text-sm font-semibold text-primary hover:underline mt-3">Resend Code</button>
+              </div>
             </>
           ) : mode === 'forgot-password' ? (
             <>
@@ -203,9 +207,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
                 <input className="w-full rounded-lg border border-slate-300 py-3 px-4 text-sm focus:border-primary focus:outline-none" placeholder="name@company.com" type="email" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} required />
                 <Mail className="absolute right-3 top-3 text-slate-400" size={20} />
               </div>
-              <button onClick={handleSubmit} disabled={loading || !formData.email} className="w-full rounded-lg bg-primary py-3.5 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-50 transition-all">
-                {loading ? 'Sending...' : 'Send Recovery Code'}
-              </button>
+              <div className={actionAreaClass}>
+                <button onClick={handleSubmit} disabled={loading || !formData.email} className="w-full rounded-lg bg-primary py-3.5 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-50 transition-all">
+                  {loading ? 'Sending...' : 'Send Recovery Code'}
+                </button>
+              </div>
             </>
           ) : mode === 'update-password' ? (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -217,9 +223,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
                 <input className="w-full rounded-lg border border-slate-300 py-3 px-4 text-sm focus:border-primary focus:outline-none" placeholder="Confirm Password" type={showConfirmPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={(e) => handleInputChange('confirmPassword', e.target.value)} required />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-3 text-slate-400">{showConfirmPassword ? <EyeOff size={20} /> : <Lock size={20} />}</button>
               </div>
-              <button type="submit" disabled={loading || formData.password !== formData.confirmPassword || formData.password.length < 8} className="w-full rounded-lg bg-primary py-3.5 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-50 transition-all">
-                {loading ? 'Updating...' : 'Update Password'}
-              </button>
+              <div className={actionAreaClass}>
+                <button type="submit" disabled={loading || formData.password !== formData.confirmPassword || formData.password.length < 8} className="w-full rounded-lg bg-primary py-3.5 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-50 transition-all">
+                  {loading ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
             </form>
           ) : (
             <>
@@ -235,17 +243,19 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
                   {mode === 'signin' && <button type="button" onClick={() => onModeChange('forgot-password')} className="text-xs font-bold text-primary hover:underline self-end">Forgot Password?</button>}
                 </div>
                 {mode === 'signup' && <div className="relative"><input className="w-full rounded-lg border border-slate-300 py-3 px-4 text-sm focus:border-primary focus:outline-none" placeholder="Confirm Password" type={showConfirmPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={(e) => handleInputChange('confirmPassword', e.target.value)} required /><button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-3 text-slate-400">{showConfirmPassword ? <EyeOff size={20} /> : <Lock size={20} />}</button></div>}
-                <button type="submit" disabled={loading || (mode === 'signup' && (formData.password !== formData.confirmPassword || formData.password.length < 8))} className="w-full rounded-lg bg-primary py-3.5 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-50 transition-all flex items-center justify-center gap-2">
-                  {loading && <Loader className="animate-spin" size={18} />}
-                  {mode === 'signin' ? 'Sign In' : 'Create Account'}
-                </button>
+                <div className={actionAreaClass}>
+                  <button type="submit" disabled={loading || (mode === 'signup' && (formData.password !== formData.confirmPassword || formData.password.length < 8))} className="w-full rounded-lg bg-primary py-3.5 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                    {loading && <Loader className="animate-spin" size={18} />}
+                    {mode === 'signin' ? 'Sign In' : 'Create Account'}
+                  </button>
+                </div>
               </form>
             </>
           )}
         </div>
 
         {mode !== 'signin' && mode !== 'signup' && (
-          <div className="p-4 text-center border-t border-slate-50 bg-slate-50/50">
+          <div className="p-4 text-center border-t border-slate-50 bg-slate-50/50 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:pb-4">
             <button onClick={() => onModeChange('signin')} className="text-sm font-bold text-slate-400 hover:text-primary transition-colors flex items-center justify-center gap-2 w-full">
               <BackArrowIcon className="h-4 w-4" /> Back to Sign In
             </button>

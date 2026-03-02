@@ -89,6 +89,7 @@ export default function ApplicationsPage({
   const [aiLastRunKey, setAiLastRunKey] = useState<string>('');
   const [applicationToDelete, setApplicationToDelete] = useState<Application | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [removalMode, setRemovalMode] = useState<'delete' | 'unshortlist'>('delete');
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [isAiPanelExpanded, setIsAiPanelExpanded] = useState(false);
 
@@ -497,7 +498,10 @@ export default function ApplicationsPage({
     try {
       const response = await (supabase
         .from('applications') as any)
-        .update({ status: newStatus } as any)
+        .update({
+          status: newStatus,
+          shortlisted: newStatus === 'shortlisted' || newStatus === 'referred'
+        } as any)
         .eq('id', applicationId);
 
       const error = (response as any).error;
@@ -507,7 +511,7 @@ export default function ApplicationsPage({
       setApplications(prev =>
         prev.map(app =>
           app.id === applicationId
-            ? { ...app, status: newStatus }
+            ? { ...app, status: newStatus, shortlisted: newStatus === 'shortlisted' || newStatus === 'referred' }
             : app
         )
       );
@@ -517,6 +521,7 @@ export default function ApplicationsPage({
   };
 
   const handleDeleteApplication = (application: Application) => {
+    setRemovalMode(activeTab === 'shortlisted' ? 'unshortlist' : 'delete');
     setApplicationToDelete(application);
   };
 
@@ -525,8 +530,26 @@ export default function ApplicationsPage({
 
     try {
       setIsDeleting(true);
-      await applicationService.deleteApplication(applicationToDelete.id);
-      setApplications(prev => prev.filter(app => app.id !== applicationToDelete.id));
+      if (removalMode === 'unshortlist') {
+        const { error } = await supabase
+          .from('applications')
+          .update({ status: 'pending', shortlisted: false })
+          .eq('id', applicationToDelete.id);
+
+        if (error) throw error;
+
+        setApplications(prev =>
+          prev.map(app =>
+            app.id === applicationToDelete.id
+              ? { ...app, status: 'pending', shortlisted: false }
+              : app
+          )
+        );
+      } else {
+        await applicationService.deleteApplication(applicationToDelete.id);
+        setApplications(prev => prev.filter(app => app.id !== applicationToDelete.id));
+      }
+
       if (selectedApplication?.id === applicationToDelete.id) {
         setSelectedApplication(null);
       }
@@ -568,8 +591,8 @@ export default function ApplicationsPage({
   const getStatusCounts = () => {
     const counts = {
       all: applications.length,
-      pending: applications.filter(app => app.status === 'pending').length,
       shortlisted: applications.filter(app => app.status === 'shortlisted').length,
+      referred: applications.filter(app => app.status === 'referred').length,
     };
     return counts;
   };
@@ -632,22 +655,6 @@ export default function ApplicationsPage({
               </button>
 
               <button
-                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'pending'
-                  ? 'border-[#5f7261] text-[#5f7261]'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                  } transition-all`}
-                onClick={() => setActiveTab('pending')}
-              >
-                <span className="font-medium text-sm">Pending</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'pending'
-                  ? 'bg-[#5f7261] text-white'
-                  : 'bg-slate-200 text-slate-600'
-                  }`}>
-                  {statusCounts.pending}
-                </span>
-              </button>
-
-              <button
                 className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'shortlisted'
                   ? 'border-[#5f7261] text-[#5f7261]'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -660,6 +667,22 @@ export default function ApplicationsPage({
                   : 'bg-slate-200 text-slate-600'
                   }`}>
                   {statusCounts.shortlisted}
+                </span>
+              </button>
+
+              <button
+                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'referred'
+                  ? 'border-[#5f7261] text-[#5f7261]'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  } transition-all`}
+                onClick={() => setActiveTab('referred')}
+              >
+                <span className="font-medium text-sm">Referred</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'referred'
+                  ? 'bg-[#5f7261] text-white'
+                  : 'bg-slate-200 text-slate-600'
+                  }`}>
+                  {statusCounts.referred}
                 </span>
               </button>
             </div>
@@ -878,11 +901,23 @@ export default function ApplicationsPage({
                   {/* Actions */}
                   <div className="mt-auto flex flex-col gap-2">
                     <button
-                      className="w-full bg-[#5f7261] hover:bg-[#4b5c4d] text-white py-2 rounded-md text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
-                      onClick={() => handleStatusUpdate(application.id, 'shortlisted')}
+                      className={`w-full py-2 rounded-md text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${application.status === 'referred'
+                        ? 'bg-slate-200 text-slate-700 cursor-default'
+                        : 'bg-[#5f7261] hover:bg-[#4b5c4d] text-white'
+                        }`}
+                      onClick={() => {
+                        if (application.status === 'shortlisted') {
+                          handleStatusUpdate(application.id, 'referred');
+                          return;
+                        }
+                        if (application.status !== 'referred') {
+                          handleStatusUpdate(application.id, 'shortlisted');
+                        }
+                      }}
+                      disabled={application.status === 'referred'}
                     >
                       <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                      Shortlist
+                      {application.status === 'shortlisted' ? 'Refer' : application.status === 'referred' ? 'Referred' : 'Shortlist'}
                     </button>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <button
@@ -1022,14 +1057,24 @@ export default function ApplicationsPage({
                 Download Resume
               </button>
               <button
-                className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg bg-[#5f7261] text-white text-sm font-semibold hover:bg-[#4b5c4d] transition-colors flex items-center gap-2`}
+                className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${selectedApplication.status === 'referred'
+                  ? 'bg-slate-200 text-slate-700 cursor-default'
+                  : 'bg-[#5f7261] text-white hover:bg-[#4b5c4d]'
+                  }`}
                 onClick={() => {
-                  handleStatusUpdate(selectedApplication.id, 'shortlisted');
+                  if (selectedApplication.status === 'shortlisted') {
+                    handleStatusUpdate(selectedApplication.id, 'referred');
+                  } else {
+                    if (selectedApplication.status !== 'referred') {
+                      handleStatusUpdate(selectedApplication.id, 'shortlisted');
+                    }
+                  }
                   setSelectedApplication(null);
                 }}
+                disabled={selectedApplication.status === 'referred'}
               >
                 <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                Shortlist Candidate
+                {selectedApplication.status === 'shortlisted' ? 'Refer' : selectedApplication.status === 'referred' ? 'Referred' : 'Shortlist Candidate'}
               </button>
             </div>
           </div>
@@ -1049,7 +1094,11 @@ export default function ApplicationsPage({
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">Remove Applicant?</h3>
               <p className="text-slate-500 text-sm leading-relaxed">
-                Are you sure you want to remove <strong>{applicationToDelete.user_profile?.full_name}</strong>? This action will permanently delete their application.
+                {removalMode === 'unshortlist' ? (
+                  <>Are you sure you want to remove <strong>{applicationToDelete.user_profile?.full_name}</strong> from the shortlisted section?</>
+                ) : (
+                  <>Are you sure you want to remove <strong>{applicationToDelete.user_profile?.full_name}</strong>? This action will permanently delete their application.</>
+                )}
               </p>
             </div>
             <div className="flex border-t border-slate-100">

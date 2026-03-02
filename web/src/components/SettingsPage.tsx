@@ -9,6 +9,25 @@ const SettingsPage: React.FC = () => {
   const { signOut, updatePassword, updateProfile, user, profile } = useAuthContext();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'account' | 'feedback' | 'admin'>('account');
+  const [isMobile, setIsMobile] = useState(false);
+  const [emailVerificationOpen, setEmailVerificationOpen] = useState(true);
+  const [passwordOpen, setPasswordOpen] = useState(true);
+  const [adminInviteOpen, setAdminInviteOpen] = useState(true);
+
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 1023px)');
+    const handleBreakpointChange = (event: MediaQueryListEvent) => setIsMobile(event.matches);
+    setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleBreakpointChange);
+    return () => mediaQuery.removeEventListener('change', handleBreakpointChange);
+  }, []);
+
+  React.useEffect(() => {
+    const defaultOpen = !isMobile;
+    setEmailVerificationOpen(defaultOpen);
+    setPasswordOpen(defaultOpen);
+    setAdminInviteOpen(defaultOpen);
+  }, [isMobile]);
 
   // Sync organization email and step when profile loads
   React.useEffect(() => {
@@ -352,9 +371,9 @@ const SettingsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-stone flex flex-col">
-      <main className="flex-grow py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <aside className="lg:col-span-1">
+      <main className="flex-grow py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
+          <aside className="hidden lg:block lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sticky top-24">
               <h1 className="text-2xl font-bold text-slate-900 mb-6">Settings</h1>
               <nav className="space-y-1">
@@ -399,11 +418,58 @@ const SettingsPage: React.FC = () => {
             </div>
           </aside>
 
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-4 md:space-y-6">
+            <div className="lg:hidden bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+              <h1 className="text-lg font-bold text-slate-900 mb-3">Settings</h1>
+              <div className={`grid ${isSuperUser ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
+                <button
+                  onClick={() => setActiveTab('account')}
+                  className={`h-11 rounded-xl text-sm font-semibold transition-colors ${activeTab === 'account'
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-slate-100 text-slate-600'
+                    }`}
+                >
+                  Account
+                </button>
+                <button
+                  onClick={() => setActiveTab('feedback')}
+                  className={`h-11 rounded-xl text-sm font-semibold transition-colors ${activeTab === 'feedback'
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-slate-100 text-slate-600'
+                    }`}
+                >
+                  Feedback
+                </button>
+                {isSuperUser && (
+                  <button
+                    onClick={() => setActiveTab('admin')}
+                    className={`h-11 rounded-xl text-sm font-semibold transition-colors ${activeTab === 'admin'
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-100 text-slate-600'
+                      }`}
+                  >
+                    Admin
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={handleLogout}
+                className="mt-3 w-full h-11 rounded-xl bg-red-50 text-red-600 text-sm font-semibold"
+              >
+                Logout
+              </button>
+            </div>
+
             {activeTab === 'account' ? (
               <>
-                <details className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" open>
-                  <summary className="flex items-center justify-between p-6 cursor-pointer hover:bg-stone-off/50 transition-colors select-none">
+                <details className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" open={emailVerificationOpen}>
+                  <summary
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setEmailVerificationOpen((prev) => !prev);
+                    }}
+                    className="flex items-center justify-between p-4 md:p-6 cursor-pointer hover:bg-stone-off/50 transition-colors select-none"
+                  >
                     <div className="flex items-center gap-4">
                       <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500">
                         <span className="material-symbols-outlined">mark_email_read</span>
@@ -415,10 +481,10 @@ const SettingsPage: React.FC = () => {
                     </div>
                     <span className="material-symbols-outlined text-slate-500 group-open:rotate-90 transition-transform duration-200">chevron_right</span>
                   </summary>
-                  <div className="px-6 pb-6 pt-2 border-t border-slate-100">
-                    <div className="max-w-xl space-y-6 pt-4">
+                  <div className="px-4 md:px-6 pb-4 md:pb-6 pt-2 border-t border-slate-100">
+                    <div className="max-w-xl space-y-5 md:space-y-6 pt-4">
                       {isOrgVerified && verificationStep === 'verified' && (
-                        <div className="rounded-xl bg-slate-50 border border-slate-200 p-6 flex flex-col gap-4 animate-in fade-in duration-500">
+                        <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 md:p-6 flex flex-col gap-4 animate-in fade-in duration-500">
                           <div className="flex items-start gap-4">
                             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-sage/10 flex items-center justify-center">
                               <span className="material-symbols-outlined text-sage text-[24px]">verified</span>
@@ -505,8 +571,14 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </details>
 
-                <details className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" open>
-                  <summary className="flex items-center justify-between p-6 cursor-pointer hover:bg-stone-off/50 transition-colors select-none">
+                <details className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" open={passwordOpen}>
+                  <summary
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setPasswordOpen((prev) => !prev);
+                    }}
+                    className="flex items-center justify-between p-4 md:p-6 cursor-pointer hover:bg-stone-off/50 transition-colors select-none"
+                  >
                     <div className="flex items-center gap-4">
                       <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500">
                         <span className="material-symbols-outlined">lock_reset</span>
@@ -518,7 +590,7 @@ const SettingsPage: React.FC = () => {
                     </div>
                     <span className="material-symbols-outlined text-slate-500 group-open:rotate-90 transition-transform duration-200">chevron_right</span>
                   </summary>
-                  <div className="px-6 pb-6 pt-2 border-t border-slate-100">
+                  <div className="px-4 md:px-6 pb-4 md:pb-6 pt-2 border-t border-slate-100">
                     <div className="max-w-md space-y-5 pt-4">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Current Password</label>
@@ -560,8 +632,14 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </details>
 
-                <details className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                  <summary className="flex items-center justify-between p-6 cursor-pointer hover:bg-stone-off/50 transition-colors select-none">
+                <details className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" open={adminInviteOpen}>
+                  <summary
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setAdminInviteOpen((prev) => !prev);
+                    }}
+                    className="flex items-center justify-between p-4 md:p-6 cursor-pointer hover:bg-stone-off/50 transition-colors select-none"
+                  >
                     <div className="flex items-center gap-4">
                       <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500">
                         <span className="material-symbols-outlined">admin_panel_settings</span>
@@ -573,9 +651,9 @@ const SettingsPage: React.FC = () => {
                     </div>
                     <span className="material-symbols-outlined text-slate-500 group-open:rotate-90 transition-transform duration-200">chevron_right</span>
                   </summary>
-                  <div className="px-6 pb-6 pt-2 border-t border-slate-100">
+                  <div className="px-4 md:px-6 pb-4 md:pb-6 pt-2 border-t border-slate-100">
                     <div className="space-y-4 pt-4">
-                      <div className="bg-stone-off rounded-xl p-6 border border-slate-100">
+                      <div className="bg-stone-off rounded-xl p-4 md:p-6 border border-slate-100">
                         <h4 className="text-base font-semibold text-slate-900 mb-2">Invite Administrator</h4>
                         <p className="text-sm text-slate-500 mb-6 leading-relaxed">Admins have full access to your organization's settings, billing, and user management. Only invite trusted team members.</p>
                         <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors shadow-sm">
@@ -587,10 +665,10 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </details>
 
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                  <div className="p-6">
+                <div className="bg-red-50/40 rounded-2xl shadow-sm border border-red-100 overflow-hidden">
+                  <div className="p-4 md:p-6">
                     <div className="flex items-center gap-4 mb-4">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 text-red-500">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100 text-red-600">
                         <span className="material-symbols-outlined">delete_forever</span>
                       </div>
                       <div>
@@ -617,7 +695,7 @@ const SettingsPage: React.FC = () => {
                       <button
                         onClick={() => setShowDeleteConfirmModal(true)}
                         disabled={deleteLoading}
-                        className="bg-red-500 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-red-600 transition-colors shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="bg-red-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {deleteLoading ? 'Deleting...' : 'Delete My Account'}
                       </button>
@@ -627,8 +705,8 @@ const SettingsPage: React.FC = () => {
               </>
             ) : activeTab === 'admin' && isSuperUser ? (
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-8">
+                <div className="p-4 md:p-6">
+                  <div className="flex items-center justify-between mb-6 md:mb-8">
                     <div className="flex items-center gap-4">
                       <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 text-blue-600">
                         <span className="material-symbols-outlined text-[28px]">shield_person</span>
@@ -733,8 +811,8 @@ const SettingsPage: React.FC = () => {
               </div>
             ) : (
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div className="p-6">
-                  <div className="flex items-center gap-4 mb-6">
+                <div className="p-4 md:p-6">
+                  <div className="flex items-center gap-4 mb-4 md:mb-6">
                     <div className="flex items-center justify-center w-12 h-12 rounded-full bg-sage-light text-sage">
                       <span className="material-symbols-outlined text-[28px]">rate_review</span>
                     </div>

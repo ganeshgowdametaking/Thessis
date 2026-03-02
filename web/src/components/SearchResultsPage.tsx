@@ -7,6 +7,7 @@ import LoadingSpinner from './LoadingSpinner';
 import OfflineMessage from './OfflineMessage';
 import { isOnline, getCachedData, setCachedData, getOfflineMessage } from '../utils/offlineUtils';
 import BackArrowIcon from './icons/BackArrowIcon';
+import { useMediaQuery } from 'react-responsive';
 
 interface SearchResultsPageProps {
   searchQuery: string;
@@ -16,6 +17,7 @@ interface SearchResultsPageProps {
 
 const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBack, onViewProfile }) => {
   const { user, userConnections, refreshUserConnections } = useAuthContext();
+  const isMobile = useMediaQuery({ maxWidth: 767 });
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState({
     people: [] as any[]
@@ -186,9 +188,9 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
 
   return (
     <div className="bg-page-bg text-txt-body font-display antialiased min-h-screen flex flex-col">
-      <main className="flex-1 w-full max-w-7xl mx-auto px-6 pt-8 pb-12">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 pt-5 md:pt-8 pb-8 md:pb-12">
         {/* Header */}
-        <div className="flex flex-col gap-6 mb-8">
+        <div className="flex flex-col gap-4 md:gap-6 mb-6 md:mb-8">
           <button
             className="flex items-center gap-2 text-sm font-medium text-txt-sub hover:text-primary-sage transition-colors w-fit"
             onClick={onBack}
@@ -199,8 +201,8 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-extrabold text-txt-main mb-2">Search Results</h1>
-              <p className="text-txt-body font-medium text-lg">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-txt-main mb-1.5 md:mb-2">Search Results</h1>
+              <p className="text-txt-body font-medium text-base md:text-lg">
                 Results for <span className="text-txt-main font-bold">'{searchQuery}'</span>
               </p>
             </div>
@@ -237,10 +239,74 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
                 <p className="text-slate-600">Try adjusting your search terms or browse all users.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mb-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5 mb-10 md:mb-12">
                 {searchResults.people.map((person) => {
                   const profilePic = getProfilePicture(person);
                   const connectionStatus = userConnections[person.id] || 'none';
+
+                  if (isMobile) {
+                    return (
+                      <div key={person.id} className="bg-white rounded-xl border border-card-border p-3.5 shadow-sm">
+                        <div className="flex items-start gap-3">
+                          <button
+                            onClick={() => onViewProfile(person.id)}
+                            className="size-12 rounded-full bg-slate-50 overflow-hidden ring-2 ring-slate-50 shrink-0"
+                          >
+                            {person.avatar_url ? (
+                              <img
+                                alt="User"
+                                className="w-full h-full object-cover"
+                                src={person.avatar_url}
+                              />
+                            ) : (
+                              <div
+                                className="w-full h-full flex items-center justify-center text-white font-bold text-base"
+                                style={{ backgroundColor: profilePic.backgroundColor }}
+                              >
+                                {profilePic.initials}
+                              </div>
+                            )}
+                          </button>
+
+                          <div className="flex-1 min-w-0">
+                            <button
+                              className="text-left w-full"
+                              onClick={() => onViewProfile(person.id)}
+                            >
+                              <h3 className="text-base font-bold text-txt-main truncate">{person.full_name}</h3>
+                              <p className="text-sm font-medium text-txt-body truncate mt-0.5">{person.title || 'Professional'}</p>
+                            </button>
+
+                            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-txt-body bg-stone-100 px-2.5 py-1 rounded-full mt-2">
+                              <span className="material-symbols-outlined text-[14px] text-txt-sub">domain</span>
+                              <span className="truncate max-w-[180px]">{person.company || 'Unknown Company'}</span>
+                            </div>
+
+                            <div className="mt-3">
+                              <button
+                                className={getConnectionButtonStyle(person.id)}
+                                onClick={() => handleConnect(person.id)}
+                              >
+                                {connectionStatus === 'connected' && (
+                                  <span className="material-symbols-outlined text-[18px] mr-2">person_remove</span>
+                                )}
+                                {connectionStatus === 'pending_sent' && (
+                                  <span className="material-symbols-outlined text-[18px] mr-2">cancel</span>
+                                )}
+                                {connectionStatus === 'pending_received' && (
+                                  <span className="material-symbols-outlined text-[18px] mr-2">notifications</span>
+                                )}
+                                {connectionStatus === 'none' && (
+                                  <span className="material-symbols-outlined text-[18px] mr-2">person_add</span>
+                                )}
+                                {getConnectionButtonText(person.id)}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div key={person.id} className="group bg-white rounded-2xl border border-card-border p-5 shadow-sm hover:shadow-lg hover:border-primary-sage/30 transition-all duration-300 flex flex-col items-center text-center">

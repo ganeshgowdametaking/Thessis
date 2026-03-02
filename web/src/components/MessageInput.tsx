@@ -16,9 +16,10 @@ interface MessageInputProps {
     onSendMessage: (text: string, file?: File) => Promise<boolean> | boolean;
     onTyping: () => void;
     disabled: boolean;
+    mobileFixed?: boolean;
 }
 
-export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyping, disabled }) => {
+export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyping, disabled, mobileFixed = false }) => {
     const [newMessage, setNewMessage] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [emojiSearch, setEmojiSearch] = useState('');
@@ -125,7 +126,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
     }, [showEmojiPicker]);
 
     return (
-        <div className="shrink-0 p-4 pt-2 pb-4 bg-white border-t border-stone-border relative">
+        <div className={`${mobileFixed
+                ? 'fixed bottom-0 left-0 right-0 z-30 p-3 pt-2 bg-white border-t border-stone-border relative'
+                : 'shrink-0 p-4 pt-2 pb-4 bg-white border-t border-stone-border relative'
+            }`}
+            style={mobileFixed ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' } : undefined}
+        >
             {/* Emoji Picker */}
             {showEmojiPicker && (
                 <div ref={emojiPickerRef} className="absolute bottom-16 right-4 w-72 bg-white border border-stone-border rounded-lg shadow-xl z-50 overflow-hidden flex flex-col" style={{ height: '350px' }}>

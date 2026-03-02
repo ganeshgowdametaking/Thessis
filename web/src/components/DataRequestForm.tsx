@@ -103,30 +103,30 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
         }
       `}</style>
       
-      <div className="bg-stone-bg font-display min-h-screen flex flex-col justify-center items-center p-6 text-slate-700 transition-colors duration-300">
+      <div className="bg-stone-bg font-display min-h-screen flex flex-col justify-start sm:justify-center items-stretch sm:items-center p-0 sm:p-6 text-slate-700 transition-colors duration-300">
         {/* Background Decorations */}
-        <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden pointer-events-none">
+        <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden pointer-events-none hidden sm:block">
           <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-sage/5 blur-3xl"></div>
           <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-blue-prof/5 blur-3xl"></div>
         </div>
 
-        <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col relative border border-slate-100">
+        <div className="w-full max-w-4xl bg-white rounded-none sm:rounded-2xl shadow-none sm:shadow-xl overflow-hidden flex flex-col relative border-y border-slate-100 sm:border">
           {/* Header */}
-          <div className="px-8 pt-8 pb-4 flex items-center gap-4 border-b border-slate-100">
+          <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-4 flex items-center gap-3 sm:gap-4 border-b border-slate-100">
             <button 
               onClick={handleBack}
               className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-100 transition-colors text-slate-900"
             >
-              <BackArrowIcon className="h-6 w-6" />
+              <BackArrowIcon className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">GDPR Data Request</h1>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-slate-900">GDPR Data Request</h1>
           </div>
 
           {/* Main Content */}
-          <div className="px-8 py-6 md:px-12 md:py-8 flex flex-col gap-8">
+          <div className="px-4 sm:px-8 py-5 sm:py-6 md:px-12 md:py-8 flex flex-col gap-6 sm:gap-8">
             {/* Description */}
             <div className="max-w-2xl">
-              <p className="text-slate-700 text-lg leading-relaxed">
+              <p className="text-slate-700 text-base sm:text-lg leading-relaxed">
                 Under the General Data Protection Regulation (GDPR), you have the right to access, delete, or correct your personal data. Please select the type of request you'd like to make.
               </p>
             </div>
@@ -143,8 +143,8 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
                   checked={requestType === 'access'}
                   onChange={() => setRequestType('access')}
                 />
-                <div className="h-full p-6 rounded-xl border-2 border-stone-border bg-white hover:bg-blue-wash/30 transition-all duration-200 peer-checked:border-blue-prof peer-checked:bg-white flex flex-col gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-blue-wash text-blue-prof flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                <div className="h-full p-4 sm:p-6 rounded-xl border-2 border-stone-border bg-white hover:bg-blue-wash/30 transition-all duration-200 peer-checked:border-blue-prof peer-checked:bg-white flex flex-col gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-blue-wash text-blue-prof flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                     <Download className="text-[24px]" />
                   </div>
                   <div>
@@ -164,8 +164,8 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
                   checked={requestType === 'delete'}
                   onChange={() => setRequestType('delete')}
                 />
-                <div className="h-full p-6 rounded-xl border-2 border-stone-border bg-white hover:bg-red-wash/30 transition-all duration-200 peer-checked:border-red-prof peer-checked:bg-white flex flex-col gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-red-wash text-red-prof flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                <div className="h-full p-4 sm:p-6 rounded-xl border-2 border-stone-border bg-white hover:bg-red-wash/30 transition-all duration-200 peer-checked:border-red-prof peer-checked:bg-white flex flex-col gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-red-wash text-red-prof flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                     <Trash2 className="text-[24px]" />
                   </div>
                   <div>
@@ -185,8 +185,8 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
                   checked={requestType === 'correct'}
                   onChange={() => setRequestType('correct')}
                 />
-                <div className="h-full p-6 rounded-xl border-2 border-stone-border bg-white hover:bg-sage-wash/50 transition-all duration-200 peer-checked:border-sage peer-checked:bg-white flex flex-col gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-sage-wash text-sage flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                <div className="h-full p-4 sm:p-6 rounded-xl border-2 border-stone-border bg-white hover:bg-sage-wash/50 transition-all duration-200 peer-checked:border-sage peer-checked:bg-white flex flex-col gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-sage-wash text-sage flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                     <Edit3 className="text-[24px]" />
                   </div>
                   <div>
@@ -198,7 +198,7 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
             </div>
 
             {/* Form Section */}
-            <div className="bg-stone-off rounded-xl p-6 md:p-8 mt-2 transition-all duration-300">
+            <div className="bg-stone-off rounded-xl p-4 sm:p-6 md:p-8 mt-1 sm:mt-2 transition-all duration-300">
               <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-bold uppercase tracking-wider text-slate-500" htmlFor="details">
@@ -220,12 +220,12 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between flex-wrap gap-4 pt-2">
-                  <div className="text-xs text-slate-500 max-w-md">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between flex-wrap gap-4 pt-2">
+                  <div className="text-xs text-slate-500 max-w-md order-2 sm:order-1">
                     By submitting this form, you acknowledge that we may need to verify your identity before processing the request.
                   </div>
                   <button 
-                    className="flex items-center justify-center gap-2 bg-sage hover:bg-sage/90 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-sage hover:bg-sage/90 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2" 
                     type="submit"
                     disabled={loading}
                   >
@@ -248,11 +248,11 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
 
           {/* Success Overlay */}
           {success && (
-            <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-10 flex flex-col items-center justify-center text-center p-8 animate-fade-in">
+            <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-10 flex flex-col items-center justify-center text-center p-5 sm:p-8 animate-fade-in">
               <div className="w-20 h-20 rounded-full bg-sage-wash text-sage flex items-center justify-center mb-6">
                 <Check className="text-[40px]" />
               </div>
-              <h2 className="text-3xl font-bold text-slate-900 mb-3">Request Submitted Successfully</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-3">Request Submitted Successfully</h2>
               <p className="text-slate-500 max-w-md mb-8">
                 We have received your GDPR data request. A confirmation email has been sent to your registered address with a reference ID.
               </p>
@@ -271,7 +271,7 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
           )}
 
           {/* Footer */}
-          <div className="px-8 py-4 bg-stone-off border-t border-slate-200 text-center md:text-left">
+          <div className="px-4 sm:px-8 py-3 sm:py-4 bg-stone-off border-t border-slate-200 text-center md:text-left">
             <p className="text-xs text-slate-500 flex items-center gap-2 justify-center md:justify-start">
               <Clock className="text-[16px]" />
               Processing time: up to 30 days. We may require additional identity verification steps.

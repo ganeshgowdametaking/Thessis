@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import BackArrowIcon from './icons/BackArrowIcon';
 
 interface PrivacyPolicyProps {
@@ -16,9 +15,9 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex items-center space-x-4 mb-6">
+      <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex items-center space-x-3 sm:space-x-4 mb-4 sm:mb-6">
             <button
               onClick={handleBack}
               className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
@@ -26,10 +25,10 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             >
               <BackArrowIcon className="h-5 w-5" />
             </button>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Privacy Policy</h1>
+            <h1 className="text-xl sm:text-3xl font-bold text-slate-900">Privacy Policy</h1>
           </div>
 
-          <div className="prose prose-slate max-w-none">
+          <div className="prose prose-sm sm:prose prose-slate max-w-none">
             <p className="text-slate-600">
               Last updated: February 6, 2026
             </p>

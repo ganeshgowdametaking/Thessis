@@ -620,7 +620,7 @@ const ProfilePage: React.FC = () => {
     return 'Date not set';
   };
 
-  const timelineTextClass = 'text-slate-900 text-xs font-black uppercase tracking-wide whitespace-nowrap';
+  const timelineTextClass = 'text-slate-900 text-[11px] md:text-xs font-black uppercase tracking-wide whitespace-nowrap';
 
   const getMonogram = (label?: string) => {
     if (!label) return 'TT';
@@ -775,53 +775,53 @@ const ProfilePage: React.FC = () => {
           </div>
         </section>
 
-        <div className="flex flex-col gap-10">
-          <div className="flex flex-col gap-10">
+        <div className="flex flex-col gap-7 md:gap-10">
+          <div className="flex flex-col gap-7 md:gap-10">
             {/* Experience Section */}
             <section>
-              <div className="flex items-center mb-6 px-1">
-                <h2 className="text-slate-900 text-2xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Experience</h2>
+              <div className="flex items-center mb-4 md:mb-6 px-1">
+                <h2 className="text-slate-900 text-xl md:text-2xl font-extrabold uppercase tracking-[0.16em] md:tracking-[0.18em] pt-0.5">Experience</h2>
               </div>
 
-              <div className="relative pl-2">
+              <div className="relative pl-0.5 md:pl-2">
                 {editForm.experiences.length > 0 && (
-                  <div className="absolute left-[31px] top-6 bottom-6 w-px bg-slate-100"></div>
+                  <div className="absolute left-[23px] md:left-[31px] top-5 md:top-6 bottom-5 md:bottom-6 w-px bg-slate-100"></div>
                 )}
                 {editForm.experiences.length > 0 ? (
-                  <div className="space-y-14">
+                  <div className="space-y-9 md:space-y-14">
                     {editForm.experiences.map((exp) => (
-                      <div key={exp.id} className="relative flex gap-10">
+                      <div key={exp.id} className="relative flex gap-4 md:gap-10">
                       <div className="relative z-10 shrink-0">
-                        <div className="bg-white rounded-xl size-20 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
+                        <div className="bg-white rounded-xl size-16 md:size-20 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
                           <img src="/company-placeholder.png" alt={exp.company} className="w-full h-full object-contain" />
                         </div>
                       </div>
 
-                      <div className="flex flex-col flex-1 pt-1">
-                        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-                          <div className="flex flex-col gap-1.5">
-                            <h3 className="text-slate-900 text-lg font-black uppercase tracking-[0.1em] leading-tight">
+                      <div className="flex flex-col flex-1 pt-0.5 md:pt-1">
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2.5 md:gap-4">
+                          <div className="flex flex-col gap-1 md:gap-1.5">
+                            <h3 className="text-slate-900 text-base md:text-lg font-black uppercase tracking-[0.08em] md:tracking-[0.1em] leading-tight">
                               {exp.title}
                             </h3>
-                            <div className="flex items-center gap-2.5">
-                              <span className="text-slate-900 font-bold text-xs uppercase tracking-wider">{exp.company}</span>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:gap-2.5">
+                              <span className="text-slate-900 font-bold text-[11px] md:text-xs uppercase tracking-wider">{exp.company}</span>
                               {exp.location && (
                                 <>
                                   <span className="text-slate-200 text-xs">/</span>
-                                  <span className="text-slate-400 text-sm font-semibold tracking-tight">{exp.location}</span>
+                                  <span className="text-slate-400 text-[13px] md:text-sm font-semibold tracking-tight">{exp.location}</span>
                                 </>
                               )}
                             </div>
                           </div>
 
-                          <div className="shrink-0 pt-0.5">
+                          <div className="shrink-0 pt-0 md:pt-0.5">
                             <span className={timelineTextClass}>
                               {formatDate(exp.startDate)} — {exp.current ? 'Present' : formatDate(exp.endDate)}
                             </span>
                           </div>
                         </div>
 
-                        <p className="text-slate-500 text-[14px] leading-[1.8] mt-6 max-w-2xl font-medium whitespace-pre-line">
+                        <p className="text-slate-500 text-[13px] md:text-[14px] leading-[1.65] md:leading-[1.8] mt-3 md:mt-6 max-w-2xl font-medium whitespace-pre-line">
                           {exp.description}
                         </p>
                       </div>
@@ -834,28 +834,28 @@ const ProfilePage: React.FC = () => {
 
             {/* Education Section */}
             <section>
-              <div className="flex items-center mb-6 px-1">
-                <h2 className="text-slate-900 text-2xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Education</h2>
+              <div className="flex items-center mb-4 md:mb-6 px-1">
+                <h2 className="text-slate-900 text-xl md:text-2xl font-extrabold uppercase tracking-[0.16em] md:tracking-[0.18em] pt-0.5">Education</h2>
               </div>
               <div className="px-1">
-                <div className="relative space-y-10">
+                <div className="relative space-y-6 md:space-y-10">
                   {Array.isArray(editForm.education) && editForm.education.length > 0 && (
-                    <div className="absolute left-[40px] top-3 bottom-3 w-0.5 bg-off-stone"></div>
+                    <div className="absolute left-[31px] md:left-[40px] top-2 md:top-3 bottom-2 md:bottom-3 w-0.5 bg-off-stone"></div>
                   )}
                   {Array.isArray(editForm.education) && editForm.education.length > 0 ? (
                     editForm.education.map((edu) => (
-                      <div key={edu.id} className="relative flex gap-6">
+                      <div key={edu.id} className="relative flex gap-4 md:gap-6">
                         <div className="relative z-10 shrink-0">
-                          <div className="size-20 rounded-xl bg-white border border-stone-border flex items-center justify-center text-slate-meta">
+                          <div className="size-16 md:size-20 rounded-xl bg-white border border-stone-border flex items-center justify-center text-slate-meta">
                             <GraduationCap />
                           </div>
                         </div>
-                        <div className="flex flex-col flex-1 pt-2">
+                        <div className="flex flex-col flex-1 pt-1 md:pt-2">
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 mb-1">
-                            <h3 className="text-text-main text-lg font-bold">{edu.degree}</h3>
+                            <h3 className="text-text-main text-base md:text-lg font-bold">{edu.degree}</h3>
                             <span className={timelineTextClass}>{formatDate(edu.endDate)}</span>
                           </div>
-                          <p className="text-text-secondary text-base">{edu.school}</p>
+                          <p className="text-text-secondary text-sm md:text-base">{edu.school}</p>
                         </div>
                       </div>
                     ))
@@ -865,19 +865,19 @@ const ProfilePage: React.FC = () => {
             </section>
           </div>
 
-          <div className="flex flex-col gap-10">
+          <div className="flex flex-col gap-7 md:gap-10">
             {/* Skills Section */}
             <section>
-              <div className="flex items-center mb-6 px-1">
-                <h2 className="text-slate-900 text-2xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Skills</h2>
+              <div className="flex items-center mb-4 md:mb-6 px-1">
+                <h2 className="text-slate-900 text-xl md:text-2xl font-extrabold uppercase tracking-[0.16em] md:tracking-[0.18em] pt-0.5">Skills</h2>
               </div>
               <div className="px-1">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 md:gap-2">
                   {editForm.skills.length > 0 ? (
                     editForm.skills.map((skill) => (
                       <span
                         key={skill.id}
-                        className="px-3 py-1.5 rounded-md bg-white text-slate-body cursor-default text-sm font-bold tracking-wide border border-stone-border"
+                        className="px-2.5 md:px-3 py-1.5 rounded-md bg-white text-slate-body cursor-default text-xs md:text-sm font-bold tracking-wide border border-stone-border"
                       >
                         {skill.name}
                       </span>
@@ -889,17 +889,17 @@ const ProfilePage: React.FC = () => {
 
             {/* Achievements Section */}
             <section>
-              <div className="flex items-center mb-6 px-1">
-                <h2 className="text-slate-900 text-2xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Achievements</h2>
+              <div className="flex items-center mb-4 md:mb-6 px-1">
+                <h2 className="text-slate-900 text-xl md:text-2xl font-extrabold uppercase tracking-[0.16em] md:tracking-[0.18em] pt-0.5">Achievements</h2>
               </div>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 md:gap-4">
                 {Array.isArray(editForm.achievements) && editForm.achievements.length > 0 ? (
                   editForm.achievements.map((achievement) => (
-                    <div key={achievement.id} className="px-1 py-1 flex items-start justify-between gap-4">
+                    <div key={achievement.id} className="px-1 py-1 flex items-start justify-between gap-3 md:gap-4">
                       <div className="min-w-0">
-                        <h4 className="text-text-main font-bold text-base leading-tight">{achievement.title}</h4>
-                        <p className="text-slate-meta text-sm mt-1 font-semibold">{achievement.organization}</p>
-                        <p className="text-text-secondary text-sm mt-2 leading-snug">{achievement.description}</p>
+                        <h4 className="text-text-main font-bold text-sm md:text-base leading-tight">{achievement.title}</h4>
+                        <p className="text-slate-meta text-xs md:text-sm mt-1 font-semibold">{achievement.organization}</p>
+                        <p className="text-text-secondary text-sm mt-1.5 md:mt-2 leading-snug">{achievement.description}</p>
                       </div>
                       <span className={`${timelineTextClass} shrink-0 pt-0.5`}>{formatDate(achievement.date)}</span>
                     </div>

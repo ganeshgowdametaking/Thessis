@@ -152,25 +152,26 @@ const PasswordResetPage: React.FC = () => {
 
   const passwordStrength = getPasswordStrength(formData.password)
   const hasMinLength = formData.password.length >= 8
+  const actionAreaClass = 'sticky sm:static bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:pb-0 bg-white/95 sm:bg-transparent backdrop-blur supports-[backdrop-filter]:bg-white/75 border-t border-slate-100 sm:border-0'
 
   return (
-    <div className="bg-page min-h-screen flex items-center justify-center p-4 font-display">
-      <div className="w-full max-w-[480px] flex flex-col gap-6">
+    <div className="bg-page min-h-[100dvh] sm:min-h-screen flex items-stretch sm:items-center justify-center p-0 sm:p-4 font-display">
+      <div className="w-full max-w-[480px] flex flex-col gap-3 sm:gap-6 min-h-[100dvh] sm:min-h-0">
         {/* Logo */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-2 sm:mb-6 pt-[max(16px,env(safe-area-inset-top))] sm:pt-0">
           <img
             src="/logo2.png"
             alt="TankTide Logo"
-            className="w-16 h-16 object-contain filter-sage"
+            className="w-12 h-12 sm:w-16 sm:h-16 object-contain filter-sage"
           />
         </div>
 
         {/* Main Card */}
-        <div className="bg-card border border-card-border rounded-xl shadow-subtle overflow-hidden p-8 flex flex-col gap-6">
+        <div className="bg-card border-x-0 sm:border border-card-border rounded-none sm:rounded-xl shadow-none sm:shadow-subtle overflow-hidden p-4 sm:p-8 flex flex-col gap-5 sm:gap-6 flex-1">
           {/* Header */}
-          <div className="text-center space-y-2">
-            <h1 className="text-title-slate text-2xl font-bold leading-tight">Reset Password</h1>
-            <p className="text-body-slate text-base font-normal leading-normal">
+          <div className="text-center space-y-1.5 sm:space-y-2">
+            <h1 className="text-title-slate text-xl sm:text-2xl font-bold leading-tight">Reset Password</h1>
+            <p className="text-body-slate text-sm sm:text-base font-normal leading-normal">
               Please choose a new password for your account.
             </p>
           </div>
@@ -208,7 +209,7 @@ const PasswordResetPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-5 min-h-0">
             {/* New Password Field */}
             <label className="flex flex-col w-full group">
               <p className="text-label-slate text-sm font-medium leading-normal pb-2">New Password</p>
@@ -281,7 +282,7 @@ const PasswordResetPage: React.FC = () => {
             </label>
 
             {/* Submit Button and Back Link */}
-            <div className="flex flex-col gap-4 pt-2">
+            <div className={`flex flex-col gap-4 pt-2 ${actionAreaClass}`}>
               <button
                 type="submit"
                 disabled={loading || formData.password !== formData.confirmPassword || !hasMinLength}
@@ -303,7 +304,7 @@ const PasswordResetPage: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-copyright-slate text-xs">
+        <p className="text-center text-copyright-slate text-xs pb-[calc(env(safe-area-inset-bottom)+8px)] sm:pb-0">
           © 2024 TankTide. All rights reserved.
         </p>
       </div>

@@ -7,8 +7,8 @@ interface CookiePolicyProps {
 
 const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8 md:p-12 lg:p-16">
-      <div className="flex justify-start mb-8">
+    <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-slate-100 p-4 sm:p-6 md:p-12 lg:p-16">
+      <div className="flex justify-start mb-5 sm:mb-8">
         <button 
           onClick={onBack}
           className="group flex items-center justify-center rounded-lg h-10 pr-4 text-slate-500 gap-2 text-sm font-bold leading-normal tracking-[0.015em] transition-all hover:text-sage"
@@ -18,14 +18,14 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
         </button>
       </div>
 
-      <div className="flex flex-col gap-4 mb-10 border-b border-slate-200 pb-8">
-        <h1 className="text-slate-900 text-4xl md:text-5xl font-extrabold leading-tight tracking-[-0.033em]">Cookie Policy</h1>
+      <div className="flex flex-col gap-3 sm:gap-4 mb-8 sm:mb-10 border-b border-slate-200 pb-5 sm:pb-8">
+        <h1 className="text-slate-900 text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight tracking-[-0.033em]">Cookie Policy</h1>
         <p className="text-slate-500 text-base font-medium">Last updated: October 24, 2023</p>
       </div>
 
-      <div className="space-y-10">
+      <div className="space-y-8 sm:space-y-10">
         <section>
-          <h2 className="text-slate-900 text-2xl font-bold leading-tight mb-4">1. What are Cookies?</h2>
+          <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-3 sm:mb-4">1. What are Cookies?</h2>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed">
             Cookies are small text files that are placed on your computer or mobile device when you visit a website. 
             They are widely used to make websites work more efficiently, as well as to provide information to the owners of the site. 
@@ -34,7 +34,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
         </section>
 
         <section>
-          <h2 className="text-slate-900 text-2xl font-bold leading-tight mb-4">2. How TankTide Uses Cookies</h2>
+          <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-3 sm:mb-4">2. How TankTide Uses Cookies</h2>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-4">
             We use both session cookies (which expire once you close your web browser) and persistent cookies 
             (which stay on your device for a set period of time or until you delete them). We use these technologies for the following purposes:
@@ -48,12 +48,17 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
         </section>
 
         <section>
-          <h2 className="text-slate-900 text-2xl font-bold leading-tight mb-6">3. Cookie Categories</h2>
+          <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-4 sm:mb-6">3. Cookie Categories</h2>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-6">
             The table below explains the cookies we use and why.
           </p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3 sm:hidden">
+            Swipe horizontally to view full table
+          </p>
           
-          <div className="w-full overflow-hidden rounded-lg border border-slate-200">
+          <div className="relative w-full overflow-hidden rounded-lg border border-slate-200">
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-white to-transparent sm:hidden"></div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-5 bg-gradient-to-l from-white to-transparent sm:hidden"></div>
             <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
@@ -104,7 +109,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
         </section>
 
         <section>
-          <h2 className="text-slate-900 text-2xl font-bold leading-tight mb-4">4. Managing Your Preferences</h2>
+          <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-3 sm:mb-4">4. Managing Your Preferences</h2>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-6">
             You can change your cookie preferences at any time by changing your browser settings. 
             Please note that if you disable cookies, some features of the TankTide platform may not function correctly.
@@ -113,7 +118,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
             Find out how to manage cookies on popular browsers:
           </p>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <a 
               className="flex items-center p-3 rounded-lg border border-stone-border hover:border-sage/50 hover:bg-sage/5 transition-all group" 
               href="https://support.google.com/chrome/answer/95647" 
@@ -157,7 +162,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
           </div>
         </section>
 
-        <div className="mt-8 p-6 bg-stone-off rounded-lg border border-slate-200">
+        <div className="mt-8 p-4 sm:p-6 bg-stone-off rounded-lg border border-slate-200">
           <h3 className="text-lg font-bold text-slate-900 mb-2">Have questions about this policy?</h3>
           <p className="text-slate-600 text-sm mb-4">
             If you have any questions about our use of cookies or other technologies, please email us at

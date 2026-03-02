@@ -325,16 +325,16 @@ const NotificationsPage: React.FC = () => {
 
   return (
     <div className="bg-stone font-display text-slate-body transition-colors duration-200 min-h-screen flex flex-col">
-      <main className="flex-1 w-full max-w-[800px] mx-auto px-4 py-8 md:py-12">
+      <main className="flex-1 w-full max-w-[800px] mx-auto px-4 py-5 md:py-12">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4 mb-5 md:mb-8">
           <div className="flex flex-col gap-1">
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">Notifications</h1>
+            <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-slate-900">Notifications</h1>
 
           </div>
           <button
             onClick={handleMarkAllAsRead}
-            className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-stone-header text-sm font-bold text-slate-900 hover:bg-stone-50 hover:border-slate-300 transition-all shadow-sm"
+            className="group inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-white border border-stone-header text-sm font-bold text-slate-900 hover:bg-stone-50 hover:border-slate-300 transition-all shadow-sm w-full md:w-auto"
           >
             <CheckCircle className="text-[18px] text-slate-500 group-hover:text-sage transition-colors" />
             <span>Mark all as read</span>
@@ -342,36 +342,39 @@ const NotificationsPage: React.FC = () => {
         </div>
 
         {/* Filter Tabs */}
-        <div className="mb-8 border-b border-stone-header">
-          <div className="flex gap-6 overflow-x-auto pb-[1px]">
+        <div className="mb-5 md:mb-8">
+          <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
             <button
               onClick={() => setFilter('all')}
-              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${filter === 'all'
-                ? 'text-sage border-b-2 border-sage'
-                : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
+              className={`h-9 px-4 rounded-full text-sm font-bold transition-colors whitespace-nowrap border ${filter === 'all'
+                ? 'bg-[#5f7261] text-white border-[#5f7261]'
+                : 'bg-white text-slate-600 border-stone-header hover:border-slate-300'
                 }`}
             >
               All
             </button>
             <button
               onClick={() => setFilter('unread')}
-              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${filter === 'unread'
-                ? 'text-sage border-b-2 border-sage'
-                : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
+              className={`h-9 px-4 rounded-full text-sm font-bold transition-colors whitespace-nowrap border inline-flex items-center ${filter === 'unread'
+                ? 'bg-[#5f7261] text-white border-[#5f7261]'
+                : 'bg-white text-slate-600 border-stone-header hover:border-slate-300'
                 }`}
             >
               Unread
               {unreadCount > 0 && (
-                <span className="ml-1 inline-flex items-center justify-center bg-stone-off text-slate-500 text-[10px] h-5 min-w-5 px-1.5 rounded-full">
+                <span className={`ml-2 inline-flex items-center justify-center text-[10px] h-5 min-w-5 px-1.5 rounded-full ${filter === 'unread'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-stone-off text-slate-500'
+                  }`}>
                   {unreadCount}
                 </span>
               )}
             </button>
             <button
               onClick={() => setFilter('connection')}
-              className={`relative pb-3 text-sm font-bold transition-colors whitespace-nowrap ${filter === 'connection'
-                ? 'text-sage border-b-2 border-sage'
-                : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-stone-300'
+              className={`h-9 px-4 rounded-full text-sm font-bold transition-colors whitespace-nowrap border ${filter === 'connection'
+                ? 'bg-[#5f7261] text-white border-[#5f7261]'
+                : 'bg-white text-slate-600 border-stone-header hover:border-slate-300'
                 }`}
             >
               Referrals
@@ -382,12 +385,12 @@ const NotificationsPage: React.FC = () => {
 
         {/* Verification Requests Section */}
         {verifications.length > 0 && filter === 'all' && (
-          <div className="mb-8">
-            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 px-1">
+          <div className="mb-5 md:mb-8">
+            <h3 className="text-base md:text-lg font-bold text-slate-800 mb-3 md:mb-4 flex items-center gap-2 px-1">
               <span className="material-symbols-outlined text-amber-500 text-[20px] filled">star</span>
               Action Required
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {verifications.map(req => (
                 <VerificationCard
                   key={req.id}
@@ -400,12 +403,12 @@ const NotificationsPage: React.FC = () => {
         )}
 
         {/* Notifications */}
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-6 md:gap-8">
           {/* Today */}
           {groupedNotifications.today.length > 0 && (
             <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 pl-1">Today</h3>
-              <div className="flex flex-col gap-3">
+              <h3 className="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 md:mb-4 pl-1">Today</h3>
+              <div className="flex flex-col gap-2.5 md:gap-3">
                 {groupedNotifications.today.map((notification) => (
                   <NotificationCard
                     key={notification.id}
@@ -425,8 +428,8 @@ const NotificationsPage: React.FC = () => {
           {/* Yesterday */}
           {groupedNotifications.yesterday.length > 0 && (
             <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 pl-1">Yesterday</h3>
-              <div className="flex flex-col gap-3">
+              <h3 className="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 md:mb-4 pl-1">Yesterday</h3>
+              <div className="flex flex-col gap-2.5 md:gap-3">
                 {groupedNotifications.yesterday.map((notification) => (
                   <NotificationCard
                     key={notification.id}
@@ -447,8 +450,8 @@ const NotificationsPage: React.FC = () => {
           {/* Last Week */}
           {groupedNotifications.lastWeek.length > 0 && (
             <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 pl-1">Last Week</h3>
-              <div className="flex flex-col gap-3">
+              <h3 className="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 md:mb-4 pl-1">Last Week</h3>
+              <div className="flex flex-col gap-2.5 md:gap-3">
                 {groupedNotifications.lastWeek.map((notification) => (
                   <NotificationCard
                     key={notification.id}
@@ -469,8 +472,8 @@ const NotificationsPage: React.FC = () => {
           {/* Older */}
           {groupedNotifications.older.length > 0 && (
             <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 pl-1">Older</h3>
-              <div className="flex flex-col gap-3">
+              <h3 className="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 md:mb-4 pl-1">Older</h3>
+              <div className="flex flex-col gap-2.5 md:gap-3">
                 {groupedNotifications.older.map((notification) => (
                   <NotificationCard
                     key={notification.id}
@@ -554,7 +557,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   return (
     <div
       onClick={() => onNotificationClick(notification)}
-      className={`group relative flex items-start gap-4 p-5 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:border-sage/30 transition-all duration-300 cursor-pointer ${isUnread ? 'opacity-100' : 'opacity-80 hover:opacity-100'
+      className={`group relative flex items-start gap-3 md:gap-4 p-3.5 md:p-5 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:border-sage/30 transition-all duration-300 cursor-pointer ${isUnread ? 'opacity-100' : 'opacity-80 hover:opacity-100'
         }`}>
       {/* Unread indicator */}
       {isUnread && (
@@ -589,7 +592,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
       {/* Content */}
       <div className="flex-1 min-w-0 pt-0.5">
         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1">
-          <p className="text-slate-900 text-base leading-snug">
+          <p className="text-slate-900 text-[15px] md:text-base leading-snug">
             {notification.actorProfile ? (
               <>
                 <span className="font-bold mr-1">{notification.actorProfile.full_name}</span>
@@ -616,24 +619,33 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
         )}
 
         {/* Action Buttons */}
-        <div className="mt-3 flex items-center gap-4">
+        <div className="mt-3 flex items-center gap-2 overflow-x-auto whitespace-nowrap no-scrollbar">
           {notification.actionable && notification.type === 'connection' ? (
             <>
               <button
-                onClick={() => onAcceptConnection(notification.id, notification.metadata?.connection_id)}
-                className="text-sm font-bold text-sage hover:text-sage-olive transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAcceptConnection(notification.id, notification.metadata?.connection_id);
+                }}
+                className="inline-flex items-center justify-center h-9 px-3 rounded-md border border-sage/20 bg-sage/10 text-sm font-bold text-sage hover:text-sage-olive transition-colors"
               >
                 Accept
               </button>
               <button
-                onClick={() => onDeclineConnection(notification.id, notification.metadata?.connection_id)}
-                className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeclineConnection(notification.id, notification.metadata?.connection_id);
+                }}
+                className="inline-flex items-center justify-center h-9 px-3 rounded-md border border-stone-header bg-white text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors"
               >
                 Decline
               </button>
             </>
           ) : (
-            <button className="text-sm font-bold text-sage hover:text-sage-olive transition-colors">
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center justify-center h-9 px-3 rounded-md border border-sage/20 bg-sage/10 text-sm font-bold text-sage hover:text-sage-olive transition-colors"
+            >
               {notification.type === 'job_application' ? 'View Application' :
                 notification.type === 'connection' ? 'View Profile' :
                   notification.type === 'analytics' ? 'Review Matches' :

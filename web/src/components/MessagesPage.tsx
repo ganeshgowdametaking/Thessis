@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, MessageSquare, Trash2, X, MoreVertical } from 'lucide-react';
+import { Search, MessageSquare, Trash2, MoreVertical } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { messageService } from '../services/messageService';
@@ -60,6 +60,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const viewportHeight = isMobile ? '100dvh' : 'calc(100vh - 5rem)';
 
   // Pending User Info (for header when chat is pending)
   const [pendingUserInfo, setPendingUserInfo] = useState<any>(null);
@@ -642,16 +643,16 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
   if (loading) {
     return (
-      <div className="bg-stone text-slate-900 font-display w-full flex items-center justify-center overflow-hidden" style={{ height: 'calc(100vh - 5rem)' }}>
+      <div className="bg-stone text-slate-900 font-display w-full flex items-center justify-center overflow-hidden" style={{ height: viewportHeight }}>
         <LoadingSpinner text="Loading messages..." />
       </div>
     );
   }
 
   return (
-    <div className="bg-stone text-slate-900 font-display w-full flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 5rem)' }}>
+    <div className="bg-stone text-slate-900 font-display w-full flex flex-col overflow-hidden" style={{ height: viewportHeight }}>
       <div className="flex flex-1 min-h-0 w-full relative">{/* Sidebar */}
-        <div className={`${showConversationsList ? 'flex' : 'hidden'} md:flex w-80 md:w-96 flex-shrink-0 flex-col bg-stone-off border-r border-stone-border z-10`}>
+        <div className={`${showConversationsList ? 'flex' : 'hidden'} md:flex w-full md:w-96 flex-shrink-0 flex-col bg-stone-off border-r border-stone-border z-10`}>
           {/* Sidebar Header */}
           <div className="p-4 border-b border-stone-border">
             <h2 className="text-2xl font-bold mb-4 px-2 text-slate-900">Messages</h2>
@@ -731,14 +732,15 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
           {currentConversation || pendingUserInfo || pendingChatUserId ? (
             <>
               {/* Chat Header */}
-              <header className="h-20 shrink-0 border-b border-stone-border flex items-center justify-between px-6 bg-white z-10">
+              <header className="h-16 md:h-20 shrink-0 border-b border-stone-border flex items-center justify-between px-4 md:px-6 bg-white z-10">
                 <div className="flex items-center gap-4">
                   {/* Back button for mobile */}
                   <button
                     onClick={handleBackToConversations}
-                    className="md:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-stone-off rounded-lg transition-colors"
+                    className="md:hidden inline-flex items-center gap-1.5 p-2 text-slate-600 hover:text-slate-900 hover:bg-stone-off rounded-lg transition-colors"
                   >
-                    <X className="h-5 w-5" />
+                    <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+                    <span className="text-xs font-semibold">Chats</span>
                   </button>
 
                   <div className="relative">
@@ -796,7 +798,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
               {/* Messages Area */}
               <div
                 ref={messagesContainerRef}
-                className="flex-1 min-h-0 overflow-y-auto p-6 space-y-8 flex flex-col bg-white"
+                className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-5 md:space-y-8 flex flex-col bg-white"
+                style={isMobile ? { paddingBottom: 'calc(7.25rem + env(safe-area-inset-bottom))' } : undefined}
               >
                 {/* Load More Button */}
                 {hasMoreMessages && messages.length > 0 && (
@@ -821,11 +824,11 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                     const otherParticipant = activeOtherParticipant;
 
                     return (
-                      <div key={message.id} className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+                      <div key={message.id} className={`flex w-full gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
                         {!isOwnMessage && (
                           <Avatar profile={otherParticipant} size="sm" />
                         )}
-                        <div className={`flex flex-col gap-1 max-w-[70%] ${isOwnMessage ? 'items-end' : 'items-start'}`}>
+                        <div className={`flex flex-col gap-1 max-w-[82%] md:max-w-[70%] ${isOwnMessage ? 'items-end ml-auto' : 'items-start'}`}>
                           <div className={`flex items-baseline gap-2 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
                             {!isOwnMessage && (
                               <span className="text-sm font-semibold text-slate-900">{otherParticipant?.full_name}</span>
@@ -839,7 +842,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                             </span>
                           </div>
                           <div
-                            className={`max-w-[70%] rounded-2xl p-4 shadow-sm ${isOwnMessage
+                            className={`w-fit max-w-full rounded-2xl p-4 shadow-sm ${isOwnMessage
                               ? 'bg-sage text-white rounded-tr-none'
                               : 'bg-stone-off text-slate-900 rounded-tl-none'
                               }`}
@@ -925,6 +928,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                 onSendMessage={(text, file) => handleSendMessage(text, file)}
                 onTyping={handleTyping}
                 disabled={!selectedChat && !pendingChatUserId}
+                mobileFixed={isMobile}
               />
             </>
           ) : (
