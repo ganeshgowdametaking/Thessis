@@ -661,10 +661,15 @@ const ProfilePage: React.FC = () => {
       <main className="flex-1 w-full max-w-[1024px] mx-auto px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8">
         {/* Profile Header Section */}
         <section className="w-full bg-white rounded-2xl border border-slate-border-card shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] flex flex-col items-center relative overflow-hidden group">
-          <div
-            className="absolute top-0 left-0 w-full h-44 bg-cover bg-center"
-            style={profile?.cover_image_url ? { backgroundImage: `url("${profile.cover_image_url}")` } : {}}
-          >
+          <div className="absolute top-0 left-0 w-full h-44 overflow-hidden">
+            {profile?.cover_image_url && (
+              <img
+                src={profile.cover_image_url}
+                alt="Profile cover"
+                className="absolute inset-0 h-full w-full object-cover"
+                decoding="async"
+              />
+            )}
             {!profile?.cover_image_url && (
               <div className="absolute inset-0 bg-gradient-to-br from-stone-off via-stone-border to-slate-200"></div>
             )}

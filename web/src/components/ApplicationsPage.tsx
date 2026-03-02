@@ -697,7 +697,7 @@ export default function ApplicationsPage({
                   } transition-all`}
                 onClick={() => setActiveTab('top_ranked')}
               >
-                <span className="font-bold text-sm whitespace-nowrap">Top ranked candidates</span>
+                <span className="font-bold text-sm whitespace-nowrap">Top applicants</span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'top_ranked'
                   ? 'bg-[#5f7261] text-white'
                   : 'bg-slate-200 text-slate-600'

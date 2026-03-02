@@ -558,10 +558,15 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
             {/* Header Section */}
             <div className="relative w-full">
-              <div
-                className="h-44 w-full bg-cover bg-center border-b border-transparent relative overflow-hidden"
-                style={profile?.cover_image_url ? { backgroundImage: `url("${profile.cover_image_url}")` } : {}}
-              >
+              <div className="h-44 w-full border-b border-transparent relative overflow-hidden">
+                {profile?.cover_image_url && (
+                  <img
+                    src={profile.cover_image_url}
+                    alt="Profile cover"
+                    className="absolute inset-0 h-full w-full object-cover"
+                    decoding="async"
+                  />
+                )}
                 {!profile?.cover_image_url && (
                   <div className="absolute inset-0 bg-gradient-to-br from-stone-off via-stone-border to-slate-200"></div>
                 )}
