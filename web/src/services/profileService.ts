@@ -13,7 +13,7 @@ export const profileService = {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, full_name, role, work_email_verified, secondary_email_verified, avatar_url, title, company, location, experiences, education, skills, achievements')
+      .select('id, email, full_name, role, work_email_verified, secondary_email_verified, avatar_url, cover_image_url, title, company, location, bio, country_code, experiences, education, skills, achievements')
       .eq('id', user.id)
       .single()
 
@@ -30,7 +30,7 @@ export const profileService = {
   getProfile: async (id: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, role, work_email_verified, secondary_email_verified, avatar_url, title, company, location')
+      .select('id, full_name, role, work_email_verified, secondary_email_verified, avatar_url, cover_image_url, title, company, location, bio, country_code, experiences, education, skills, achievements')
       .eq('id', id)
       .single()
 

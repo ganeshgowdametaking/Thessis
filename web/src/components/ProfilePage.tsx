@@ -10,7 +10,6 @@ import ConnectionsModal from './ConnectionsModal';
 import PostsModal from './PostsModal';
 import LoadingSpinner from './LoadingSpinner';
 import CountryPicker from './CountryPicker';
-import { iso2ToIso3 } from '../utils/countryMapping';
 import ImageCropper from './ImageCropper';
 import { TalentScoutBadge } from './TalentScoutBadge';
 import { hireVerificationService, UserBadge } from '../services/hireVerificationService';
@@ -196,20 +195,6 @@ const ProfilePage: React.FC = () => {
         work_email_verified: (profile as any).work_email_verified || false,
       });
       setLocationQuery(profile.location || '');
-      // If country_code is missing, try to auto-detect
-      if (!profile.country_code) {
-        fetch('https://ipapi.co/json/')
-          .then(res => res.json())
-          .then(data => {
-            if (data && data.country_code) {
-              const iso3 = iso2ToIso3(data.country_code);
-              if (iso3) {
-                setEditForm(form => ({ ...form, country_code: iso3 }));
-              }
-            }
-          })
-          .catch(() => { });
-      }
     }
     loadRealCounts();
   }, [profile]);
