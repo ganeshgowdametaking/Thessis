@@ -658,10 +658,10 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="bg-stone-bg text-text-main font-display min-h-screen flex flex-col overflow-x-hidden antialiased">
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-[1024px] mx-auto px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8">
+      <main className="flex-1 w-full max-w-[1024px] mx-auto px-4 md:px-6 py-5 md:py-12 flex flex-col gap-6 md:gap-8">
         {/* Profile Header Section */}
         <section className="w-full bg-white rounded-2xl border border-slate-border-card shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] flex flex-col items-center relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-full h-44 overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-36 md:h-44 overflow-hidden">
             {profile?.cover_image_url && (
               <img
                 src={profile.cover_image_url}
@@ -676,10 +676,10 @@ const ProfilePage: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent"></div>
 
             {/* Cover Photo Icons */}
-            <div className="absolute top-4 right-4 flex gap-4 z-20">
+            <div className="absolute top-3 right-3 md:top-4 md:right-4 flex gap-2 md:gap-4 z-20">
               <button
                 onClick={() => setIsEditing(true)}
-                className="size-8 flex items-center justify-center bg-[#5F7261] rounded-full transition-all transform hover:scale-110 shadow-sm"
+                className="size-9 md:size-8 flex items-center justify-center bg-[#5F7261] rounded-full transition-all transform hover:scale-110 shadow-sm"
                 title="Edit Cover"
               >
                 <Pencil className="w-4 h-4 text-white fill-white" />
@@ -696,7 +696,7 @@ const ProfilePage: React.FC = () => {
                     }, 2000);
                   });
                 }}
-                className="size-8 flex items-center justify-center bg-[#5F7261] rounded-full transition-all transform hover:scale-110 shadow-sm"
+                className="size-9 md:size-8 flex items-center justify-center bg-[#5F7261] rounded-full transition-all transform hover:scale-110 shadow-sm"
                 title="Share Profile"
               >
                 <Share2 className="w-4 h-4 text-white" strokeWidth={3} />
@@ -704,24 +704,24 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative z-10 flex flex-col items-center gap-4 w-full max-w-2xl mt-28 mb-10">
+          <div className="relative z-10 flex flex-col items-center gap-3 md:gap-4 w-full max-w-2xl mt-20 md:mt-28 mb-5 md:mb-10 px-4 md:px-0">
             <div className="relative">
               <div className="absolute -inset-2 rounded-full bg-gradient-to-tr from-sage-green/20 to-transparent blur-xl opacity-50"></div>
               <div
-                className="relative bg-center bg-no-repeat aspect-square bg-cover rounded-full h-32 w-32 border-4 border-white shadow-xl"
+                className="relative bg-center bg-no-repeat aspect-square bg-cover rounded-full h-28 w-28 md:h-32 md:w-32 border-4 border-white shadow-xl"
                 style={{ backgroundImage: `url("${getProfilePicture()}")` }}
               ></div>
-              <div className="absolute bottom-1 right-1 bg-emerald-500 border-[3px] border-white size-6 rounded-full shadow-sm" title="Online"></div>
+              <div className="absolute bottom-1 right-1 bg-emerald-500 border-[3px] border-white size-5 md:size-6 rounded-full shadow-sm" title="Online"></div>
             </div>
 
-            <div className="flex flex-col items-center text-center gap-2">
-              <h1 className="text-text-main text-3xl md:text-4xl font-extrabold leading-tight tracking-tight">
+            <div className="flex flex-col items-center text-center gap-1.5 md:gap-2">
+              <h1 className="text-text-main text-[2.15rem] md:text-4xl font-extrabold leading-[1.05] md:leading-tight tracking-tight">
                 {editForm.full_name || 'Your Name'}
               </h1>
-              <p className="text-text-secondary text-lg md:text-xl font-medium max-w-lg leading-relaxed">
+              <p className="text-text-secondary text-base md:text-xl font-medium max-w-lg leading-snug md:leading-relaxed">
                 {editForm.title || 'Professional Title'} {editForm.company && `at ${editForm.company}`}
               </p>
-              <div className="flex items-center gap-2 text-slate-meta mt-1 text-sm font-medium">
+              <div className="flex items-center gap-2 text-slate-meta mt-1 text-[13px] md:text-sm font-medium">
                 <MapPin className="text-[18px]" />
                 <span>{editForm.location || 'Location'}</span>
               </div>
@@ -740,79 +740,97 @@ const ProfilePage: React.FC = () => {
               )}
             </div>
 
-            <div className="flex flex-wrap justify-center gap-4 md:gap-8 w-full border-y border-slate-border-divider py-5 my-2">
-              <div className="flex flex-col items-center px-4">
-                <span className="text-text-main text-xl font-bold">{realCounts.connections}</span>
-                <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Connections</span>
-              </div>
-              <div className="w-px bg-slate-border-divider h-10 self-center"></div>
-
-              {/* Tide Points */}
-              <div className="flex flex-col items-center px-4 group/points relative cursor-help">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-text-main text-xl font-bold">{realCounts.tidePoints}</span>
-                  <Waves className="w-4 h-4 text-teal-500" />
+            <div className="w-full border-y border-slate-border-divider my-1.5 md:my-2">
+              <div className="grid grid-cols-3 divide-x divide-slate-border-divider md:hidden">
+                <div className="flex flex-col items-center justify-center py-3.5">
+                  <span className="text-text-main text-2xl font-extrabold leading-none">{realCounts.connections}</span>
+                  <span className="text-slate-meta text-[10px] uppercase tracking-[0.16em] font-black mt-1.5">Connections</span>
                 </div>
-                <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Tide Pts</span>
-
-                {/* Tooltip */}
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 p-3 bg-slate-800 text-white text-xs rounded-lg opacity-0 invisible group-hover/points:opacity-100 group-hover/points:visible transition-all z-20 text-center shadow-xl">
-                  Social Capital<br />
-                  <span className="opacity-75">Earn points by verifying skills & responding fast.</span>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-800"></div>
+                <div className="flex flex-col items-center justify-center py-3.5">
+                  <div className="flex items-center gap-1">
+                    <span className="text-text-main text-2xl font-extrabold leading-none">{realCounts.tidePoints}</span>
+                    <Waves className="w-4 h-4 text-teal-500" />
+                  </div>
+                  <span className="text-slate-meta text-[10px] uppercase tracking-[0.16em] font-black mt-1.5">Tide Pts</span>
+                </div>
+                <div className="flex flex-col items-center justify-center py-3.5">
+                  <span className="text-text-main text-2xl font-extrabold leading-none">{realCounts.rating.toFixed(1)}/5</span>
+                  <span className="text-slate-meta text-[10px] uppercase tracking-[0.16em] font-black mt-1.5">Rating</span>
                 </div>
               </div>
+              <div className="hidden md:flex flex-wrap justify-center gap-8 w-full py-5">
+                <div className="flex flex-col items-center px-4">
+                  <span className="text-text-main text-xl font-bold">{realCounts.connections}</span>
+                  <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Connections</span>
+                </div>
 
-              <div className="w-px bg-slate-border-divider h-10 self-center"></div>
-              <div className="flex flex-col items-center px-4">
-                <span className="text-text-main text-xl font-bold">{realCounts.rating.toFixed(1)}/5</span>
-                <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Rating</span>
+                {/* Tide Points */}
+                <div className="flex flex-col items-center px-4 group/points relative cursor-help">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-text-main text-xl font-bold">{realCounts.tidePoints}</span>
+                    <Waves className="w-4 h-4 text-teal-500" />
+                  </div>
+                  <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Tide Pts</span>
+
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 p-3 bg-slate-800 text-white text-xs rounded-lg opacity-0 invisible group-hover/points:opacity-100 group-hover/points:visible transition-all z-20 text-center shadow-xl">
+                    Social Capital<br />
+                    <span className="opacity-75">Earn points by verifying skills & responding fast.</span>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-800"></div>
+                  </div>
+                </div>
+
+                <div className="w-px bg-slate-border-divider h-10 self-center"></div>
+                <div className="flex flex-col items-center px-4">
+                  <span className="text-text-main text-xl font-bold">{realCounts.rating.toFixed(1)}/5</span>
+                  <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Rating</span>
+                </div>
               </div>
             </div>
 
 
             {/* Bio Section */}
             {editForm.bio && (
-              <div className="mt-4 text-center">
-                <p className="text-slate-700 leading-relaxed max-w-2xl mx-auto whitespace-pre-line">{editForm.bio}</p>
+              <div className="mt-2 md:mt-4 text-center">
+                <p className="text-slate-700 text-[14px] md:text-base leading-relaxed max-w-2xl mx-auto whitespace-pre-line">{editForm.bio}</p>
               </div>
             )}
           </div>
         </section>
 
-        <div className="flex flex-col gap-7 md:gap-10">
-          <div className="flex flex-col gap-7 md:gap-10">
+        <div className="flex flex-col gap-6 md:gap-10">
+          <div className="flex flex-col gap-6 md:gap-10">
             {/* Experience Section */}
-            <section>
-              <div className="flex items-center mb-4 md:mb-6 px-1">
-                <h2 className="text-slate-900 text-xl md:text-2xl font-extrabold uppercase tracking-[0.16em] md:tracking-[0.18em] pt-0.5">Experience</h2>
+            <section className="pt-1">
+              <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                <h2 className="text-slate-900 text-[13px] md:text-2xl font-extrabold uppercase tracking-[0.2em] md:tracking-[0.18em] pt-0.5">Experience</h2>
               </div>
 
               <div className="relative pl-0.5 md:pl-2">
                 {editForm.experiences.length > 0 && (
-                  <div className="absolute left-[23px] md:left-[31px] top-5 md:top-6 bottom-5 md:bottom-6 w-px bg-slate-100"></div>
+                  <div className="absolute left-[19px] md:left-[31px] top-5 md:top-6 bottom-5 md:bottom-6 w-px bg-slate-100"></div>
                 )}
                 {editForm.experiences.length > 0 ? (
-                  <div className="space-y-9 md:space-y-14">
+                  <div className="space-y-7 md:space-y-14">
                     {editForm.experiences.map((exp) => (
-                      <div key={exp.id} className="relative flex gap-4 md:gap-10">
+                      <div key={exp.id} className="relative flex gap-3 md:gap-10">
                       <div className="relative z-10 shrink-0">
-                        <div className="bg-white rounded-xl size-16 md:size-20 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
+                        <div className="bg-white rounded-xl size-14 md:size-20 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
                           <img src="/company-placeholder.png" alt={exp.company} className="w-full h-full object-contain" />
                         </div>
                       </div>
 
-                      <div className="flex flex-col flex-1 pt-0.5 md:pt-1">
+                      <div className="flex flex-col flex-1 pt-0 md:pt-1">
                         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2.5 md:gap-4">
                           <div className="flex flex-col gap-1 md:gap-1.5">
-                            <h3 className="text-slate-900 text-base md:text-lg font-black uppercase tracking-[0.08em] md:tracking-[0.1em] leading-tight">
+                            <h3 className="text-slate-900 text-[1.08rem] md:text-lg font-extrabold md:font-black normal-case md:uppercase tracking-[0.01em] md:tracking-[0.1em] leading-tight">
                               {exp.title}
                             </h3>
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:gap-2.5">
-                              <span className="text-slate-900 font-bold text-[11px] md:text-xs uppercase tracking-wider">{exp.company}</span>
+                              <span className="text-slate-900 font-bold text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-wider">{exp.company}</span>
                               {exp.location && (
                                 <>
-                                  <span className="text-slate-200 text-xs">/</span>
+                                  <span className="text-slate-300 text-xs">/</span>
                                   <span className="text-slate-400 text-[13px] md:text-sm font-semibold tracking-tight">{exp.location}</span>
                                 </>
                               )}
@@ -826,9 +844,11 @@ const ProfilePage: React.FC = () => {
                           </div>
                         </div>
 
-                        <p className="text-slate-500 text-[13px] md:text-[14px] leading-[1.65] md:leading-[1.8] mt-3 md:mt-6 max-w-2xl font-medium whitespace-pre-line">
-                          {exp.description}
-                        </p>
+                        {exp.description?.trim() && (
+                          <p className="text-slate-500 text-[13px] md:text-[14px] leading-[1.65] md:leading-[1.8] mt-2.5 md:mt-6 max-w-2xl font-medium whitespace-pre-line">
+                            {exp.description}
+                          </p>
+                        )}
                       </div>
                       </div>
                     ))}
@@ -839,28 +859,28 @@ const ProfilePage: React.FC = () => {
 
             {/* Education Section */}
             <section>
-              <div className="flex items-center mb-4 md:mb-6 px-1">
-                <h2 className="text-slate-900 text-xl md:text-2xl font-extrabold uppercase tracking-[0.16em] md:tracking-[0.18em] pt-0.5">Education</h2>
+              <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                <h2 className="text-slate-900 text-[13px] md:text-2xl font-extrabold uppercase tracking-[0.2em] md:tracking-[0.18em] pt-0.5">Education</h2>
               </div>
               <div className="px-1">
                 <div className="relative space-y-6 md:space-y-10">
                   {Array.isArray(editForm.education) && editForm.education.length > 0 && (
-                    <div className="absolute left-[31px] md:left-[40px] top-2 md:top-3 bottom-2 md:bottom-3 w-0.5 bg-off-stone"></div>
+                    <div className="hidden md:block absolute left-[40px] top-3 bottom-3 w-0.5 bg-off-stone"></div>
                   )}
                   {Array.isArray(editForm.education) && editForm.education.length > 0 ? (
                     editForm.education.map((edu) => (
-                      <div key={edu.id} className="relative flex gap-4 md:gap-6">
+                      <div key={edu.id} className="relative flex gap-3 md:gap-6">
                         <div className="relative z-10 shrink-0">
-                          <div className="size-16 md:size-20 rounded-xl bg-white border border-stone-border flex items-center justify-center text-slate-meta">
+                          <div className="size-14 md:size-20 rounded-xl bg-white border border-stone-border flex items-center justify-center text-slate-meta">
                             <GraduationCap />
                           </div>
                         </div>
-                        <div className="flex flex-col flex-1 pt-1 md:pt-2">
+                        <div className="flex flex-col flex-1 pt-0.5 md:pt-2">
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 mb-1">
-                            <h3 className="text-text-main text-base md:text-lg font-bold">{edu.degree}</h3>
+                            <h3 className="text-text-main text-[1.08rem] md:text-lg font-bold">{edu.degree}</h3>
                             <span className={timelineTextClass}>{formatDate(edu.endDate)}</span>
                           </div>
-                          <p className="text-text-secondary text-sm md:text-base">{edu.school}</p>
+                          <p className="text-text-secondary text-[15px] md:text-base">{edu.school}</p>
                         </div>
                       </div>
                     ))
@@ -870,19 +890,19 @@ const ProfilePage: React.FC = () => {
             </section>
           </div>
 
-          <div className="flex flex-col gap-7 md:gap-10">
+          <div className="flex flex-col gap-6 md:gap-10">
             {/* Skills Section */}
             <section>
-              <div className="flex items-center mb-4 md:mb-6 px-1">
-                <h2 className="text-slate-900 text-xl md:text-2xl font-extrabold uppercase tracking-[0.16em] md:tracking-[0.18em] pt-0.5">Skills</h2>
+              <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                <h2 className="text-slate-900 text-[13px] md:text-2xl font-extrabold uppercase tracking-[0.2em] md:tracking-[0.18em] pt-0.5">Skills</h2>
               </div>
               <div className="px-1">
-                <div className="flex flex-wrap gap-1.5 md:gap-2">
+                <div className="flex flex-wrap gap-2 md:gap-2">
                   {editForm.skills.length > 0 ? (
                     editForm.skills.map((skill) => (
                       <span
                         key={skill.id}
-                        className="px-2.5 md:px-3 py-1.5 rounded-md bg-white text-slate-body cursor-default text-xs md:text-sm font-bold tracking-wide border border-stone-border"
+                        className="px-2.5 md:px-3 py-1.5 rounded-lg bg-white text-slate-body cursor-default text-[13px] md:text-sm font-bold tracking-tight md:tracking-wide border border-stone-border"
                       >
                         {skill.name}
                       </span>
@@ -894,17 +914,19 @@ const ProfilePage: React.FC = () => {
 
             {/* Achievements Section */}
             <section>
-              <div className="flex items-center mb-4 md:mb-6 px-1">
-                <h2 className="text-slate-900 text-xl md:text-2xl font-extrabold uppercase tracking-[0.16em] md:tracking-[0.18em] pt-0.5">Achievements</h2>
+              <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                <h2 className="text-slate-900 text-[13px] md:text-2xl font-extrabold uppercase tracking-[0.2em] md:tracking-[0.18em] pt-0.5">Achievements</h2>
               </div>
-              <div className="flex flex-col gap-3 md:gap-4">
+              <div className="flex flex-col gap-1 md:gap-4 divide-y divide-slate-200/80 md:divide-y-0">
                 {Array.isArray(editForm.achievements) && editForm.achievements.length > 0 ? (
                   editForm.achievements.map((achievement) => (
-                    <div key={achievement.id} className="px-1 py-1 flex items-start justify-between gap-3 md:gap-4">
+                    <div key={achievement.id} className="px-1 py-3 md:py-1 flex items-start justify-between gap-3 md:gap-4">
                       <div className="min-w-0">
-                        <h4 className="text-text-main font-bold text-sm md:text-base leading-tight">{achievement.title}</h4>
-                        <p className="text-slate-meta text-xs md:text-sm mt-1 font-semibold">{achievement.organization}</p>
-                        <p className="text-text-secondary text-sm mt-1.5 md:mt-2 leading-snug">{achievement.description}</p>
+                        <h4 className="text-text-main font-bold text-[1.05rem] md:text-base leading-tight">{achievement.title}</h4>
+                        <p className="text-slate-meta text-[13px] md:text-sm mt-1 font-semibold">{achievement.organization}</p>
+                        {achievement.description?.trim() && (
+                          <p className="text-text-secondary text-sm mt-1.5 md:mt-2 leading-snug">{achievement.description}</p>
+                        )}
                       </div>
                       <span className={`${timelineTextClass} shrink-0 pt-0.5`}>{formatDate(achievement.date)}</span>
                     </div>

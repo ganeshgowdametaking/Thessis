@@ -10,6 +10,7 @@ import OfflineMessage from './OfflineMessage';
 import { isOnline, getCachedData, setCachedData, getOfflineMessage } from '../utils/offlineUtils';
 import { supabase } from '../lib/supabase';
 import BackArrowIcon from './icons/BackArrowIcon';
+import { tidePointsService } from '../services/tidePointsService';
 
 interface UserProfilePageProps {
   userId: string;
@@ -69,7 +70,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const [realCounts, setRealCounts] = useState({
     connections: 0,
     expYears: 0,
-    rating: 5.0
+    rating: 5.0,
+    tidePoints: 0,
   });
   const [isOffline, setIsOffline] = useState(!isOnline());
 
@@ -320,10 +322,13 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
       const baseRating = 4.5;
       const rating = Math.min(5.0, baseRating + (connectionsCount * 0.1)).toFixed(1);
 
+      const tidePoints = await tidePointsService.getPointsBalance(userId).catch(() => 0);
+
       setRealCounts({
         connections: connectionsCount,
         expYears,
-        rating: parseFloat(rating)
+        rating: parseFloat(rating),
+        tidePoints,
       });
     } catch (error) {
       console.error('Error loading real counts:', error);
@@ -434,13 +439,13 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const getConnectionButtonStyle = () => {
     switch (connectionStatus) {
       case 'connected':
-        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-slate-500 hover:bg-slate-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
+        return 'flex-1 lg:flex-none lg:min-w-[160px] h-9 md:h-10 px-3.5 md:px-5 bg-slate-500 hover:bg-slate-600 text-white text-[13px] md:text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1.5 md:gap-2';
       case 'pending_sent':
-        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-slate-500 hover:bg-slate-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
+        return 'flex-1 lg:flex-none lg:min-w-[160px] h-9 md:h-10 px-3.5 md:px-5 bg-slate-500 hover:bg-slate-600 text-white text-[13px] md:text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1.5 md:gap-2';
       case 'pending_received':
-        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
+        return 'flex-1 lg:flex-none lg:min-w-[160px] h-9 md:h-10 px-3.5 md:px-5 bg-blue-500 hover:bg-blue-600 text-white text-[13px] md:text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1.5 md:gap-2';
       default:
-        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-sage hover:bg-sage-dark text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
+        return 'flex-1 lg:flex-none lg:min-w-[160px] h-9 md:h-10 px-3.5 md:px-5 bg-sage hover:bg-sage-dark text-white text-[13px] md:text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1.5 md:gap-2';
     }
   };
 
@@ -482,7 +487,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
   };
 
-  const timelineTextClass = 'text-slate-900 text-xs font-black uppercase tracking-wide whitespace-nowrap';
+  const timelineTextClass = 'text-slate-900 text-[11px] md:text-xs font-black uppercase tracking-wide whitespace-nowrap';
 
   console.log('UserProfilePage render - loading:', loading, 'profile:', profile);
 
@@ -539,14 +544,17 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const location = profile.location?.trim() || '';
   const bio = profile.bio?.trim() || '';
   const hasHeadline = Boolean(title || company);
-
+  const hasExperiences = Array.isArray(experiences) && experiences.length > 0;
+  const hasEducation = Array.isArray(education) && education.length > 0;
+  const hasSkills = Array.isArray(skills) && skills.length > 0;
+  const hasAchievements = Array.isArray(achievements) && achievements.length > 0;
   console.log('Rendering profile page for:', profile.full_name);
 
   return (
-    <div className="bg-stone text-slate-700 min-h-screen flex flex-col">
-      <main className="flex-1 px-4 py-8 md:px-6 md:py-10 flex justify-center w-full">
+    <div className="bg-stone-bg text-text-main font-display min-h-screen flex flex-col overflow-x-hidden antialiased">
+      <main className="flex-1 px-4 py-5 md:px-6 md:py-10 flex justify-center w-full">
         <div className="w-full max-w-6xl">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative">
+          <div className="bg-white rounded-2xl md:rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative">
             {/* Back Button */}
             <button
               className="hidden md:block absolute top-4 left-4 z-10 p-2 bg-white bg-opacity-80 hover:bg-stone-off backdrop-blur-sm rounded-full shadow-sm text-slate-500 hover:text-sage transition-all border border-stone-border"
@@ -558,7 +566,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
             {/* Header Section */}
             <div className="relative w-full">
-              <div className="h-44 w-full border-b border-transparent relative overflow-hidden">
+              <div className="h-36 md:h-44 w-full border-b border-transparent relative overflow-hidden">
                 {profile?.cover_image_url && (
                   <img
                     src={profile.cover_image_url}
@@ -573,23 +581,23 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                 <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent"></div>
               </div>
 
-              <div className="px-6 md:px-10 pb-8">
-                <div className="flex flex-col md:flex-row gap-6 items-start -mt-14 md:-mt-16 relative">
+              <div className="px-4 md:px-10 pb-6 md:pb-8">
+                <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start -mt-12 md:-mt-16 relative">
                   {/* Profile Picture */}
                   <div className="relative group">
                     <div
-                      className="bg-center bg-no-repeat bg-cover rounded-full h-32 w-32 border-4 border-white shadow-md flex-shrink-0 bg-stone-off"
+                      className="bg-center bg-no-repeat bg-cover rounded-full h-28 w-28 md:h-32 md:w-32 border-4 border-white shadow-md flex-shrink-0 bg-stone-off"
                       style={{ backgroundImage: `url("${getProfilePicture(profile)}")` }}
                     ></div>
                     <div className="absolute bottom-2 right-2 h-5 w-5 bg-green-500 rounded-full border-4 border-white" title="Online"></div>
                   </div>
 
                   {/* Profile Info */}
-                  <div className="flex-1 pt-2 md:pt-20 flex flex-col w-full">
+                  <div className="flex-1 pt-0 md:pt-20 flex flex-col w-full">
                     <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                          <h1 className="text-[2rem] md:text-2xl font-bold text-slate-900 tracking-tight leading-tight">
                             {displayName}
                           </h1>
                           {profile.verified && (
@@ -597,30 +605,47 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                           )}
                         </div>
                         {hasHeadline && (
-                          <p className="text-slate-700 text-lg font-medium">
+                          <p className="text-slate-700 text-base md:text-lg font-medium leading-snug">
                             {title}
                             {title && company ? ' at ' : ''}
                             {company && <span className="text-slate-900 font-semibold">{company}</span>}
                           </p>
                         )}
-                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2 text-sm text-slate-500 font-medium">
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2 text-[13px] md:text-sm text-slate-500 font-medium">
                           {location && (
                             <span className="flex items-center gap-1.5">
                               <span className="material-symbols-outlined text-lg text-slate-400">location_on</span>
                               {location}
                             </span>
                           )}
-                          <span className="flex items-center gap-1.5">
+                          <span className="hidden md:flex items-center gap-1.5">
                             <span className="material-symbols-outlined text-lg text-slate-400">group</span>
                             <span className="text-slate-900 font-bold">{realCounts.connections}</span> Connections
                           </span>
-                          <span className="flex items-center gap-1.5">
+                          <span className="hidden md:flex items-center gap-1.5">
                             <span className="material-symbols-outlined text-lg text-slate-400">star</span>
                             <span className="text-slate-900 font-bold">{realCounts.rating.toFixed(1)}/5</span> Rating
                           </span>
                         </div>
+                        <div className="md:hidden mt-3 grid grid-cols-3 w-full border border-slate-200 rounded-xl overflow-hidden">
+                          <div className="flex flex-col items-center justify-center py-3.5">
+                            <span className="text-slate-900 text-2xl font-extrabold leading-none">{realCounts.connections}</span>
+                            <span className="text-slate-500 text-[10px] uppercase tracking-[0.16em] font-black mt-1.5">Connections</span>
+                          </div>
+                          <div className="flex flex-col items-center justify-center py-3.5 border-l border-slate-200">
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-900 text-2xl font-extrabold leading-none">{realCounts.tidePoints}</span>
+                              <span className="material-symbols-outlined text-[14px] text-teal-500 leading-none">water</span>
+                            </div>
+                            <span className="text-slate-500 text-[10px] uppercase tracking-[0.16em] font-black mt-1.5">Tide Pts</span>
+                          </div>
+                          <div className="flex flex-col items-center justify-center py-3.5 border-l border-slate-200">
+                            <span className="text-slate-900 text-2xl font-extrabold leading-none">{realCounts.rating.toFixed(1)}/5</span>
+                            <span className="text-slate-500 text-[10px] uppercase tracking-[0.16em] font-black mt-1.5">Rating</span>
+                          </div>
+                        </div>
                         {bio && (
-                          <p className="mt-4 text-slate-700 max-w-2xl text-sm leading-relaxed">
+                          <p className="mt-3 md:mt-4 text-slate-700 max-w-2xl text-sm leading-relaxed">
                             {bio}
                           </p>
                         )}
@@ -628,27 +653,27 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
                       {/* Action Buttons */}
                       {userId !== user?.id && (
-                        <div className="flex items-center gap-3 w-full lg:w-auto mt-4 lg:mt-0">
+                        <div className="grid grid-cols-[1fr_1fr_auto] md:flex items-center gap-2 md:gap-3 w-full lg:w-auto mt-4 lg:mt-0">
                           <button
                             className={getConnectionButtonStyle()}
                             onClick={handleConnect}
                             disabled={connectionLoading}
                           >
-                            <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">{getConnectionButtonIcon()}</span>
+                            <span className="material-symbols-outlined text-lg md:text-xl">{getConnectionButtonIcon()}</span>
                             {getConnectionButtonText()}
                           </button>
 
                           <button
-                            className="flex-1 lg:flex-none lg:min-w-[120px] h-10 px-5 bg-white border border-stone-border hover:bg-stone-off hover:border-sage text-slate-900 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                            className="h-9 md:h-10 px-3 md:px-5 bg-white border border-stone-border hover:bg-stone-off hover:border-sage text-slate-900 text-[13px] md:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 md:gap-2"
                             onClick={handleMessage}
                           >
-                            <span className="material-symbols-outlined text-xl">mail</span>
+                            <span className="material-symbols-outlined text-lg md:text-xl">mail</span>
                             Message
                           </button>
 
                           <div className="relative group/menu" ref={actionsMenuRef}>
                             <button
-                              className="h-10 w-10 flex items-center justify-center bg-white border border-stone-border hover:bg-stone-off rounded-lg text-slate-500 transition-colors"
+                              className="h-9 w-9 md:h-10 md:w-10 flex items-center justify-center bg-white border border-stone-border hover:bg-stone-off rounded-lg text-slate-500 transition-colors"
                               onClick={() => setShowActionsMenu(!showActionsMenu)}
                             >
                               <span className="material-symbols-outlined">more_horiz</span>
@@ -683,45 +708,42 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
             <div className="border-b border-stone-border"></div>
 
             {/* Main Content */}
-            <div className="p-6 md:p-10 flex flex-col divide-y divide-stone-border">
-              {/* Experience Section */}
-              <section className="py-10 first:pt-0 last:pb-0">
-                <div className="flex items-center mb-6 px-1">
-                  <h2 className="text-slate-900 text-xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Experience</h2>
-                </div>
+            <div className="p-4 md:p-10 flex flex-col gap-6 md:gap-0 md:divide-y md:divide-stone-border">
+              {hasExperiences && (
+                <section className="pt-1 md:py-10 first:pt-0 last:pb-0">
+                  <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                    <h2 className="text-slate-900 text-[13px] md:text-xl font-extrabold uppercase tracking-[0.2em] md:tracking-[0.18em] pt-0.5">Experience</h2>
+                  </div>
 
-                <div className="relative pl-2">
-                  {Array.isArray(experiences) && experiences.length > 0 && (
-                    <div className="absolute left-[31px] top-6 bottom-6 w-px bg-slate-100"></div>
-                  )}
-                  {Array.isArray(experiences) && experiences.length > 0 ? (
-                    <div className="space-y-14">
+                  <div className="relative pl-0.5 md:pl-2">
+                    <div className="hidden md:block absolute left-[31px] top-6 bottom-6 w-px bg-slate-100"></div>
+                    <div className="space-y-7 md:space-y-14">
                       {experiences.map((exp) => (
-                        <div key={exp.id} className="relative flex gap-10">
+                        <div key={exp.id} className="relative flex gap-3 md:gap-10">
                           <div className="relative z-10 shrink-0">
-                            <div className="bg-white rounded-xl size-20 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
+                            <div className="bg-white rounded-xl size-14 md:size-20 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
                               <img src="/company-placeholder.png" alt={exp.company} className="w-full h-full object-contain" />
                             </div>
                           </div>
 
-                          <div className="flex flex-col flex-1 pt-1">
-                            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-                              <div className="flex flex-col gap-1.5">
-                                <h3 className="text-slate-900 text-lg font-black uppercase tracking-[0.1em] leading-tight">
+                          <div className="flex flex-col flex-1 pt-0 md:pt-1">
+                            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2.5 md:gap-4">
+                              <div className="flex flex-col gap-1 md:gap-1.5">
+                                <h3 className="text-slate-900 text-[1.08rem] md:text-lg font-extrabold md:font-black normal-case md:uppercase tracking-[0.01em] md:tracking-[0.1em] leading-tight">
                                   {exp.title}
                                 </h3>
-                                <div className="flex items-center gap-2.5">
-                                  <span className="text-slate-900 font-bold text-xs uppercase tracking-wider">{exp.company}</span>
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:gap-2.5">
+                                  <span className="text-slate-900 font-bold text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-wider">{exp.company}</span>
                                   {exp.location && (
                                     <>
-                                      <span className="text-slate-200 text-xs">/</span>
-                                      <span className="text-slate-400 text-sm font-semibold tracking-tight">{exp.location}</span>
+                                      <span className="text-slate-300 text-xs">/</span>
+                                      <span className="text-slate-400 text-[13px] md:text-sm font-semibold tracking-tight">{exp.location}</span>
                                     </>
                                   )}
                                 </div>
                               </div>
 
-                              <div className="shrink-0 pt-0.5">
+                              <div className="shrink-0 pt-0 md:pt-0.5">
                                 <span className={timelineTextClass}>
                                   {formatDate(exp.startDate)} — {exp.current ? 'Present' : formatDate(exp.endDate)}
                                 </span>
@@ -729,7 +751,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                             </div>
 
                             {exp.description && (
-                              <p className="text-slate-500 text-[14px] leading-[1.8] mt-6 max-w-2xl font-medium whitespace-pre-line">
+                              <p className="text-slate-500 text-[13px] md:text-[14px] leading-[1.65] md:leading-[1.8] mt-2.5 md:mt-6 max-w-2xl font-medium whitespace-pre-line">
                                 {exp.description}
                               </p>
                             )}
@@ -737,85 +759,80 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                         </div>
                       ))}
                     </div>
-                  ) : null}
-                </div>
-              </section>
+                  </div>
+                </section>
+              )}
 
-              {/* Education Section */}
-              <section className="py-10 first:pt-0 last:pb-0">
-                <div className="flex items-center mb-6 px-1">
-                  <h2 className="text-slate-900 text-xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Education</h2>
-                </div>
-                <div className="px-1">
-                  <div className="relative space-y-10">
-                    {Array.isArray(education) && education.length > 0 && (
-                      <div className="absolute left-[40px] top-3 bottom-3 w-0.5 bg-off-stone"></div>
-                    )}
-                    {Array.isArray(education) && education.length > 0 ? (
-                      education.map((edu) => (
-                        <div key={edu.id} className="relative flex gap-6">
+              {hasEducation && (
+                <section className="pt-1 md:py-10 first:pt-0 last:pb-0">
+                  <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                    <h2 className="text-slate-900 text-[13px] md:text-xl font-extrabold uppercase tracking-[0.2em] md:tracking-[0.18em] pt-0.5">Education</h2>
+                  </div>
+                  <div className="px-1">
+                    <div className="relative space-y-6 md:space-y-10">
+                      <div className="hidden md:block absolute left-[40px] top-3 bottom-3 w-0.5 bg-off-stone"></div>
+                      {education.map((edu) => (
+                        <div key={edu.id} className="relative flex gap-3 md:gap-6">
                           <div className="relative z-10 shrink-0">
-                            <div className="size-20 rounded-xl bg-white border border-stone-border flex items-center justify-center text-slate-meta">
+                            <div className="size-14 md:size-20 rounded-xl bg-white border border-stone-border items-center justify-center text-slate-meta flex">
                               <span className="material-symbols-outlined text-3xl">school</span>
                             </div>
                           </div>
-                          <div className="flex flex-col flex-1 pt-2">
+                          <div className="flex flex-col flex-1 pt-0.5 md:pt-2">
                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 mb-1">
-                              <h3 className="text-text-main text-lg font-bold">{edu.degree}</h3>
+                              <h3 className="text-text-main text-[1.08rem] md:text-lg font-bold">{edu.degree}</h3>
                               <span className={timelineTextClass}>{formatDate(edu.endDate)}</span>
                             </div>
-                            <p className="text-text-secondary text-base">{edu.school}</p>
+                            <p className="text-text-secondary text-[15px] md:text-base">{edu.school}</p>
                           </div>
                         </div>
-                      ))
-                    ) : null}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </section>
+                </section>
+              )}
 
-              {/* Skills Section */}
-              <section className="py-10 first:pt-0 last:pb-0">
-                <div className="flex items-center mb-6 px-1">
-                  <h2 className="text-slate-900 text-xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Skills</h2>
-                </div>
-                <div className="px-1">
-                  <div className="flex flex-wrap gap-2">
-                    {Array.isArray(skills) && skills.length > 0 ? (
-                      skills.map((skill) => (
+              {hasSkills && (
+                <section className="pt-1 md:py-10 first:pt-0 last:pb-0">
+                  <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                    <h2 className="text-slate-900 text-[13px] md:text-xl font-extrabold uppercase tracking-[0.2em] md:tracking-[0.18em] pt-0.5">Skills</h2>
+                  </div>
+                  <div className="px-1">
+                    <div className="flex flex-wrap gap-2 md:gap-2">
+                      {skills.map((skill) => (
                         <span
                           key={skill.id}
-                          className="px-3 py-1.5 rounded-md bg-white text-slate-body cursor-default text-sm font-bold tracking-wide border border-stone-border"
+                          className="px-2.5 md:px-3 py-1.5 rounded-lg bg-white text-slate-body cursor-default text-[13px] md:text-sm font-bold tracking-tight md:tracking-wide border border-stone-border"
                         >
                           {skill.name}
                         </span>
-                      ))
-                    ) : null}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </section>
+                </section>
+              )}
 
-              {/* Achievements Section */}
-              <section className="py-10 first:pt-0 last:pb-0">
-                <div className="flex items-center mb-6 px-1">
-                  <h2 className="text-slate-900 text-xl font-extrabold uppercase tracking-[0.18em] pt-0.5">Achievements</h2>
-                </div>
-                <div className="flex flex-col gap-4">
-                  {Array.isArray(achievements) && achievements.length > 0 ? (
-                    achievements.map((achievement) => (
-                      <div key={achievement.id} className="px-1 py-1 flex items-start justify-between gap-4">
+              {hasAchievements && (
+                <section className="pt-1 md:py-10 first:pt-0 last:pb-0">
+                  <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                    <h2 className="text-slate-900 text-[13px] md:text-xl font-extrabold uppercase tracking-[0.2em] md:tracking-[0.18em] pt-0.5">Achievements</h2>
+                  </div>
+                  <div className="flex flex-col gap-1 md:gap-4 divide-y divide-slate-200/80 md:divide-y-0">
+                    {achievements.map((achievement) => (
+                      <div key={achievement.id} className="px-1 py-3 md:py-1 flex items-start justify-between gap-3 md:gap-4">
                         <div className="min-w-0">
-                          <h4 className="text-text-main font-bold text-base leading-tight">{achievement.title}</h4>
-                          <p className="text-slate-meta text-sm mt-1 font-semibold">{achievement.organization}</p>
+                          <h4 className="text-text-main font-bold text-[1.05rem] md:text-base leading-tight">{achievement.title}</h4>
+                          <p className="text-slate-meta text-[13px] md:text-sm mt-1 font-semibold">{achievement.organization}</p>
                           {achievement.description && (
-                            <p className="text-text-secondary text-sm mt-2 leading-snug">{achievement.description}</p>
+                            <p className="text-text-secondary text-sm mt-1.5 md:mt-2 leading-snug">{achievement.description}</p>
                           )}
                         </div>
                         <span className={`${timelineTextClass} shrink-0 pt-0.5`}>{formatDate(achievement.date)}</span>
                       </div>
-                    ))
-                  ) : null}
-                </div>
-              </section>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           </div>
         </div>
