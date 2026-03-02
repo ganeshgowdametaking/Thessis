@@ -127,7 +127,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
 
     return (
         <div className={`${mobileFixed
-                ? 'fixed bottom-0 left-0 right-0 z-30 p-3 pt-2 bg-white border-t border-stone-border relative'
+                ? 'shrink-0 sticky bottom-0 z-30 p-3 pt-2 bg-white border-t border-stone-border'
                 : 'shrink-0 p-4 pt-2 pb-4 bg-white border-t border-stone-border relative'
             }`}
             style={mobileFixed ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' } : undefined}

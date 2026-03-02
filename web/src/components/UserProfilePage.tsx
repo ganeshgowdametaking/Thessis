@@ -549,7 +549,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative">
             {/* Back Button */}
             <button
-              className="absolute top-4 left-4 z-10 p-2 bg-white bg-opacity-80 hover:bg-stone-off backdrop-blur-sm rounded-full shadow-sm text-slate-500 hover:text-sage transition-all border border-stone-border"
+              className="hidden md:block absolute top-4 left-4 z-10 p-2 bg-white bg-opacity-80 hover:bg-stone-off backdrop-blur-sm rounded-full shadow-sm text-slate-500 hover:text-sage transition-all border border-stone-border"
               onClick={onBack}
               aria-label="Go back"
             >

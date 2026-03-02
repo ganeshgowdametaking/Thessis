@@ -82,6 +82,7 @@ export default function ApplicationsPage({
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'earliest' | 'latest'>('earliest');
   const [aiRankingLoading, setAiRankingLoading] = useState(false);
   const [aiRankingError, setAiRankingError] = useState<string | null>(null);
   const [aiLeaderboard, setAiLeaderboard] = useState<AIRankingLeaderboard | null>(null);
@@ -578,18 +579,69 @@ export default function ApplicationsPage({
     return `Applied ${date.toLocaleDateString()}`;
   };
 
+  const topRankedApplications = useMemo(() => {
+    if (applications.length === 0) return [] as Application[];
+
+    // Primary source: AI leaderboard mapping by applicant email.
+    if (aiLeaderboard) {
+      const leaderboardCandidates = [
+        ...(aiLeaderboard.top_5 || []),
+        ...(aiLeaderboard.others || []),
+      ]
+        .filter((candidate) => typeof candidate?.score === 'number')
+        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+        .slice(0, 5);
+
+      const rankedEmailSet = new Set(
+        leaderboardCandidates
+          .map((candidate) => candidate.email?.toLowerCase?.().trim?.())
+          .filter((email) => Boolean(email))
+      );
+
+      const leaderboardMapped = applications.filter((application) => {
+        const applicantEmail = application.user_profile?.email?.toLowerCase?.().trim?.();
+        return applicantEmail ? rankedEmailSet.has(applicantEmail) : false;
+      });
+
+      if (leaderboardMapped.length > 0) {
+        return leaderboardMapped;
+      }
+    }
+
+    // Fallback source: existing rating field if available.
+    return [...applications]
+      .filter((application) => typeof application.rating === 'number')
+      .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+      .slice(0, 5);
+  }, [applications, aiLeaderboard]);
+
   const filteredApplications = applications.filter(app => {
-    const matchesTab = activeTab === 'all' || app.status === activeTab;
+    const matchesTopRanked = activeTab === 'top_ranked'
+      ? topRankedApplications.some((ranked) => ranked.id === app.id)
+      : true;
+    const matchesTab = activeTab === 'top_ranked' || activeTab === 'all' || app.status === activeTab;
     const matchesSearch = !searchQuery ||
       app.user_profile?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.user_profile?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.user_profile?.current_company?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesTab && matchesSearch;
+    return matchesTopRanked && matchesTab && matchesSearch;
   });
+
+  const sortedApplications = useMemo(() => {
+    const getTimestamp = (application: Application) =>
+      new Date(application.created_at || (application as any).applied_at || application.updated_at || 0).getTime();
+
+    return [...filteredApplications].sort((a, b) => {
+      const aTime = getTimestamp(a);
+      const bTime = getTimestamp(b);
+      return sortOrder === 'earliest' ? aTime - bTime : bTime - aTime;
+    });
+  }, [filteredApplications, sortOrder]);
 
   const getStatusCounts = () => {
     const counts = {
+      top_ranked: topRankedApplications.length,
       all: applications.length,
       shortlisted: applications.filter(app => app.status === 'shortlisted').length,
       referred: applications.filter(app => app.status === 'referred').length,
@@ -610,7 +662,7 @@ export default function ApplicationsPage({
       <header className="bg-[#F9F9F7] pt-5 md:pt-8 pb-3 md:pb-4 px-4 md:px-8 shrink-0 z-10">
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-6">
           <div
-            className="flex items-center gap-2 text-slate-500 hover:text-[#5f7261] transition-colors cursor-pointer w-fit"
+            className="hidden md:flex items-center gap-2 text-slate-500 hover:text-[#5f7261] transition-colors cursor-pointer w-fit"
             onClick={onBack}
           >
             <BackArrowIcon className="h-5 w-5" />
@@ -638,6 +690,22 @@ export default function ApplicationsPage({
           {/* Tabs and Filters */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mt-2 border-b border-slate-200 pb-1">
             <div className="flex gap-6 overflow-x-auto no-scrollbar">
+              <button
+                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'top_ranked'
+                  ? 'border-[#5f7261] text-[#5f7261]'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  } transition-all`}
+                onClick={() => setActiveTab('top_ranked')}
+              >
+                <span className="font-bold text-sm whitespace-nowrap">Top ranked candidates</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'top_ranked'
+                  ? 'bg-[#5f7261] text-white'
+                  : 'bg-slate-200 text-slate-600'
+                  }`}>
+                  {statusCounts.top_ranked}
+                </span>
+              </button>
+
               <button
                 className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'all'
                   ? 'border-[#5f7261] text-[#5f7261]'
@@ -699,9 +767,13 @@ export default function ApplicationsPage({
                 />
               </div>
               <div className="h-6 w-px bg-slate-200 mx-1"></div>
-              <button className="h-10 px-4 rounded-lg bg-white border border-transparent hover:border-slate-200 text-slate-600 flex items-center gap-2 text-sm font-semibold shadow-sm transition-all whitespace-nowrap">
+              <button
+                className="h-10 px-4 rounded-lg bg-white border border-transparent hover:border-slate-200 text-slate-600 flex items-center gap-2 text-sm font-semibold shadow-sm transition-all whitespace-nowrap"
+                onClick={() => setSortOrder((prev) => (prev === 'earliest' ? 'latest' : 'earliest'))}
+                title="Toggle applicant sort order"
+              >
                 <span className="material-symbols-outlined text-[20px]">sort</span>
-                Earliest First
+                {sortOrder === 'earliest' ? 'Earliest First' : 'Latest First'}
               </button>
             </div>
           </div>
@@ -819,7 +891,7 @@ export default function ApplicationsPage({
             )}
           </div>
 
-          {filteredApplications.length === 0 ? (
+          {sortedApplications.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-slate-500 text-lg">
                 {searchQuery ? 'No applicants match your search' : 'No applications yet'}
@@ -827,7 +899,7 @@ export default function ApplicationsPage({
             </div>
           ) : (
             <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 md:gap-5">
-              {filteredApplications.map((application) => (
+              {sortedApplications.map((application) => (
                 <div
                   key={application.id}
                   className="bg-white rounded-lg p-4 md:p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-shadow border border-slate-100 flex flex-col h-full group relative"

@@ -712,7 +712,7 @@ const JobsPage: React.FC = () => {
               <div className="flex flex-1 items-center rounded-lg bg-white border border-stone-divider focus-within:ring-2 focus-within:ring-primary/50 transition-all shadow-sm">
                 <Search className="text-slate-500 pl-3" />
                 <input
-                  className="w-full bg-transparent border-none text-sm px-3 py-2.5 placeholder:text-slate-500 text-slate-900 focus:ring-0"
+                  className="w-full bg-transparent border-none text-base md:text-sm px-3 py-2.5 placeholder:text-slate-500 text-slate-900 focus:ring-0"
                   placeholder="Search role, company..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}

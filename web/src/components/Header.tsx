@@ -252,16 +252,6 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
         </Link>
 
         <div className="flex items-center justify-end gap-1">
-          <Link to="/notifications" className="relative h-11 w-11 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" aria-label="Notifications">
-            <img
-              src={notificationsIcon}
-              alt="Notifications"
-              className="h-5 w-5 object-contain filter-sage"
-            />
-            {unreadNotifications > 0 && (
-              <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-            )}
-          </Link>
           <Link to="/profile" className="h-11 w-11 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" aria-label="Profile">
             <img
               src={profile?.avatar_url || profileIcon}

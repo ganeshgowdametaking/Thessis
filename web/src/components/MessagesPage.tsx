@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, MessageSquare, Trash2, MoreVertical } from 'lucide-react';
+import { Search, MessageSquare, Trash2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { messageService } from '../services/messageService';
 import { profileService } from '../services/profileService';
+import { connectionService } from '../services/connectionService';
 
 import { useAuthContext } from '../contexts/AuthContext';
 import { useMediaQuery } from 'react-responsive';
@@ -41,9 +42,11 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   // showEmojiPicker state removed - moved to MessageInput
   const [searchQuery, setSearchQuery] = useState('');
   const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
+  const [connectedProfiles, setConnectedProfiles] = useState<any[]>([]);
 
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showConversationsList, setShowConversationsList] = useState(true);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -60,10 +63,20 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const viewportHeight = isMobile ? '100dvh' : 'calc(100vh - 5rem)';
+  // Mobile route includes a global header, so reserve that space to prevent
+  // the chat composer from being pushed below the fold.
+  const viewportHeight = isMobile ? 'calc(100dvh - 4rem)' : 'calc(100vh - 5rem)';
 
   // Pending User Info (for header when chat is pending)
   const [pendingUserInfo, setPendingUserInfo] = useState<any>(null);
+  const latestMessageLoadRef = useRef(0);
+  const messagesCacheRef = useRef<Record<string, { items: any[]; hasMore: boolean }>>({});
+  const conversationReloadTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasMoreMessagesRef = useRef(true);
+
+  useEffect(() => {
+    hasMoreMessagesRef.current = hasMoreMessages;
+  }, [hasMoreMessages]);
 
   // Optimized Real-time Subscriptions
   useEffect(() => {
@@ -75,13 +88,23 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
     // 1. Subscribe to updates on conversations the user is part of (Sidebar sync)
     // We listen for both INSERT (new chats) and UPDATE (new messages in existing chats)
+    const scheduleConversationReload = () => {
+      if (conversationReloadTimerRef.current) {
+        clearTimeout(conversationReloadTimerRef.current);
+      }
+
+      conversationReloadTimerRef.current = setTimeout(() => {
+        void loadConversations();
+      }, 120);
+    };
+
     convChannelP1 = supabase.channel(`user-convs-p1:${user.id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'conversations', filter: `participant_1=eq.${user.id}` },
         () => {
           console.log('🔄 Conversation (P1) changed, reloading list...');
-          loadConversations();
+          scheduleConversationReload();
         }
       ).subscribe();
 
@@ -91,7 +114,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
         { event: '*', schema: 'public', table: 'conversations', filter: `participant_2=eq.${user.id}` },
         () => {
           console.log('🔄 Conversation (P2) changed, reloading list...');
-          loadConversations();
+          scheduleConversationReload();
         }
       ).subscribe();
 
@@ -113,11 +136,22 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
               setMessages(prev => {
                 const exists = prev.some(m => m.id === newMessage.id);
                 if (exists) return prev;
-                return [...prev, newMessage];
+                const next = [...prev, newMessage];
+                messagesCacheRef.current[selectedChat] = {
+                  items: next,
+                  hasMore: hasMoreMessagesRef.current,
+                };
+                return next;
               });
 
               // Mark as read since user is viewing this chat
-              messageService.markMessagesAsRead(selectedChat);
+              void messageService.markMessagesAsRead(selectedChat)
+                .then(() => {
+                  if (window.refreshUnreadCounts) window.refreshUnreadCounts();
+                })
+                .catch((err) => {
+                  console.warn('Background mark-as-read failed:', err);
+                });
             } catch (err) {
               console.error('Error handling real-time message', err);
             }
@@ -131,6 +165,9 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     // loadConversations() will find it and sync.
 
     return () => {
+      if (conversationReloadTimerRef.current) {
+        clearTimeout(conversationReloadTimerRef.current);
+      }
       if (convChannelP1) supabase.removeChannel(convChannelP1);
       if (convChannelP2) supabase.removeChannel(convChannelP2);
       if (messageChannel) supabase.removeChannel(messageChannel);
@@ -249,7 +286,6 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       if (existingConv) {
         console.log('🔍 Found existing conversation (local):', existingConv.id);
         setSelectedChat(existingConv.id);
-        loadMessages(existingConv.id);
       } else {
         // 2. SEARCH DATABASE DIRECTLY (Don't wait for sidebar load)
         // This stops the 30-second "pending" wait if the generic list is slow
@@ -272,7 +308,6 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
             } else {
               console.log('🔍 Found existing conversation (DB):', dbConv.id);
               setSelectedChat(dbConv.id);
-              loadMessages(dbConv.id);
             }
           } else {
             console.log('🔍 No existing conversation found in DB, setting pendingChatUserId to:', targetApplicant);
@@ -309,7 +344,37 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     } else {
       setSearchSuggestions([]);
     }
-  }, [searchQuery]);
+  }, [searchQuery, connectedProfiles]);
+
+  // Load accepted connections once and use them as the only suggestion source.
+  useEffect(() => {
+    const loadConnectedProfiles = async () => {
+      if (!user?.id) {
+        setConnectedProfiles([]);
+        return;
+      }
+
+      try {
+        const connections = await connectionService.getConnectionsForUser(user.id);
+        const mappedProfiles = (connections || [])
+          .map((conn: any) => {
+            const isRequester = conn.requester_id === user.id;
+            return isRequester ? conn.addressee : conn.requester;
+          })
+          .filter((profile: any) => profile?.id && profile.id !== user.id);
+
+        const uniqueProfiles = Array.from(
+          new Map(mappedProfiles.map((profile: any) => [profile.id, profile])).values()
+        );
+        setConnectedProfiles(uniqueProfiles);
+      } catch (error) {
+        console.error('Error loading connected profiles for message suggestions:', error);
+        setConnectedProfiles([]);
+      }
+    };
+
+    void loadConnectedProfiles();
+  }, [user?.id]);
 
   // Click outside handler to close menus
   useEffect(() => {
@@ -339,8 +404,18 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
   const performUserSearch = async () => {
     try {
+      const query = searchQuery.trim().toLowerCase();
+      if (!query) {
+        setSearchSuggestions([]);
+        return;
+      }
 
-      const results = await profileService.searchProfiles(searchQuery);
+      const results = connectedProfiles.filter((profile: any) =>
+        profile.full_name?.toLowerCase().includes(query) ||
+        profile.title?.toLowerCase().includes(query) ||
+        profile.company?.toLowerCase().includes(query)
+      );
+
       setSearchSuggestions(results.slice(0, 5)); // Limit to 5 suggestions
     } catch (error) {
       console.error('Error searching users:', error);
@@ -397,23 +472,44 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     }
   };
 
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
-
   const loadMessages = async (conversationId: string) => {
+    const requestId = ++latestMessageLoadRef.current;
+
+    const cached = messagesCacheRef.current[conversationId];
+    if (cached?.items?.length) {
+      setMessages(cached.items);
+      setHasMoreMessages(cached.hasMore);
+    }
+
     try {
-      // Mark messages as read before loading
-      await messageService.markMessagesAsRead(conversationId);
-      if (window.refreshUnreadCounts) window.refreshUnreadCounts();
-
-      // Fetch latest 50 messages
+      // Fetch latest messages first so chat opens immediately.
       const conversationMessages = await messageService.getConversationMessages(conversationId, 50);
-      setMessages(conversationMessages || []);
 
-      // If we got exactly 50, assume there might be more
-      setHasMoreMessages((conversationMessages?.length || 0) >= 50);
+      if (requestId !== latestMessageLoadRef.current || selectionRef.current !== conversationId) {
+        return;
+      }
+
+      setMessages(conversationMessages || []);
+      const nextHasMore = (conversationMessages?.length || 0) >= 50;
+      setHasMoreMessages(nextHasMore);
+      messagesCacheRef.current[conversationId] = {
+        items: conversationMessages || [],
+        hasMore: nextHasMore,
+      };
+
+      // Mark as read in the background; do not block render.
+      void messageService.markMessagesAsRead(conversationId)
+        .then(() => {
+          if (window.refreshUnreadCounts) window.refreshUnreadCounts();
+        })
+        .catch((err) => {
+          console.warn('Background mark-as-read failed:', err);
+        });
     } catch (error) {
       console.error('Error loading messages:', error);
-      setMessages([]);
+      if (!cached) {
+        setMessages([]);
+      }
     }
   };
 
@@ -440,7 +536,14 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       );
 
       if (olderMessages && olderMessages.length > 0) {
-        setMessages(prev => [...olderMessages, ...prev]);
+        setMessages(prev => {
+          const next = [...olderMessages, ...prev];
+          messagesCacheRef.current[selectedChat] = {
+            items: next,
+            hasMore: olderMessages.length >= 50,
+          };
+          return next;
+        });
         setHasMoreMessages(olderMessages.length >= 50);
 
         // Restore scroll position logic would go here ideally
@@ -637,6 +740,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const activeOtherParticipant = currentConversation
     ? getOtherParticipant(currentConversation)
     : pendingUserInfo;
+  const shouldShowSuggestions = searchQuery.trim().length > 0;
 
 
 
@@ -654,7 +758,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       <div className="flex flex-1 min-h-0 w-full relative">{/* Sidebar */}
         <div className={`${showConversationsList ? 'flex' : 'hidden'} md:flex w-full md:w-96 flex-shrink-0 flex-col bg-stone-off border-r border-stone-border z-10`}>
           {/* Sidebar Header */}
-          <div className="p-4 border-b border-stone-border">
+          <div className="relative p-4 border-b border-stone-border">
             <h2 className="text-2xl font-bold mb-4 px-2 text-slate-900">Messages</h2>
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
@@ -670,10 +774,10 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
             </div>
 
             {/* Search Suggestions Dropdown */}
-            {searchSuggestions.length > 0 && (
+            {shouldShowSuggestions && searchSuggestions.length > 0 && (
               <div className="absolute top-full left-4 right-4 mt-2 bg-white border border-stone-border rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
                 <div className="p-2">
-                  <div className="text-xs text-slate-500 mb-2 px-2">People</div>
+                  <div className="text-xs text-slate-500 mb-2 px-2">Connected people</div>
                   {searchSuggestions.map((suggestion) => (
                     <button
                       key={suggestion.id}
@@ -740,7 +844,6 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                     className="md:hidden inline-flex items-center gap-1.5 p-2 text-slate-600 hover:text-slate-900 hover:bg-stone-off rounded-lg transition-colors"
                   >
                     <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-                    <span className="text-xs font-semibold">Chats</span>
                   </button>
 
                   <div className="relative">
@@ -773,7 +876,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                       onClick={() => setShowActionsMenu(!showActionsMenu)}
                       disabled={deleteLoading}
                     >
-                      <MoreVertical className="text-[24px]" />
+                      <span className="material-symbols-outlined text-[24px]">more_vert</span>
                     </button>
 
                     {/* Actions Menu */}
@@ -799,7 +902,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
               <div
                 ref={messagesContainerRef}
                 className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-5 md:space-y-8 flex flex-col bg-white"
-                style={isMobile ? { paddingBottom: 'calc(7.25rem + env(safe-area-inset-bottom))' } : undefined}
+                style={isMobile ? { paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' } : undefined}
               >
                 {/* Load More Button */}
                 {hasMoreMessages && messages.length > 0 && (

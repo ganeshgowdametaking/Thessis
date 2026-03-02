@@ -473,7 +473,7 @@ const CreateReferralPage: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col gap-4 md:gap-6 mb-6 md:mb-10">
           <button
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#5f7261] transition-colors w-fit group"
+            className="hidden md:inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#5f7261] transition-colors w-fit group"
             onClick={() => navigate('/jobs')}
           >
             <BackArrowIcon className="h-[18px] w-[18px] group-hover:-translate-x-1 transition-transform" />
@@ -733,13 +733,6 @@ const CreateReferralPage: React.FC = () => {
                 </section>
 
                 <section className="rounded-xl border border-slate-200/80 md:border-0 md:rounded-none overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setMobileFormStep(2)}
-                    className="md:hidden w-full px-4 h-11 bg-stone-50 text-left text-sm font-bold text-slate-800 border-b border-slate-200/70"
-                  >
-                    Step 2: Role Details
-                  </button>
                   <div className={`${isMobile && mobileFormStep !== 2 ? 'hidden' : 'block'} p-4 md:p-0 space-y-6`}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <label>
@@ -810,13 +803,6 @@ const CreateReferralPage: React.FC = () => {
                 </section>
 
                 <section className="rounded-xl border border-slate-200/80 md:border-0 md:rounded-none overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setMobileFormStep(3)}
-                    className="md:hidden w-full px-4 h-11 bg-stone-50 text-left text-sm font-bold text-slate-800 border-b border-slate-200/70"
-                  >
-                    Step 3: Skills & Publish
-                  </button>
                   <div className={`${isMobile && mobileFormStep !== 3 ? 'hidden' : 'block'} p-4 md:p-0 space-y-6`}>
                     <div className="space-y-3">
                       <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Required Skills</span>
