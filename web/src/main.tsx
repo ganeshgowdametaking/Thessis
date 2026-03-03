@@ -7,13 +7,10 @@ import { PostHogErrorBoundary, PostHogProvider } from '@posthog/react';
 
 const posthogOptions = {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+  enable_error_tracking: true,
   defaults: '2026-01-30',
   person_profiles: 'identified_only',
-  capture_exceptions: {
-    capture_unhandled_errors: true,
-    capture_unhandled_rejections: true,
-    capture_console_errors: true,
-  },
+  capture_exceptions: true,
 } as const;
 const posthogKey = (import.meta.env.VITE_PUBLIC_POSTHOG_KEY || '').trim();
 
