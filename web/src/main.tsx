@@ -24,11 +24,13 @@ const appTree = (
   </AuthProvider>
 );
 
+const TypedPostHogErrorBoundary = PostHogErrorBoundary as any;
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {posthogKey ? (
       <PostHogProvider apiKey={posthogKey} options={posthogOptions}>
-        <PostHogErrorBoundary
+        <TypedPostHogErrorBoundary
           fallback={
             <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-700 p-6 text-center">
               An unexpected error occurred. Please refresh the page.
@@ -36,7 +38,7 @@ createRoot(document.getElementById('root')!).render(
           }
         >
           {appTree}
-        </PostHogErrorBoundary>
+        </TypedPostHogErrorBoundary>
       </PostHogProvider>
     ) : (
       appTree
