@@ -457,23 +457,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     if (user?.avatar_url) {
       return user.avatar_url;
     }
-
-    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
-    const colorIndex = user?.id ? user.id.charCodeAt(0) % colors.length : 0;
-    const backgroundColor = colors[colorIndex];
-
-    const initials = user?.full_name
-      ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-      : 'U';
-
-    const svg = `
-      <svg width="150" height="150" xmlns="http://www.w3.org/2000/svg">
-        <rect width="150" height="150" fill="${backgroundColor}"/>
-        <text x="75" y="85" font-family="Arial, sans-serif" font-size="60" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
-      </svg>
-    `;
-
-    return `data:image/svg+xml;base64,${btoa(svg)}`;
+    return '/149071.png';
   };
 
   const formatDate = (dateString: string) => {

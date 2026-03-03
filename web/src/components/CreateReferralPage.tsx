@@ -78,34 +78,52 @@ const CreateReferralPage: React.FC = () => {
   // Debounced fetch for location suggestions
   const fetchLocationSuggestions = useCallback(
     debounce(async (query: string) => {
-      if (!query) {
+      const trimmedQuery = query.trim();
+      if (!trimmedQuery) {
         setLocationSuggestions([]);
         return;
       }
 
       // Explicitly handle "Remote"
-      const suggestions = [];
-      if ('remote'.includes(query.toLowerCase())) {
-        suggestions.push({
+      const baseSuggestions: any[] = [];
+      if ('remote'.includes(trimmedQuery.toLowerCase())) {
+        baseSuggestions.push({
           place_id: 'remote_option',
           display_name: 'Remote',
+          label: 'Remote',
         });
       }
-      if (query.trim().toLowerCase() === 'remote') {
-        setLocationSuggestions(suggestions);
+      if (trimmedQuery.toLowerCase() === 'remote') {
+        setLocationSuggestions(baseSuggestions);
+        return;
+      }
+
+      if (trimmedQuery.length < 2) {
+        setLocationSuggestions(baseSuggestions);
         return;
       }
 
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=8`
+          `/api/location-suggestions?q=${encodeURIComponent(trimmedQuery)}&limit=8`
         );
+
+        if (!response.ok) {
+          throw new Error(`Location API failed with status ${response.status}`);
+        }
+
         const data = await response.json();
-        setLocationSuggestions([...suggestions, ...data]);
+        const apiSuggestions = Array.isArray(data) ? data : [];
+        const deduped = [...baseSuggestions, ...apiSuggestions].filter(
+          (item, index, arr) =>
+            arr.findIndex((candidate) => candidate.display_name === item.display_name) === index
+        );
+        setLocationSuggestions(deduped);
       } catch (error) {
-        setLocationSuggestions(suggestions);
+        // Keep at least local fallback options visible when geocoder fails.
+        setLocationSuggestions(baseSuggestions);
       }
-    }, 300),
+    }, 350),
     []
   );
 
@@ -147,7 +165,7 @@ const CreateReferralPage: React.FC = () => {
   };
 
   const handleLocationSelect = (suggestion: any) => {
-    const displayName = suggestion.display_name;
+    const displayName = suggestion.display_name || suggestion.label || '';
     setFormData(prev => ({ ...prev, location: displayName }));
     setLocationQuery(displayName);
     setLocationSuggestions([]);
@@ -608,7 +626,7 @@ const CreateReferralPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* Left Column - Create Form */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl border border-slate-100 shadow-card overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-card overflow-visible">
               <div className="px-4 py-4 md:px-8 md:py-6 border-b border-stone-100 bg-white">
                 <h3 className="text-lg font-bold text-slate-900">Referral Details</h3>
                 <p className="text-sm text-slate-500 mt-0.5">Fill in the details for the position you are referring for.</p>
@@ -634,7 +652,7 @@ const CreateReferralPage: React.FC = () => {
                   </div>
                 )}
 
-                <section className="rounded-xl border border-slate-200/80 md:border-0 md:rounded-none overflow-hidden">
+                <section className="rounded-xl border border-slate-200/80 md:border-0 md:rounded-none overflow-visible">
                   <button
                     type="button"
                     onClick={() => setMobileFormStep(1)}
@@ -703,14 +721,14 @@ const CreateReferralPage: React.FC = () => {
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px]">location_on</span>
 
                             {locationSuggestions.length > 0 && (
-                              <ul className="absolute z-10 bg-white border border-stone-200 rounded-md mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
+                              <ul className="absolute z-[70] bg-white border border-stone-200 rounded-md mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
                                 {locationSuggestions.map((suggestion) => (
                                   <li
-                                    key={suggestion.place_id}
+                                    key={suggestion.place_id || suggestion.display_name}
                                     className="px-4 py-2 cursor-pointer hover:bg-[#f2f1ec]"
                                     onMouseDown={() => handleLocationSelect(suggestion)}
                                   >
-                                    {suggestion.display_name}
+                                    {suggestion.label || suggestion.display_name}
                                   </li>
                                 ))}
                               </ul>

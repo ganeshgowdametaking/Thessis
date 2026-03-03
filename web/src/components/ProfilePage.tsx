@@ -5,6 +5,7 @@ import debounce from 'lodash.debounce';
 import { postService } from '../services/postService';
 import { connectionService } from '../services/connectionService';
 import { tidePointsService } from '../services/tidePointsService';
+import { profileService } from '../services/profileService';
 import { useAuthContext } from '../contexts/AuthContext';
 import ConnectionsModal from './ConnectionsModal';
 import PostsModal from './PostsModal';
@@ -195,6 +196,20 @@ const ProfilePage: React.FC = () => {
         work_email_verified: (profile as any).work_email_verified || false,
       });
       setLocationQuery(profile.location || '');
+
+      // Load cover image lazily to keep initial profile payload light and fast.
+      if (profile.id && !profile.cover_image_url) {
+        profileService
+          .getProfileCoverImage(profile.id)
+          .then((data) => {
+            if (data?.cover_image_url) {
+              setEditForm((prev) => ({ ...prev, cover_image_url: data.cover_image_url }));
+            }
+          })
+          .catch(() => {
+            // Keep gradient fallback silently on failure.
+          });
+      }
     }
     loadRealCounts();
   }, [profile]);
@@ -438,6 +453,41 @@ const ProfilePage: React.FC = () => {
     setTempImage(null);
   }, []);
 
+  const compressImageToDataURL = async (
+    source: Blob,
+    maxWidth: number,
+    maxHeight: number,
+    quality: number
+  ): Promise<string> => {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(source);
+    });
+
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+
+    const scale = Math.min(maxWidth / image.width, maxHeight / image.height, 1);
+    const targetWidth = Math.max(1, Math.round(image.width * scale));
+    const targetHeight = Math.max(1, Math.round(image.height * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Unable to process image');
+
+    ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+    return canvas.toDataURL('image/jpeg', quality);
+  };
+
 
   const addItem = (section: keyof typeof editForm, newItem: any) => {
     setEditForm((prev) => ({
@@ -509,13 +559,7 @@ const ProfilePage: React.FC = () => {
           throw new Error(`Image file is too large. Maximum size is ${maxSizeMB}MB.`);
         }
 
-        // Convert file to Base64 string
-        const base64String = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(profilePictureFile);
-        });
+        const base64String = await compressImageToDataURL(profilePictureFile, 512, 512, 0.82);
 
         updates.avatar_url = base64String; // Store Base64 in avatar_url
       }
@@ -527,12 +571,7 @@ const ProfilePage: React.FC = () => {
           throw new Error(`Cover image file is too large. Maximum size is ${maxSizeMB}MB.`);
         }
 
-        const base64String = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(coverImageFile);
-        });
+        const base64String = await compressImageToDataURL(coverImageFile, 1600, 600, 0.78);
 
         updates.cover_image_url = base64String;
       }
@@ -618,27 +657,17 @@ const ProfilePage: React.FC = () => {
   };
 
   const getProfilePicture = () => {
-    if (editForm.profile_picture_url) {
+    if (editForm.profile_picture_url?.trim()) {
       return editForm.profile_picture_url;
     }
-    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
-    const colorIndex = user?.id ? user.id.charCodeAt(0) % colors.length : 0;
-    const backgroundColor = colors[colorIndex];
-    const initials = editForm.full_name
-      ? editForm.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-      : 'U';
-    const svg = `
-      <svg width="150" height="150" xmlns="http://www.w3.org/2000/svg">
-        <rect width="150" height="150" fill="${backgroundColor}"/>
-        <text x="75" y="85" font-family="Arial, sans-serif" font-size="60" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
-      </svg>
-    `;
-    return `data:image/svg+xml;base64,${btoa(svg)}`;
+    return '/149071.png';
   };
 
   if (!profile) {
     return <LoadingSpinner text="Loading profile..." />;
   }
+
+  const coverImageUrl = editForm.cover_image_url || profile?.cover_image_url || '';
 
   return (
     <div className="bg-stone-bg text-text-main font-display min-h-screen flex flex-col overflow-x-hidden antialiased">
@@ -647,15 +676,15 @@ const ProfilePage: React.FC = () => {
         {/* Profile Header Section */}
         <section className="w-full bg-white rounded-2xl border border-slate-border-card shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] flex flex-col items-center relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-full h-36 md:h-44 overflow-hidden">
-            {profile?.cover_image_url && (
+            {coverImageUrl && (
               <img
-                src={profile.cover_image_url}
+                src={coverImageUrl}
                 alt="Profile cover"
                 className="absolute inset-0 h-full w-full object-cover"
                 decoding="async"
               />
             )}
-            {!profile?.cover_image_url && (
+            {!coverImageUrl && (
               <div className="absolute inset-0 bg-gradient-to-br from-stone-off via-stone-border to-slate-200"></div>
             )}
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent"></div>
@@ -727,10 +756,15 @@ const ProfilePage: React.FC = () => {
 
             <div className="w-full border-y border-slate-border-divider my-1.5 md:my-2">
               <div className="grid grid-cols-3 divide-x divide-slate-border-divider md:hidden">
-                <div className="flex flex-col items-center justify-center py-3.5">
+                <button
+                  type="button"
+                  onClick={() => setShowConnectionsModal(true)}
+                  className="flex flex-col items-center justify-center py-3.5"
+                  aria-label="View all connections"
+                >
                   <span className="text-text-main text-2xl font-extrabold leading-none">{realCounts.connections}</span>
                   <span className="text-slate-meta text-[10px] uppercase tracking-[0.16em] font-black mt-1.5">Connections</span>
-                </div>
+                </button>
                 <div className="flex flex-col items-center justify-center py-3.5">
                   <div className="flex items-center gap-1">
                     <span className="text-text-main text-2xl font-extrabold leading-none">{realCounts.tidePoints}</span>
@@ -744,10 +778,15 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
               <div className="hidden md:flex flex-wrap justify-center gap-8 w-full py-5">
-                <div className="flex flex-col items-center px-4">
+                <button
+                  type="button"
+                  onClick={() => setShowConnectionsModal(true)}
+                  className="flex flex-col items-center px-4"
+                  aria-label="View all connections"
+                >
                   <span className="text-text-main text-xl font-bold">{realCounts.connections}</span>
                   <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Connections</span>
-                </div>
+                </button>
 
                 {/* Tide Points */}
                 <div className="flex flex-col items-center px-4 group/points relative cursor-help">

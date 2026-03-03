@@ -5,6 +5,9 @@ import { Database } from '../lib/database.types'
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 
+const profileCoverCache = new Map<string, string | null>()
+const profileCoverInFlight = new Map<string, Promise<{ cover_image_url: string | null }>>()
+
 export const profileService = {
   // Get current user's profile
   getCurrentProfile: async () => {
@@ -13,7 +16,7 @@ export const profileService = {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, full_name, role, work_email_verified, secondary_email_verified, avatar_url, cover_image_url, title, company, location, bio, country_code, experiences, education, skills, achievements')
+      .select('id, email, full_name, role, work_email_verified, secondary_email_verified, avatar_url, title, company, location, bio, country_code, experiences, education, skills, achievements')
       .eq('id', user.id)
       .single()
 
@@ -38,6 +41,49 @@ export const profileService = {
     return data
   },
 
+  // Get lightweight profile summary
+  getProfileSummary: async (id: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('id', id)
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  // Get only cover image for current profile page async hydration
+  getProfileCoverImage: async (id: string) => {
+    if (profileCoverCache.has(id)) {
+      return { cover_image_url: profileCoverCache.get(id) ?? null }
+    }
+
+    const inFlight = profileCoverInFlight.get(id)
+    if (inFlight) return inFlight
+
+    const request = (async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('cover_image_url')
+        .eq('id', id)
+        .single()
+
+      if (error) throw error
+      const cover = (data?.cover_image_url ?? null) as string | null
+      profileCoverCache.set(id, cover)
+      return { cover_image_url: cover }
+    })()
+
+    profileCoverInFlight.set(id, request)
+
+    try {
+      return await request
+    } finally {
+      profileCoverInFlight.delete(id)
+    }
+  },
+
   // Create profile
   createProfile: async (profile: ProfileInsert) => {
     const { data, error } = await (supabase
@@ -60,6 +106,11 @@ export const profileService = {
       .single()
 
     if (error) throw error
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'cover_image_url')) {
+      profileCoverCache.set(id, (updates as any).cover_image_url ?? null)
+    }
+
     return data
   },
 

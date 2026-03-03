@@ -488,12 +488,44 @@ export const connectionService = {
 
   // Get connections for any user by userId
   getConnectionsForUser: async (userId: string) => {
-    const { data, error } = await supabase
+    const { data: userConnections, error } = await supabase
       .from('connections')
-      .select(`*, requester:profiles!connections_requester_id_fkey(*), addressee:profiles!connections_addressee_id_fkey(*)`)
+      .select('id, requester_id, addressee_id, status, created_at')
       .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
-      .eq('status', 'accepted');
+      .eq('status', 'accepted')
+
     if (error) throw error;
-    return data || [];
+
+    const connections = userConnections || [];
+    if (connections.length === 0) return [];
+
+    const otherUserIds = Array.from(new Set(
+      connections
+        .map((conn: any) => (conn.requester_id === userId ? conn.addressee_id : conn.requester_id))
+        .filter(Boolean)
+    ));
+
+    if (otherUserIds.length === 0) return [];
+
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, full_name, title, company, location, avatar_url')
+      .in('id', otherUserIds);
+
+    if (profileError) throw profileError;
+
+    const profileMap = new Map((profiles || []).map((profile: any) => [profile.id, profile]));
+
+    return connections
+      .map((conn: any) => {
+        const otherUserId = conn.requester_id === userId ? conn.addressee_id : conn.requester_id;
+        const otherProfile = profileMap.get(otherUserId);
+        if (!otherProfile) return null;
+
+        return conn.requester_id === userId
+          ? { ...conn, requester: { id: userId }, addressee: otherProfile }
+          : { ...conn, requester: otherProfile, addressee: { id: userId } };
+      })
+      .filter(Boolean);
   }
 }

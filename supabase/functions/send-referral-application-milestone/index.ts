@@ -29,18 +29,40 @@ serve(async (req) => {
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    const resendApiKey =
+      Deno.env.get("RESEND_API_KEY") ||
+      Deno.env.get("RESEND_KEY") ||
+      Deno.env.get("RESEND_TOKEN") ||
+      Deno.env.get("RESEND_SMTP_PASSWORD") ||
+      Deno.env.get("SMTP_PASSWORD");
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
-    const resendFromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
+    const resendFromEmail =
+      Deno.env.get("RESEND_FROM_EMAIL") ||
+      Deno.env.get("SMTP_FROM_EMAIL") ||
+      Deno.env.get("MAIL_FROM") ||
+      "onboarding@resend.dev";
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
-    const frontendUrl = (Deno.env.get("FRONTEND_URL") || "https://tanktide.com").replace(/\/+$/, "");
+    const frontendUrl = (
+      Deno.env.get("FRONTEND_URL") ||
+      Deno.env.get("SITE_URL") ||
+      "https://tanktide.com"
+    ).replace(/\/+$/, "");
 
     if (!supabaseUrl || !serviceRoleKey) {
       return json(500, { error: "Supabase configuration missing" });
     }
 
     if (!resendApiKey) {
-      return json(500, { error: "RESEND_API_KEY is missing in Supabase function secrets" });
+      return json(500, {
+        error: "Resend API key is missing in Supabase function secrets",
+        expected_any_of: [
+          "RESEND_API_KEY",
+          "RESEND_KEY",
+          "RESEND_TOKEN",
+          "RESEND_SMTP_PASSWORD",
+          "SMTP_PASSWORD",
+        ],
+      });
     }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
@@ -209,21 +231,21 @@ serve(async (req) => {
         </div>
       `;
     } else {
-      subject = `Curated for you: TankTide's Top 5 Picks for ${job.title}`;
+      subject = `Your Top 5 candidates are ready for ${job.title}`;
       html = `
         <div style="${emailStyles}">
-          <h1 style="font-size: 24px; font-weight: 800; tracking: -0.02em; margin-bottom: 24px;">Your Top 5 Picks are ready.</h1>
+          <h1 style="font-size: 24px; font-weight: 800; tracking: -0.02em; margin-bottom: 24px;">Your Top 5 candidates are ready.</h1>
           <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563;">
             Hi ${greetingName}, your referral for <strong>${job.title}</strong> has now surpassed 5 applicants.
           </p>
           <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563;">
-            Our ML engine has analyzed the pool and identified exactly <strong>5 high-potential matches</strong> based on your specific referral criteria. 
+            TankTide AI has ranked the <strong>top 5 candidates</strong> that best fit your referral criteria.
           </p>
           <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563; font-style: italic;">
-            Don't let top talent wait. Check your dashboard to unlock these recommendations.
+            Click below to log in and review the top candidates on your applications page.
           </p>
           <a href="${applicationsPageUrl}" style="${buttonStyles}">
-            Unlock My Top Picks
+            View Top Candidates
           </a>
           <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
             <p style="font-size: 13px; color: #9ca3af;">Sent with care by the TankTide Team.</p>

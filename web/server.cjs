@@ -144,6 +144,24 @@ const sanitizePII = (text) => {
     .replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, '[PHONE]');
 };
 
+const formatLocationLabel = (item) => {
+  const address = item?.address || {};
+  const city =
+    address.city ||
+    address.town ||
+    address.village ||
+    address.municipality ||
+    address.county ||
+    '';
+  const state = address.state || address.region || '';
+  const country = address.country || '';
+  const compact = [city, state, country].filter(Boolean).join(', ');
+  if (compact) return compact;
+
+  const fallback = String(item?.display_name || '').split(',').slice(0, 3).join(',').trim();
+  return fallback || String(item?.name || '').trim();
+};
+
 const s3 = new S3Client({ region: process.env.AWS_REGION });
 
 // Helper function for robust HTML cleaning
@@ -304,6 +322,58 @@ app.post('/extract-referral', async (req, res) => {
   } catch (error) {
     console.error('Extraction error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Location autocomplete proxy to avoid browser CORS/rate-limit issues.
+app.get('/location-suggestions', async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  const rawLimit = Number(req.query.limit);
+  const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(rawLimit, 10)) : 8;
+
+  if (!q) {
+    return res.json([]);
+  }
+
+  try {
+    const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+      params: {
+        format: 'jsonv2',
+        q,
+        addressdetails: 1,
+        limit,
+      },
+      headers: {
+        'User-Agent': 'TankTide/1.0 (support@tanktide.com)',
+        'Accept-Language': 'en',
+      },
+      timeout: 7000,
+    });
+
+    const payload = Array.isArray(response.data) ? response.data : [];
+    const suggestions = payload
+      .map((item) => {
+        const label = formatLocationLabel(item);
+        if (!label) return null;
+        return {
+          place_id: item.place_id || `${item.lat}-${item.lon}-${label}`,
+          display_name: label,
+          label,
+          lat: item.lat || null,
+          lon: item.lon || null,
+          raw_display_name: item.display_name || null,
+        };
+      })
+      .filter(Boolean);
+
+    const deduped = suggestions.filter(
+      (item, index, arr) => arr.findIndex((candidate) => candidate.display_name === item.display_name) === index
+    );
+
+    return res.json(deduped);
+  } catch (error) {
+    // Non-blocking failure for UI autocomplete.
+    return res.json([]);
   }
 });
 
