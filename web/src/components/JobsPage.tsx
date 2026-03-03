@@ -535,11 +535,6 @@ const JobsPage: React.FC = () => {
             <div className="flex flex-wrap items-center gap-4 text-slate-500 text-sm font-medium">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-lg text-slate-900 font-bold">{selectedJob.company}</span>
-                {selectedJob && (selectedJob as any).created_by_profile?.work_email_verified && (
-                  <div title="Verified Work Email">
-                    <CheckCircle2 className="w-4 h-4 text-blue-500 fill-white" />
-                  </div>
-                )}
                 {selectedJob && (selectedJob as any).created_by_profile?.response_metric && (
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${['24h', '3d'].includes((selectedJob as any).created_by_profile?.response_metric)
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -775,11 +770,6 @@ const JobsPage: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="text-sm font-medium text-slate-500 truncate">{job.company}</p>
-                        {(job as any).created_by_profile?.work_email_verified && (
-                          <div className="text-blue-500" title={`Verified Employee at ${(job as any).created_by_profile?.work_email?.split('@')[1] || 'Company'}`}>
-                            <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white" />
-                          </div>
-                        )}
                         {(job as any).created_by_profile?.response_metric && (
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${['24h', '3d'].includes((job as any).created_by_profile?.response_metric)
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
