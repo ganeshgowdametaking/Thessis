@@ -768,7 +768,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                       skills.map((skill) => (
                         <span
                           key={skill.id}
-                          className="px-3 py-1.5 rounded-md bg-white text-slate-body cursor-default text-sm font-bold tracking-wide border border-stone-border"
+                          className="px-3 py-1.5 rounded-lg bg-white text-slate-body cursor-default text-sm font-bold tracking-wide border border-stone-border"
                         >
                           {skill.name}
                         </span>

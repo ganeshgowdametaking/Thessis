@@ -115,7 +115,7 @@ export const LoginScreen = ({ navigation }: any) => {
                     <View style={styles.logoContainer}>
                         <Ionicons name="water" size={40} color={COLORS.primary} />
                     </View>
-                    <Text style={styles.brandName}>TankTide</Text>
+                    <Text style={styles.brandName}>Thessis</Text>
                     <Text style={styles.tagline}>Navigate your career with confidence</Text>
 
                     <TouchableOpacity
@@ -182,7 +182,7 @@ export const LoginScreen = ({ navigation }: any) => {
                             <ActivityIndicator color="#fff" />
                         ) : (
                             <Text style={styles.authButtonText}>
-                                {activeTab === 'signin' ? 'Sign In to TankTide' : 'Create Account'}
+                                {activeTab === 'signin' ? 'Sign In to Thessis' : 'Create Account'}
                             </Text>
                         )}
                     </TouchableOpacity>

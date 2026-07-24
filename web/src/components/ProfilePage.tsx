@@ -693,7 +693,7 @@ const ProfilePage: React.FC = () => {
             <div className="absolute top-3 right-3 md:top-4 md:right-4 flex gap-2 md:gap-4 z-20">
               <button
                 onClick={() => setIsEditing(true)}
-                className="size-9 md:size-8 flex items-center justify-center bg-[#5F7261] rounded-full transition-all transform hover:scale-110 shadow-sm"
+                className="size-9 md:size-8 flex items-center justify-center bg-ink rounded-full transition-all transform hover:scale-110 shadow-sm"
                 title="Edit Cover"
               >
                 <Pencil className="w-4 h-4 text-white fill-white" />
@@ -710,7 +710,7 @@ const ProfilePage: React.FC = () => {
                     }, 2000);
                   });
                 }}
-                className="size-9 md:size-8 flex items-center justify-center bg-[#5F7261] rounded-full transition-all transform hover:scale-110 shadow-sm"
+                className="size-9 md:size-8 flex items-center justify-center bg-ink rounded-full transition-all transform hover:scale-110 shadow-sm"
                 title="Share Profile"
               >
                 <Share2 className="w-4 h-4 text-white" strokeWidth={3} />
@@ -967,7 +967,7 @@ const ProfilePage: React.FC = () => {
         isEditing && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-              <div className="p-6 border-b border-slate-200 bg-gray-50">
+              <div className="p-6 border-b border-slate-200 bg-slate-50">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold text-slate-900">Edit Profile</h2>
                   <button

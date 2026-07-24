@@ -125,7 +125,7 @@ const PasswordResetPage: React.FC = () => {
       setSuccess('Password updated successfully! Redirecting you back to the app...')
       setTimeout(() => {
         if (isIOS) {
-          window.location.href = 'tanktide://login'
+          window.location.href = 'thessis://login'
         } else {
           navigate('/jobs')
         }
@@ -161,8 +161,8 @@ const PasswordResetPage: React.FC = () => {
         <div className="flex justify-center mb-2 sm:mb-6 pt-[max(16px,env(safe-area-inset-top))] sm:pt-0">
           <img
             src="/logo2.png"
-            alt="TankTide Logo"
-            className="w-12 h-12 sm:w-16 sm:h-16 object-contain filter-sage"
+            alt="Thessis Logo"
+            className="w-12 h-12 object-contain"
           />
         </div>
 
@@ -305,7 +305,7 @@ const PasswordResetPage: React.FC = () => {
 
         {/* Footer */}
         <p className="text-center text-copyright-slate text-xs pb-[calc(env(safe-area-inset-bottom)+8px)] sm:pb-0">
-          © 2024 TankTide. All rights reserved.
+          © 2024 Thessis. All rights reserved.
         </p>
       </div>
     </div>

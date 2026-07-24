@@ -105,28 +105,28 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({ value, onChange }) 
           value={value}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="e.g., San Francisco, CA"
         />
         <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          <ChevronDown className="h-4 w-4 text-gray-400" />
+          <ChevronDown className="h-4 w-4 text-slate-400" />
         </div>
       </div>
       
       {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-60 overflow-auto">
           {filteredOptions.length > 0 ? (
             filteredOptions.map((option, index) => (
               <div
                 key={index}
-                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                className="px-3 py-2 hover:bg-slate-100 cursor-pointer text-sm"
                 onClick={() => handleSelect(option)}
               >
                 {option}
               </div>
             ))
           ) : (
-            <div className="px-3 py-2 text-sm text-gray-500">
+            <div className="px-3 py-2 text-sm text-slate-500">
               No locations found. You can type a custom location.
             </div>
           )}
@@ -271,19 +271,19 @@ const CompanyNewJobPage: React.FC = () => {
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigate('/company-hiring/jobs')}
-              className="p-2 text-gray-400 hover:text-gray-600"
+              className="p-2 text-slate-400 hover:text-slate-600"
             >
               <BackArrowIcon className="h-5 w-5" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Create New Job</h1>
-              <p className="text-gray-600 mt-2">Post a new job opening</p>
+              <h1 className="text-3xl font-bold text-slate-900">Create New Job</h1>
+              <p className="text-slate-600 mt-2">Post a new job opening</p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setPreviewMode(!previewMode)}
-              className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-900"
+              className="flex items-center space-x-2 px-4 py-2 text-slate-600 hover:text-slate-900"
             >
               <Eye className="h-4 w-4" />
               <span>{previewMode ? 'Edit' : 'Preview'}</span>
@@ -293,18 +293,18 @@ const CompanyNewJobPage: React.FC = () => {
       </div>
 
       {previewMode ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{formData.title || 'Job Title'}</h2>
-            <p className="text-gray-600">{formData.company} • {formData.location} • {formData.job_type}</p>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">{formData.title || 'Job Title'}</h2>
+            <p className="text-slate-600">{formData.company} • {formData.location} • {formData.job_type}</p>
             {formData.salary_min && formData.salary_max && (
-              <p className="text-gray-600 mt-1">${formData.salary_min} - ${formData.salary_max}</p>
+              <p className="text-slate-600 mt-1">${formData.salary_min} - ${formData.salary_max}</p>
             )}
           </div>
 
           {formData.description && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Job Description</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Job Description</h3>
               <div className="prose max-w-none">
                 <p className="whitespace-pre-line">{formData.description}</p>
               </div>
@@ -313,7 +313,7 @@ const CompanyNewJobPage: React.FC = () => {
 
           {formData.requirements && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Requirements</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Requirements</h3>
               <div className="prose max-w-none">
                 <p className="whitespace-pre-line">{formData.requirements}</p>
               </div>
@@ -322,7 +322,7 @@ const CompanyNewJobPage: React.FC = () => {
 
           {formData.benefits && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Benefits</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Benefits</h3>
               <div className="prose max-w-none">
                 <p className="whitespace-pre-line">{formData.benefits}</p>
               </div>
@@ -332,10 +332,10 @@ const CompanyNewJobPage: React.FC = () => {
       ) : (
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">AI Job Autofill</h2>
-            <p className="text-sm text-gray-600 mb-4">Upload a job-description PDF or paste a job link to autofill this form.</p>
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">AI Job Autofill</h2>
+            <p className="text-sm text-slate-600 mb-4">Upload a job-description PDF or paste a job link to autofill this form.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="flex items-center justify-center h-24 border-2 border-dashed border-blue-300 rounded-md bg-white cursor-pointer hover:bg-blue-50">
+              <label className="flex items-center justify-center h-24 border-2 border-dashed border-blue-300 rounded-lg bg-white cursor-pointer hover:bg-blue-50">
                 <input
                   type="file"
                   className="hidden"
@@ -351,13 +351,13 @@ const CompanyNewJobPage: React.FC = () => {
                   value={referralLink}
                   onChange={(e) => setReferralLink(e.target.value)}
                   placeholder="Paste job link"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                  className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
                 />
                 <button
                   type="button"
                   onClick={() => referralLink && handleAIAutoFill('link', referralLink)}
                   disabled={aiLoading || !referralLink}
-                  className="px-4 py-2 bg-gray-900 text-white rounded-md disabled:opacity-50"
+                  className="px-4 py-2 bg-slate-900 text-white rounded-lg disabled:opacity-50"
                 >
                   Extract
                 </button>
@@ -366,37 +366,37 @@ const CompanyNewJobPage: React.FC = () => {
             {aiError && <p className="mt-3 text-sm text-red-600">{aiError}</p>}
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Job Details</h2>
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6">Job Details</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Job Title *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Job Title *</label>
                 <input
                   type="text"
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., Senior Software Engineer"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Company</label>
                 <input
                   type="text"
                   name="company"
                   value={formData.company}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Your company name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Location *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Location *</label>
                 <LocationDropdown
                   value={formData.location}
                   onChange={(value) => setFormData(prev => ({ ...prev, location: value }))}
@@ -404,12 +404,12 @@ const CompanyNewJobPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Job Type</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Job Type</label>
                 <select
                   name="job_type"
                   value={formData.job_type}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="full-time">Full-time</option>
                   <option value="part-time">Part-time</option>
@@ -419,68 +419,68 @@ const CompanyNewJobPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Salary</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Minimum Salary</label>
                 <input
                   type="number"
                   name="salary_min"
                   value={formData.salary_min}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., 80000"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Salary</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Maximum Salary</label>
                 <input
                   type="number"
                   name="salary_max"
                   value={formData.salary_max}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., 120000"
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Job Description</h2>
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6">Job Description</h2>
             
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Description *</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
                   required
                   rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Describe the role, responsibilities, and what makes this position exciting..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Requirements</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Requirements</label>
                 <textarea
                   name="requirements"
                   value={formData.requirements}
                   onChange={handleInputChange}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="List the key requirements and qualifications..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Benefits</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Benefits</label>
                 <textarea
                   name="benefits"
                   value={formData.benefits}
                   onChange={handleInputChange}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="List the benefits and perks of working at your company..."
                 />
               </div>
@@ -492,7 +492,7 @@ const CompanyNewJobPage: React.FC = () => {
               type="button"
               onClick={handleSaveDraft}
               disabled={loading}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
             >
               {loading ? 'Saving...' : 'Save as Draft'}
             </button>

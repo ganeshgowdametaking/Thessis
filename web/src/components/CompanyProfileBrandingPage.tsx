@@ -143,28 +143,28 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({ value, onChange }) 
           value={value}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
           placeholder="Type to search or enter custom location"
         />
         <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          <ChevronDown className="h-4 w-4 text-gray-400" />
+          <ChevronDown className="h-4 w-4 text-slate-400" />
         </div>
       </div>
       
       {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-60 overflow-auto">
           {filteredOptions.length > 0 ? (
             filteredOptions.map((option) => (
               <div
                 key={option}
                 onClick={() => handleSelect(option)}
-                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                className="px-3 py-2 hover:bg-slate-100 cursor-pointer text-sm"
               >
                 {option}
               </div>
             ))
           ) : (
-            <div className="px-3 py-2 text-gray-500 text-sm">
+            <div className="px-3 py-2 text-slate-500 text-sm">
               No matches found. Type to add custom location.
             </div>
           )}
@@ -432,13 +432,13 @@ const CompanyProfileBrandingPage: React.FC = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Profile & Branding</h1>
-            <p className="text-gray-600 mt-2">Manage your company's public profile and branding</p>
+            <h1 className="text-3xl font-bold text-slate-900">Profile & Branding</h1>
+            <p className="text-slate-600 mt-2">Manage your company's public profile and branding</p>
           </div>
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setPreviewMode(!previewMode)}
-              className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-900"
+              className="flex items-center space-x-2 px-4 py-2 text-slate-600 hover:text-slate-900"
             >
               <Eye className="h-4 w-4" />
               <span>{previewMode ? 'Edit' : 'Preview'}</span>
@@ -456,7 +456,7 @@ const CompanyProfileBrandingPage: React.FC = () => {
       </div>
 
       {previewMode ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200">
           {/* Banner */}
           {formData.banner_url && (
             <div className="h-48 bg-cover bg-center rounded-t-lg" style={{ backgroundImage: `url(${formData.banner_url})` }} />
@@ -468,8 +468,8 @@ const CompanyProfileBrandingPage: React.FC = () => {
                 <img src={formData.logo_url} alt="Company Logo" className="h-16 w-16 rounded-lg" />
               )}
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">{formData.company_name || 'Your Company'}</h2>
-                <p className="text-gray-600">{formData.industry} • {formData.company_size} • {formData.location}</p>
+                <h2 className="text-2xl font-bold text-slate-900">{formData.company_name || 'Your Company'}</h2>
+                <p className="text-slate-600">{formData.industry} • {formData.company_size} • {formData.location}</p>
                 {formData.website && (
                   <a href={formData.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                     {formData.website}
@@ -480,19 +480,19 @@ const CompanyProfileBrandingPage: React.FC = () => {
 
             {formData.about_us && (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">About Us</h3>
-                <p className="text-gray-700 whitespace-pre-line">{formData.about_us}</p>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">About Us</h3>
+                <p className="text-slate-700 whitespace-pre-line">{formData.about_us}</p>
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium text-gray-900">Founded:</span>
-                <span className="ml-2 text-gray-600">{formData.founded_year || 'Not specified'}</span>
+                <span className="font-medium text-slate-900">Founded:</span>
+                <span className="ml-2 text-slate-600">{formData.founded_year || 'Not specified'}</span>
               </div>
               <div>
-                <span className="font-medium text-gray-900">Industry:</span>
-                <span className="ml-2 text-gray-600">{formData.industry || 'Not specified'}</span>
+                <span className="font-medium text-slate-900">Industry:</span>
+                <span className="ml-2 text-slate-600">{formData.industry || 'Not specified'}</span>
               </div>
             </div>
           </div>
@@ -500,54 +500,54 @@ const CompanyProfileBrandingPage: React.FC = () => {
       ) : (
         <div className="space-y-8">
           {/* Company Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Company Information</h2>
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6">Company Information</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Company Name *</label>
                 <input
                   type="text"
                   name="company_name"
                   value={formData.company_name}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Your company name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Website</label>
                 <input
                   type="url"
                   name="website"
                   value={formData.website}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="https://yourcompany.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Industry</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Industry</label>
                 <input
                   type="text"
                   name="industry"
                   value={formData.industry}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., Technology, Healthcare"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Company Size</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Company Size</label>
                 <select
                   name="company_size"
                   value={formData.company_size}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select size</option>
                   <option value="1-10">1-10 employees</option>
@@ -560,19 +560,19 @@ const CompanyProfileBrandingPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Founded Year</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Founded Year</label>
                 <input
                   type="number"
                   name="founded_year"
                   value={formData.founded_year}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., 2020"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
                 <LocationDropdown
                   value={formData.location}
                   onChange={(value) => setFormData(prev => ({ ...prev, location: value }))}
@@ -582,22 +582,22 @@ const CompanyProfileBrandingPage: React.FC = () => {
           </div>
 
           {/* Branding Assets */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Branding Assets</h2>
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6">Branding Assets</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Company Logo</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Company Logo</label>
                 <div className="flex items-center space-x-4">
                   {formData.logo_url && (
                     <img src={formData.logo_url} alt="Logo" className="h-16 w-16 rounded-lg" />
                   )}
                   <label className={`cursor-pointer px-4 py-2 rounded-lg transition-colors flex items-center ${
-                    loading ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200'
+                    loading ? 'bg-slate-300 cursor-not-allowed' : 'bg-slate-100 hover:bg-parchment-sunken'
                   }`}>
                     {loading ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-600 mr-2"></div>
                         Uploading...
                       </>
                     ) : (
@@ -615,21 +615,21 @@ const CompanyProfileBrandingPage: React.FC = () => {
                     />
                   </label>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Max size: 5MB. Supported formats: JPG, PNG, GIF</p>
+                <p className="text-xs text-slate-500 mt-1">Max size: 5MB. Supported formats: JPG, PNG, GIF</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Banner Image</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Banner Image</label>
                 <div className="flex items-center space-x-4">
                   {formData.banner_url && (
                     <img src={formData.banner_url} alt="Banner" className="h-16 w-32 object-cover rounded-lg" />
                   )}
                   <label className={`cursor-pointer px-4 py-2 rounded-lg transition-colors flex items-center ${
-                    loading ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200'
+                    loading ? 'bg-slate-300 cursor-not-allowed' : 'bg-slate-100 hover:bg-parchment-sunken'
                   }`}>
                     {loading ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-600 mr-2"></div>
                         Uploading...
                       </>
                     ) : (
@@ -647,23 +647,23 @@ const CompanyProfileBrandingPage: React.FC = () => {
                     />
                   </label>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Max size: 10MB. Recommended: 1200x300px</p>
+                <p className="text-xs text-slate-500 mt-1">Max size: 10MB. Recommended: 1200x300px</p>
               </div>
             </div>
           </div>
 
           {/* About Us */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">About Us</h2>
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6">About Us</h2>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Company Description</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Company Description</label>
               <textarea
                 name="about_us"
                 value={formData.about_us}
                 onChange={handleInputChange}
                 rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Tell potential candidates about your company, culture, mission, and what makes you unique..."
               />
             </div>

@@ -85,7 +85,7 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
           background: transparent;
         }
         textarea::-webkit-scrollbar-thumb {
-          background-color: #cbd5e1;
+          background-color: #D1D5DB;
           border-radius: 4px;
         }
         @keyframes fade-in {

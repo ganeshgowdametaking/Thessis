@@ -15,7 +15,7 @@ export const usePageState = (initialPage: string = 'home') => {
     }
     
     // Then try sessionStorage
-    const savedPage = sessionStorage.getItem('tanktide_current_page');
+    const savedPage = sessionStorage.getItem('thessis_current_page');
     if (savedPage) {
       return savedPage;
     }
@@ -27,7 +27,7 @@ export const usePageState = (initialPage: string = 'home') => {
   // Update sessionStorage when page changes
   useEffect(() => {
     if (currentPage) {
-      sessionStorage.setItem('tanktide_current_page', currentPage);
+      sessionStorage.setItem('thessis_current_page', currentPage);
     }
   }, [currentPage]);
 

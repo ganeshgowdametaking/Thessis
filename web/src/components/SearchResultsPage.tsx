@@ -175,7 +175,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
       return profile.avatar_url;
     }
 
-    const colors = ['#f97316', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
+    const colors = ['#f97316', '#3b82f6', '#10b981', '#f59e0b', '#8B5CF6', '#06b6d4'];
     const colorIndex = profile?.id ? profile.id.charCodeAt(0) % colors.length : 0;
     const backgroundColor = colors[colorIndex];
 

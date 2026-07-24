@@ -1,5 +1,5 @@
 /*
-  # Add Admin System to TankTide Database
+  # Add Admin System to Thessis Database
 
   1. New Tables
     - `admin_invites` - Store admin invitation tokens

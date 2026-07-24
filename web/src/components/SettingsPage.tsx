@@ -818,7 +818,7 @@ const SettingsPage: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-slate-900">Feedback</h3>
-                      <p className="text-sm text-slate-500">Help us improve TankTide by sharing your thoughts</p>
+                      <p className="text-sm text-slate-500">Help us improve Thessis by sharing your thoughts</p>
                     </div>
                   </div>
 
@@ -842,7 +842,7 @@ const SettingsPage: React.FC = () => {
                       <label className="block text-sm font-bold text-slate-800 mb-2">Message</label>
                       <textarea
                         className="block w-full rounded-lg border border-slate-300 bg-white py-3 px-4 text-slate-900 placeholder:text-slate-400 focus:ring-sage focus:border-sage sm:text-sm min-h-[200px] shadow-sm transition-all"
-                        placeholder="How can we make TankTide better for you?"
+                        placeholder="How can we make Thessis better for you?"
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
                       />
@@ -907,7 +907,7 @@ const SettingsPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => { setShowInviteModal(false); setInviteEmail(''); setInviteMessage(null); }}
-                  className="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  className="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-parchment-sunken transition-colors"
                 >
                   Cancel
                 </button>
@@ -933,7 +933,7 @@ const SettingsPage: React.FC = () => {
               <button
                 onClick={() => setShowDeleteConfirmModal(false)}
                 disabled={deleteLoading}
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-parchment-sunken transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -970,7 +970,7 @@ const SettingsPage: React.FC = () => {
               <button
                 onClick={() => { setShowDemoteConfirmModal(false); setTargetAdmin(null); }}
                 disabled={adminsLoading}
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-parchment-sunken transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>

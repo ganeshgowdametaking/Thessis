@@ -1,4 +1,4 @@
-// TankTide v2.0 - Enhanced UI/UX and Smart Messaging System
+// Thessis v2.0 - Enhanced UI/UX and Smart Messaging System
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import Header from './components/Header';
@@ -46,6 +46,7 @@ const AcceptAdminInvitePage = React.lazy(() => import('./components/AcceptAdminI
 import AuthCallback from './components/AuthCallback';
 import ScrollToTop from './components/ScrollToTop';
 import CompanyLayout from './components/CompanyLayout';
+import BottomTabBar from './components/BottomTabBar';
 import { analyticsService } from './services/analyticsService';
 import { captureUTMParams } from './utils/utmHandler';
 
@@ -225,7 +226,7 @@ function DataRequestFormWrapper() {
 }
 
 // Wrapper component for Home page that handles password reset
-function HomePageWrapper() {
+function HomePageWrapper({ onJoinNow }: { onJoinNow?: () => void }) {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const isResetFlow = searchParams.get('reset') === 'true' || location.hash.includes('type=recovery');
@@ -236,7 +237,7 @@ function HomePageWrapper() {
 
   return (
     <>
-      <Hero /> <Services /> <About />
+      <Hero onJoinNow={onJoinNow} /> <Services /> <About />
     </>
   );
 }
@@ -389,7 +390,7 @@ function AppContent() {
           <Route path="/company-job-success" element={<CompanyJobSuccessPage />} />
           {/* Temporary route for testing Password Reset page */}
           <Route path="/reset-password" element={<PasswordResetPage />} />
-          <Route path="/" element={<HomePageWrapper />} />
+          <Route path="/" element={<HomePageWrapper onJoinNow={() => handleOpenAuthModal('signup')} />} />
           <Route path="*" element={<Navigate to="/" />} />
         </>
       )}
@@ -399,7 +400,7 @@ function AppContent() {
   // If this is a password reset flow, show the password reset page regardless of authentication status
   if (isResetFlow) {
     return (
-      <div className="flex min-h-screen flex-col bg-slate-100">
+      <div className="flex min-h-screen flex-col bg-parchment-sunken">
         <main className="flex-grow">
           <PasswordResetPage />
         </main>
@@ -411,21 +412,25 @@ function AppContent() {
     return <LoadingSpinner text="Initializing..." />;
   }
 
+  const isHeroPage = !user && location.pathname === '/';
+  const showBottomTabBar = Boolean(user) && isMobile && location.pathname !== '/messages';
+
   return (
     // <TrackingProvider>
-    <div className="flex min-h-screen flex-col bg-slate-100 relative">
+    <div className={`flex min-h-screen flex-col relative ${isHeroPage ? 'bg-parchment' : 'bg-parchment-sunken'}`}>
       <GDPRBanner />
       <Header
         onSignIn={() => handleOpenAuthModal('signin')}
         onJoinNow={() => handleOpenAuthModal('signup')}
       />
-      <main className="flex-grow">
+      <main className={`flex-grow ${showBottomTabBar ? 'pb-14' : ''}`}>
         <React.Suspense fallback={<LoadingSpinner text="Loading page..." />}>
           {routes}
         </React.Suspense>
       </main>
+      {showBottomTabBar && <BottomTabBar />}
       {!(isMobile && location.pathname === '/messages') && (
-        <Footer compact={isMobile} />
+        <Footer compact={isMobile} slim={Boolean(user)} />
       )}
 
       {/* Auth Modal */}

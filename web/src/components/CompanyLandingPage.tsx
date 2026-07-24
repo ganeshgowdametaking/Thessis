@@ -112,7 +112,7 @@ const CompanyLandingPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between p-6 relative z-10">
         <div className="flex items-center space-x-2">
-          <img src="/new-logo.png" alt="TankTide Logo" className="h-12 w-auto filter-sage" />
+          <img src="/new-logo.png" alt="Thessis Logo" className="h-12 w-12 object-contain" />
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2 text-white text-sm">

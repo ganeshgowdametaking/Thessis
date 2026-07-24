@@ -1,5 +1,5 @@
 /*
-  # Initial TankTide Database Schema
+  # Initial Thessis Database Schema
 
   1. New Tables
     - `profiles` - User profiles with professional information

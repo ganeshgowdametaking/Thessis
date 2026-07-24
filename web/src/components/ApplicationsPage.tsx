@@ -657,12 +657,12 @@ export default function ApplicationsPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F9F7] flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-parchment flex flex-col overflow-hidden">
       {/* Page Header */}
-      <header className="bg-[#F9F9F7] pt-5 md:pt-8 pb-3 md:pb-4 px-4 md:px-8 shrink-0 z-10">
+      <header className="bg-parchment pt-5 md:pt-8 pb-3 md:pb-4 px-4 md:px-8 shrink-0 z-10">
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-6">
           <div
-            className="hidden md:flex items-center gap-2 text-slate-500 hover:text-[#5f7261] transition-colors cursor-pointer w-fit"
+            className="hidden md:flex items-center gap-2 text-slate-500 hover:text-ink transition-colors cursor-pointer w-fit"
             onClick={onBack}
           >
             <BackArrowIcon className="h-5 w-5" />
@@ -678,7 +678,7 @@ export default function ApplicationsPage({
                 </span>
               </div>
               <p className="text-slate-500 font-medium">
-                {referralTitle} • <span className="text-[#5f7261] font-semibold">{applications.length} Total Applicants</span>
+                {referralTitle} • <span className="text-ink font-semibold">{applications.length} Total Applicants</span>
               </p>
             </div>
 
@@ -692,15 +692,15 @@ export default function ApplicationsPage({
             <div className="flex gap-6 overflow-x-auto no-scrollbar">
               <button
                 className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'top_ranked'
-                  ? 'border-[#5f7261] text-[#5f7261]'
+                  ? 'border-[#4353FF] text-ink'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                   } transition-all`}
                 onClick={() => setActiveTab('top_ranked')}
               >
                 <span className="font-bold text-sm whitespace-nowrap">Top applicants</span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'top_ranked'
-                  ? 'bg-[#5f7261] text-white'
-                  : 'bg-slate-200 text-slate-600'
+                  ? 'bg-ink text-white'
+                  : 'bg-parchment-sunken text-slate-600'
                   }`}>
                   {statusCounts.top_ranked}
                 </span>
@@ -708,15 +708,15 @@ export default function ApplicationsPage({
 
               <button
                 className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'all'
-                  ? 'border-[#5f7261] text-[#5f7261]'
+                  ? 'border-[#4353FF] text-ink'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                   } transition-all`}
                 onClick={() => setActiveTab('all')}
               >
                 <span className="font-bold text-sm">All</span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'all'
-                  ? 'bg-[#5f7261] text-white'
-                  : 'bg-slate-200 text-slate-600'
+                  ? 'bg-ink text-white'
+                  : 'bg-parchment-sunken text-slate-600'
                   }`}>
                   {statusCounts.all}
                 </span>
@@ -724,15 +724,15 @@ export default function ApplicationsPage({
 
               <button
                 className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'shortlisted'
-                  ? 'border-[#5f7261] text-[#5f7261]'
+                  ? 'border-[#4353FF] text-ink'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                   } transition-all`}
                 onClick={() => setActiveTab('shortlisted')}
               >
                 <span className="font-medium text-sm">Shortlisted</span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'shortlisted'
-                  ? 'bg-[#5f7261] text-white'
-                  : 'bg-slate-200 text-slate-600'
+                  ? 'bg-ink text-white'
+                  : 'bg-parchment-sunken text-slate-600'
                   }`}>
                   {statusCounts.shortlisted}
                 </span>
@@ -740,15 +740,15 @@ export default function ApplicationsPage({
 
               <button
                 className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'referred'
-                  ? 'border-[#5f7261] text-[#5f7261]'
+                  ? 'border-[#4353FF] text-ink'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                   } transition-all`}
                 onClick={() => setActiveTab('referred')}
               >
                 <span className="font-medium text-sm">Referred</span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'referred'
-                  ? 'bg-[#5f7261] text-white'
-                  : 'bg-slate-200 text-slate-600'
+                  ? 'bg-ink text-white'
+                  : 'bg-parchment-sunken text-slate-600'
                   }`}>
                   {statusCounts.referred}
                 </span>
@@ -759,14 +759,14 @@ export default function ApplicationsPage({
               <div className="relative w-full lg:w-64">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
                 <input
-                  className="w-full h-10 pl-10 pr-4 rounded-lg border-none bg-white text-sm text-slate-700 placeholder:text-slate-400 focus:ring-1 focus:ring-[#5f7261] shadow-sm"
+                  className="w-full h-10 pl-10 pr-4 rounded-lg border-none bg-white text-sm text-slate-700 placeholder:text-slate-400 focus:ring-1 focus:ring-[#4353FF] shadow-sm"
                   placeholder="Search applicants..."
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <div className="h-6 w-px bg-slate-200 mx-1"></div>
+              <div className="h-6 w-px bg-parchment-sunken mx-1"></div>
               <button
                 className="h-10 px-4 rounded-lg bg-white border border-transparent hover:border-slate-200 text-slate-600 flex items-center gap-2 text-sm font-semibold shadow-sm transition-all whitespace-nowrap"
                 onClick={() => setSortOrder((prev) => (prev === 'earliest' ? 'latest' : 'earliest'))}
@@ -787,7 +787,7 @@ export default function ApplicationsPage({
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-center justify-between gap-3">
               <p className="text-sm text-amber-800">{error}</p>
               <button
-                className="h-8 px-3 rounded-md bg-white border border-amber-200 text-amber-800 text-xs font-semibold"
+                className="h-8 px-3 rounded-lg bg-white border border-amber-200 text-amber-800 text-xs font-semibold"
                 onClick={() => fetchApplications()}
               >
                 Retry
@@ -816,7 +816,7 @@ export default function ApplicationsPage({
                   <button
                     onClick={triggerAiRanking}
                     disabled={aiRankingLoading}
-                    className="h-9 px-4 rounded-md bg-[#5f7261] text-white text-xs font-bold hover:bg-[#4b5c4d] transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
+                    className="h-9 px-4 rounded-lg bg-ink text-white text-xs font-bold hover:bg-ink-deep transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined text-[18px]">bolt</span>
                     Update AI Rankings
@@ -827,7 +827,7 @@ export default function ApplicationsPage({
 
             {isMobile && (
               <button
-                className="h-9 px-3 rounded-md border border-slate-200 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5"
+                className="h-9 px-3 rounded-lg border border-slate-200 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5"
                 onClick={() => setIsAiPanelExpanded((prev) => !prev)}
               >
                 <span className="material-symbols-outlined text-[16px]">{isAiPanelExpanded ? 'expand_less' : 'expand_more'}</span>
@@ -836,7 +836,7 @@ export default function ApplicationsPage({
             )}
 
             {showAiPanelDetails && aiRankingError && (
-              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2 mt-3">
+              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-3">
                 {aiRankingError}
               </div>
             )}
@@ -844,26 +844,26 @@ export default function ApplicationsPage({
             {showAiPanelDetails && aiLeaderboard && (
               <div className="space-y-3 mt-3">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-[#f2f1ec] rounded-md p-3">
+                  <div className="bg-parchment-sunken rounded-lg p-3">
                     <p className="text-xs text-slate-500">Shortlisted</p>
                     <p className="text-lg font-bold text-slate-900">{aiLeaderboard.shortlisted_count ?? aiLeaderboard.top_5.length}</p>
                   </div>
-                  <div className="bg-[#f2f1ec] rounded-md p-3">
+                  <div className="bg-parchment-sunken rounded-lg p-3">
                     <p className="text-xs text-slate-500">Ranked</p>
                     <p className="text-lg font-bold text-slate-900">{aiLeaderboard.total_ranked}</p>
                   </div>
-                  <div className="bg-[#f2f1ec] rounded-md p-3">
+                  <div className="bg-parchment-sunken rounded-lg p-3">
                     <p className="text-xs text-slate-500">Pending</p>
                     <p className="text-lg font-bold text-slate-900">{aiLeaderboard.pending_count}</p>
                   </div>
-                  <div className="bg-[#f2f1ec] rounded-md p-3">
+                  <div className="bg-parchment-sunken rounded-lg p-3">
                     <p className="text-xs text-slate-500">Failed</p>
                     <p className="text-lg font-bold text-slate-900">{(aiLeaderboard as any).failed_count}</p>
                   </div>
                 </div>
 
                 {(aiLeaderboard.top_5.length > 0 || aiLeaderboard.others.length > 0) ? (
-                  <div className="bg-[#f9f9f7] rounded-md border border-slate-200 overflow-hidden">
+                  <div className="bg-parchment rounded-lg border border-slate-200 overflow-hidden">
                     <div className="px-4 py-2 border-b border-slate-200">
                       <p className="text-sm font-semibold text-slate-700">
                         {aiLeaderboard.top_5.length > 0
@@ -875,7 +875,7 @@ export default function ApplicationsPage({
                       {(aiLeaderboard.top_5.length > 0 ? aiLeaderboard.top_5 : aiLeaderboard.others.slice(0, 5)).map((candidate, index) => (
                         <div key={candidate.id} className="px-4 py-3">
                           <p className="text-sm font-semibold text-slate-900">
-                            {index + 1}. {candidate.name} <span className="text-[#5f7261]">({(candidate.score ?? 0).toFixed(2)}%)</span>
+                            {index + 1}. {candidate.name} <span className="text-ink">({(candidate.score ?? 0).toFixed(2)}%)</span>
                           </p>
                           <p className="text-xs text-slate-500 mt-1">{candidate.rationale || 'No rationale provided.'}</p>
                         </div>
@@ -883,7 +883,7 @@ export default function ApplicationsPage({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm text-slate-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                  <div className="text-sm text-slate-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                     No candidates met shortlist thresholds for this job yet.
                   </div>
                 )}
@@ -910,7 +910,7 @@ export default function ApplicationsPage({
                       className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                       onClick={() => application.user_id && onViewProfile(application.user_id)}
                     >
-                      <div className="h-12 w-12 rounded-full bg-cover bg-center bg-slate-200 flex items-center justify-center">
+                      <div className="h-12 w-12 rounded-full bg-cover bg-center bg-parchment-sunken flex items-center justify-center">
                         {application.user_profile?.avatar_url ? (
                           <img
                             src={application.user_profile.avatar_url}
@@ -963,7 +963,7 @@ export default function ApplicationsPage({
 
                   {/* Cover Letter Preview */}
                   {application.cover_letter && (
-                    <div className="mb-5 bg-[#f2f1ec] p-3 rounded-md">
+                    <div className="mb-5 bg-parchment-sunken p-3 rounded-lg">
                       <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed italic">
                         "{application.cover_letter}"
                       </p>
@@ -973,9 +973,9 @@ export default function ApplicationsPage({
                   {/* Actions */}
                   <div className="mt-auto flex flex-col gap-2">
                     <button
-                      className={`w-full py-2 rounded-md text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${application.status === 'referred'
-                        ? 'bg-slate-200 text-slate-700 cursor-default'
-                        : 'bg-[#5f7261] hover:bg-[#4b5c4d] text-white'
+                      className={`w-full py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${application.status === 'referred'
+                        ? 'bg-parchment-sunken text-slate-700 cursor-default'
+                        : 'bg-ink hover:bg-ink-deep text-white'
                         }`}
                       onClick={() => {
                         if (application.status === 'shortlisted') {
@@ -993,21 +993,21 @@ export default function ApplicationsPage({
                     </button>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <button
-                        className="bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
+                        className="bg-white border border-slate-200 hover:bg-parchment-sunken text-slate-700 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors"
                         onClick={() => setSelectedApplication(application)}
                       >
                         <span className="material-symbols-outlined text-[18px]">person</span>
                         View Details
                       </button>
                       <button
-                        className="bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
+                        className="bg-white border border-slate-200 hover:bg-parchment-sunken text-slate-700 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors"
                         onClick={() => handleViewResume(application)}
                       >
                         <span className="material-symbols-outlined text-[18px]">description</span>
                         Resume
                       </button>
                       <button
-                        className="bg-white border border-slate-200 hover:bg-[#f2f1ec] text-slate-700 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1 transition-colors"
+                        className="bg-white border border-slate-200 hover:bg-parchment-sunken text-slate-700 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors"
                         onClick={() => onMessage(application.applicant_id)}
                       >
                         <span className="material-symbols-outlined text-[18px]">chat_bubble</span>
@@ -1028,7 +1028,7 @@ export default function ApplicationsPage({
           <div className={`bg-white w-full shadow-2xl flex flex-col overflow-hidden ${isMobile ? 'h-[92vh] rounded-t-2xl rounded-b-none' : 'max-w-3xl max-h-[90vh] rounded-xl'}`}>
             <div className={`flex items-center justify-between border-b border-slate-100 shrink-0 ${isMobile ? 'p-4' : 'p-6'}`}>
               <div className="flex items-center gap-4">
-                <div className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} rounded-full bg-cover bg-center bg-slate-200 flex items-center justify-center`}>
+                <div className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} rounded-full bg-cover bg-center bg-parchment-sunken flex items-center justify-center`}>
                   {selectedApplication.user_profile?.avatar_url ? (
                     <img
                       src={selectedApplication.user_profile.avatar_url}
@@ -1052,7 +1052,7 @@ export default function ApplicationsPage({
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  className="p-2 text-slate-400 hover:bg-[#f2f1ec] rounded-lg transition-colors"
+                  className="p-2 text-slate-400 hover:bg-parchment-sunken rounded-lg transition-colors"
                   onClick={() => setSelectedApplication(null)}
                 >
                   <span className="material-symbols-outlined">close</span>
@@ -1067,19 +1067,19 @@ export default function ApplicationsPage({
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Contact</h4>
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center gap-3 text-slate-600 text-sm">
-                        <span className="material-symbols-outlined text-[#5f7261]">mail</span>
+                        <span className="material-symbols-outlined text-ink">mail</span>
                         <span>{selectedApplication.user_profile?.email}</span>
                       </div>
                       {selectedApplication.user_profile?.phone && (
                         <div className="flex items-center gap-3 text-slate-600 text-sm">
-                          <span className="material-symbols-outlined text-[#5f7261]">phone</span>
+                          <span className="material-symbols-outlined text-ink">phone</span>
                           <span>{selectedApplication.user_profile.phone}</span>
                         </div>
                       )}
                       {selectedApplication.user_profile?.linkedin_url && (
                         <div className="flex items-center gap-3 text-slate-600 text-sm">
-                          <span className="material-symbols-outlined text-[#5f7261]">link</span>
-                          <a className="text-[#5f7261] hover:underline" href={selectedApplication.user_profile.linkedin_url} target="_blank" rel="noopener noreferrer">
+                          <span className="material-symbols-outlined text-ink">link</span>
+                          <a className="text-ink hover:underline" href={selectedApplication.user_profile.linkedin_url} target="_blank" rel="noopener noreferrer">
                             LinkedIn Profile
                           </a>
                         </div>
@@ -1092,7 +1092,7 @@ export default function ApplicationsPage({
                       <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Skills</h4>
                       <div className="flex flex-wrap gap-2">
                         {selectedApplication.user_profile.skills.map((skill, index) => (
-                          <span key={index} className="bg-[#f2f1ec] text-slate-600 text-xs px-2 py-1 rounded-md">
+                          <span key={index} className="bg-parchment-sunken text-slate-600 text-xs px-2 py-1 rounded-lg">
                             {skill}
                           </span>
                         ))}
@@ -1114,7 +1114,7 @@ export default function ApplicationsPage({
               </div>
             </div>
 
-            <div className={`border-t border-slate-100 bg-[#f2f1ec]/50 shrink-0 ${isMobile ? 'p-3 flex flex-col-reverse gap-2' : 'p-4 flex justify-end gap-3'}`}>
+            <div className={`border-t border-slate-100 bg-parchment-sunken/50 shrink-0 ${isMobile ? 'p-3 flex flex-col-reverse gap-2' : 'p-4 flex justify-end gap-3'}`}>
               <button
                 className={`${isMobile ? 'w-full' : ''} px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-white transition-colors`}
                 onClick={() => setSelectedApplication(null)}
@@ -1122,7 +1122,7 @@ export default function ApplicationsPage({
                 Dismiss
               </button>
               <button
-                className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-[#f2f1ec] transition-colors flex items-center gap-2`}
+                className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-parchment-sunken transition-colors flex items-center gap-2`}
                 onClick={() => handleDownloadResume(selectedApplication)}
               >
                 <span className="material-symbols-outlined text-[18px]">download</span>
@@ -1130,8 +1130,8 @@ export default function ApplicationsPage({
               </button>
               <button
                 className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${selectedApplication.status === 'referred'
-                  ? 'bg-slate-200 text-slate-700 cursor-default'
-                  : 'bg-[#5f7261] text-white hover:bg-[#4b5c4d]'
+                  ? 'bg-parchment-sunken text-slate-700 cursor-default'
+                  : 'bg-ink text-white hover:bg-ink-deep'
                   }`}
                 onClick={() => {
                   if (selectedApplication.status === 'shortlisted') {

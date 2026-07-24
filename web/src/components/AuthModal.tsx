@@ -155,7 +155,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
   const actionAreaClass = 'mt-2 sticky sm:static bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 pt-3 sm:pt-0 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:pb-0 bg-white/95 sm:bg-transparent backdrop-blur supports-[backdrop-filter]:bg-white/75 border-t border-slate-100 sm:border-0'
 
   return (
-    <div className="fixed inset-0 bg-[#F9F9F7]/80 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-parchment/80 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">
       <div className="w-full max-w-[480px] h-[100dvh] sm:h-auto sm:max-h-[90vh] bg-white border-0 sm:border border-slate-200 rounded-none sm:rounded-xl shadow-2xl flex flex-col overflow-hidden relative">
         <button onClick={onClose} className="absolute top-[max(12px,env(safe-area-inset-top))] right-4 text-slate-400 hover:text-slate-600 transition-colors z-10">
           <X size={24} />
@@ -163,7 +163,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
 
         <div className="pt-[max(16px,env(safe-area-inset-top))] sm:pt-8 px-4 sm:px-8 pb-0">
           <div className="flex justify-center mb-4 sm:mb-6">
-            <img src="/logo2.png" alt="Logo" className="w-10 h-10 object-contain filter-sage" />
+            <img src="/logo2.png" alt="Logo" className="w-12 h-12 object-contain" />
           </div>
 
           {(mode === 'signin' || mode === 'signup') && (

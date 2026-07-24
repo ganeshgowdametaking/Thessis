@@ -16,19 +16,28 @@ body {
   }
 }
 
-/* Sage & Stone Design System */
+/* Engineer Light Design System */
 :root {
-  --primary: #5f7261;
-  /* Sage */
-  --stone-bg: #F9F9F7;
-  /* Stone */
-  --background-light: #F9F9F7;
+  --primary: #4353FF;
+  /* Accent Indigo */
+  --stone-bg: #F8F9FC;
+  /* bg-base */
+  --background-light: #F8F9FC;
   --background-dark: #181a18;
-  --slate-text: #334155;
-  --slate-light: #64748b;
+  --slate-text: #4B5563;
+  --slate-light: #6B7280;
 }
 
 body {
+  font-family: 'Inter', sans-serif;
+  background-color: #F8F9FC;
+}
+
+/* Headings keep the Manrope brand voice; body/UI text uses Inter for small-size legibility */
+h1,
+h2,
+h3,
+h4 {
   font-family: 'Manrope', sans-serif;
 }
 
@@ -48,12 +57,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #D1D5DB;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #9CA3AF;
 }
 
 /* Hide scrollbar for no-scrollbar class */
@@ -92,12 +101,12 @@ body {
 }
 
 .chart-gradient-sage {
-  background: linear-gradient(180deg, rgba(95, 114, 97, 0.2) 0%, rgba(95, 114, 97, 0) 100%);
+  background: linear-gradient(180deg, rgba(67, 83, 255, 0.2) 0%, rgba(67, 83, 255, 0) 100%);
 }
 
 .message-wallpaper {
   position: relative;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: linear-gradient(135deg, #F8F9FC 0%, #E5E7EB 100%);
   overflow: hidden;
 }
 
@@ -138,7 +147,7 @@ body {
   line-height: 14px;
   letter-spacing: 1.2px;
   transition: .2s .1s;
-  background-image: linear-gradient(90deg, #2563eb, #60a5fa);
+  background-image: linear-gradient(90deg, #4353FF, #818CF8);
   border: 0 solid;
   overflow: hidden;
 }
@@ -155,7 +164,7 @@ body {
   position: relative;
   padding: 10px 20px;
   border-radius: 7px;
-  border: 1px solid rgb(61, 106, 255);
+  border: 1px solid rgb(67, 83, 255);
   font-size: 14px;
   text-transform: uppercase;
   font-weight: 600;
@@ -170,8 +179,8 @@ body {
 }
 
 .sign-in-btn:hover {
-  background: rgb(61, 106, 255);
-  box-shadow: 0 0 30px 5px rgba(0, 142, 236, 0.815);
+  background: rgb(67, 83, 255);
+  box-shadow: 0 0 30px 5px rgba(67, 83, 255, 0.6);
   -webkit-transition: all 0.2s ease-out;
   -moz-transition: all 0.2s ease-out;
   transition: all 0.2s ease-out;
@@ -236,7 +245,7 @@ body {
   top: 30px;
   height: 7px;
   width: 7px;
-  background: #5f7261;
+  background: #4353FF;
   border-radius: 50%;
   position: relative;
 }
@@ -246,7 +255,7 @@ body {
   bottom: -85px;
   font-size: 25px;
   font-weight: 400;
-  color: #5f7261;
+  color: #4353FF;
 }
 
 @keyframes rotate0234 {
@@ -331,22 +340,27 @@ body {
 }
 
 
-/* Remove default focus outline from specific inputs (not filter inputs) */
-input:focus:not([data-filter-input]),
-textarea:focus,
-select:focus:not([data-filter-select]) {
-  outline: none !important;
-  box-shadow: none !important;
+/* Accessible focus: keyboard users always get a visible ring */
+button:focus-visible,
+a:focus-visible,
+[role='button']:focus-visible {
+  outline: 2px solid rgb(67 83 255 / 0.45);
+  outline-offset: 2px;
 }
 
-/* Custom focus styles for search inputs (not filter inputs) */
-input[type="text"]:focus:not([data-filter-input]),
-input[type="search"]:focus {
-  outline: none !important;
-  box-shadow: none !important;
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgb(67 83 255 / 0.45);
+  outline-offset: 1px;
 }
 
-/* Sage Green Filter for black icons (#5f7261) */
+/* Inputs inside wrappers that style focus-within manage their own focus ring */
+[class*='focus-within'] input:focus-visible {
+  outline: none;
+}
+
+/* Accent Indigo Filter for black icons (#4353FF) */
 .filter-sage {
-  filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(712%) hue-rotate(85deg) brightness(97%) contrast(85%);
+  filter: brightness(0) saturate(100%) invert(32%) sepia(88%) saturate(4400%) hue-rotate(231deg) brightness(100%) contrast(103%);
 }

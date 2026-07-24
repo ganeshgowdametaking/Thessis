@@ -38,8 +38,8 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variantClasses = {
-    default: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-blue-500 shadow-sm',
-    outline: 'bg-transparent text-black border border-gray-300 hover:bg-gray-50 focus:ring-blue-500 shadow-sm',
+    default: 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-blue-500 shadow-sm',
+    outline: 'bg-transparent text-black border border-slate-300 hover:bg-slate-50 focus:ring-blue-500 shadow-sm',
     ghost: 'bg-transparent text-white hover:bg-white/10 focus:ring-white'
   };
 

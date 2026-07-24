@@ -29,12 +29,12 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed">
             Cookies are small text files that are placed on your computer or mobile device when you visit a website. 
             They are widely used to make websites work more efficiently, as well as to provide information to the owners of the site. 
-            At TankTide, we use cookies to improve your experience, ensuring our platform is secure and easy to use.
+            At Thessis, we use cookies to improve your experience, ensuring our platform is secure and easy to use.
           </p>
         </section>
 
         <section>
-          <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-3 sm:mb-4">2. How TankTide Uses Cookies</h2>
+          <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-3 sm:mb-4">2. How Thessis Uses Cookies</h2>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-4">
             We use both session cookies (which expire once you close your web browser) and persistent cookies 
             (which stay on your device for a set period of time or until you delete them). We use these technologies for the following purposes:
@@ -70,7 +70,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  <tr className="hover:bg-gray-50 transition-colors">
+                  <tr className="hover:bg-slate-50 transition-colors">
                     <td className="p-4 text-sm font-semibold text-slate-900 align-top">Strictly Necessary</td>
                     <td className="p-4 text-sm text-slate-600 font-mono align-top">auth_token</td>
                     <td className="p-4 text-sm text-slate-600 align-top">
@@ -78,7 +78,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
                     </td>
                     <td className="p-4 text-sm text-slate-600 align-top">Session</td>
                   </tr>
-                  <tr className="hover:bg-gray-50 transition-colors">
+                  <tr className="hover:bg-slate-50 transition-colors">
                     <td className="p-4 text-sm font-semibold text-slate-900 align-top">Performance</td>
                     <td className="p-4 text-sm text-slate-600 font-mono align-top">_ga</td>
                     <td className="p-4 text-sm text-slate-600 align-top">
@@ -86,7 +86,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
                     </td>
                     <td className="p-4 text-sm text-slate-600 align-top">2 years</td>
                   </tr>
-                  <tr className="hover:bg-gray-50 transition-colors">
+                  <tr className="hover:bg-slate-50 transition-colors">
                     <td className="p-4 text-sm font-semibold text-slate-900 align-top">Functional</td>
                     <td className="p-4 text-sm text-slate-600 font-mono align-top">pref_lang</td>
                     <td className="p-4 text-sm text-slate-600 align-top">
@@ -94,7 +94,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
                     </td>
                     <td className="p-4 text-sm text-slate-600 align-top">1 year</td>
                   </tr>
-                  <tr className="hover:bg-gray-50 transition-colors">
+                  <tr className="hover:bg-slate-50 transition-colors">
                     <td className="p-4 text-sm font-semibold text-slate-900 align-top">Targeting</td>
                     <td className="p-4 text-sm text-slate-600 font-mono align-top">ads_r_1</td>
                     <td className="p-4 text-sm text-slate-600 align-top">
@@ -112,7 +112,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
           <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-3 sm:mb-4">4. Managing Your Preferences</h2>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-6">
             You can change your cookie preferences at any time by changing your browser settings. 
-            Please note that if you disable cookies, some features of the TankTide platform may not function correctly.
+            Please note that if you disable cookies, some features of the Thessis platform may not function correctly.
           </p>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-4">
             Find out how to manage cookies on popular browsers:

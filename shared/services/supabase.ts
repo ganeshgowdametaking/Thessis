@@ -26,7 +26,7 @@ export const supabase = createClient<Database>(
     },
     global: {
       headers: {
-        'X-Client-Info': 'tanktide-mobile-app',
+        'X-Client-Info': 'thessis-mobile-app',
         'apikey': supabaseAnonKey || 'placeholder-key'
       }
     },

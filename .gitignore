@@ -34,13 +34,13 @@ yarn-error.log*
 # Project specific
 web/node_modules
 mobile/node_modules
-TankTide.com/.DS_Store
-TankTide.com/DerivedData/
-TankTide.com/Build/
-TankTide.com/Index/
-TankTide.com/Logs/
-TankTide.com/xcshareddata/
-TankTide.com/xcuserdata/
+Thessis.com/.DS_Store
+Thessis.com/DerivedData/
+Thessis.com/Build/
+Thessis.com/Index/
+Thessis.com/Logs/
+Thessis.com/xcshareddata/
+Thessis.com/xcuserdata/
 
 # Generated runtime artifacts
 web/resume-ranking/uploaded_resumes/
@@ -52,6 +52,8 @@ web/resume-ranking/*.pyo
 web/resume-ranking/*.pyd
 
 # User-specific Xcode metadata
-TankTide.com/**/xcuserdata/
-TankTide.com/**/UserInterfaceState.xcuserstate
-TankTide.com/**/xcschememanagement.plist
+Thessis.com/**/xcuserdata/
+Thessis.com/**/UserInterfaceState.xcuserstate
+Thessis.com/**/xcschememanagement.plist
+tanktide/
+thessis/

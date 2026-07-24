@@ -1,10 +1,10 @@
-# TankTide - Professional Networking Platform
+# Thessis - Professional Networking Platform
 
 A comprehensive professional networking platform built with React, TypeScript, and Supabase that connects talented professionals with opportunities through trusted referrals.
 
 ## Overview
 
-TankTide is a modern web application that serves as a professional networking platform. It enables users to create profiles, share job opportunities, connect with other professionals, and manage job applications in a secure and user-friendly environment.
+Thessis is a modern web application that serves as a professional networking platform. It enables users to create profiles, share job opportunities, connect with other professionals, and manage job applications in a secure and user-friendly environment.
 
 ## Core Features
 
@@ -122,7 +122,7 @@ src/
 ### Step 1: Clone the Repository
 ```bash
 git clone <repository-url>
-cd tanktide_frontend
+cd thessis_frontend
 ```
 
 ### Step 2: Install Dependencies
@@ -310,7 +310,7 @@ The platform includes a comprehensive admin system for managing administrator ac
 1. **Mailgun Configuration** (Supabase Edge Functions Environment Variables):
    ```bash
    MAILGUN_API_KEY=key-your-private-api-key
-   MAILGUN_DOMAIN=tanktide.com
+   MAILGUN_DOMAIN=thessis.com
    MAILGUN_FROM_EMAIL=no-reply@tanktide.com
    FRONTEND_URL=https://tanktide.com
    ```
@@ -399,4 +399,4 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ---
 
-**TankTide** - Where professional opportunities flow through trusted connections.
+**Thessis** - Where professional opportunities flow through trusted connections.

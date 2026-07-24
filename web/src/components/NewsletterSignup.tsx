@@ -112,7 +112,7 @@ const NewsletterSignup: React.FC = () => {
                 </div>
                 <div className="ml-3 text-sm">
                   <label htmlFor="consent" className="text-slate-300">
-                    I consent to receive marketing communications from TankTide. I understand that I can unsubscribe at any time by clicking the unsubscribe link in the emails. For more information, please see our{' '}
+                    I consent to receive marketing communications from Thessis. I understand that I can unsubscribe at any time by clicking the unsubscribe link in the emails. For more information, please see our{' '}
                     <a href="/privacy-policy" className="text-blue-400 hover:text-blue-300">
                       Privacy Policy
                     </a>.
