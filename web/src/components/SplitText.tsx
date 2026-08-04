@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, createElement } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText as GSAPSplitText } from "gsap/SplitText";
@@ -17,6 +17,7 @@ const SplitText = ({
   threshold = 0.1,
   rootMargin = "-100px",
   textAlign = "center",
+  tag = "p",
   onLetterAnimationComplete,
 }: {
   text: string;
@@ -30,9 +31,10 @@ const SplitText = ({
   threshold?: number;
   rootMargin?: string;
   textAlign?: string;
+  tag?: string;
   onLetterAnimationComplete?: () => void;
 }) => {
-  const ref = useRef<HTMLParagraphElement>(null);
+  const ref = useRef<HTMLElement>(null);
   const animationCompletedRef = useRef(false);
 
   useEffect(() => {
@@ -120,20 +122,20 @@ const SplitText = ({
     onLetterAnimationComplete,
   ]);
 
-  return (
-    <p
-      ref={ref}
-      className={`split-parent ${className}`}
-      style={{
-        textAlign: textAlign as any,
+  return createElement(
+    tag,
+    {
+      ref,
+      className: `split-parent ${className}`,
+      style: {
+        textAlign,
         overflow: "hidden",
         display: "inline-block",
         whiteSpace: "normal",
         wordWrap: "break-word",
-      }}
-    >
-      {text}
-    </p>
+      },
+    },
+    text
   );
 };
 

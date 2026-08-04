@@ -1,12 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Settings } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { notificationService } from '../services/notificationService';
-import referralIcon from '../assets/referral-icon.png';
-import messagesIcon from '../assets/messages-icon.png';
-import notificationsIcon from '../assets/notifications-icon.png';
 import profileIcon from '../assets/profile-icon.png';
-import settingsIcon from '../assets/settings-icon.png';
 
 
 // Add global type for refreshUnreadCounts
@@ -34,6 +31,13 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 8);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -188,24 +192,28 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
 
   if (!user) {
     return (
-      <header className="w-full border-b border-slate-200/60 bg-stone/90 backdrop-blur-md sticky top-0 z-50 h-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
+      <header className="sticky top-[-1px] z-50 w-full pt-3 sm:pt-4 px-3 sm:px-6 lg:px-10">
+        <div
+          className={`mx-auto max-w-7xl rounded-full transition-colors duration-300 ${
+            isScrolled ? 'bg-[#F3F4F6]' : 'bg-parchment'
+          }`}
+        >
+          <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
             <div className="flex items-center">
               <Link to="/" className="block">
                 <img
-                  src="/logo2.png"
-                  alt="TankTide Logo"
-                  className="h-12 w-12 object-contain cursor-pointer hover:opacity-80 transition-opacity filter-sage"
+                  src="/logo2.png?v=2"
+                  alt="THESSIS Logo"
+                  className="h-12 w-12 object-contain cursor-pointer hover:opacity-80 transition-opacity"
                 />
               </Link>
             </div>
             <nav className="hidden md:flex items-center gap-8"></nav>
             <div className="flex items-center gap-3">
-              <button onClick={onSignIn} className="hidden sm:flex h-9 items-center justify-center rounded-lg px-4 text-sm font-bold text-slate-700 hover:bg-black/5 transition-colors">
+              <button onClick={onSignIn} className="hidden sm:flex h-9 items-center justify-center rounded-full px-4 text-sm font-bold text-slate-700 hover:bg-black/5 transition-colors">
                 Login
               </button>
-              <button onClick={onJoinNow} className="flex h-9 items-center justify-center rounded-lg bg-sage px-4 text-sm font-bold text-white shadow-sm hover:bg-sage-dark transition-all">
+              <button onClick={onJoinNow} className="flex h-9 items-center justify-center rounded-full bg-sage px-4 text-sm font-bold text-white hover:bg-sage-dark transition-all">
                 Signup
               </button>
             </div>
@@ -227,12 +235,16 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   };
 
   return (
-    <header className="bg-white border-b border-stone-200 shrink-0 z-40 relative">
+    <header
+      className={`border-b border-hairline shrink-0 z-40 sticky top-[-1px] transition-colors duration-300 ${
+        isScrolled ? 'bg-[#F3F4F6]' : 'bg-parchment'
+      }`}
+    >
       <div className="md:hidden h-16 px-2 grid grid-cols-[88px_1fr_88px] items-center">
         <div className="flex items-center justify-start">
           <button
             onClick={handleMobileLeadingAction}
-            className="h-11 w-11 flex items-center justify-center rounded-lg text-[#354038] hover:bg-stone-100 transition-colors"
+            className="h-11 w-11 flex items-center justify-center rounded-lg text-[#1A1A2E] hover:bg-stone-100 transition-colors"
             aria-label={shouldShowBackButton ? 'Go back' : (isMenuOpen ? 'Close menu' : 'Open menu')}
           >
             {shouldShowBackButton ? (
@@ -245,14 +257,14 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
 
         <Link to="/jobs" className="flex items-center justify-self-center min-w-0">
           <img
-            src="/logo2.png"
-            alt="TankTide Logo"
-            className="h-10 w-10 object-contain filter-sage"
+            src="/logo2.png?v=2"
+            alt="THESSIS Logo"
+            className="h-12 w-12 object-contain"
           />
         </Link>
 
         <div className="flex items-center justify-end gap-1">
-          <Link to="/profile" className="h-11 w-11 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors" aria-label="Profile">
+          <Link to="/profile" className="h-11 w-11 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors outline-none focus:outline-none focus-visible:outline-none" aria-label="Profile">
             <img
               src={profile?.avatar_url || profileIcon}
               alt={profile?.full_name || 'Profile'}
@@ -267,19 +279,20 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
           <div className="flex items-center shrink-0">
             <Link to="/jobs" className="block">
               <img
-                src="/logo2.png"
-                alt="TankTide Logo"
-                className="h-16 w-16 object-contain rounded-xl cursor-pointer hover:opacity-80 transition-opacity filter-sage"
+                src="/logo2.png?v=2"
+                alt="THESSIS Logo"
+                className="h-[43px] w-[43px] object-contain rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
               />
             </Link>
           </div>
 
-          <div className="hidden lg:flex items-center bg-[#f2f1ec] rounded-full px-5 py-2.5 w-[540px] border border-[#e6e5e0] transition-colors focus-within:border-primary/50 focus-within:bg-[#efeee9] shadow-sm">
+          <div className="hidden lg:flex items-center bg-parchment-sunken rounded-full px-5 py-2.5 w-[540px] border border-hairline-strong transition-colors focus-within:border-primary/50 focus-within:bg-parchment-sunken shadow-sm">
             <span className="material-symbols-outlined text-slate-500 text-[22px]">search</span>
             <form onSubmit={handleSearch} className="flex-1">
               <input
                 className="bg-transparent border-none p-0 ml-3 w-full text-slate-700 placeholder:text-slate-500 focus:ring-0 text-[15px] font-medium"
-                placeholder="Search..."
+                placeholder="Search people or companies..."
+                aria-label="Search people or companies"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
@@ -290,65 +303,66 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-6 shrink-0">
-          <div className="flex items-center gap-6">
-            {/* Referral Icon Container */}
-            <Link to="/jobs" className="group flex items-center justify-center h-10 w-10 transition-colors">
-              <img
-                src={referralIcon}
-                alt="Referrals"
-                className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
-              />
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2">
+            {/* Jobs Nav Link */}
+            <Link
+              to="/jobs"
+              className={`flex items-center h-11 px-3 text-base font-semibold transition-colors duration-150 outline-none focus:outline-none focus-visible:outline-none ${location.pathname === '/jobs' ? 'text-accent' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Jobs
             </Link>
 
-            {/* Messages Icon Container */}
-            <Link to="/messages" className="group flex items-center justify-center h-10 w-10 transition-colors">
-              <img
-                src={messagesIcon}
-                alt="Messages"
-                className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
-              />
+            {/* Messages Nav Link */}
+            <Link
+              to="/messages"
+              className={`flex items-center h-11 px-3 text-base font-semibold transition-colors duration-150 outline-none focus:outline-none focus-visible:outline-none ${location.pathname === '/messages' ? 'text-accent' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Messages
             </Link>
 
-            {/* Notifications Icon Container */}
-            <Link to="/notifications" className="relative group flex items-center justify-center h-10 w-10 transition-colors">
-              <img
-                src={notificationsIcon}
-                alt="Notifications"
-                className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
-              />
+            {/* Notifications Nav Link */}
+            <Link
+              to="/notifications"
+              className={`relative flex items-center h-11 px-3 text-base font-semibold transition-colors duration-150 outline-none focus:outline-none focus-visible:outline-none ${location.pathname === '/notifications' ? 'text-accent' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Notifications
               {unreadNotifications > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full leading-none">
+                  {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                </span>
               )}
             </Link>
 
             {/* Profile Icon Container */}
-            <Link to="/profile" className="group flex items-center justify-center h-10 w-10 transition-colors">
+            <Link
+              to="/profile"
+              title="Profile" aria-label="Profile"
+              className="group flex items-center justify-center h-11 w-11 rounded-lg transition-colors duration-150 outline-none focus:outline-none focus-visible:outline-none"
+            >
               <img
                 src={profile?.avatar_url || profileIcon}
                 alt={profile?.full_name || "Profile"}
-                className="h-8 w-8 object-cover rounded-full transition-all duration-200 group-hover:scale-110"
+                className="h-8 w-8 object-cover rounded-full"
               />
             </Link>
 
             {/* Settings Icon Container */}
             <div className="relative" ref={settingsDropdownRef}>
               <button
-                className="group flex items-center justify-center h-10 w-10 transition-colors"
+                title="Settings"
+                aria-label="Settings"
+                className={`flex items-center justify-center h-11 w-11 rounded-lg transition-colors duration-150 outline-none focus:outline-none focus-visible:outline-none ${location.pathname === '/settings' ? 'text-accent' : 'text-slate-500 hover:text-slate-900'}`}
                 onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
               >
-                <img
-                  src={settingsIcon}
-                  alt="Settings"
-                  className="h-6 w-6 object-contain filter-sage transition-all duration-200 group-hover:scale-110"
-                />
+                <Settings className="h-[22px] w-[22px]" />
               </button>
 
               {showSettingsDropdown && (
-                <div className="absolute right-0 z-50 mt-2 w-48 rounded-md bg-white border border-slate-200 shadow-lg py-1">
+                <div className="absolute right-0 z-50 mt-2 w-48 rounded-lg bg-white border border-slate-200 shadow-lg py-1">
                   <Link
                     to="/settings"
-                    className="block px-4 py-2 text-sm text-slate-700 hover:bg-[#f2f1ec]"
+                    className="block px-4 py-2 text-sm text-slate-700 hover:bg-parchment-sunken"
                     onClick={() => setShowSettingsDropdown(false)}
                   >
                     Settings
@@ -358,7 +372,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
                       signOut();
                       setShowSettingsDropdown(false);
                     }}
-                    className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-[#f2f1ec]"
+                    className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-parchment-sunken"
                   >
                     Logout
                   </button>
@@ -371,39 +385,39 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="absolute top-full left-0 right-0 bg-white border-b border-stone-200 md:hidden shadow-sm">
+        <div className="absolute top-full left-0 right-0 bg-parchment border-b border-hairline md:hidden shadow-sm">
           <div className="px-4 py-3 space-y-1.5">
             <Link
               to="/jobs"
-              className="block text-[#354038] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
+              className="block text-[#1A1A2E] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
               onClick={() => setIsMenuOpen(false)}
             >
               Referrals
             </Link>
             <Link
               to="/messages"
-              className="block text-[#354038] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
+              className="block text-[#1A1A2E] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
               onClick={() => setIsMenuOpen(false)}
             >
               Messages
             </Link>
             <Link
               to="/notifications"
-              className="block text-[#354038] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
+              className="block text-[#1A1A2E] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
               onClick={() => setIsMenuOpen(false)}
             >
               Notifications
             </Link>
             <Link
               to="/profile"
-              className="block text-[#354038] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
+              className="block text-[#1A1A2E] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
               onClick={() => setIsMenuOpen(false)}
             >
               Profile
             </Link>
             <Link
               to="/settings"
-              className="block text-[#354038] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
+              className="block text-[#1A1A2E] font-semibold text-[15px] hover:text-primary transition-colors py-2.5"
               onClick={() => setIsMenuOpen(false)}
             >
               Settings

@@ -1,6 +1,6 @@
-# TankTide Mobile App Setup Guide
+# Thessis Mobile App Setup Guide
 
-This guide will help you set up and run the TankTide mobile application with proper backend integration.
+This guide will help you set up and run the Thessis mobile application with proper backend integration.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ This guide will help you set up and run the TankTide mobile application with pro
 Copy the example environment file and configure it:
 
 ```bash
-cd tanktide-main/mobile
+cd thessis-main/mobile
 cp .env.example .env
 ```
 
@@ -26,7 +26,7 @@ Edit the `.env` file with your Supabase credentials:
 ```env
 EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-EXPO_PUBLIC_APP_NAME=TankTide
+EXPO_PUBLIC_APP_NAME=Thessis
 EXPO_PUBLIC_APP_VERSION=1.0.0
 EXPO_PUBLIC_ENVIRONMENT=development
 ```
@@ -62,7 +62,7 @@ The database script automatically creates storage buckets for:
 ## 3. Install Dependencies
 
 ```bash
-cd tanktide-main/mobile
+cd thessis-main/mobile
 npm install
 ```
 

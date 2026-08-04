@@ -163,14 +163,14 @@ const CompanyOnboardingPage: React.FC = () => {
 
   const renderJobPreview = () => (
     <div className="bg-white rounded-lg p-6 shadow-lg">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Job Preview</h3>
+      <h3 className="text-lg font-semibold text-slate-900 mb-4">Job Preview</h3>
 
-      <div className="border border-gray-200 rounded-lg p-4">
-        <h4 className="font-semibold text-lg text-gray-900 mb-2">
+      <div className="border border-slate-200 rounded-lg p-4">
+        <h4 className="font-semibold text-lg text-slate-900 mb-2">
           {jobData.title || 'Software Engineer'}
         </h4>
 
-        <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
+        <div className="flex items-center space-x-4 text-sm text-slate-600 mb-3">
           <div className="flex items-center space-x-1">
             <Building className="h-4 w-4" />
             <span>Your Company</span>
@@ -186,7 +186,7 @@ const CompanyOnboardingPage: React.FC = () => {
         </div>
 
         {jobData.salaryMin && jobData.salaryMax && (
-          <div className="flex items-center space-x-1 text-sm text-gray-600 mb-3">
+          <div className="flex items-center space-x-1 text-sm text-slate-600 mb-3">
             <DollarSign className="h-4 w-4" />
             <span>
               {jobData.currency} {jobData.salaryMin} - {jobData.salaryMax}
@@ -196,7 +196,7 @@ const CompanyOnboardingPage: React.FC = () => {
 
         {jobData.requiredSkills.length > 0 && (
           <div className="mb-3">
-            <p className="text-sm font-medium text-gray-700 mb-1">Required Skills:</p>
+            <p className="text-sm font-medium text-slate-700 mb-1">Required Skills:</p>
             <div className="flex flex-wrap gap-1">
               {jobData.requiredSkills.map((skill, index) => (
                 <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
@@ -209,8 +209,8 @@ const CompanyOnboardingPage: React.FC = () => {
 
         {jobData.description && (
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-1">Description:</p>
-            <p className="text-sm text-gray-600 line-clamp-3">
+            <p className="text-sm font-medium text-slate-700 mb-1">Description:</p>
+            <p className="text-sm text-slate-600 line-clamp-3">
               {jobData.description}
             </p>
           </div>
@@ -222,39 +222,39 @@ const CompanyOnboardingPage: React.FC = () => {
   const renderStep1 = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-slate-700 mb-2">
           Job Title *
         </label>
         <input
           type="text"
           value={jobData.title}
           onChange={(e) => handleInputChange('title', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="e.g., Senior Software Engineer"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-slate-700 mb-2">
           Location *
         </label>
         <input
           type="text"
           value={jobData.location}
           onChange={(e) => handleInputChange('location', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="e.g., San Francisco, CA or Remote"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-slate-700 mb-2">
           Employment Type *
         </label>
         <select
           value={jobData.employmentType}
           onChange={(e) => handleInputChange('employmentType', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="full-time">Full-time</option>
           <option value="part-time">Part-time</option>
@@ -265,37 +265,37 @@ const CompanyOnboardingPage: React.FC = () => {
 
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
             Min Salary
           </label>
           <input
             type="number"
             value={jobData.salaryMin}
             onChange={(e) => handleInputChange('salaryMin', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="50000"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
             Max Salary
           </label>
           <input
             type="number"
             value={jobData.salaryMax}
             onChange={(e) => handleInputChange('salaryMax', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="120000"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
             Currency
           </label>
           <select
             value={jobData.currency}
             onChange={(e) => handleInputChange('currency', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
@@ -311,20 +311,20 @@ const CompanyOnboardingPage: React.FC = () => {
   const renderStep2 = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-slate-700 mb-2">
           Job Description *
         </label>
         <textarea
           value={jobData.description}
           onChange={(e) => handleInputChange('description', e.target.value)}
           rows={6}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Describe the role, responsibilities, and requirements..."
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-slate-700 mb-2">
           Required Skills
         </label>
         <div className="space-y-2">
@@ -332,7 +332,7 @@ const CompanyOnboardingPage: React.FC = () => {
             <input
               type="text"
               placeholder="Add a skill (e.g., React, Python)"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   addSkill(e.currentTarget.value);
@@ -370,7 +370,7 @@ const CompanyOnboardingPage: React.FC = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-slate-700 mb-2">
           Screening Questions (Optional)
         </label>
         <div className="space-y-2">
@@ -378,7 +378,7 @@ const CompanyOnboardingPage: React.FC = () => {
             <input
               type="text"
               placeholder="Add a screening question"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   addScreeningQuestion(e.currentTarget.value);
@@ -400,7 +400,7 @@ const CompanyOnboardingPage: React.FC = () => {
           {jobData.screeningQuestions.length > 0 && (
             <div className="space-y-2">
               {jobData.screeningQuestions.map((question, index) => (
-                <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                <div key={index} className="flex items-center justify-between bg-slate-50 p-3 rounded-lg">
                   <span className="text-sm">{question}</span>
                   <button
                     onClick={() => removeScreeningQuestion(question)}
@@ -432,15 +432,15 @@ const CompanyOnboardingPage: React.FC = () => {
             type="checkbox"
             checked={jobData.shareWithNetwork}
             onChange={(e) => handleInputChange('shareWithNetwork', e.target.checked)}
-            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
           />
-          <span className="text-sm font-medium text-gray-700">Share with my network</span>
+          <span className="text-sm font-medium text-slate-700">Share with my network</span>
         </label>
 
         {jobData.shareWithNetwork && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Email Addresses
               </label>
               <div className="space-y-2">
@@ -448,7 +448,7 @@ const CompanyOnboardingPage: React.FC = () => {
                   <input
                     type="email"
                     placeholder="colleague@company.com"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         addShareEmail(e.currentTarget.value);
@@ -470,7 +470,7 @@ const CompanyOnboardingPage: React.FC = () => {
                 {jobData.shareEmails.length > 0 && (
                   <div className="space-y-2">
                     {jobData.shareEmails.map((email, index) => (
-                      <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                      <div key={index} className="flex items-center justify-between bg-slate-50 p-3 rounded-lg">
                         <span className="text-sm">{email}</span>
                         <button
                           onClick={() => removeShareEmail(email)}
@@ -485,11 +485,11 @@ const CompanyOnboardingPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 mb-2">Email Template</h4>
+            <div className="bg-slate-50 rounded-lg p-4">
+              <h4 className="font-medium text-slate-900 mb-2">Email Template</h4>
               <textarea
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 defaultValue={`Hi there!
 
 I'm hiring for a ${jobData.title} position at our company. I thought you might know someone who would be a great fit.
@@ -507,7 +507,7 @@ Best regards,
       </div>
 
       <div className="flex space-x-4">
-        <button className="group flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 transition-colors">
+        <button className="group flex items-center space-x-2 px-4 py-2 hover:bg-slate-50 transition-colors">
           <img
             src={shareIcon}
             alt="LinkedIn"
@@ -515,7 +515,7 @@ Best regards,
           />
           <span>Share on LinkedIn</span>
         </button>
-        <button className="group flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 transition-colors">
+        <button className="group flex items-center space-x-2 px-4 py-2 hover:bg-slate-50 transition-colors">
           <img
             src={shareIcon}
             alt="Twitter"
@@ -528,7 +528,7 @@ Best regards,
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-4 py-4">
@@ -536,7 +536,7 @@ Best regards,
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => navigate('/company-dashboard')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+                className="flex items-center space-x-2 text-slate-600 hover:text-slate-900"
               >
                 <BackArrowIcon className="h-5 w-5" />
                 <span>Back to Dashboard</span>
@@ -544,7 +544,7 @@ Best regards,
             </div>
             <div className="flex items-center space-x-2">
               <Building className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">TankTide</span>
+              <span className="text-xl font-bold font-display text-slate-900">THESSIS</span>
             </div>
           </div>
         </div>
@@ -554,16 +554,16 @@ Best regards,
       <div className="bg-white border-b">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-bold text-gray-900">Let's Post Your First Job</h1>
-            <span className="text-sm text-gray-600">Step {currentStep} of 3</span>
+            <h1 className="text-2xl font-bold text-slate-900">Let's Post Your First Job</h1>
+            <span className="text-sm text-slate-600">Step {currentStep} of 3</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-parchment-sunken rounded-full h-2">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${getProgressPercentage()}%` }}
             ></div>
           </div>
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm text-slate-600 mt-2">
             Your job is {Math.round(getProgressPercentage())}% complete—only {3 - currentStep} more step{3 - currentStep !== 1 ? 's' : ''}!
           </p>
         </div>
@@ -585,7 +585,7 @@ Best regards,
               <button
                 onClick={prevStep}
                 disabled={currentStep === 1}
-                className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center space-x-2 px-4 py-2 text-slate-600 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <BackArrowIcon className="h-4 w-4" />
                 <span>Previous</span>

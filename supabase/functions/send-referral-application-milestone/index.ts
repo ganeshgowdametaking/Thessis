@@ -217,7 +217,7 @@ serve(async (req) => {
         <div style="${emailStyles}">
           <h1 style="font-size: 24px; font-weight: 800; tracking: -0.02em; margin-bottom: 24px;">First win for ${job.title}.</h1>
           <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563;">
-            Hi ${greetingName}, your referral at <strong>${job.company || 'TankTide'}</strong> just received its first application.
+            Hi ${greetingName}, your referral at <strong>${job.company || 'Thessis'}</strong> just received its first application.
           </p>
           <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563;">
             The right connection can change everything. Log in to review the candidate and see if they're a match for your referral.
@@ -226,7 +226,7 @@ serve(async (req) => {
             View Application
           </a>
           <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
-            <p style="font-size: 13px; color: #9ca3af;">Sent with care by the TankTide Team.</p>
+            <p style="font-size: 13px; color: #9ca3af;">Sent with care by the Thessis Team.</p>
           </div>
         </div>
       `;
@@ -239,7 +239,7 @@ serve(async (req) => {
             Hi ${greetingName}, your referral for <strong>${job.title}</strong> has now surpassed 5 applicants.
           </p>
           <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563;">
-            TankTide AI has ranked the <strong>top 5 candidates</strong> that best fit your referral criteria.
+            Thessis AI has ranked the <strong>top 5 candidates</strong> that best fit your referral criteria.
           </p>
           <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563; font-style: italic;">
             Click below to log in and review the top candidates on your applications page.
@@ -248,7 +248,7 @@ serve(async (req) => {
             View Top Candidates
           </a>
           <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
-            <p style="font-size: 13px; color: #9ca3af;">Sent with care by the TankTide Team.</p>
+            <p style="font-size: 13px; color: #9ca3af;">Sent with care by the Thessis Team.</p>
           </div>
         </div>
       `;
@@ -261,7 +261,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `TankTide Team <${resendFromEmail}>`,
+        from: `Thessis Team <${resendFromEmail}>`,
         to: [creatorProfile.email],
         subject,
         html,

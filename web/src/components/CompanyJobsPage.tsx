@@ -83,8 +83,8 @@ const CompanyJobsPage: React.FC = () => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
       case 'draft': return 'bg-yellow-100 text-yellow-800';
-      case 'closed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'closed': return 'bg-slate-100 text-slate-800';
+      default: return 'bg-slate-100 text-slate-800';
     }
   };
 
@@ -95,8 +95,8 @@ const CompanyJobsPage: React.FC = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Jobs</h1>
-            <p className="text-gray-600 mt-2">Manage your job postings</p>
+            <h1 className="text-3xl font-bold text-slate-900">Jobs</h1>
+            <p className="text-slate-600 mt-2">Manage your job postings</p>
           </div>
           <button
             onClick={handleCreateJob}
@@ -108,7 +108,7 @@ const CompanyJobsPage: React.FC = () => {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+        <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg">
           {[
             { key: 'all', label: 'All Jobs', count: jobs.length },
             { key: 'active', label: 'Active', count: jobs.filter(j => j.status === 'active').length },
@@ -118,10 +118,10 @@ const CompanyJobsPage: React.FC = () => {
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key as any)}
-              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 filter === tab.key
                   ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               {tab.label} ({tab.count})
@@ -133,13 +133,13 @@ const CompanyJobsPage: React.FC = () => {
       {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading jobs...</p>
+          <p className="text-slate-600 mt-4">Loading jobs...</p>
         </div>
       ) : filteredJobs.length === 0 ? (
         <div className="text-center py-12">
-          <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No jobs found</h3>
-          <p className="text-gray-600 mb-6">
+          <Briefcase className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-slate-900 mb-2">No jobs found</h3>
+          <p className="text-slate-600 mb-6">
             {filter === 'all' 
               ? "You haven't posted any jobs yet." 
               : `No ${filter} jobs found.`
@@ -157,17 +157,17 @@ const CompanyJobsPage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {filteredJobs.map((job) => (
-            <div key={job.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div key={job.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">{job.title}</h3>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
                       {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                     </span>
                   </div>
-                  <p className="text-gray-600 mb-2">{job.company} • {job.location} • {job.job_type}</p>
-                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+                  <p className="text-slate-600 mb-2">{job.company} • {job.location} • {job.job_type}</p>
+                  <div className="flex items-center space-x-4 text-sm text-slate-500">
                     <span>{job.applications_count || 0} applications</span>
                     <span>Posted {new Date(job.created_at).toLocaleDateString()}</span>
                   </div>
@@ -175,21 +175,21 @@ const CompanyJobsPage: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => handleViewJob(job.id)}
-                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                    className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
                     title="View Job"
                   >
                     <Eye className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleEditJob(job.id)}
-                    className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                    className="p-2 text-slate-400 hover:text-green-600 transition-colors"
                     title="Edit Job"
                   >
                     <Edit className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDeleteJob(job.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                    className="p-2 text-slate-400 hover:text-red-600 transition-colors"
                     title="Delete Job"
                   >
                     <Trash2 className="h-4 w-4" />

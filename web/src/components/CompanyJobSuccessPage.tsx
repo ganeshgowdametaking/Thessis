@@ -29,7 +29,7 @@ const CompanyJobSuccessPage: React.FC = () => {
   };
 
   const handleShareTwitter = () => {
-    const text = `We're hiring! ${jobData?.title || 'Join our team'} at TankTide. Apply now: ${jobUrl}`;
+    const text = `We're hiring! ${jobData?.title || 'Join our team'} at THESSIS. Apply now: ${jobUrl}`;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(twitterUrl, '_blank');
   };
@@ -61,10 +61,10 @@ Best regards,
 
   if (!jobData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-slate-600">Loading...</p>
         </div>
       </div>
     );
@@ -76,7 +76,7 @@ Best regards,
       <div className="flex items-center justify-between p-6">
         <div className="flex items-center space-x-2 text-white">
           <Building className="h-8 w-8" />
-          <span className="text-xl font-bold">TankTide</span>
+          <span className="text-xl font-bold font-display">THESSIS</span>
         </div>
       </div>
 
@@ -91,20 +91,20 @@ Best regards,
           </div>
 
           {/* Success Message */}
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl font-bold text-slate-900 mb-4">
             Your job is live! 🎉
           </h1>
 
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-xl text-slate-600 mb-8">
             Your job posting has been successfully published and is now visible to candidates.
           </p>
 
           {/* Job Details */}
-          <div className="bg-gray-50 rounded-lg p-6 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <div className="bg-slate-50 rounded-lg p-6 mb-8">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">
               {jobData.title || 'Software Engineer'}
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-slate-600 mb-4">
               {jobData.location || 'Remote'} • {jobData.employmentType?.replace('-', ' ') || 'Full-time'}
             </p>
             <div className="flex items-center justify-center space-x-2">
@@ -125,7 +125,7 @@ Best regards,
 
             <button
               onClick={handleCopyLink}
-              className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
+              className="w-full bg-slate-100 text-slate-700 py-3 px-6 rounded-lg font-semibold hover:bg-parchment-sunken transition-colors flex items-center justify-center space-x-2"
             >
               <Copy className="h-5 w-5" />
               <span>{copied ? 'Link Copied!' : 'Copy Link'}</span>
@@ -134,7 +134,7 @@ Best regards,
 
           {/* Share Options */}
           <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">
               Share Your Job
             </h3>
 
@@ -149,7 +149,7 @@ Best regards,
 
               <button
                 onClick={handleShareEmail}
-                className="flex items-center justify-center space-x-2 px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                className="flex items-center justify-center space-x-2 px-4 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
               >
                 <Mail className="h-5 w-5" />
                 <span>Share via email</span>
@@ -197,7 +197,7 @@ Best regards,
       <div className="border-t border-green-600">
         <div className="max-w-4xl mx-auto px-4 py-8 text-center text-green-100">
           <p className="text-sm">
-            © 2024 TankTide. All rights reserved.
+            © 2026 THESSIS. All rights reserved.
           </p>
         </div>
       </div>

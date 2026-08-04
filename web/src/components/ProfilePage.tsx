@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, Briefcase, GraduationCap, Award, Edit3, Plus, X, Trash2, Waves, Share2, Pencil } from 'lucide-react';
+import { Edit3, Plus, X, Trash2, Share2, Pencil } from 'lucide-react';
 import { jobTitles } from '../data/jobTitles';
 import debounce from 'lodash.debounce';
-import { postService } from '../services/postService';
-import { connectionService } from '../services/connectionService';
-import { tidePointsService } from '../services/tidePointsService';
 import { profileService } from '../services/profileService';
 import { useAuthContext } from '../contexts/AuthContext';
-import ConnectionsModal from './ConnectionsModal';
 import PostsModal from './PostsModal';
 import LoadingSpinner from './LoadingSpinner';
 import CountryPicker from './CountryPicker';
 import ImageCropper from './ImageCropper';
-import { TalentScoutBadge } from './TalentScoutBadge';
-import { hireVerificationService, UserBadge } from '../services/hireVerificationService';
+import { ProfileTabs } from './ProfileTabs';
+import { ProfileExperienceList } from './ProfileExperienceList';
+import { ProfileEducationList } from './ProfileEducationList';
+import CompanyAvatar from './CompanyAvatar';
 
 interface Experience {
   id: number | string;
@@ -127,7 +125,7 @@ const ProfilePage: React.FC = () => {
 
   const { user, profile, updateProfile } = useAuthContext();
   const [isEditing, setIsEditing] = useState(false);
-  const [showConnectionsModal, setShowConnectionsModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('about');
   const [showPostsModal, setShowPostsModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -148,16 +146,6 @@ const ProfilePage: React.FC = () => {
     work_email_verified: false,
   });
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
-  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
-  const [realCounts, setRealCounts] = useState({
-    posts: 0,
-    connections: 0,
-    expYears: 0,
-    rating: 5.0,
-    tidePoints: 0,
-  });
-  const [badges, setBadges] = useState<UserBadge[]>([]);
-
   // Location autocomplete state
   const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
   const [locationQuery, setLocationQuery] = useState('');
@@ -172,7 +160,6 @@ const ProfilePage: React.FC = () => {
   const [activeExperienceLocationId, setActiveExperienceLocationId] = useState<number | string | null>(null);
   const [activeExperienceTitleId, setActiveExperienceTitleId] = useState<number | string | null>(null);
   const [filteredJobTitles, setFilteredJobTitles] = useState<string[]>([]);
-  const [isCroppingCover, setIsCroppingCover] = useState(false);
   const [tempImage, setTempImage] = useState<string | null>(null);
 
 
@@ -211,7 +198,6 @@ const ProfilePage: React.FC = () => {
           });
       }
     }
-    loadRealCounts();
   }, [profile]);
 
   const formatLocationSuggestion = (suggestion: any): string => {
@@ -324,11 +310,6 @@ const ProfilePage: React.FC = () => {
     setProfilePictureFile(null);
   };
 
-  const handleDeleteCover = () => {
-    setEditForm({ ...editForm, cover_image_url: null as any });
-    setCoverImageFile(null);
-  };
-
   const validateLocation = () => {
     if (!locationQuery.trim()) {
       setLocationError('Location is required');
@@ -345,59 +326,6 @@ const ProfilePage: React.FC = () => {
       }
     }
     return true;
-  };
-
-  const loadRealCounts = async () => {
-    try {
-      // 1. Get real counts for posts and connections
-      const allPosts: any[] = await postService.getFeedPosts();
-      const userPosts = allPosts.filter((post: any) => post.author_id === user?.id);
-      const connections: any[] = await connectionService.getConnections();
-      const userConnections = connections.filter((conn: any) =>
-        (conn.requester_id === user?.id || conn.addressee_id === user?.id) && conn.status === 'accepted'
-      );
-
-      // 2. Calculate experience years from the profile's experiences array
-      let totalMonths = 0;
-      const experiencesToUse = profile?.experiences || [];
-
-      experiencesToUse.forEach((exp: Experience) => {
-        if (exp.startDate) {
-          const start = new Date(exp.startDate);
-          const end = exp.current ? new Date() : (exp.endDate ? new Date(exp.endDate) : new Date());
-
-          // Calculate difference in months
-          const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-          totalMonths += Math.max(0, months);
-        }
-      });
-
-      const expYears = Math.floor(totalMonths / 12);
-
-      // 3. Calculate a "Rating" score based on activity to make it feel dynamic
-      // Starts at 4.5, grows with activity up to 5.0
-      const baseRating = 4.5;
-      const activityScore = (userConnections.length * 0.1) + (userPosts.length * 0.05);
-      const rating = Math.min(5.0, baseRating + activityScore).toFixed(1);
-
-      setRealCounts({
-        posts: userPosts.length,
-        connections: userConnections.length,
-        expYears,
-        rating: parseFloat(rating),
-        tidePoints: await tidePointsService.getPointsBalance(user?.id || '')
-      });
-
-      // 4. Fetch Badges
-      if (profile?.id) {
-        const userBadges = await hireVerificationService.getUserBadges(profile.id);
-        setBadges(userBadges);
-      }
-
-    } catch (error) {
-      console.error('Error loading real counts:', error);
-      setRealCounts({ posts: 0, connections: 0, expYears: 0, rating: 4.5, tidePoints: 0 });
-    }
   };
 
   const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -426,32 +354,8 @@ const ProfilePage: React.FC = () => {
 
   const handleCropCancel = () => {
     setIsCropping(false);
-    setIsCroppingCover(false);
     setTempImage(null);
   };
-
-  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        setTempImage(reader.result as string);
-        setIsCroppingCover(true);
-      };
-      reader.readAsDataURL(file);
-      e.target.value = '';
-    }
-  };
-
-  const handleCoverCropComplete = useCallback((croppedBlob: Blob) => {
-    const croppedFile = new File([croppedBlob], 'cover_image.jpg', { type: 'image/jpeg' });
-    const croppedUrl = URL.createObjectURL(croppedBlob);
-
-    setCoverImageFile(croppedFile);
-    setEditForm(prev => ({ ...prev, cover_image_url: croppedUrl }));
-    setIsCroppingCover(false);
-    setTempImage(null);
-  }, []);
 
   const compressImageToDataURL = async (
     source: Blob,
@@ -564,27 +468,14 @@ const ProfilePage: React.FC = () => {
         updates.avatar_url = base64String; // Store Base64 in avatar_url
       }
 
-      // Handle cover image file
-      if (coverImageFile) {
-        const maxSizeMB = 10; // Allow slightly larger for cover
-        if (coverImageFile.size > maxSizeMB * 1024 * 1024) {
-          throw new Error(`Cover image file is too large. Maximum size is ${maxSizeMB}MB.`);
-        }
-
-        const base64String = await compressImageToDataURL(coverImageFile, 1600, 600, 0.78);
-
-        updates.cover_image_url = base64String;
-      }
-
       console.log('Submitting profile updates:', updates);
 
-      // We ONLY call updateProfile from AuthContext which handles both 
+      // We ONLY call updateProfile from AuthContext which handles both
       // the API call and the local post-update state refresh.
       await updateProfile(updates);
 
       setIsEditing(false);
       setProfilePictureFile(null);
-      setCoverImageFile(null);
     } catch (error: any) {
       console.error('Profile update error:', {
         message: error.message,
@@ -604,7 +495,6 @@ const ProfilePage: React.FC = () => {
     setIsEditing(false);
     setSaveError(null);
     setProfilePictureFile(null);
-    setCoverImageFile(null);
     if (profile) {
       const normalizedSections = getNormalizedProfileSections(profile);
       setEditForm({
@@ -667,297 +557,143 @@ const ProfilePage: React.FC = () => {
     return <LoadingSpinner text="Loading profile..." />;
   }
 
-  const coverImageUrl = editForm.cover_image_url || profile?.cover_image_url || '';
-
   return (
     <div className="bg-stone-bg text-text-main font-display min-h-screen flex flex-col overflow-x-hidden antialiased">
       {/* Main Content */}
       <main className="flex-1 w-full max-w-[1024px] mx-auto px-4 md:px-6 py-5 md:py-12 flex flex-col gap-6 md:gap-8">
         {/* Profile Header Section */}
-        <section className="w-full bg-white rounded-2xl border border-slate-border-card shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] flex flex-col items-center relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-full h-36 md:h-44 overflow-hidden">
-            {coverImageUrl && (
-              <img
-                src={coverImageUrl}
-                alt="Profile cover"
-                className="absolute inset-0 h-full w-full object-cover"
-                decoding="async"
-              />
-            )}
-            {!coverImageUrl && (
-              <div className="absolute inset-0 bg-gradient-to-br from-stone-off via-stone-border to-slate-200"></div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent"></div>
+        <section className="w-full flex items-center justify-between gap-4 pb-5 border-b border-slate-border-card">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="relative shrink-0">
+              <div
+                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-sm"
+                style={{ backgroundImage: `url("${getProfilePicture()}")` }}
+              ></div>
+              <div className="absolute bottom-0 right-0 bg-emerald-500 border-2 border-white size-4 rounded-full" title="Online"></div>
+            </div>
 
-            {/* Cover Photo Icons */}
-            <div className="absolute top-3 right-3 md:top-4 md:right-4 flex gap-2 md:gap-4 z-20">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="size-9 md:size-8 flex items-center justify-center bg-[#5F7261] rounded-full transition-all transform hover:scale-110 shadow-sm"
-                title="Edit Cover"
-              >
-                <Pencil className="w-4 h-4 text-white fill-white" />
-              </button>
-              <button
-                onClick={() => {
-                  const profileUrl = `${window.location.origin}/user/${user?.id}`;
-                  navigator.clipboard.writeText(profileUrl).then(() => {
-                    setShareSuccess(true);
-                    setShowShareModal(true);
-                    setTimeout(() => {
-                      setShowShareModal(false);
-                      setShareSuccess(false);
-                    }, 2000);
-                  });
-                }}
-                className="size-9 md:size-8 flex items-center justify-center bg-[#5F7261] rounded-full transition-all transform hover:scale-110 shadow-sm"
-                title="Share Profile"
-              >
-                <Share2 className="w-4 h-4 text-white" strokeWidth={3} />
-              </button>
+            <div className="flex flex-col gap-1 min-w-0">
+              <h1 className="text-text-main text-xl md:text-2xl font-extrabold leading-tight tracking-tight truncate">
+                {editForm.full_name || 'Your Name'}
+              </h1>
+              <div className="flex items-center gap-1.5 text-text-secondary text-sm md:text-base font-medium min-w-0">
+                {editForm.company && (
+                  <div className="h-5 w-5 rounded-full overflow-hidden shrink-0">
+                    <CompanyAvatar company={editForm.company} size="sm" />
+                  </div>
+                )}
+                <span className="truncate">
+                  {editForm.title || 'Professional Title'} {editForm.company && `at ${editForm.company}`}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="relative z-10 flex flex-col items-center gap-3 md:gap-4 w-full max-w-2xl mt-20 md:mt-28 mb-5 md:mb-10 px-4 md:px-0">
-            <div className="relative">
-              <div className="absolute -inset-2 rounded-full bg-gradient-to-tr from-sage-green/20 to-transparent blur-xl opacity-50"></div>
-              <div
-                className="relative bg-center bg-no-repeat aspect-square bg-cover rounded-full h-28 w-28 md:h-32 md:w-32 border-4 border-white shadow-xl"
-                style={{ backgroundImage: `url("${getProfilePicture()}")` }}
-              ></div>
-              <div className="absolute bottom-1 right-1 bg-emerald-500 border-[3px] border-white size-5 md:size-6 rounded-full shadow-sm" title="Online"></div>
-            </div>
-
-            <div className="flex flex-col items-center text-center gap-1.5 md:gap-2">
-              <h1 className="text-text-main text-[2.15rem] md:text-4xl font-extrabold leading-[1.05] md:leading-tight tracking-tight">
-                {editForm.full_name || 'Your Name'}
-              </h1>
-              <p className="text-text-secondary text-base md:text-xl font-medium max-w-lg leading-snug md:leading-relaxed">
-                {editForm.title || 'Professional Title'} {editForm.company && `at ${editForm.company}`}
-              </p>
-              <div className="flex items-center gap-2 text-slate-meta mt-1 text-[13px] md:text-sm font-medium">
-                <MapPin className="text-[18px]" />
-                <span>{editForm.location || 'Location'}</span>
-              </div>
-
-              {/* Badges Section */}
-              {badges.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2 mt-3 mb-1 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  {badges.map(badge => (
-                    <TalentScoutBadge
-                      key={badge.id}
-                      type={badge.badge_type}
-                      metadata={badge.metadata}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="w-full border-y border-slate-border-divider my-1.5 md:my-2">
-              <div className="grid grid-cols-3 divide-x divide-slate-border-divider md:hidden">
-                <button
-                  type="button"
-                  onClick={() => setShowConnectionsModal(true)}
-                  className="flex flex-col items-center justify-center py-3.5"
-                  aria-label="View all connections"
-                >
-                  <span className="text-text-main text-2xl font-extrabold leading-none">{realCounts.connections}</span>
-                  <span className="text-slate-meta text-[10px] uppercase tracking-[0.16em] font-black mt-1.5">Connections</span>
-                </button>
-                <div className="flex flex-col items-center justify-center py-3.5">
-                  <div className="flex items-center gap-1">
-                    <span className="text-text-main text-2xl font-extrabold leading-none">{realCounts.tidePoints}</span>
-                    <Waves className="w-4 h-4 text-teal-500" />
-                  </div>
-                  <span className="text-slate-meta text-[10px] uppercase tracking-[0.16em] font-black mt-1.5">Tide Pts</span>
-                </div>
-                <div className="flex flex-col items-center justify-center py-3.5">
-                  <span className="text-text-main text-2xl font-extrabold leading-none">{realCounts.rating.toFixed(1)}/5</span>
-                  <span className="text-slate-meta text-[10px] uppercase tracking-[0.16em] font-black mt-1.5">Rating</span>
-                </div>
-              </div>
-              <div className="hidden md:flex flex-wrap justify-center gap-8 w-full py-5">
-                <button
-                  type="button"
-                  onClick={() => setShowConnectionsModal(true)}
-                  className="flex flex-col items-center px-4"
-                  aria-label="View all connections"
-                >
-                  <span className="text-text-main text-xl font-bold">{realCounts.connections}</span>
-                  <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Connections</span>
-                </button>
-
-                {/* Tide Points */}
-                <div className="flex flex-col items-center px-4 group/points relative cursor-help">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-text-main text-xl font-bold">{realCounts.tidePoints}</span>
-                    <Waves className="w-4 h-4 text-teal-500" />
-                  </div>
-                  <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Tide Pts</span>
-
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 p-3 bg-slate-800 text-white text-xs rounded-lg opacity-0 invisible group-hover/points:opacity-100 group-hover/points:visible transition-all z-20 text-center shadow-xl">
-                    Social Capital<br />
-                    <span className="opacity-75">Earn points by verifying skills & responding fast.</span>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-800"></div>
-                  </div>
-                </div>
-
-                <div className="w-px bg-slate-border-divider h-10 self-center"></div>
-                <div className="flex flex-col items-center px-4">
-                  <span className="text-text-main text-xl font-bold">{realCounts.rating.toFixed(1)}/5</span>
-                  <span className="text-slate-meta text-xs uppercase tracking-wider font-bold">Rating</span>
-                </div>
-              </div>
-            </div>
-
-
-            {/* Bio Section */}
-            {editForm.bio && (
-              <div className="mt-2 md:mt-4 text-center">
-                <p className="text-slate-700 text-[14px] md:text-base leading-relaxed max-w-2xl mx-auto whitespace-pre-line">{editForm.bio}</p>
-              </div>
-            )}
+          <div className="flex gap-2 md:gap-3 shrink-0">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="size-9 md:size-8 flex items-center justify-center bg-ink rounded-full transition-all transform hover:scale-110 shadow-sm"
+              title="Edit Profile"
+            >
+              <Pencil className="w-4 h-4 text-white fill-white" />
+            </button>
+            <button
+              onClick={() => {
+                const profileUrl = `${window.location.origin}/user/${user?.id}`;
+                navigator.clipboard.writeText(profileUrl).then(() => {
+                  setShareSuccess(true);
+                  setShowShareModal(true);
+                  setTimeout(() => {
+                    setShowShareModal(false);
+                    setShareSuccess(false);
+                  }, 2000);
+                });
+              }}
+              className="size-9 md:size-8 flex items-center justify-center bg-ink rounded-full transition-all transform hover:scale-110 shadow-sm"
+              title="Share Profile"
+            >
+              <Share2 className="w-4 h-4 text-white" strokeWidth={3} />
+            </button>
           </div>
         </section>
 
-        <div className="flex flex-col gap-6 md:gap-10">
-          <div className="flex flex-col gap-6 md:gap-10">
-            {/* Experience Section */}
-            <section className="pt-1">
-              <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
-                <h2 className="text-slate-900 text-[13px] md:text-2xl font-extrabold uppercase tracking-[0.2em] md:tracking-[0.18em] pt-0.5">Experience</h2>
-              </div>
+        <div className="mt-6 md:mt-10">
+          <ProfileTabs
+            tabs={[
+              { id: 'about', label: 'About' },
+              { id: 'experience', label: 'Experience' },
+              { id: 'education', label: 'Education' },
+            ]}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+          />
 
-              <div className="relative pl-0.5 md:pl-2">
-                {editForm.experiences.length > 0 && (
-                  <div className="absolute left-[19px] md:left-[31px] top-5 md:top-6 bottom-5 md:bottom-6 w-px bg-slate-100"></div>
-                )}
-                {editForm.experiences.length > 0 ? (
-                  <div className="space-y-7 md:space-y-14">
-                    {editForm.experiences.map((exp) => (
-                      <div key={exp.id} className="relative flex gap-3 md:gap-10">
-                      <div className="relative z-10 shrink-0">
-                        <div className="bg-white rounded-xl size-14 md:size-20 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
-                          <img src="/company-placeholder.png" alt={exp.company} className="w-full h-full object-contain" />
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col flex-1 pt-0 md:pt-1">
-                        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2.5 md:gap-4">
-                          <div className="flex flex-col gap-1 md:gap-1.5">
-                            <h3 className="text-slate-900 text-[1.08rem] md:text-lg font-extrabold md:font-black normal-case md:uppercase tracking-[0.01em] md:tracking-[0.1em] leading-tight">
-                              {exp.title}
-                            </h3>
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:gap-2.5">
-                              <span className="text-slate-900 font-bold text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-wider">{exp.company}</span>
-                              {exp.location && (
-                                <>
-                                  <span className="text-slate-300 text-xs">/</span>
-                                  <span className="text-slate-400 text-[13px] md:text-sm font-semibold tracking-tight">{exp.location}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="shrink-0 pt-0 md:pt-0.5">
-                            <span className={timelineTextClass}>
-                              {formatDate(exp.startDate)} — {exp.current ? 'Present' : formatDate(exp.endDate)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {exp.description?.trim() && (
-                          <p className="text-slate-500 text-[13px] md:text-[14px] leading-[1.65] md:leading-[1.8] mt-2.5 md:mt-6 max-w-2xl font-medium whitespace-pre-line">
-                            {exp.description}
-                          </p>
-                        )}
-                      </div>
-                      </div>
-                    ))}
+          <div className="mt-6 md:mt-10">
+            {activeTab === 'about' && (
+              <div className="flex flex-col gap-6 md:gap-10">
+                {/* Skills Section */}
+                <section>
+                  <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                    <h2 className="text-lg font-semibold text-slate-900">Skills</h2>
                   </div>
-                ) : null}
-              </div>
-            </section>
-
-            {/* Education Section */}
-            <section>
-              <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
-                <h2 className="text-slate-900 text-[13px] md:text-2xl font-extrabold uppercase tracking-[0.2em] md:tracking-[0.18em] pt-0.5">Education</h2>
-              </div>
-              <div className="px-1">
-                <div className="relative space-y-6 md:space-y-10">
-                  {Array.isArray(editForm.education) && editForm.education.length > 0 && (
-                    <div className="hidden md:block absolute left-[40px] top-3 bottom-3 w-0.5 bg-off-stone"></div>
-                  )}
-                  {Array.isArray(editForm.education) && editForm.education.length > 0 ? (
-                    editForm.education.map((edu) => (
-                      <div key={edu.id} className="relative flex gap-3 md:gap-6">
-                        <div className="relative z-10 shrink-0">
-                          <div className="size-14 md:size-20 rounded-xl bg-white border border-stone-border flex items-center justify-center text-slate-meta">
-                            <GraduationCap />
-                          </div>
-                        </div>
-                        <div className="flex flex-col flex-1 pt-0.5 md:pt-2">
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 mb-1">
-                            <h3 className="text-text-main text-[1.08rem] md:text-lg font-bold">{edu.degree}</h3>
-                            <span className={timelineTextClass}>{formatDate(edu.endDate)}</span>
-                          </div>
-                          <p className="text-text-secondary text-[15px] md:text-base">{edu.school}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : null}
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <div className="flex flex-col gap-6 md:gap-10">
-            {/* Skills Section */}
-            <section>
-              <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
-                <h2 className="text-slate-900 text-[13px] md:text-2xl font-extrabold uppercase tracking-[0.2em] md:tracking-[0.18em] pt-0.5">Skills</h2>
-              </div>
-              <div className="px-1">
-                <div className="flex flex-wrap gap-2 md:gap-2">
-                  {editForm.skills.length > 0 ? (
-                    editForm.skills.map((skill) => (
-                      <span
-                        key={skill.id}
-                        className="px-2.5 md:px-3 py-1.5 rounded-lg bg-white text-slate-body cursor-default text-[13px] md:text-sm font-bold tracking-tight md:tracking-wide border border-stone-border"
-                      >
-                        {skill.name}
-                      </span>
-                    ))
-                  ) : null}
-                </div>
-              </div>
-            </section>
-
-            {/* Achievements Section */}
-            <section>
-              <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
-                <h2 className="text-slate-900 text-[13px] md:text-2xl font-extrabold uppercase tracking-[0.2em] md:tracking-[0.18em] pt-0.5">Achievements</h2>
-              </div>
-              <div className="flex flex-col gap-1 md:gap-4 divide-y divide-slate-200/80 md:divide-y-0">
-                {Array.isArray(editForm.achievements) && editForm.achievements.length > 0 ? (
-                  editForm.achievements.map((achievement) => (
-                    <div key={achievement.id} className="px-1 py-3 md:py-1 flex items-start justify-between gap-3 md:gap-4">
-                      <div className="min-w-0">
-                        <h4 className="text-text-main font-bold text-[1.05rem] md:text-base leading-tight">{achievement.title}</h4>
-                        <p className="text-slate-meta text-[13px] md:text-sm mt-1 font-semibold">{achievement.organization}</p>
-                        {achievement.description?.trim() && (
-                          <p className="text-text-secondary text-sm mt-1.5 md:mt-2 leading-snug">{achievement.description}</p>
-                        )}
-                      </div>
-                      <span className={`${timelineTextClass} shrink-0 pt-0.5`}>{formatDate(achievement.date)}</span>
+                  <div className="px-1">
+                    <div className="flex flex-wrap gap-2 md:gap-2">
+                      {editForm.skills.length > 0 ? (
+                        editForm.skills.map((skill) => (
+                          <span
+                            key={skill.id}
+                            className="px-2.5 md:px-3 py-1.5 rounded-lg bg-white text-slate-body cursor-default text-[13px] md:text-sm font-bold tracking-tight md:tracking-wide border border-stone-border"
+                          >
+                            {skill.name}
+                          </span>
+                        ))
+                      ) : null}
                     </div>
-                  ))
-                ) : null}
+                  </div>
+                </section>
+
+                {/* Achievements Section */}
+                <section>
+                  <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                    <h2 className="text-lg font-semibold text-slate-900">Achievements</h2>
+                  </div>
+                  <div className="flex flex-col gap-1 md:gap-4 divide-y divide-slate-200/80 md:divide-y-0">
+                    {Array.isArray(editForm.achievements) && editForm.achievements.length > 0 ? (
+                      editForm.achievements.map((achievement) => (
+                        <div key={achievement.id} className="px-1 py-3 md:py-1 flex items-start justify-between gap-3 md:gap-4">
+                          <div className="min-w-0">
+                            <h4 className="text-text-main font-bold text-[1.05rem] md:text-base leading-tight">{achievement.title}</h4>
+                            <p className="text-slate-meta text-[13px] md:text-sm mt-1 font-semibold">{achievement.organization}</p>
+                            {achievement.description?.trim() && (
+                              <p className="text-text-secondary text-sm mt-1.5 md:mt-2 leading-snug">{achievement.description}</p>
+                            )}
+                          </div>
+                          <span className={`${timelineTextClass} shrink-0 pt-0.5`}>{formatDate(achievement.date)}</span>
+                        </div>
+                      ))
+                    ) : null}
+                  </div>
+                </section>
               </div>
-            </section>
+            )}
+
+            {activeTab === 'experience' && (
+              <section>
+                <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                  <h2 className="text-lg font-semibold text-slate-900">Experience</h2>
+                </div>
+                <ProfileExperienceList experiences={editForm.experiences} />
+              </section>
+            )}
+
+            {activeTab === 'education' && (
+              <section>
+                <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                  <h2 className="text-lg font-semibold text-slate-900">Education</h2>
+                </div>
+                <ProfileEducationList education={editForm.education} />
+              </section>
+            )}
           </div>
         </div>
       </main>
@@ -967,7 +703,7 @@ const ProfilePage: React.FC = () => {
         isEditing && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-              <div className="p-6 border-b border-slate-200 bg-gray-50">
+              <div className="p-6 border-b border-slate-200 bg-white">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold text-slate-900">Edit Profile</h2>
                   <button
@@ -980,80 +716,40 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
               <form onSubmit={handleEditSubmit} className="p-8 space-y-8">
-                {/* Profile Images */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Profile Picture */}
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Profile Picture</label>
-                    <div className="flex items-center space-x-4">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="relative group">
-                          <img
-                            src={getProfilePicture()}
-                            alt="Preview"
-                            className="w-20 h-20 rounded-full object-cover border-2 border-slate-200 shadow-sm"
-                          />
-                          <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
-                            <Edit3 className="text-white h-5 w-5" />
-                          </div>
+                {/* Profile Picture */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Profile Picture</label>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="relative group">
+                        <img
+                          src={getProfilePicture()}
+                          alt="Preview"
+                          className="w-20 h-20 rounded-full object-cover border-2 border-slate-200 shadow-sm"
+                        />
+                        <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                          <Edit3 className="text-white h-5 w-5" />
                         </div>
-                        {editForm.profile_picture_url && (
-                          <button
-                            type="button"
-                            onClick={handleDeleteAvatar}
-                            className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
-                            disabled={isSaving}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            Delete
-                          </button>
-                        )}
                       </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleProfilePictureChange}
-                        className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
-                        disabled={isSaving}
-                      />
+                      {editForm.profile_picture_url && (
+                        <button
+                          type="button"
+                          onClick={handleDeleteAvatar}
+                          className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
+                          disabled={isSaving}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Delete
+                        </button>
+                      )}
                     </div>
-                  </div>
-
-                  {/* Cover Image */}
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Cover Image (Background)</label>
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-1 flex flex-col gap-2">
-                        <div className="relative group">
-                          <div
-                            className="h-20 w-full rounded-lg bg-cover bg-center border-2 border-slate-200 shadow-sm overflow-hidden bg-gradient-to-br from-stone-off via-stone-border to-slate-200"
-                            style={editForm.cover_image_url ? { backgroundImage: `url("${editForm.cover_image_url}")` } : {}}
-                          >
-                          </div>
-                          <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
-                            <Edit3 className="text-white h-5 w-5" />
-                          </div>
-                        </div>
-                        {editForm.cover_image_url && (
-                          <button
-                            type="button"
-                            onClick={handleDeleteCover}
-                            className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700 transition-colors w-fit"
-                            disabled={isSaving}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            Delete Cover
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleCoverImageChange}
-                        className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
-                        disabled={isSaving}
-                      />
-                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfilePictureChange}
+                      className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
+                      disabled={isSaving}
+                    />
                   </div>
                 </div>
 
@@ -1549,14 +1245,6 @@ const ProfilePage: React.FC = () => {
         )
       }
 
-      {/* Connections Modal */}
-      <ConnectionsModal
-        isOpen={showConnectionsModal}
-        onClose={() => setShowConnectionsModal(false)}
-        onViewProfile={() => setShowConnectionsModal(false)}
-        userId={profile?.id || user?.id || ''}
-      />
-
       {/* Image Cropper Modals */}
       {
         isCropping && tempImage && (
@@ -1571,18 +1259,6 @@ const ProfilePage: React.FC = () => {
         )
       }
 
-      {
-        isCroppingCover && tempImage && (
-          <ImageCropper
-            image={tempImage}
-            onCropComplete={handleCoverCropComplete}
-            onCancel={handleCropCancel}
-            aspect={3 / 1}
-            cropShape="rect"
-            title="Crop Cover Image"
-          />
-        )
-      }
       <PostsModal
         isOpen={showPostsModal}
         onClose={() => setShowPostsModal(false)}

@@ -82,7 +82,7 @@ const CompanyConfirmationPage: React.FC = () => {
       <div className="flex items-center justify-between p-6">
         <div className="flex items-center space-x-2 text-white">
           <Building className="h-8 w-8" />
-          <span className="text-xl font-bold">TankTide</span>
+          <span className="text-xl font-bold font-display">THESSIS</span>
         </div>
       </div>
 
@@ -97,16 +97,16 @@ const CompanyConfirmationPage: React.FC = () => {
           </div>
 
           {/* Welcome Message */}
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            Welcome to TankTide!
+          <h1 className="text-3xl font-bold text-slate-900 mb-4">
+            Welcome to THESSIS!
           </h1>
           
-          <p className="text-lg text-gray-600 mb-2">
+          <p className="text-lg text-slate-600 mb-2">
             You're one click away from posting your first job!
           </p>
 
           {companyName && (
-            <p className="text-gray-500 mb-6">
+            <p className="text-slate-500 mb-6">
               Account created for <span className="font-semibold">{companyName}</span>
             </p>
           )}
@@ -117,11 +117,11 @@ const CompanyConfirmationPage: React.FC = () => {
               <Mail className="h-8 w-8 text-blue-600" />
             </div>
             
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">
               Verify Your Email
             </h3>
             
-            <p className="text-gray-600 mb-4">
+            <p className="text-slate-600 mb-4">
               We've sent a 6-digit verification code to:
             </p>
             
@@ -181,7 +181,7 @@ const CompanyConfirmationPage: React.FC = () => {
           </button>
 
           {/* Additional Info */}
-          <div className="text-sm text-gray-500 space-y-2">
+          <div className="text-sm text-slate-500 space-y-2">
             <p>
               Can't find the email? Check your spam folder.
             </p>
@@ -196,7 +196,7 @@ const CompanyConfirmationPage: React.FC = () => {
       <div className="border-t border-blue-600">
         <div className="max-w-4xl mx-auto px-4 py-8 text-center text-blue-100">
           <p className="text-sm">
-            © 2024 TankTide. All rights reserved.
+            © 2026 THESSIS. All rights reserved.
           </p>
         </div>
       </div>

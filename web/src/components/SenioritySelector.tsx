@@ -244,7 +244,7 @@ const SenioritySelector: React.FC<SenioritySelectorProps> = ({ onSave, isLoading
                 <button
                     onClick={handleSave}
                     disabled={isLoading || !selectedSeniority || !jobTitle.trim()}
-                    className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2 group disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 group disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                     {isLoading ? (
                         <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>

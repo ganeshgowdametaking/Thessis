@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Smile, PlusCircle, Send } from 'lucide-react';
+import { Smile, PlusCircle, Send, Image } from 'lucide-react';
 import { emojiData, emojiCategories, commonEmojis } from '../constants/emojis';
 
 // Debounce hook for typing indicator
@@ -201,7 +201,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
             )}
 
             {/* Input Area */}
-            <div className="relative flex items-end gap-2 bg-white rounded-lg p-1.5 shadow-sm border border-stone-border focus-within:ring-2 focus-within:ring-sage focus-within:border-transparent transition-all">
+            <div className="relative flex items-end gap-2 bg-white rounded-lg p-1.5 shadow-sm border border-stone-border transition-all">
                 <button
                     onClick={() => fileInputRef.current?.click()}
                     className="p-1.5 text-slate-500 hover:text-sage transition-colors rounded-lg h-8 w-8 flex items-center justify-center shrink-0"
@@ -211,7 +211,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
 
                 <textarea
                     ref={inputRef}
-                    className="block w-full resize-none border-0 bg-transparent py-1.5 px-0 text-slate-900 placeholder:text-slate-500 focus:ring-0 sm:text-sm sm:leading-6"
+                    className="block w-full resize-none border-0 bg-transparent py-1.5 px-0 text-slate-900 placeholder:text-slate-500 focus:ring-0 outline-none focus:outline-none focus-visible:outline-none sm:text-sm sm:leading-6"
                     placeholder="Type a message..."
                     rows={1}
                     style={{ minHeight: '32px', maxHeight: '120px' }}
@@ -224,20 +224,29 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
                 <div className="flex items-center gap-1 shrink-0">
                     <button
                         type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-1.5 text-slate-500 hover:text-sage transition-colors rounded-lg h-8 w-8 flex items-center justify-center"
+                    >
+                        <Image className="text-[18px]" />
+                    </button>
+
+                    <button
+                        type="button"
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                         className={`p-1.5 transition-colors rounded-lg h-8 w-8 flex items-center justify-center ${showEmojiPicker ? 'text-sage bg-stone-off' : 'text-slate-500 hover:text-sage'}`}
                     >
                         <Smile className="text-[18px]" />
                     </button>
 
-                    {(newMessage.trim() || selectedFile) && (
-                        <button
-                            onClick={() => void handleSend()}
-                            className="p-1.5 text-sage hover:text-sage-dark transition-colors rounded-lg h-8 w-8 flex items-center justify-center animate-in fade-in zoom-in duration-200"
-                        >
-                            <Send className="text-[18px]" />
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        onClick={() => void handleSend()}
+                        disabled={disabled || (!newMessage.trim() && !selectedFile)}
+                        className="ml-1 flex items-center gap-1.5 h-9 px-4 rounded-full bg-sage text-white text-sm font-bold hover:bg-sage-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <span>Send</span>
+                        <Send className="text-[15px]" />
+                    </button>
                 </div>
             </div>
         </div>

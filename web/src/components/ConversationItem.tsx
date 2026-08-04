@@ -8,6 +8,7 @@ interface ConversationItemProps {
     profile: any;
 
     isOnline?: boolean;
+    isTyping?: boolean;
 }
 
 export const ConversationItem: React.FC<ConversationItemProps> = memo(({
@@ -15,6 +16,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = memo(({
     isSelected,
     onClick,
     profile,
+    isTyping,
 
 }) => {
     // Simplified: Use denormalized message data if available, fallback to nested messages array.
@@ -34,7 +36,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = memo(({
     return (
         <button
             onClick={() => onClick(conversation.id)}
-            className={`w-full p-4 flex items-center gap-3 transition-all border-b border-stone-100 last:border-0 hover:bg-white/80 ${isSelected ? 'bg-white shadow-sm border-l-4 border-l-sage' : 'border-l-4 border-l-transparent text-slate-600'
+            className={`w-full p-4 flex items-center gap-3 transition-all border-b border-stone-100 last:border-0 hover:bg-white/80 ${isSelected ? 'bg-white shadow-sm' : 'text-slate-600'
                 }`}
         >
             <div className="relative">
@@ -55,23 +57,25 @@ export const ConversationItem: React.FC<ConversationItemProps> = memo(({
                     )}
                 </div>
                 <div className="flex justify-between items-center">
-                    <p className={`text-xs truncate ${!lastMessage?.read_at && lastMessage?.sender_id !== profile?.id
-                        ? 'font-semibold text-slate-800'
-                        : 'text-slate-500'
-                        }`}>
-                        {lastMessage ? (
-                            <>
-                                {lastMessage.sender_id === profile?.id ? '' : 'You: '}
-                                {lastMessage.content}
-                            </>
-                        ) : (
-                            <span className="italic text-slate-400">No messages yet</span>
-                        )}
-                    </p>
+                    {isTyping ? (
+                        <p className="text-xs font-medium text-sage truncate">typing...</p>
+                    ) : (
+                        <p className={`text-xs truncate ${!lastMessage?.read_at && lastMessage?.sender_id !== profile?.id
+                            ? 'font-semibold text-slate-800'
+                            : 'text-slate-500'
+                            }`}>
+                            {lastMessage ? (
+                                <>
+                                    {lastMessage.sender_id === profile?.id ? '' : 'You: '}
+                                    {lastMessage.content}
+                                </>
+                            ) : (
+                                <span className="italic text-slate-400">No messages yet</span>
+                            )}
+                        </p>
+                    )}
                     {unreadCount > 0 && (
-                        <span className="ml-2 bg-sage text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                            {unreadCount}
-                        </span>
+                        <span className="ml-2 h-2.5 w-2.5 rounded-full bg-sage shrink-0" aria-label={`${unreadCount} unread`} />
                     )}
                 </div>
             </div>

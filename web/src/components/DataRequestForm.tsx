@@ -85,7 +85,7 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
           background: transparent;
         }
         textarea::-webkit-scrollbar-thumb {
-          background-color: #cbd5e1;
+          background-color: #D1D5DB;
           border-radius: 4px;
         }
         @keyframes fade-in {
@@ -225,7 +225,7 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
                     By submitting this form, you acknowledge that we may need to verify your identity before processing the request.
                   </div>
                   <button 
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-sage hover:bg-sage/90 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2" 
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-sage hover:bg-sage/90 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2" 
                     type="submit"
                     disabled={loading}
                   >

@@ -1,4 +1,4 @@
--- TankTide Database Setup for Remote Supabase Project
+-- Thessis Database Setup for Remote Supabase Project
 -- This script sets up all necessary tables, policies, and functions
 
 -- =====================================================
@@ -554,7 +554,7 @@ CREATE POLICY "Users can delete their own cover images"
 -- Display setup completion message
 DO $$
 BEGIN
-  RAISE NOTICE 'TankTide database setup completed successfully!';
+  RAISE NOTICE 'Thessis database setup completed successfully!';
   RAISE NOTICE 'All tables, policies, and functions have been created.';
   RAISE NOTICE 'You can now use the application with your remote Supabase project.';
 END $$; 

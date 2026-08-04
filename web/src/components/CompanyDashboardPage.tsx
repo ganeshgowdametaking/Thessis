@@ -120,8 +120,8 @@ const CompanyDashboardPage: React.FC = () => {
               <Briefcase className="h-6 w-6 text-blue-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Jobs</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalJobs}</p>
+              <p className="text-sm font-medium text-slate-600">Total Jobs</p>
+              <p className="text-2xl font-bold font-display text-slate-900">{stats.totalJobs}</p>
             </div>
           </div>
         </div>
@@ -131,8 +131,8 @@ const CompanyDashboardPage: React.FC = () => {
               <Briefcase className="h-6 w-6 text-green-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Jobs</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.activeJobs}</p>
+              <p className="text-sm font-medium text-slate-600">Active Jobs</p>
+              <p className="text-2xl font-bold font-display text-slate-900">{stats.activeJobs}</p>
             </div>
           </div>
         </div>
@@ -142,8 +142,8 @@ const CompanyDashboardPage: React.FC = () => {
               <Users className="h-6 w-6 text-yellow-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Applications</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalApplications}</p>
+              <p className="text-sm font-medium text-slate-600">Total Applications</p>
+              <p className="text-2xl font-bold font-display text-slate-900">{stats.totalApplications}</p>
             </div>
           </div>
         </div>
@@ -153,8 +153,8 @@ const CompanyDashboardPage: React.FC = () => {
               <MessageSquare className="h-6 w-6 text-red-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Unread Messages</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.unreadMessages}</p>
+              <p className="text-sm font-medium text-slate-600">Unread Messages</p>
+              <p className="text-2xl font-bold font-display text-slate-900">{stats.unreadMessages}</p>
             </div>
           </div>
         </div>

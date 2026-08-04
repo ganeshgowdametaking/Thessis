@@ -1,4 +1,4 @@
-# 🧪 TankTide Mobile App Testing Guide
+# 🧪 Thessis Mobile App Testing Guide
 
 ## Quick Start Testing
 
@@ -7,7 +7,7 @@ The app includes a built-in demo mode that works without any backend setup:
 
 ```bash
 # Navigate to mobile directory
-cd tanktide-main/mobile
+cd thessis-main/mobile
 
 # Start the development server
 npx expo start --web

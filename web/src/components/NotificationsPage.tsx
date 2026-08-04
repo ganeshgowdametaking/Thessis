@@ -83,6 +83,14 @@ const NotificationsPage: React.FC = () => {
       }
 
       setNotifications(dedupedNotifications || []);
+
+      // Viewing this page counts as "seen" — clear the unread badge even if
+      // the user doesn't act on a notification (e.g. a connection request).
+      const hasUnread = dedupedNotifications.some((notif: any) => !notif.read);
+      if (hasUnread) {
+        await notificationService.markAllAsRead();
+        if (window.refreshUnreadCounts) window.refreshUnreadCounts();
+      }
     } catch (error) {
       console.error('❌ Error loading notifications:', error);
       setNotifications([]);
@@ -122,7 +130,7 @@ const NotificationsPage: React.FC = () => {
     }
 
     // Create a simple colored background based on user ID
-    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
+    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8B5CF6', '#06b6d4'];
     const colorIndex = profile?.id ? profile.id.charCodeAt(0) % colors.length : 0;
     const backgroundColor = colors[colorIndex];
 
@@ -255,7 +263,7 @@ const NotificationsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-stone font-display text-slate-body transition-colors duration-200 min-h-screen flex items-center justify-center">
+      <div className="bg-stone-bg font-display text-slate-body transition-colors duration-200 min-h-screen flex items-center justify-center">
         <LoadingSpinner text="Loading notifications..." />
       </div>
     );
@@ -324,7 +332,7 @@ const NotificationsPage: React.FC = () => {
   const groupedNotifications = groupNotificationsByDate(filteredNotifications);
 
   return (
-    <div className="bg-stone font-display text-slate-body transition-colors duration-200 min-h-screen flex flex-col">
+    <div className="bg-stone-bg font-display text-slate-body transition-colors duration-200 min-h-screen flex flex-col">
       <main className="flex-1 w-full max-w-[800px] mx-auto px-4 py-5 md:py-12">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4 mb-5 md:mb-8">
@@ -334,7 +342,7 @@ const NotificationsPage: React.FC = () => {
           </div>
           <button
             onClick={handleMarkAllAsRead}
-            className="group inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-white border border-stone-header text-sm font-bold text-slate-900 hover:bg-stone-50 hover:border-slate-300 transition-all shadow-sm w-full md:w-auto"
+            className="group inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-white border border-stone-header text-sm font-bold text-slate-900 hover:bg-stone-50 hover:border-slate-300 transition-all w-full md:w-auto"
           >
             <CheckCircle className="text-[18px] text-slate-500 group-hover:text-sage transition-colors" />
             <span>Mark all as read</span>
@@ -347,7 +355,7 @@ const NotificationsPage: React.FC = () => {
             <button
               onClick={() => setFilter('all')}
               className={`h-9 px-4 rounded-full text-sm font-bold transition-colors whitespace-nowrap border ${filter === 'all'
-                ? 'bg-[#5f7261] text-white border-[#5f7261]'
+                ? 'bg-ink text-white border-[#4353FF]'
                 : 'bg-white text-slate-600 border-stone-header hover:border-slate-300'
                 }`}
             >
@@ -356,7 +364,7 @@ const NotificationsPage: React.FC = () => {
             <button
               onClick={() => setFilter('unread')}
               className={`h-9 px-4 rounded-full text-sm font-bold transition-colors whitespace-nowrap border inline-flex items-center ${filter === 'unread'
-                ? 'bg-[#5f7261] text-white border-[#5f7261]'
+                ? 'bg-ink text-white border-[#4353FF]'
                 : 'bg-white text-slate-600 border-stone-header hover:border-slate-300'
                 }`}
             >
@@ -370,16 +378,6 @@ const NotificationsPage: React.FC = () => {
                 </span>
               )}
             </button>
-            <button
-              onClick={() => setFilter('connection')}
-              className={`h-9 px-4 rounded-full text-sm font-bold transition-colors whitespace-nowrap border ${filter === 'connection'
-                ? 'bg-[#5f7261] text-white border-[#5f7261]'
-                : 'bg-white text-slate-600 border-stone-header hover:border-slate-300'
-                }`}
-            >
-              Referrals
-            </button>
-
           </div>
         </div>
 
@@ -627,7 +625,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   e.stopPropagation();
                   onAcceptConnection(notification.id, notification.metadata?.connection_id);
                 }}
-                className="inline-flex items-center justify-center h-9 px-3 rounded-md border border-sage/20 bg-sage/10 text-sm font-bold text-sage hover:text-sage-olive transition-colors"
+                className="inline-flex items-center justify-center h-9 px-3 rounded-lg border border-sage/20 bg-sage/10 text-sm font-bold text-sage hover:text-sage-olive transition-colors"
               >
                 Accept
               </button>
@@ -636,7 +634,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   e.stopPropagation();
                   onDeclineConnection(notification.id, notification.metadata?.connection_id);
                 }}
-                className="inline-flex items-center justify-center h-9 px-3 rounded-md border border-stone-header bg-white text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors"
+                className="inline-flex items-center justify-center h-9 px-3 rounded-lg border border-stone-header bg-white text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors"
               >
                 Decline
               </button>
@@ -644,7 +642,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
           ) : (
             <button
               onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center justify-center h-9 px-3 rounded-md border border-sage/20 bg-sage/10 text-sm font-bold text-sage hover:text-sage-olive transition-colors"
+              className="inline-flex items-center justify-center h-9 px-3 rounded-lg border border-sage/20 bg-sage/10 text-sm font-bold text-sage hover:text-sage-olive transition-colors"
             >
               {notification.type === 'job_application' ? 'View Application' :
                 notification.type === 'connection' ? 'View Profile' :

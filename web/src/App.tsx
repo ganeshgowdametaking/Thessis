@@ -1,4 +1,4 @@
-// TankTide v2.0 - Enhanced UI/UX and Smart Messaging System
+// THESSIS v2.0 - Enhanced UI/UX and Smart Messaging System
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import Header from './components/Header';
@@ -15,7 +15,7 @@ import TermsOfService from './components/TermsOfService';
 import DataRequestForm from './components/DataRequestForm';
 import PasswordResetPage from './components/PasswordResetPage';
 import Footer from './components/Footer';
-import AuthModal from './components/AuthModal';
+import AuthPage from './components/AuthPage';
 import { useAuthContext } from './contexts/AuthContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 
@@ -46,6 +46,7 @@ const AcceptAdminInvitePage = React.lazy(() => import('./components/AcceptAdminI
 import AuthCallback from './components/AuthCallback';
 import ScrollToTop from './components/ScrollToTop';
 import CompanyLayout from './components/CompanyLayout';
+import BottomTabBar from './components/BottomTabBar';
 import { analyticsService } from './services/analyticsService';
 import { captureUTMParams } from './utils/utmHandler';
 
@@ -225,7 +226,7 @@ function DataRequestFormWrapper() {
 }
 
 // Wrapper component for Home page that handles password reset
-function HomePageWrapper() {
+function HomePageWrapper({ onJoinNow }: { onJoinNow?: () => void }) {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const isResetFlow = searchParams.get('reset') === 'true' || location.hash.includes('type=recovery');
@@ -236,7 +237,7 @@ function HomePageWrapper() {
 
   return (
     <>
-      <Hero /> <Services /> <About />
+      <Hero onJoinNow={onJoinNow} /> <Services /> <About />
     </>
   );
 }
@@ -309,23 +310,6 @@ function AppContent() {
     }
   }, [isAdmin, loading, user, location.pathname, navigate]);
 
-  const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password' | 'verify-reset-otp' | 'update-password' }>({
-    isOpen: false,
-    mode: 'signin',
-  });
-
-  const handleOpenAuthModal = (mode: 'signin' | 'signup') => {
-    setAuthModal({ isOpen: true, mode });
-  };
-
-  const handleCloseAuthModal = () => {
-    setAuthModal({ isOpen: false, mode: 'signin' });
-  };
-
-  const handleAuthModeChange = (mode: 'signin' | 'signup' | 'verify-email' | 'forgot-password' | 'verify-reset-otp' | 'update-password') => {
-    setAuthModal(prev => ({ ...prev, mode }));
-  };
-
   const routes = useMemo(() => (
     <Routes>
       {/* Auth callback route - accessible to all users */}
@@ -389,7 +373,9 @@ function AppContent() {
           <Route path="/company-job-success" element={<CompanyJobSuccessPage />} />
           {/* Temporary route for testing Password Reset page */}
           <Route path="/reset-password" element={<PasswordResetPage />} />
-          <Route path="/" element={<HomePageWrapper />} />
+          <Route path="/login" element={<AuthPage key="signin" initialMode="signin" />} />
+          <Route path="/signup" element={<AuthPage key="signup" initialMode="signup" />} />
+          <Route path="/" element={<HomePageWrapper onJoinNow={() => navigate('/signup')} />} />
           <Route path="*" element={<Navigate to="/" />} />
         </>
       )}
@@ -399,7 +385,7 @@ function AppContent() {
   // If this is a password reset flow, show the password reset page regardless of authentication status
   if (isResetFlow) {
     return (
-      <div className="flex min-h-screen flex-col bg-slate-100">
+      <div className="flex min-h-screen flex-col bg-parchment-sunken">
         <main className="flex-grow">
           <PasswordResetPage />
         </main>
@@ -411,30 +397,38 @@ function AppContent() {
     return <LoadingSpinner text="Initializing..." />;
   }
 
+  const isHeroPage = !user && location.pathname === '/';
+  const isAuthPage = !user && (location.pathname === '/login' || location.pathname === '/signup');
+  const showBottomTabBar = Boolean(user) && isMobile && location.pathname !== '/messages';
+
+  if (isAuthPage) {
+    return (
+      <div className="min-h-screen bg-parchment">
+        <React.Suspense fallback={<LoadingSpinner text="Loading page..." />}>
+          {routes}
+        </React.Suspense>
+      </div>
+    );
+  }
+
   return (
     // <TrackingProvider>
-    <div className="flex min-h-screen flex-col bg-slate-100 relative">
+    <div className={`flex min-h-screen flex-col relative ${isHeroPage ? 'bg-parchment' : 'bg-parchment-sunken'}`}>
       <GDPRBanner />
       <Header
-        onSignIn={() => handleOpenAuthModal('signin')}
-        onJoinNow={() => handleOpenAuthModal('signup')}
+        onSignIn={() => navigate('/login')}
+        onJoinNow={() => navigate('/signup')}
       />
-      <main className="flex-grow">
+      <main className={`flex-grow ${showBottomTabBar ? 'pb-14' : ''}`}>
         <React.Suspense fallback={<LoadingSpinner text="Loading page..." />}>
           {routes}
         </React.Suspense>
       </main>
+      {showBottomTabBar && <BottomTabBar />}
       {!(isMobile && location.pathname === '/messages') && (
-        <Footer compact={isMobile} />
+        <Footer compact={isMobile} slim={Boolean(user)} />
       )}
 
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={authModal.isOpen}
-        onClose={handleCloseAuthModal}
-        mode={authModal.mode}
-        onModeChange={handleAuthModeChange}
-      />
     </div>
     // </TrackingProvider>
   );

@@ -1,4 +1,4 @@
-# TankTide Security Policy (SOC 2 / ISO 27001-aligned)
+# Thessis Security Policy (SOC 2 / ISO 27001-aligned)
 
 ## Scope
 This policy applies to:

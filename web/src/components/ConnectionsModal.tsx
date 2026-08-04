@@ -122,7 +122,7 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
       return profile.avatar_url;
     }
     
-    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
+    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8B5CF6', '#06b6d4'];
     const colorIndex = profile?.id ? profile.id.charCodeAt(0) % colors.length : 0;
     const backgroundColor = colors[colorIndex];
     

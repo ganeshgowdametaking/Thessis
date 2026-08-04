@@ -59,10 +59,10 @@ BEGIN
         'Content-Type', 'application/json'
       ),
       body := jsonb_build_object(
-        'from', 'TankTide <onboarding@resend.dev>',
+        'from', 'Thessis <onboarding@resend.dev>',
         'to', ARRAY[new.email],
-        'subject', 'Your TankTide Verification Code',
-        'html', format('<p>Your TankTide verification code is: <strong>%s</strong></p><p>This code will expire in 15 minutes.</p>', new.code)
+        'subject', 'Your Thessis Verification Code',
+        'html', format('<p>Your Thessis verification code is: <strong>%s</strong></p><p>This code will expire in 15 minutes.</p>', new.code)
       )
     );
   RETURN new;

@@ -125,7 +125,7 @@ const PasswordResetPage: React.FC = () => {
       setSuccess('Password updated successfully! Redirecting you back to the app...')
       setTimeout(() => {
         if (isIOS) {
-          window.location.href = 'tanktide://login'
+          window.location.href = 'thessis://login'
         } else {
           navigate('/jobs')
         }
@@ -160,9 +160,9 @@ const PasswordResetPage: React.FC = () => {
         {/* Logo */}
         <div className="flex justify-center mb-2 sm:mb-6 pt-[max(16px,env(safe-area-inset-top))] sm:pt-0">
           <img
-            src="/logo2.png"
-            alt="TankTide Logo"
-            className="w-12 h-12 sm:w-16 sm:h-16 object-contain filter-sage"
+            src="/logo2.png?v=2"
+            alt="THESSIS Logo"
+            className="w-12 h-12 object-contain"
           />
         </div>
 
@@ -286,7 +286,7 @@ const PasswordResetPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading || formData.password !== formData.confirmPassword || !hasMinLength}
-                className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-btn-sage hover:bg-btn-sage-hover text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-btn-sage hover:bg-btn-sage-hover text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Updating Password...' : 'Update Password'}
               </button>
@@ -305,7 +305,7 @@ const PasswordResetPage: React.FC = () => {
 
         {/* Footer */}
         <p className="text-center text-copyright-slate text-xs pb-[calc(env(safe-area-inset-bottom)+8px)] sm:pb-0">
-          © 2024 TankTide. All rights reserved.
+          © 2026 THESSIS. All rights reserved.
         </p>
       </div>
     </div>

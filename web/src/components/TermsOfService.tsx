@@ -26,7 +26,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
       <div className="space-y-8 sm:space-y-12">
         <div className="prose prose-slate max-w-none">
           <p className="text-base sm:text-lg leading-relaxed text-slate-700">
-            Welcome to TankTide. Please read these Terms of Service ("Terms", "Terms of Service", or "Agreement") carefully before using the TankTide platform, website, and services (collectively, the "Services").
+            Welcome to THESSIS. Please read these Terms of Service ("Terms", "Terms of Service", or "Agreement") carefully before using the THESSIS platform, website, and services (collectively, the "Services").
           </p>
           <p className="mt-4 text-slate-700">
             By accessing or using our Services, you agree to be bound by these Terms. If you do not agree to these Terms, you may not access or use our Services.
@@ -40,7 +40,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
           </h2>
           <div className="pl-0 sm:pl-[44px] space-y-4 leading-relaxed text-slate-700">
             <p>
-              TankTide ("we", "us", or "our") provides a professional networking and job referral platform designed to connect professionals with career opportunities. These Terms constitute a legally binding agreement between you and TankTide.
+              THESSIS ("we", "us", or "our") provides a professional networking and job referral platform designed to connect professionals with career opportunities. These Terms constitute a legally binding agreement between you and THESSIS.
             </p>
             <p className="font-semibold">
               Acceptance of Terms: By creating an account, accessing, or using the Services in any way, you acknowledge that you have read, understood, and agree to be bound by these Terms and our Privacy Policy, which is incorporated herein by reference.
@@ -54,12 +54,12 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
             Definitions
           </h2>
           <ul className="ml-0 sm:ml-[44px] list-disc space-y-2 pl-4 text-slate-700 marker:text-slate-400">
-              <li><strong>"Platform"</strong> refers to the TankTide website, mobile applications, and all related technology and services.</li>
+              <li><strong>"Platform"</strong> refers to the THESSIS website, mobile applications, and all related technology and services.</li>
             <li><strong>"User"</strong> or <strong>"You"</strong> refers to any individual or entity that accesses or uses the Services.</li>
             <li><strong>"Member"</strong> refers to a registered User with an active account.</li>
             <li><strong>"Content"</strong> refers to all text, data, information, images, photos, videos, graphics, and other materials posted, uploaded, submitted, or transmitted through the Platform.</li>
             <li><strong>"User Content"</strong> refers to Content that you create, post, or share on the Platform.</li>
-            <li><strong>"TankTide Content"</strong> refers to Content owned or licensed by TankTide, including the Platform's design, features, logos, and trademarks.</li>
+            <li><strong>"THESSIS Content"</strong> refers to Content owned or licensed by THESSIS, including the Platform's design, features, logos, and trademarks.</li>
           </ul>
         </section>
 
@@ -96,7 +96,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
             Content Ownership, License, and Intellectual Property
           </h2>
           <div className="pl-0 sm:pl-[44px] space-y-4 leading-relaxed text-slate-700">
-            <p>You retain ownership of your User Content but grant TankTide a non-exclusive, worldwide, royalty-free license to use, reproduce, and display it in connection with the Services.</p>
+            <p>You retain ownership of your User Content but grant THESSIS a non-exclusive, worldwide, royalty-free license to use, reproduce, and display it in connection with the Services.</p>
           </div>
         </section>
 
@@ -106,7 +106,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
             Jobs, Applications, and Professional Networking
           </h2>
           <div className="pl-0 sm:pl-[44px] space-y-4 leading-relaxed text-slate-700">
-            <p>Employers are responsible for the accuracy of job postings. Users understand that TankTide is not an employer and does not make hiring decisions.</p>
+            <p>Employers are responsible for the accuracy of job postings. Users understand that THESSIS is not an employer and does not make hiring decisions.</p>
           </div>
         </section>
 
@@ -158,7 +158,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
             Limitation of Liability
           </h2>
           <p className="pl-0 sm:pl-[44px] leading-relaxed text-slate-700">
-            TO THE MAXIMUM EXTENT PERMITTED BY LAW, TANKTIDE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES.
+            TO THE MAXIMUM EXTENT PERMITTED BY LAW, THESSIS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES.
           </p>
         </section>
 
@@ -168,7 +168,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
             Indemnification
           </h2>
           <p className="pl-0 sm:pl-[44px] leading-relaxed text-slate-700">
-            You agree to defend, indemnify, and hold harmless TankTide from and against any claims arising from your use of the Services or violation of these Terms.
+            You agree to defend, indemnify, and hold harmless THESSIS from and against any claims arising from your use of the Services or violation of these Terms.
           </p>
         </section>
 
@@ -208,7 +208,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
             General Provisions
           </h2>
           <p className="pl-0 sm:pl-[44px] leading-relaxed text-slate-700">
-            These Terms, along with our Privacy Policy, constitute the entire agreement between you and TankTide.
+            These Terms, along with our Privacy Policy, constitute the entire agreement between you and THESSIS.
           </p>
         </section>
 
@@ -219,7 +219,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
           </h2>
           <div className="mt-4 pl-0 sm:pl-[44px]">
             <div className="rounded-xl bg-slate-50 p-5 sm:p-8 shadow-sm border border-slate-200">
-              <p className="font-bold text-slate-900">TankTide Team</p>
+              <p className="font-bold text-slate-900">THESSIS Team</p>
               <p className="mt-1 text-slate-700">Remote-first company</p>
               <a
                 className="mt-4 inline-block font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
@@ -233,7 +233,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
       </div>
 
       <div className="mt-12 sm:mt-20 border-t border-slate-200 pt-6 sm:pt-8 text-center">
-        <p className="text-sm text-slate-500">© 2023 TankTide, Inc. All rights reserved.</p>
+        <p className="text-sm text-slate-500">© 2023 THESSIS, Inc. All rights reserved.</p>
         <div className="mt-4 flex justify-center gap-6 text-sm font-medium text-sage">
           <a className="hover:text-sage-dark" href="#">Privacy Policy</a>
           <a className="hover:text-sage-dark" href="#">Cookie Policy</a>

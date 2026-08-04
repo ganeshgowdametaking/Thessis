@@ -9,25 +9,10 @@ const SettingsPage: React.FC = () => {
   const { signOut, updatePassword, updateProfile, user, profile } = useAuthContext();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'account' | 'feedback' | 'admin'>('account');
-  const [isMobile, setIsMobile] = useState(false);
-  const [emailVerificationOpen, setEmailVerificationOpen] = useState(true);
-  const [passwordOpen, setPasswordOpen] = useState(true);
-  const [adminInviteOpen, setAdminInviteOpen] = useState(true);
-
-  React.useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 1023px)');
-    const handleBreakpointChange = (event: MediaQueryListEvent) => setIsMobile(event.matches);
-    setIsMobile(mediaQuery.matches);
-    mediaQuery.addEventListener('change', handleBreakpointChange);
-    return () => mediaQuery.removeEventListener('change', handleBreakpointChange);
-  }, []);
-
-  React.useEffect(() => {
-    const defaultOpen = !isMobile;
-    setEmailVerificationOpen(defaultOpen);
-    setPasswordOpen(defaultOpen);
-    setAdminInviteOpen(defaultOpen);
-  }, [isMobile]);
+  const [emailVerificationOpen, setEmailVerificationOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [adminInviteOpen, setAdminInviteOpen] = useState(false);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
 
   // Sync organization email and step when profile loads
   React.useEffect(() => {
@@ -495,7 +480,7 @@ const SettingsPage: React.FC = () => {
                             </div>
                             <button
                               onClick={handleResetVerification}
-                              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2 group"
+                              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg hover:shadow transition-all flex items-center gap-2 group"
                             >
                               <span className="material-symbols-outlined text-[18px] group-hover:rotate-12 transition-transform">edit</span>
                               Change
@@ -530,7 +515,7 @@ const SettingsPage: React.FC = () => {
                               <button
                                 onClick={handleSendVerificationCode}
                                 disabled={loading || !organizationEmail || !organizationEmail.includes('@')}
-                                className="bg-sage text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-sage-dark transition-all whitespace-nowrap shadow-sm active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="bg-sage text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-sage-dark transition-all whitespace-nowrap active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
                               >
                                 {loading ? 'Sending...' : 'Send Code'}
                               </button>
@@ -551,7 +536,7 @@ const SettingsPage: React.FC = () => {
                                 <button
                                   onClick={handleVerifyOTP}
                                   disabled={isVerifying || verificationOtp.length !== 6}
-                                  className="bg-slate-900 text-white px-8 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
+                                  className="bg-slate-900 text-white px-8 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all disabled:opacity-50"
                                 >
                                   {isVerifying ? 'Verifying...' : 'Confirm'}
                                 </button>
@@ -618,7 +603,7 @@ const SettingsPage: React.FC = () => {
                         <button
                           onClick={handleUpdatePassword}
                           disabled={loading}
-                          className="bg-sage text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-sage-dark transition-colors shadow-sm shadow-sage/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          className="bg-sage text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-sage-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                           {loading ? (
                             <>
@@ -665,9 +650,15 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </details>
 
-                <div className="bg-red-50/40 rounded-2xl shadow-sm border border-red-100 overflow-hidden">
-                  <div className="p-4 md:p-6">
-                    <div className="flex items-center gap-4 mb-4">
+                <details className="group bg-red-50/40 rounded-2xl shadow-sm border border-red-100 overflow-hidden" open={deleteAccountOpen}>
+                  <summary
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setDeleteAccountOpen((prev) => !prev);
+                    }}
+                    className="flex items-center justify-between p-4 md:p-6 cursor-pointer hover:bg-red-50/60 transition-colors select-none"
+                  >
+                    <div className="flex items-center gap-4">
                       <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100 text-red-600">
                         <span className="material-symbols-outlined">delete_forever</span>
                       </div>
@@ -676,7 +667,10 @@ const SettingsPage: React.FC = () => {
                         <p className="text-sm text-slate-500">Permanently remove your account and data</p>
                       </div>
                     </div>
-                    <div className="space-y-4">
+                    <span className="material-symbols-outlined text-slate-500 group-open:rotate-90 transition-transform duration-200">chevron_right</span>
+                  </summary>
+                  <div className="px-4 md:px-6 pb-4 md:pb-6 pt-2 border-t border-red-100">
+                    <div className="space-y-4 pt-4">
                       <p className="text-sm text-slate-600 italic">This action cannot be undone. All your data, referrals, and connections will be permanently deleted.</p>
                       <textarea
                         className="block w-full rounded-lg border-stone-border bg-white py-2 px-3 text-slate-900 placeholder:text-slate-400 focus:ring-red-500 focus:border-red-500 sm:text-sm min-h-[100px]"
@@ -701,7 +695,7 @@ const SettingsPage: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                </div>
+                </details>
               </>
             ) : activeTab === 'admin' && isSuperUser ? (
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -818,7 +812,7 @@ const SettingsPage: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-slate-900">Feedback</h3>
-                      <p className="text-sm text-slate-500">Help us improve TankTide by sharing your thoughts</p>
+                      <p className="text-sm text-slate-500">Help us improve THESSIS by sharing your thoughts</p>
                     </div>
                   </div>
 
@@ -842,7 +836,7 @@ const SettingsPage: React.FC = () => {
                       <label className="block text-sm font-bold text-slate-800 mb-2">Message</label>
                       <textarea
                         className="block w-full rounded-lg border border-slate-300 bg-white py-3 px-4 text-slate-900 placeholder:text-slate-400 focus:ring-sage focus:border-sage sm:text-sm min-h-[200px] shadow-sm transition-all"
-                        placeholder="How can we make TankTide better for you?"
+                        placeholder="How can we make THESSIS better for you?"
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
                       />
@@ -857,7 +851,7 @@ const SettingsPage: React.FC = () => {
                     <button
                       onClick={handleSubmitFeedback}
                       disabled={feedbackLoading}
-                      className="bg-sage text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-sage-dark transition-all shadow-sm shadow-sage/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto"
+                      className="bg-sage text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-sage-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto"
                     >
                       {feedbackLoading ? (
                         <>
@@ -907,7 +901,7 @@ const SettingsPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => { setShowInviteModal(false); setInviteEmail(''); setInviteMessage(null); }}
-                  className="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  className="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-parchment-sunken transition-colors"
                 >
                   Cancel
                 </button>
@@ -933,7 +927,7 @@ const SettingsPage: React.FC = () => {
               <button
                 onClick={() => setShowDeleteConfirmModal(false)}
                 disabled={deleteLoading}
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-parchment-sunken transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -970,14 +964,14 @@ const SettingsPage: React.FC = () => {
               <button
                 onClick={() => { setShowDemoteConfirmModal(false); setTargetAdmin(null); }}
                 disabled={adminsLoading}
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-parchment-sunken transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDemoteAdmin}
                 disabled={adminsLoading}
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm shadow-red-200 disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
               >
                 {adminsLoading ? 'Removing...' : 'Confirm Removal'}
               </button>

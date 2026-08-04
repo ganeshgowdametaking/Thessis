@@ -35,7 +35,7 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
 
             <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">1. Introduction</h2>
             <p className="text-slate-700">
-              TankTide ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform (the "Platform").
+              THESSIS ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform (the "Platform").
             </p>
             <p className="text-slate-700 mt-4">
               We process personal data in accordance with the EU General Data Protection Regulation (GDPR) and other applicable data protection laws.
@@ -164,13 +164,13 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             <ul className="list-disc pl-6 text-slate-700 mt-2 space-y-2">
               <li>Comply with legal obligations, court orders, or government requests</li>
               <li>Enforce our Terms of Service and other agreements</li>
-              <li>Protect the rights, property, or safety of TankTide, our users, or the public</li>
+              <li>Protect the rights, property, or safety of THESSIS, our users, or the public</li>
               <li>Detect and prevent fraud, security issues, or technical problems</li>
             </ul>
 
             <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-3">5.5 Business Transfers</h3>
             <p className="text-slate-700">
-              If TankTide is involved in a merger, acquisition, or sale of assets, your information may be transferred to the new entity. We will notify you before your data is transferred and becomes subject to a different privacy policy.
+              If THESSIS is involved in a merger, acquisition, or sale of assets, your information may be transferred to the new entity. We will notify you before your data is transferred and becomes subject to a different privacy policy.
             </p>
 
             <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">6. Data Retention</h2>
@@ -305,11 +305,11 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">16. Contact Us</h2>
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 mt-6">
               <p className="text-slate-700"><strong>Email:</strong> <a href="mailto:info@tanktide.com" className="text-blue-600 hover:text-blue-800">info@tanktide.com</a></p>
-              <p className="text-slate-700 mt-2"><strong>Company:</strong> TankTide (Remote-first company)</p>
+              <p className="text-slate-700 mt-2"><strong>Company:</strong> THESSIS (Remote-first company)</p>
             </div>
 
             <p className="text-slate-500 text-sm mt-12 text-center">
-              Your privacy matters to us. Thank you for trusting TankTide with your information.
+              Your privacy matters to us. Thank you for trusting THESSIS with your information.
             </p>
           </div>
         </div>

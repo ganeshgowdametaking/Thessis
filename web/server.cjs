@@ -30,7 +30,7 @@ const s3KmsKeyId = process.env.S3_KMS_KEY_ID;
 const emitSecurityEvent = async (event) => {
   const safeEvent = {
     ...event,
-    service: 'tanktide-web-api',
+    service: 'thessis-web-api',
     timestamp: new Date().toISOString(),
   };
   console.warn('[SECURITY_EVENT]', JSON.stringify(safeEvent));

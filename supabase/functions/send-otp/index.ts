@@ -27,9 +27,9 @@ serve(async (req)=>{
       'Content-Type': 'application/x-www-form-urlencoded'
     },
     body: new URLSearchParams({
-      from: `TankTide <noreply@${MAILGUN_DOMAIN}>`,
+      from: `Thessis <noreply@${MAILGUN_DOMAIN}>`,
       to: email,
-      subject: 'Your TankTide Verification Code',
+      subject: 'Your Thessis Verification Code',
       text: `Your verification code is: ${otp}\n\nThis code will expire in 10 minutes.`
     })
   });

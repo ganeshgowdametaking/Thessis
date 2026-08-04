@@ -12,7 +12,7 @@ This folder contains the FastAPI backend used by the Applications page AI rankin
 2. Run the ranking API:
    - `uvicorn main:app --host 0.0.0.0 --port 8000 --reload`
 
-### TankTide integration
+### Thessis integration
 
 - Frontend calls `/api/ranking/*` by default.
 - Vite proxies `/api/*` to `web/server.cjs`.

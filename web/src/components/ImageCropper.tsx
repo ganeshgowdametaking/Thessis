@@ -126,7 +126,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
           </button>
           <button
             onClick={createCroppedImage}
-            className="flex-1 py-3 px-6 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 transition-all duration-200 shadow-xl shadow-blue-500/30 active:scale-95 ring-1 ring-blue-400/50"
+            className="flex-1 py-3 px-6 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 transition-all duration-200 active:scale-95 ring-1 ring-blue-400/50"
           >
             Apply Crop
           </button>

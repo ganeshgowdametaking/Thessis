@@ -43,7 +43,7 @@ export const jobService = {
 
         let query = supabase
           .from('jobs')
-          .select('*, created_by_profile:profiles!jobs_created_by_fkey(response_metric, work_email_verified, work_email)')
+          .select('*, created_by_profile:profiles!jobs_created_by_fkey(response_metric, work_email_verified, work_email, avatar_url, account_type)')
           .eq('status', 'active' as any)
           .order('created_at', { ascending: false });
 
@@ -100,7 +100,7 @@ export const jobService = {
       .from('jobs')
       .select(`
         *,
-        created_by_profile:profiles!jobs_created_by_fkey(id, full_name, role, work_email_verified, avatar_url, title, company, location, response_metric)
+        created_by_profile:profiles!jobs_created_by_fkey(id, full_name, role, work_email_verified, avatar_url, account_type, title, company, location, response_metric)
       `)
       .eq('id', id as any)
       .single();

@@ -248,7 +248,7 @@ export default function AnalyticsDashboard() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+                        <h1 className="text-3xl font-bold font-display text-slate-900">Dashboard</h1>
                         <p className="text-slate-500 mt-1">Platform analytics and insights</p>
                     </div>
                     <div className="flex items-center gap-4">
@@ -362,9 +362,9 @@ function StatCard({ title, value, icon: Icon, loading, color }: StatCardProps) {
                 <div>
                     <p className="text-sm font-medium text-slate-500">{title}</p>
                     {loading ? (
-                        <div className="h-7 w-14 bg-slate-200 rounded animate-pulse mt-1"></div>
+                        <div className="h-7 w-14 bg-parchment-sunken rounded animate-pulse mt-1"></div>
                     ) : (
-                        <p className="text-2xl font-bold text-slate-900">{value.toLocaleString()}</p>
+                        <p className="text-2xl font-bold font-display text-slate-900">{value.toLocaleString()}</p>
                     )}
                 </div>
             </div>
@@ -397,9 +397,9 @@ function OverviewTab({
                         [...Array(3)].map((_, i) => (
                             <div key={i} className="px-6 py-4 animate-pulse">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 bg-slate-200 rounded-full"></div>
+                                    <div className="h-10 w-10 bg-parchment-sunken rounded-full"></div>
                                     <div className="flex-1">
-                                        <div className="h-4 w-32 bg-slate-200 rounded mb-2"></div>
+                                        <div className="h-4 w-32 bg-parchment-sunken rounded mb-2"></div>
                                         <div className="h-3 w-24 bg-slate-100 rounded"></div>
                                     </div>
                                 </div>
@@ -409,7 +409,7 @@ function OverviewTab({
                         recentUsers.map((user) => (
                             <div key={user.id} className="px-6 py-4 hover:bg-slate-50 transition-colors">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 bg-slate-200 rounded-full flex items-center justify-center overflow-hidden">
+                                    <div className="h-10 w-10 bg-parchment-sunken rounded-full flex items-center justify-center overflow-hidden">
                                         {user.avatar_url ? (
                                             <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
                                         ) : (
@@ -444,7 +444,7 @@ function OverviewTab({
                     {loading ? (
                         [...Array(3)].map((_, i) => (
                             <div key={i} className="px-6 py-4 animate-pulse">
-                                <div className="h-4 w-48 bg-slate-200 rounded mb-2"></div>
+                                <div className="h-4 w-48 bg-parchment-sunken rounded mb-2"></div>
                                 <div className="h-3 w-32 bg-slate-100 rounded"></div>
                             </div>
                         ))
@@ -504,7 +504,7 @@ function GrowthTab({
                 <h3 className="text-sm font-medium text-slate-500 mb-4">Week-over-Week Growth</h3>
                 {loading ? (
                     <div className="animate-pulse">
-                        <div className="h-10 w-24 bg-slate-200 rounded mb-2"></div>
+                        <div className="h-10 w-24 bg-parchment-sunken rounded mb-2"></div>
                         <div className="h-4 w-32 bg-slate-100 rounded"></div>
                     </div>
                 ) : growthData ? (
@@ -516,7 +516,7 @@ function GrowthTab({
                                 <TrendingDown className="h-8 w-8 text-red-500" />
                             )}
                             <span
-                                className={`text-3xl font-bold ${growthData.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                                className={`text-3xl font-bold font-display ${growthData.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}
                             >
                                 {growthData.growthRate >= 0 ? '+' : ''}
                                 {growthData.growthRate}%
@@ -539,11 +539,11 @@ function GrowthTab({
                 ) : chartData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={250}>
                         <BarChart data={chartData} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                            <XAxis type="number" stroke="#94a3b8" fontSize={12} />
-                            <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={12} width={80} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                            <XAxis type="number" stroke="#9CA3AF" fontSize={12} />
+                            <YAxis dataKey="name" type="category" stroke="#9CA3AF" fontSize={12} width={80} />
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #E5E7EB', borderRadius: '8px' }}
                             />
                             <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                                 {chartData.map((entry, index) => (
@@ -566,9 +566,9 @@ function GrowthTab({
                 {loading ? (
                     <div className="p-6">
                         <div className="animate-pulse space-y-4">
-                            <div className="h-10 bg-slate-200 rounded"></div>
+                            <div className="h-10 bg-parchment-sunken rounded"></div>
                             <div className="h-10 bg-slate-100 rounded"></div>
-                            <div className="h-10 bg-slate-200 rounded"></div>
+                            <div className="h-10 bg-parchment-sunken rounded"></div>
                         </div>
                     </div>
                 ) : chartData.length > 0 ? (
@@ -644,12 +644,12 @@ function FunnelTab({
                 <h3 className="text-sm font-medium text-slate-500 mb-4">Liquidity Ratio</h3>
                 {loading ? (
                     <div className="animate-pulse">
-                        <div className="h-10 w-20 bg-slate-200 rounded mb-2"></div>
+                        <div className="h-10 w-20 bg-parchment-sunken rounded mb-2"></div>
                         <div className="h-4 w-40 bg-slate-100 rounded"></div>
                     </div>
                 ) : (
                     <>
-                        <p className="text-3xl font-bold text-slate-900">{liquidityRatio}</p>
+                        <p className="text-3xl font-bold font-display text-slate-900">{liquidityRatio}</p>
                         <p className="text-slate-500 text-sm mt-2">Active Jobs per Verified User</p>
                         <div className="mt-4 p-3 bg-slate-50 rounded-lg">
                             <p className="text-xs text-slate-600">
@@ -669,7 +669,7 @@ function FunnelTab({
                     <ResponsiveContainer width="100%" height={250}>
                         <FunnelChart>
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #E5E7EB', borderRadius: '8px' }}
                             />
                             <Funnel dataKey="value" data={funnelData} isAnimationActive={false}>
                                 <LabelList position="right" fill="#374151" stroke="none" dataKey="name" fontSize={12} />
@@ -719,12 +719,12 @@ function ComplianceTab({
                 </div>
                 {loading ? (
                     <div className="animate-pulse">
-                        <div className="h-10 w-20 bg-slate-200 rounded mb-2"></div>
+                        <div className="h-10 w-20 bg-parchment-sunken rounded mb-2"></div>
                         <div className="h-4 w-32 bg-slate-100 rounded"></div>
                     </div>
                 ) : euData ? (
                     <>
-                        <p className="text-3xl font-bold text-slate-900">{euData.euUserCount.toLocaleString()}</p>
+                        <p className="text-3xl font-bold font-display text-slate-900">{euData.euUserCount.toLocaleString()}</p>
                         <p className="text-slate-500 text-sm mt-1">{euData.euPercentage}% of total users</p>
                         <div className="mt-4 w-full bg-slate-100 rounded-full h-2">
                             <div
@@ -812,7 +812,7 @@ function AcquisitionSourcesSection({ data, conversionData, loading }: Acquisitio
                     {isDev && (
                         <button
                             onClick={handleDebugUTM}
-                            className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 transition-colors"
+                            className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded hover:bg-parchment-sunken transition-colors"
                         >
                             Debug UTM
                         </button>
@@ -838,12 +838,12 @@ function AcquisitionSourcesSection({ data, conversionData, loading }: Acquisitio
                                 <h3 className="text-sm font-medium text-slate-500 mb-4">Distribution</h3>
                                 <ResponsiveContainer width="100%" height={200}>
                                     <BarChart data={chartData} layout="vertical">
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                        <XAxis type="number" stroke="#94a3b8" fontSize={12} />
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                                        <XAxis type="number" stroke="#9CA3AF" fontSize={12} />
                                         <YAxis
                                             dataKey="source"
                                             type="category"
-                                            stroke="#94a3b8"
+                                            stroke="#9CA3AF"
                                             fontSize={12}
                                             width={100}
                                             tickFormatter={(value) => value === 'Organic' ? 'Organic/Unknown' : value}
@@ -851,7 +851,7 @@ function AcquisitionSourcesSection({ data, conversionData, loading }: Acquisitio
                                         <Tooltip
                                             contentStyle={{
                                                 backgroundColor: '#fff',
-                                                border: '1px solid #e2e8f0',
+                                                border: '1px solid #E5E7EB',
                                                 borderRadius: '8px',
                                                 fontSize: '12px'
                                             }}

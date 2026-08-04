@@ -55,7 +55,7 @@ const CreateReferralPage: React.FC = () => {
   const [aiError, setAiError] = useState<string | null>(null);
   const [referralLink, setReferralLink] = useState('');
 
-  const fieldShellClass = 'rounded-lg p-1 border border-slate-200 bg-white md:border-2 md:border-[#5f7261]';
+  const fieldShellClass = 'rounded-lg p-1 border border-slate-200 bg-white md:border-2 md:border-[#4353FF]';
 
   // Fetch user's jobs (acting as referrals)
   const fetchMyReferrals = useCallback(async () => {
@@ -465,7 +465,7 @@ const CreateReferralPage: React.FC = () => {
     switch (status) {
       case 'active':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-[#5f7261] text-white">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-ink text-white">
             <span className="size-1.5 rounded-full bg-white"></span>
             Active
           </span>
@@ -491,7 +491,7 @@ const CreateReferralPage: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col gap-4 md:gap-6 mb-6 md:mb-10">
           <button
-            className="hidden md:inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#5f7261] transition-colors w-fit group"
+            className="hidden md:inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-ink transition-colors w-fit group"
             onClick={() => navigate('/jobs')}
           >
             <BackArrowIcon className="h-[18px] w-[18px] group-hover:-translate-x-1 transition-transform" />
@@ -510,9 +510,9 @@ const CreateReferralPage: React.FC = () => {
           <div className="bg-white p-4 md:p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-wider font-bold text-slate-500">Total Referrals</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{myReferrals.length}</p>
+              <p className="text-2xl font-bold font-display text-slate-900 mt-1">{myReferrals.length}</p>
             </div>
-            <div className="size-10 rounded-full bg-stone-50 flex items-center justify-center text-[#5f7261] border border-stone-100">
+            <div className="size-10 rounded-full bg-stone-50 flex items-center justify-center text-ink border border-stone-100">
               <span className="material-symbols-outlined">group_add</span>
             </div>
           </div>
@@ -520,11 +520,11 @@ const CreateReferralPage: React.FC = () => {
           <div className="bg-white p-4 md:p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-wider font-bold text-slate-500">Applications Received</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">
+              <p className="text-2xl font-bold font-display text-slate-900 mt-1">
                 {myReferrals.reduce((sum, job) => sum + (job.applications_count || 0), 0)}
               </p>
             </div>
-            <div className="size-10 rounded-full bg-stone-50 flex items-center justify-center text-[#5f7261] border border-stone-100">
+            <div className="size-10 rounded-full bg-stone-50 flex items-center justify-center text-ink border border-stone-100">
               <span className="material-symbols-outlined">description</span>
             </div>
           </div>
@@ -532,11 +532,11 @@ const CreateReferralPage: React.FC = () => {
           <div className="bg-white p-4 md:p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-wider font-bold text-slate-500">Active Referrals</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">
+              <p className="text-2xl font-bold font-display text-slate-900 mt-1">
                 {myReferrals.filter(job => job.status === 'active').length}
               </p>
             </div>
-            <div className="size-10 rounded-full bg-stone-50 flex items-center justify-center text-[#5f7261] border border-stone-100">
+            <div className="size-10 rounded-full bg-stone-50 flex items-center justify-center text-ink border border-stone-100">
               <span className="material-symbols-outlined">bolt</span>
             </div>
           </div>
@@ -544,9 +544,9 @@ const CreateReferralPage: React.FC = () => {
 
         {/* AI Auto-fill Section */}
         <div className="mb-6 md:mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="bg-[#5f7261]/5 border border-[#5f7261]/20 rounded-xl p-4 md:p-8 shadow-sm">
+          <div className="bg-ink/5 border border-[#4353FF]/20 rounded-xl p-4 md:p-8 shadow-sm">
             <div className="flex items-center gap-3 mb-4 md:mb-6">
-              <div className="bg-[#5f7261] p-2 rounded-lg text-white">
+              <div className="bg-ink p-2 rounded-lg text-white">
                 <span className="material-symbols-outlined text-[24px]">magic_button</span>
               </div>
               <div>
@@ -558,9 +558,9 @@ const CreateReferralPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
               {/* PDF Upload */}
               <div className="relative">
-                <label className="flex flex-col items-center justify-center w-full h-32 md:h-40 border-2 border-dashed border-[#5f7261]/30 rounded-xl bg-white hover:bg-[#5f7261]/10 transition-all cursor-pointer group">
+                <label className="flex flex-col items-center justify-center w-full h-32 md:h-40 border-2 border-dashed border-[#4353FF]/30 rounded-xl bg-white hover:bg-ink/10 transition-all cursor-pointer group">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <span className="material-symbols-outlined text-[#5f7261] text-[32px] mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
+                    <span className="material-symbols-outlined text-ink text-[32px] mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
                     <p className="mb-1 text-sm text-slate-700 font-bold">Upload Job Description PDF</p>
                     <p className="text-xs text-slate-500">Fast, local, and secure</p>
                   </div>
@@ -581,7 +581,7 @@ const CreateReferralPage: React.FC = () => {
                   <input
                     type="url"
                     placeholder="Paste job board link (LinkedIn, etc.)"
-                    className="w-full h-12 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#5f7261] focus:border-transparent outline-none transition-all"
+                    className="w-full h-12 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#4353FF] focus:border-transparent outline-none transition-all"
                     value={referralLink}
                     onChange={(e) => setReferralLink(e.target.value)}
                   />
@@ -612,11 +612,11 @@ const CreateReferralPage: React.FC = () => {
             {aiLoading && (
               <div className="mt-6 flex items-center justify-center gap-3 py-2">
                 <div className="flex gap-1">
-                  <span className="size-2 bg-[#5f7261] rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                  <span className="size-2 bg-[#5f7261] rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                  <span className="size-2 bg-[#5f7261] rounded-full animate-bounce"></span>
+                  <span className="size-2 bg-ink rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                  <span className="size-2 bg-ink rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                  <span className="size-2 bg-ink rounded-full animate-bounce"></span>
                 </div>
-                <p className="text-sm font-bold text-[#5f7261]">Llama 3.1 is analyzing your referral...</p>
+                <p className="text-sm font-bold text-ink">Llama 3.1 is analyzing your referral...</p>
               </div>
             )}
           </div>
@@ -643,7 +643,7 @@ const CreateReferralPage: React.FC = () => {
                           key={label}
                           type="button"
                           onClick={() => setMobileFormStep(step)}
-                          className={`h-9 rounded-md text-xs font-bold tracking-wide transition-colors ${isActive ? 'bg-[#5f7261] text-white' : 'bg-stone-100 text-slate-600'}`}
+                          className={`h-9 rounded-lg text-xs font-bold tracking-wide transition-colors ${isActive ? 'bg-ink text-white' : 'bg-stone-100 text-slate-600'}`}
                         >
                           {step}. {label}
                         </button>
@@ -666,7 +666,7 @@ const CreateReferralPage: React.FC = () => {
                         <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Job Title</span>
                         <div className={fieldShellClass}>
                           <input
-                            className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                            className="w-full h-11 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
                             placeholder="e.g. Senior Product Designer"
                             type="text"
                             required
@@ -680,7 +680,7 @@ const CreateReferralPage: React.FC = () => {
                         <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Company</span>
                         <div className={fieldShellClass}>
                           <input
-                            className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                            className="w-full h-11 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
                             placeholder="e.g. Acme Corp"
                             type="text"
                             required
@@ -696,7 +696,7 @@ const CreateReferralPage: React.FC = () => {
                         <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department</span>
                         <div className={fieldShellClass}>
                           <input
-                            className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                            className="w-full h-11 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
                             placeholder="e.g. Product Design"
                             type="text"
                             required
@@ -711,7 +711,7 @@ const CreateReferralPage: React.FC = () => {
                         <div className={fieldShellClass}>
                           <div className="relative">
                             <input
-                              className="w-full h-11 pl-10 pr-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                              className="w-full h-11 pl-10 pr-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
                               placeholder="City, State or Remote"
                               type="text"
                               required
@@ -721,11 +721,11 @@ const CreateReferralPage: React.FC = () => {
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px]">location_on</span>
 
                             {locationSuggestions.length > 0 && (
-                              <ul className="absolute z-[70] bg-white border border-stone-200 rounded-md mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
+                              <ul className="absolute z-[70] bg-white border border-stone-200 rounded-lg mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
                                 {locationSuggestions.map((suggestion) => (
                                   <li
                                     key={suggestion.place_id || suggestion.display_name}
-                                    className="px-4 py-2 cursor-pointer hover:bg-[#f2f1ec]"
+                                    className="px-4 py-2 cursor-pointer hover:bg-parchment-sunken"
                                     onMouseDown={() => handleLocationSelect(suggestion)}
                                   >
                                     {suggestion.label || suggestion.display_name}
@@ -742,7 +742,7 @@ const CreateReferralPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setMobileFormStep(2)}
-                        className="w-full h-10 rounded-md border border-slate-200 text-slate-700 text-sm font-semibold"
+                        className="w-full h-10 rounded-lg border border-slate-200 text-slate-700 text-sm font-semibold"
                       >
                         Continue to Role Details
                       </button>
@@ -758,7 +758,7 @@ const CreateReferralPage: React.FC = () => {
                         <div className={fieldShellClass}>
                           <div className="relative">
                             <select
-                              className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
+                              className="w-full h-11 px-4 bg-white border-0 rounded-lg text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
                               required
                               value={formData.job_type}
                               onChange={(e) => handleInputChange('job_type', e.target.value)}
@@ -778,7 +778,7 @@ const CreateReferralPage: React.FC = () => {
                         <div className={fieldShellClass}>
                           <div className="relative">
                             <select
-                              className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
+                              className="w-full h-11 px-4 bg-white border-0 rounded-lg text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
                               required
                               value={formData.experience_level}
                               onChange={(e) => handleInputChange('experience_level', e.target.value)}
@@ -799,7 +799,7 @@ const CreateReferralPage: React.FC = () => {
                       <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Job Description</span>
                       <div className={fieldShellClass}>
                         <textarea
-                          className="w-full p-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm min-h-[120px] resize-y"
+                          className="w-full p-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm min-h-[120px] resize-y"
                           placeholder="Briefly describe the role requirements and responsibilities..."
                           required
                           value={formData.description}
@@ -812,7 +812,7 @@ const CreateReferralPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setMobileFormStep(3)}
-                        className="w-full h-10 rounded-md border border-slate-200 text-slate-700 text-sm font-semibold"
+                        className="w-full h-10 rounded-lg border border-slate-200 text-slate-700 text-sm font-semibold"
                       >
                         Continue to Skills & Publish
                       </button>
@@ -828,7 +828,7 @@ const CreateReferralPage: React.FC = () => {
                         <div className={`${fieldShellClass} flex-grow`}>
                           <div className="relative">
                             <input
-                              className="w-full h-11 px-4 bg-white border-0 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                              className="w-full h-11 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
                               placeholder="Add a skill..."
                               type="text"
                               value={skillInput}
@@ -838,7 +838,7 @@ const CreateReferralPage: React.FC = () => {
                           </div>
                         </div>
                         <button
-                          className="size-11 flex-none flex items-center justify-center rounded-md bg-[#5f7261] text-white shadow-sm hover:bg-[#4b5c4d] transition-colors"
+                          className="size-11 flex-none flex items-center justify-center rounded-lg bg-ink text-white hover:bg-ink-deep transition-colors"
                           type="button"
                           onClick={addSkill}
                         >
@@ -848,7 +848,7 @@ const CreateReferralPage: React.FC = () => {
 
                       <div className="flex flex-wrap gap-2 pt-1">
                         {formData.skills?.map((skill, index) => (
-                          <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sage-50 text-[#5f7261] border border-sage-200">
+                          <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sage-50 text-ink border border-sage-200">
                             {skill}
                             <button
                               className="hover:text-red-500 flex items-center"
@@ -865,28 +865,28 @@ const CreateReferralPage: React.FC = () => {
                     <div className="flex flex-wrap gap-6 pt-2 border-t border-stone-100 mt-2">
                       <label className="flex items-center gap-3 cursor-pointer group">
                         <input
-                          className="w-4 h-4 rounded text-[#5f7261] border-stone-300 focus:ring-[#5f7261] cursor-pointer"
+                          className="w-4 h-4 rounded text-ink border-stone-300 focus:ring-[#4353FF] cursor-pointer"
                           type="checkbox"
                           checked={formData.remote_available}
                           onChange={(e) => handleInputChange('remote_available', e.target.checked)}
                         />
-                        <span className="text-sm font-medium text-slate-700 group-hover:text-[#5f7261] transition-colors">Remote Friendly</span>
+                        <span className="text-sm font-medium text-slate-700 group-hover:text-ink transition-colors">Remote Friendly</span>
                       </label>
 
                       <label className="flex items-center gap-3 cursor-pointer group">
                         <input
-                          className="w-4 h-4 rounded text-[#5f7261] border-stone-300 focus:ring-[#5f7261] cursor-pointer"
+                          className="w-4 h-4 rounded text-ink border-stone-300 focus:ring-[#4353FF] cursor-pointer"
                           type="checkbox"
                           checked={formData.urgent_hiring}
                           onChange={(e) => handleInputChange('urgent_hiring', e.target.checked)}
                         />
-                        <span className="text-sm font-medium text-slate-700 group-hover:text-[#5f7261] transition-colors">Urgent Priority</span>
+                        <span className="text-sm font-medium text-slate-700 group-hover:text-ink transition-colors">Urgent Priority</span>
                       </label>
                     </div>
 
                     <div className="pt-2 md:pt-4">
                       <button
-                        className="w-full h-12 rounded-md bg-[#5f7261] text-white font-bold text-sm shadow-sm hover:bg-[#4b5c4d] transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full h-12 rounded-lg bg-ink text-white font-bold text-sm hover:bg-ink-deep transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                         type="submit"
                         disabled={loading}
                       >
@@ -904,7 +904,7 @@ const CreateReferralPage: React.FC = () => {
             <div className="flex items-center justify-between px-1">
               <h3 className="text-xl font-bold text-slate-900">My Referrals</h3>
               <button
-                className="text-sm font-semibold text-[#5f7261] hover:text-[#4b5c4d] hover:underline"
+                className="text-sm font-semibold text-ink hover:text-[#3444DD] hover:underline"
                 onClick={() => navigate('/jobs')}
               >
                 View All
@@ -947,7 +947,7 @@ const CreateReferralPage: React.FC = () => {
                             {job.applications_count || 0} Applicants
                           </button>
                           <button
-                            className="h-8 w-8 rounded-md text-red-600 bg-red-50 border border-red-100 inline-flex items-center justify-center"
+                            className="h-8 w-8 rounded-lg text-red-600 bg-red-50 border border-red-100 inline-flex items-center justify-center"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteReferral(job.id);
@@ -972,7 +972,7 @@ const CreateReferralPage: React.FC = () => {
                         {getStatusBadge(job.status)}
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            className="p-1.5 text-slate-500 hover:text-[#5f7261] rounded-md hover:bg-stone-50 transition-colors"
+                            className="p-1.5 text-slate-500 hover:text-ink rounded-lg hover:bg-stone-50 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleViewApplications(job.id);
@@ -981,7 +981,7 @@ const CreateReferralPage: React.FC = () => {
                             <span className="material-symbols-outlined text-[18px]">visibility</span>
                           </button>
                           <button
-                            className="p-1.5 text-slate-500 hover:text-red-500 rounded-md hover:bg-stone-50 transition-colors"
+                            className="p-1.5 text-slate-500 hover:text-red-500 rounded-lg hover:bg-stone-50 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteReferral(job.id);
@@ -1011,7 +1011,7 @@ const CreateReferralPage: React.FC = () => {
                           )}
                         </div>
                         <button
-                          className="flex items-center gap-1.5 text-slate-500 text-xs font-medium hover:text-[#5f7261] transition-colors cursor-pointer"
+                          className="flex items-center gap-1.5 text-slate-500 text-xs font-medium hover:text-ink transition-colors cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleViewApplications(job.id);

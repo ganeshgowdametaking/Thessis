@@ -13,6 +13,8 @@ import LoadingSpinner from './LoadingSpinner';
 import { MessageInput } from './MessageInput';
 import { ConversationItem } from './ConversationItem';
 import { Avatar } from './Avatar';
+import { MessageGroup } from './MessageGroup';
+import { buildMessageGroups } from '../utils/messageGrouping';
 
 
 interface MessagesPageProps {
@@ -20,8 +22,17 @@ interface MessagesPageProps {
   onViewProfile?: (userId: string) => void;
 }
 
+// Boundary for the "New Message" divider: the first incoming (not-own), unread
+// message in an already-loaded list. Computed once per conversation load — not
+// recomputed reactively — so it doesn't jump around as messages get marked read
+// or new ones stream in while the chat is open.
+const computeFirstUnreadId = (items: any[], currentUserId?: string): string | null => {
+  const firstUnread = items.find((m) => m.sender_id !== currentUserId && m.read === false);
+  return firstUnread?.id ?? null;
+};
+
 const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewProfile }) => {
-  const { user } = useAuthContext();
+  const { user, profile } = useAuthContext();
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [pendingChatUserId, setPendingChatUserId] = useState<string | null>(null); // New state for pending chats
@@ -47,6 +58,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showConversationsList, setShowConversationsList] = useState(true);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [firstUnreadMessageId, setFirstUnreadMessageId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -479,6 +491,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     if (cached?.items?.length) {
       setMessages(cached.items);
       setHasMoreMessages(cached.hasMore);
+      setFirstUnreadMessageId(computeFirstUnreadId(cached.items, user?.id));
     }
 
     try {
@@ -492,6 +505,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       setMessages(conversationMessages || []);
       const nextHasMore = (conversationMessages?.length || 0) >= 50;
       setHasMoreMessages(nextHasMore);
+      setFirstUnreadMessageId(computeFirstUnreadId(conversationMessages || [], user?.id));
       messagesCacheRef.current[conversationId] = {
         items: conversationMessages || [],
         hasMore: nextHasMore,
@@ -501,6 +515,20 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       void messageService.markMessagesAsRead(conversationId)
         .then(() => {
           if (window.refreshUnreadCounts) window.refreshUnreadCounts();
+
+          // Patch local state + cache so a revisit later in this session doesn't
+          // re-serve stale read:false messages and reopen the divider.
+          const markRead = (items: any[]) =>
+            items.map((m) => (m.sender_id !== user?.id && !m.read ? { ...m, read: true } : m));
+
+          setMessages((prev) => markRead(prev));
+          const cacheEntry = messagesCacheRef.current[conversationId];
+          if (cacheEntry) {
+            messagesCacheRef.current[conversationId] = {
+              ...cacheEntry,
+              items: markRead(cacheEntry.items),
+            };
+          }
         })
         .catch((err) => {
           console.warn('Background mark-as-read failed:', err);
@@ -742,24 +770,28 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     : pendingUserInfo;
   const shouldShowSuggestions = searchQuery.trim().length > 0;
 
+  const messageGroups = React.useMemo(
+    () => buildMessageGroups(messages, user?.id || '', firstUnreadMessageId),
+    [messages, user?.id, firstUnreadMessageId]
+  );
+
 
 
 
   if (loading) {
     return (
-      <div className="bg-stone text-slate-900 font-display w-full flex items-center justify-center overflow-hidden" style={{ height: viewportHeight }}>
+      <div className="bg-stone-bg text-slate-900 font-display w-full flex items-center justify-center overflow-hidden" style={{ height: viewportHeight }}>
         <LoadingSpinner text="Loading messages..." />
       </div>
     );
   }
 
   return (
-    <div className="bg-stone text-slate-900 font-display w-full flex flex-col overflow-hidden" style={{ height: viewportHeight }}>
+    <div className="bg-stone-bg text-slate-900 font-display w-full flex flex-col overflow-hidden" style={{ height: viewportHeight }}>
       <div className="flex flex-1 min-h-0 w-full relative">{/* Sidebar */}
         <div className={`${showConversationsList ? 'flex' : 'hidden'} md:flex w-full md:w-96 flex-shrink-0 flex-col bg-stone-off border-r border-stone-border z-10`}>
           {/* Sidebar Header */}
           <div className="relative p-4 border-b border-stone-border">
-            <h2 className="text-2xl font-bold mb-4 px-2 text-slate-900">Messages</h2>
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
                 <Search className="text-[20px]" />
@@ -814,6 +846,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                     setShowConversationsList(false);
                   }}
                   profile={otherParticipant}
+                  isTyping={selectedChat === conversation.id && otherUserTyping}
                 />
               );
             })
@@ -918,87 +951,20 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
                 {/* Date Separator */}
                 <div className="flex justify-center">
-                  <span className="text-xs font-medium text-slate-500 bg-stone-off px-3 py-1 rounded-full">Today</span>
+                  <span className="text-xs font-medium text-white bg-slate-900 px-3 py-1.5 rounded-full">
+                    Today, {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
                 </div>
 
                 {messages.length > 0 ? (
-                  messages.map((message) => {
-                    const isOwnMessage = message.sender_id === user?.id;
-                    const otherParticipant = activeOtherParticipant;
-
-                    return (
-                      <div key={message.id} className={`flex w-full gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
-                        {!isOwnMessage && (
-                          <Avatar profile={otherParticipant} size="sm" />
-                        )}
-                        <div className={`flex flex-col gap-1 max-w-[82%] md:max-w-[70%] ${isOwnMessage ? 'items-end ml-auto' : 'items-start'}`}>
-                          <div className={`flex items-baseline gap-2 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
-                            {!isOwnMessage && (
-                              <span className="text-sm font-semibold text-slate-900">{otherParticipant?.full_name}</span>
-                            )}
-                            <span className="text-xs text-slate-500">
-                              {new Date(message.created_at).toLocaleTimeString('en-US', {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                              })}
-                            </span>
-                          </div>
-                          <div
-                            className={`w-fit max-w-full rounded-2xl p-4 shadow-sm ${isOwnMessage
-                              ? 'bg-sage text-white rounded-tr-none'
-                              : 'bg-stone-off text-slate-900 rounded-tl-none'
-                              }`}
-                          >
-                            {/* Attachment Rendering */}
-                            {message.attachment_url && (
-                              <div className="mb-2">
-                                {message.attachment_type?.startsWith('image/') ? (
-                                  <a href={message.attachment_url} target="_blank" rel="noopener noreferrer">
-                                    <img
-                                      src={message.attachment_url}
-                                      alt={message.attachment_name || 'Attachment'}
-                                      className="max-w-full rounded-lg border border-black/5 hover:opacity-90 transition-opacity cursor-pointer"
-                                      style={{ maxHeight: '300px' }}
-                                    />
-                                  </a>
-                                ) : (
-                                  <a
-                                    href={message.attachment_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`flex items-center gap-3 p-3 rounded-lg border shadow-inner transition-colors ${isOwnMessage
-                                      ? 'bg-white/10 hover:bg-white/20 border-white/20'
-                                      : 'bg-white hover:bg-slate-50 border-stone-border'
-                                      }`}
-                                  >
-                                    <div className={`p-2 rounded-lg ${isOwnMessage ? 'bg-white/20' : 'bg-slate-100'}`}>
-                                      <span className="material-symbols-outlined text-[24px]">description</span>
-                                    </div>
-                                    <div className="flex flex-col min-w-0">
-                                      <span className={`text-sm font-bold truncate ${isOwnMessage ? 'text-white' : 'text-slate-900'}`}>
-                                        {message.attachment_name || 'Document.pdf'}
-                                      </span>
-                                      <span className={`text-[10px] uppercase tracking-wider font-bold opacity-70 ${isOwnMessage ? 'text-white' : 'text-slate-500'}`}>
-                                        PDF DOCUMENT
-                                      </span>
-                                    </div>
-                                    <span className={`material-symbols-outlined text-[20px] ml-auto ${isOwnMessage ? 'text-white/60' : 'text-slate-400'}`}>
-                                      download
-                                    </span>
-                                  </a>
-                                )}
-                              </div>
-                            )}
-
-                            {message.content && (
-                              <p className="text-base leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
+                  messageGroups.map((group) => (
+                    <MessageGroup
+                      key={group.id}
+                      group={group}
+                      otherParticipant={activeOtherParticipant}
+                      ownProfile={profile}
+                    />
+                  ))
                 ) : (
                   <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
@@ -1013,13 +979,13 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
                 {/* Typing Indicator */}
                 {otherUserTyping && (
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-stone-off flex items-center justify-center">
-                      <span className="typing-dot animate-bounce">.</span>
-                      <span className="typing-dot animate-bounce delay-100">.</span>
-                      <span className="typing-dot animate-bounce delay-200">.</span>
+                  <div className="flex w-full gap-3">
+                    <Avatar profile={activeOtherParticipant} size="sm" />
+                    <div className="rounded-2xl bg-stone-off px-4 py-3.5 flex items-center gap-1.5 w-fit">
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
-                    <div className="text-xs text-slate-400 self-center">Typing...</div>
                   </div>
                 )}
 

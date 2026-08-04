@@ -164,7 +164,7 @@ const ContactForm: React.FC = () => {
                 </div>
                 <div className="ml-3 text-sm">
                   <label htmlFor="consent" className="text-slate-600">
-                    I consent to TankTide processing my personal data in order to respond to my inquiry. I understand that I can withdraw my consent at any time. For more information, please see our{' '}
+                    I consent to THESSIS processing my personal data in order to respond to my inquiry. I understand that I can withdraw my consent at any time. For more information, please see our{' '}
                     <a href="/privacy-policy" className="text-blue-600 hover:text-blue-800">
                       Privacy Policy
                     </a>.

@@ -1,6 +1,6 @@
 // vite.config.ts
-import { defineConfig } from "file:///Users/ganeshgowda/Desktop/TankTide/node_modules/vite/dist/node/index.js";
-import react from "file:///Users/ganeshgowda/Desktop/TankTide/node_modules/@vitejs/plugin-react/dist/index.js";
+import { defineConfig } from "file:///Users/ganeshgowda/Desktop/Thessis/node_modules/vite/dist/node/index.js";
+import react from "file:///Users/ganeshgowda/Desktop/Thessis/node_modules/@vitejs/plugin-react/dist/index.js";
 var vite_config_default = defineConfig({
   plugins: [react()],
   esbuild: {

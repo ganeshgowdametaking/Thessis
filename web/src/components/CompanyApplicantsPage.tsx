@@ -111,7 +111,7 @@ const CompanyApplicantsPage: React.FC = () => {
       case 'shortlisted': return 'bg-blue-100 text-blue-800';
       case 'rejected': return 'bg-red-100 text-red-800';
       case 'hired': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      default: return 'bg-slate-100 text-slate-800';
     }
   };
 
@@ -124,8 +124,8 @@ const CompanyApplicantsPage: React.FC = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Applicants</h1>
-            <p className="text-gray-600 mt-2">Manage job applications</p>
+            <h1 className="text-3xl font-bold text-slate-900">Applicants</h1>
+            <p className="text-slate-600 mt-2">Manage job applications</p>
           </div>
           <button
             onClick={() => {/* Export functionality */}}
@@ -138,7 +138,7 @@ const CompanyApplicantsPage: React.FC = () => {
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+          <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg">
             {[
               { key: 'all', label: 'All', count: applicants.length },
               { key: 'pending', label: 'Pending', count: applicants.filter(a => a.status === 'pending').length },
@@ -149,10 +149,10 @@ const CompanyApplicantsPage: React.FC = () => {
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key as any)}
-                className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   filter === tab.key
                     ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {tab.label} ({tab.count})
@@ -163,7 +163,7 @@ const CompanyApplicantsPage: React.FC = () => {
           <select
             value={selectedJob}
             onChange={(e) => setSelectedJob(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Jobs</option>
             {jobs.map((job) => (
@@ -176,13 +176,13 @@ const CompanyApplicantsPage: React.FC = () => {
       {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading applicants...</p>
+          <p className="text-slate-600 mt-4">Loading applicants...</p>
         </div>
       ) : filteredApplicants.length === 0 ? (
         <div className="text-center py-12">
-          <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No applicants found</h3>
-          <p className="text-gray-600">
+          <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-slate-900 mb-2">No applicants found</h3>
+          <p className="text-slate-600">
             {filter === 'all' 
               ? "You haven't received any applications yet." 
               : `No ${filter} applicants found.`
@@ -192,7 +192,7 @@ const CompanyApplicantsPage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {filteredApplicants.map((applicant) => (
-            <div key={applicant.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div key={applicant.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
@@ -203,8 +203,8 @@ const CompanyApplicantsPage: React.FC = () => {
                         className="h-12 w-12 rounded-full"
                       />
                     ) : (
-                      <div className="h-12 w-12 bg-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-gray-600 font-medium">
+                      <div className="h-12 w-12 bg-slate-300 rounded-full flex items-center justify-center">
+                        <span className="text-slate-600 font-medium">
                           {applicant.user.full_name?.charAt(0) || 'U'}
                         </span>
                       </div>
@@ -213,16 +213,16 @@ const CompanyApplicantsPage: React.FC = () => {
                   
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-1">
-                      <h3 className="text-lg font-semibold text-gray-900">{applicant.user.full_name}</h3>
+                      <h3 className="text-lg font-semibold text-slate-900">{applicant.user.full_name}</h3>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(applicant.status)}`}>
                         {applicant.status.charAt(0).toUpperCase() + applicant.status.slice(1)}
                       </span>
                     </div>
-                    <p className="text-gray-600 mb-1">{applicant.user.email}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-slate-600 mb-1">{applicant.user.email}</p>
+                    <p className="text-sm text-slate-500">
                       Applied for {applicant.job.title} • {applicant.user.location || 'Location not specified'}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-slate-500">
                       Applied {new Date(applicant.created_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -231,14 +231,14 @@ const CompanyApplicantsPage: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => handleViewProfile(applicant.user_id)}
-                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                    className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
                     title="View Profile"
                   >
                     <Eye className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleMessage(applicant.id)}
-                    className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                    className="p-2 text-slate-400 hover:text-green-600 transition-colors"
                     title="Message"
                   >
                     <MessageSquare className="h-4 w-4" />
@@ -248,14 +248,14 @@ const CompanyApplicantsPage: React.FC = () => {
                   <div className="flex items-center space-x-1">
                     <button
                       onClick={() => handleStatusChange(applicant.id, 'shortlisted')}
-                      className={`p-1 rounded ${applicant.status === 'shortlisted' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-blue-600'}`}
+                      className={`p-1 rounded ${applicant.status === 'shortlisted' ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:text-blue-600'}`}
                       title="Shortlist"
                     >
                       <CheckCircle className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleStatusChange(applicant.id, 'rejected')}
-                      className={`p-1 rounded ${applicant.status === 'rejected' ? 'bg-red-100 text-red-600' : 'text-gray-400 hover:text-red-600'}`}
+                      className={`p-1 rounded ${applicant.status === 'rejected' ? 'bg-red-100 text-red-600' : 'text-slate-400 hover:text-red-600'}`}
                       title="Reject"
                     >
                       <XCircle className="h-4 w-4" />

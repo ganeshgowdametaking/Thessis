@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 // Cache buster: 2025-01-25-15:30
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, MapPin, Calendar, Briefcase, Building, Clock, Users, ChevronDown, X, CheckCircle, User, Copy, ArrowUpRight, List, School, DollarSign, CheckCircle2, Upload } from 'lucide-react';
+import { Plus, Search, MapPin, Briefcase, X, CheckCircle, Copy, SlidersHorizontal, CheckCircle2, Upload, BadgeCheck } from 'lucide-react';
 import shareIcon from '../assets/share-icon.png';
 import { useAuthContext } from '../contexts/AuthContext';
 import { jobService } from '../services/jobService';
-import { blockingService } from '../services/blockingService';
 import { Database } from '../lib/database.types';
 import { useMediaQuery } from 'react-responsive';
 import './JobsPage.css';
-import LoadingSpinner from './LoadingSpinner';
 import debounce from 'lodash.debounce';
 import SecondaryEmailVerificationModal from './SecondaryEmailVerificationModal';
+import CompanyAvatar from './CompanyAvatar';
+import { getCompanyLogoUrl } from '../utils/companyLogo';
+import { Modal, Button, Select, Skeleton, SkeletonRow } from './ui';
 
 type Job = Database['public']['Tables']['jobs']['Row'];
 type ApplicationInsert = Database['public']['Tables']['applications']['Insert'];
@@ -30,6 +31,8 @@ interface LocationSuggestion {
   address?: Record<string, string>;
   label?: string;
 }
+
+const MAX_RESUME_SIZE_BYTES = 5 * 1024 * 1024;
 
 const JobsPage: React.FC = () => {
   const { user, profile } = useAuthContext();
@@ -67,11 +70,6 @@ const JobsPage: React.FC = () => {
   const [locationQuery, setLocationQuery] = useState(filters.location);
   const [locationError, setLocationError] = useState('');
   const [locationTouched, setLocationTouched] = useState(false);
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [showJobTypeDropdown, setShowJobTypeDropdown] = useState(false);
-  const [showExperienceDropdown, setShowExperienceDropdown] = useState(false);
-  const sortDropdownRef = React.useRef<HTMLDivElement>(null);
-  const jobTypeDropdownRef = React.useRef<HTMLDivElement>(null);
   const locationDropdownRef = React.useRef<HTMLDivElement>(null);
 
   const [showVerificationModal, setShowVerificationModal] = useState(false);
@@ -88,26 +86,10 @@ const JobsPage: React.FC = () => {
     hasFetched.current = true;
   }, []); // Logic stable, only run once on mount
 
-  // Close dropdown when clicking outside
+  // Close location suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-
-      if (
-        showSortDropdown &&
-        sortDropdownRef.current &&
-        !sortDropdownRef.current.contains(target)
-      ) {
-        setShowSortDropdown(false);
-      }
-
-      if (
-        showJobTypeDropdown &&
-        jobTypeDropdownRef.current &&
-        !jobTypeDropdownRef.current.contains(target)
-      ) {
-        setShowJobTypeDropdown(false);
-      }
 
       if (
         locationSuggestions.length > 0 &&
@@ -122,7 +104,7 @@ const JobsPage: React.FC = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showSortDropdown, showJobTypeDropdown, locationSuggestions.length]);
+  }, [locationSuggestions.length]);
 
   // Separate effect to load user-specific data when user ID changes
   const lastUserIdRef = React.useRef<string | null>(null);
@@ -366,6 +348,10 @@ const JobsPage: React.FC = () => {
   };
 
   const handleApplicationInputChange = (field: string, value: string | File | null) => {
+    if (field === 'resume' && value instanceof File && value.size > MAX_RESUME_SIZE_BYTES) {
+      setApplicationError('Resume file is too large. Please upload a file under 5MB.');
+      return;
+    }
     setApplicationForm(prev => ({
       ...prev,
       [field]: value
@@ -449,6 +435,11 @@ const JobsPage: React.FC = () => {
     }
   };
 
+  const isRecentPosting = (dateString: string) => {
+    const days = (Date.now() - new Date(dateString).getTime()) / 86400000;
+    return days <= 30;
+  };
+
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -507,94 +498,85 @@ const JobsPage: React.FC = () => {
     return (
       <div className="max-w-4xl mx-auto p-8 lg:p-12 pb-24">
         {/* Job Header */}
-        <div className="flex flex-col gap-6 border-b border-stone-divider pb-8 mb-8">
-          <div className="flex items-start justify-between gap-4">
-            <div className="bg-center bg-no-repeat bg-contain bg-white rounded-xl size-20 shadow-sm border border-slate-100 p-2">
-              {/* Company logo placeholder */}
-              <div className="w-full h-full bg-slate-100 rounded-xl flex items-center justify-center">
-                <Building className="h-8 w-8 text-slate-400" />
-              </div>
-            </div>
-            <div className="flex gap-3">
+        <div className="flex flex-col gap-4 pb-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <h1 className="text-2xl lg:text-[28px] font-bold text-slate-900 tracking-tight">
+              {selectedJob.title}
+            </h1>
+            <div className="flex items-center gap-3 shrink-0">
+              {appliedJobs.includes(selectedJob.id) ? (
+                <span className="flex items-center gap-1.5 text-emerald-700 font-semibold text-sm">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Applied
+                </span>
+              ) : (
+                <button
+                  onClick={handleApplyToJob}
+                  disabled={!user}
+                  className="px-6 h-11 rounded-lg bg-primary hover:bg-primary-hover text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center disabled:bg-slate-400 disabled:cursor-not-allowed"
+                >
+                  Apply Now
+                </button>
+              )}
               <button
                 onClick={() => setShowShareModal(true)}
-                className="group flex items-center justify-center h-10 w-10 transition-colors"
+                aria-label="Share job"
+                className="group flex items-center justify-center h-11 w-11 rounded-lg border border-hairline transition-colors hover:bg-parchment-sunken shrink-0"
               >
                 <img
                   src={shareIcon}
                   alt="Share"
-                  className="h-6 w-6 object-contain transition-all duration-200 group-hover:scale-110"
+                  className="h-5 w-5 object-contain transition-all duration-200 group-hover:scale-110"
                 />
               </button>
             </div>
           </div>
-          <div>
-            <h1 className="text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
-              {selectedJob.title}
-            </h1>
-            <div className="flex flex-wrap items-center gap-4 text-slate-500 text-sm font-medium">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-lg text-slate-900 font-bold">{selectedJob.company}</span>
-                {selectedJob && (selectedJob as any).created_by_profile?.response_metric && (
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${['24h', '3d'].includes((selectedJob as any).created_by_profile?.response_metric)
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                    }`} title="Median Response Time">
-                    ⚡️ Responds in {(selectedJob as any).created_by_profile?.response_metric}
-                  </span>
-                )}
-              </div>
-              <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-              <span className="flex items-center gap-1">
-                <MapPin className="text-[18px]" />
-                {selectedJob.location}
+
+          <div className="flex items-center gap-3">
+            <div className="rounded-full size-11 shadow-sm border border-slate-100 overflow-hidden shrink-0">
+              <CompanyAvatar company={selectedJob.company} logoUrl={((selectedJob as any).created_by_profile?.account_type === 'company' ? (selectedJob as any).created_by_profile?.avatar_url : undefined) || getCompanyLogoUrl(selectedJob.company)} size="sm" />
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-sm font-semibold text-primary">{selectedJob.company}</span>
+              {(selectedJob as any).created_by_profile?.work_email_verified && (
+                <BadgeCheck
+                  className="h-4 w-4 text-gold-600 shrink-0"
+                  aria-label="Verified employee referral"
+                />
+              )}
+              <span className="flex items-center gap-1 text-slate-500 font-medium">
+                <MapPin className="text-[14px]" />
+                {(() => {
+                  const parts = selectedJob.location.split(',').map(p => p.trim()).filter(Boolean);
+                  return parts.length > 2 ? `${parts[0]}, ${parts[parts.length - 1]}` : selectedJob.location;
+                })()}
               </span>
-              <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-              <span>Posted {formatTimeAgo(selectedJob.created_at)}</span>
+              <span className="text-slate-500 font-medium">Posted {formatTimeAgo(selectedJob.created_at)}</span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-3">
+
+          <div className="flex flex-wrap gap-2">
             {selectedJob.benefits && selectedJob.benefits.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-50 border border-slate-200 text-xs font-semibold text-slate-700">
-                <DollarSign className="text-[16px]" />
+              <span className="px-2.5 py-1 rounded-full bg-parchment-sunken border border-hairline text-xs font-medium text-slate-600">
                 {selectedJob.benefits[0]}
-              </div>
+              </span>
             )}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-50 border border-slate-200 text-xs font-semibold text-slate-700">
-              <Clock className="text-[16px]" />
+            <span className="px-2.5 py-1 rounded-full bg-parchment-sunken border border-hairline text-xs font-medium text-slate-600">
               {selectedJob.job_type}
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-50 border border-slate-200 text-xs font-semibold text-slate-700">
-              <School className="text-[16px]" />
+            </span>
+            <span className="px-2.5 py-1 rounded-full bg-parchment-sunken border border-hairline text-xs font-medium text-slate-600">
               {selectedJob.experience_level}
-            </div>
-          </div>
-          <div className="pt-2">
-            {appliedJobs.includes(selectedJob.id) ? (
-              <button
-                type="button"
-                disabled
-                className="w-full sm:w-auto px-8 h-12 rounded-lg bg-slate-300 text-slate-500 font-bold text-sm tracking-wide cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <span>Applied</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleApplyToJob}
-                disabled={!user}
-                className="w-full sm:w-auto px-8 h-12 rounded-lg bg-primary hover:bg-primary-hover text-white font-bold text-sm tracking-wide transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
-              >
-                <span>Apply Now</span>
-                <ArrowUpRight className="text-[18px]" />
-              </button>
-            )}
+            </span>
+            <span className="px-2.5 py-1 rounded-full bg-parchment-sunken border border-hairline text-xs font-medium text-slate-600">
+              {selectedJob.applications_count || 0} Applicants
+            </span>
           </div>
         </div>
         {/* Job Content */}
-        <div className="space-y-10 text-slate-700 leading-relaxed">
+        <div className="space-y-8 text-slate-700 leading-normal">
           <section>
-            <h3 className="text-xl font-bold text-slate-900 mb-4">About the Role</h3>
-            <div className="text-slate-700 leading-relaxed whitespace-pre-line text-justify">
+            <h3 className="text-lg font-semibold text-slate-900 mb-3">About the Role</h3>
+            <div className="text-base text-slate-700 leading-normal whitespace-pre-line max-w-[70ch]">
               {selectedJob.description || "We are looking for a talented professional to join our team. In this role, you will be responsible for delivering high-quality work and collaborating with cross-functional teams to achieve our goals."}
             </div>
           </section>
@@ -628,19 +610,19 @@ const JobsPage: React.FC = () => {
                 selectedJob.skills.map((skill: string, index: number) => (
                   <span
                     key={index}
-                    className="px-3 py-1.5 rounded-md bg-stone-50 text-slate-700 text-sm font-semibold border border-stone-divider"
+                    className="px-3 py-1.5 rounded-lg bg-parchment-sunken text-slate-700 text-sm font-semibold border border-hairline"
                   >
                     {skill}
                   </span>
                 ))
               ) : (
                 <>
-                  <span className="px-3 py-1.5 rounded-md bg-stone-50 text-slate-700 text-sm font-semibold border border-stone-divider">Figma</span>
-                  <span className="px-3 py-1.5 rounded-md bg-stone-50 text-slate-700 text-sm font-semibold border border-stone-divider">System Design</span>
-                  <span className="px-3 py-1.5 rounded-md bg-stone-50 text-slate-700 text-sm font-semibold border border-stone-divider">Prototyping</span>
-                  <span className="px-3 py-1.5 rounded-md bg-white text-slate-700 text-sm font-medium border border-slate-200">HTML/CSS</span>
-                  <span className="px-3 py-1.5 rounded-md bg-white text-slate-700 text-sm font-medium border border-slate-200">User Research</span>
-                  <span className="px-3 py-1.5 rounded-md bg-white text-slate-700 text-sm font-medium border border-slate-200">React</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-parchment-sunken text-slate-700 text-sm font-semibold border border-hairline">Figma</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-parchment-sunken text-slate-700 text-sm font-semibold border border-hairline">System Design</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-parchment-sunken text-slate-700 text-sm font-semibold border border-hairline">Prototyping</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-white text-slate-700 text-sm font-medium border border-slate-200">HTML/CSS</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-white text-slate-700 text-sm font-medium border border-slate-200">User Research</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-white text-slate-700 text-sm font-medium border border-slate-200">React</span>
                 </>
               )}
             </div>
@@ -654,17 +636,42 @@ const JobsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-stone text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
-        <div className="flex items-center justify-center h-full">
-          <LoadingSpinner text="Loading jobs..." />
-        </div>
+      <div className="bg-parchment text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
+        <main className="flex flex-1 min-h-0 overflow-hidden">
+          <aside className="w-full md:max-w-[600px] border-r border-hairline bg-parchment p-3 space-y-2">
+            <div className="p-2 pb-4 space-y-3">
+              <Skeleton className="h-8 w-40" />
+              <Skeleton className="h-10 w-full rounded-lg" />
+            </div>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonRow key={i} className="rounded-xl border border-slate-100 bg-white" />
+            ))}
+          </aside>
+          <section className="hidden md:block flex-1 bg-white p-12">
+            <div className="max-w-4xl mx-auto space-y-6">
+              <Skeleton className="h-20 w-20 rounded-xl" />
+              <Skeleton className="h-9 w-2/3" />
+              <Skeleton className="h-4 w-1/3" />
+              <div className="flex gap-3">
+                <Skeleton className="h-8 w-24 rounded-full" />
+                <Skeleton className="h-8 w-28 rounded-full" />
+              </div>
+              <Skeleton className="h-12 w-40" />
+              <div className="space-y-3 pt-6">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-11/12" />
+                <Skeleton className="h-4 w-4/5" />
+              </div>
+            </div>
+          </section>
+        </main>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-stone text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
+      <div className="bg-parchment text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
         <div className="flex items-center justify-center h-full">
           <div className="max-w-md mx-auto text-center p-8">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -685,30 +692,18 @@ const JobsPage: React.FC = () => {
   }
 
   return (
-    <div className="bg-stone text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
+    <div className="bg-parchment text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
       <main className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-full md:max-w-[480px] flex flex-col border-r border-stone-divider bg-stone-sidebar relative z-10">
+        <aside className="w-full md:max-w-[600px] flex flex-col border-r border-hairline bg-parchment relative z-10">
           {/* Sidebar Header */}
-          <div className="flex flex-col gap-4 p-5 border-b border-stone-divider bg-stone-sidebar">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Job Referrals</h1>
-              </div>
-              <button
-                onClick={handleCreateReferralClick}
-                className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-sm font-bold px-4 h-10 rounded-lg transition-colors shadow-lg shadow-primary/20"
-              >
-                <Plus className="text-[20px]" />
-                <span className="hidden sm:inline">Referral</span>
-              </button>
-            </div>
-            <div className="flex gap-3 mt-2">
-              <div className="flex flex-1 items-center rounded-lg bg-white border border-stone-divider focus-within:ring-2 focus-within:ring-primary/50 transition-all shadow-sm">
+          <div className="flex flex-col gap-4 p-5 bg-parchment">
+            <div className="flex gap-3">
+              <div className="flex flex-1 items-center rounded-lg bg-white border border-hairline focus-within:ring-2 focus-within:ring-primary/50 transition-all shadow-sm">
                 <Search className="text-slate-500 pl-3" />
                 <input
                   className="w-full bg-transparent border-none text-base md:text-sm px-3 py-2.5 placeholder:text-slate-500 text-slate-900 focus:ring-0"
-                  placeholder="Search role, company..."
+                  placeholder="Search role, company..." aria-label="Search role or company"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
@@ -716,9 +711,19 @@ const JobsPage: React.FC = () => {
               </div>
               <button
                 onClick={() => setShowFilters(true)}
-                className="flex items-center justify-center bg-white border border-stone-divider hover:bg-slate-50 rounded-lg size-[42px] transition-colors shrink-0 text-slate-500 hover:text-primary shadow-sm"
+                className="flex items-center gap-2 bg-white border border-hairline hover:bg-slate-50 rounded-full px-4 h-[42px] transition-colors shrink-0 text-slate-900 font-semibold text-sm shadow-sm"
               >
-                <List className="text-[20px]" />
+                <SlidersHorizontal className="text-[18px]" />
+                Filters
+              </button>
+            </div>
+            <div className="flex items-center justify-end">
+              <button
+                onClick={handleCreateReferralClick}
+                className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-sm font-bold px-4 h-10 rounded-lg transition-colors"
+              >
+                <Plus className="text-[20px]" />
+                <span className="hidden sm:inline">Referral</span>
               </button>
             </div>
           </div>
@@ -733,27 +738,24 @@ const JobsPage: React.FC = () => {
                   <div
                     key={job.id}
                     onClick={() => handleSelectJob(job)}
-                    className={`group relative flex gap-4 p-4 rounded-xl cursor-pointer transition-all ${isSelected || isFirstJob
-                      ? 'bg-white border border-slate-100 border-l-primary shadow-sm'
-                      : 'border border-transparent hover:bg-white hover:border-slate-100 hover:border-l-primary hover:shadow-sm'
+                    className={`group relative flex gap-4 p-4 rounded-xl cursor-pointer transition-all border ${isSelected
+                      ? 'bg-sage-wash border-hairline shadow-sm'
+                      : 'bg-white border-hairline hover:border-hairline-strong hover:shadow-sm'
                       }`}
                   >
                     <div className="shrink-0">
-                      <div className="bg-center bg-no-repeat bg-contain bg-white rounded-lg size-12 shadow-sm border border-slate-100 p-1">
-                        {/* Company logo placeholder */}
-                        <div className="w-full h-full bg-slate-100 rounded-lg flex items-center justify-center">
-                          <Building className="h-6 w-6 text-slate-400" />
-                        </div>
+                      <div className="rounded-full size-12 shadow-sm border border-slate-100 overflow-hidden">
+                        <CompanyAvatar company={job.company} logoUrl={((job as any).created_by_profile?.account_type === 'company' ? (job as any).created_by_profile?.avatar_url : undefined) || getCompanyLogoUrl(job.company)} size="sm" />
                       </div>
                     </div>
                     <div className="flex flex-1 flex-col justify-center min-w-0">
                       <div className="flex justify-between items-start">
-                        <h3 className={`text-base font-bold truncate pr-2 ${isSelected || isFirstJob ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'
+                        <h3 className={`text-base font-bold pr-2 line-clamp-2 min-h-[3rem] ${isSelected ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'
                           }`}>
                           {job.title}
                         </h3>
-                        {job.urgent_hiring && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider bg-red-50 text-slate-900 px-2 py-0.5 rounded-full shrink-0">
+                        {job.urgent_hiring && isRecentPosting(job.created_at) && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded-full shrink-0">
                             Urgent
                           </span>
                         )}
@@ -769,29 +771,35 @@ const JobsPage: React.FC = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="text-sm font-medium text-slate-500 truncate">{job.company}</p>
-                        {(job as any).created_by_profile?.response_metric && (
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${['24h', '3d'].includes((job as any).created_by_profile?.response_metric)
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                            }`}>
-                            ⚡️ {(job as any).created_by_profile?.response_metric}
+                        <p className="text-sm font-medium text-slate-500 truncate">
+                          {job.company}
+                          {' • '}
+                          {job.location.includes(',') ? job.location.split(',')[0] : job.location}
+                        </p>
+                        {(job as any).created_by_profile?.work_email_verified && (
+                          <BadgeCheck
+                            className="h-3.5 w-3.5 text-gold-600 shrink-0"
+                            aria-label="Verified employee referral"
+                          />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                        <span className="text-[10px] font-bold text-slate-600 bg-parchment-sunken px-2 py-0.5 rounded-full">
+                          {job.job_type}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-600 bg-parchment-sunken px-2 py-0.5 rounded-full">
+                          {job.remote_available ? 'Remote' : 'Onsite'}
+                        </span>
+                        {job.experience_level && (
+                          <span className="text-[10px] font-bold text-slate-600 bg-parchment-sunken px-2 py-0.5 rounded-full">
+                            {job.experience_level}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-2 text-xs text-slate-500 font-medium">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="text-[14px]" />
-                          {job.location.includes(',') ? job.location.split(',')[0] : job.location}
-                        </span>
+                      <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-400">
+                        <span>{formatTimeAgo(job.created_at)}</span>
                         <span>•</span>
-                        <span>{job.job_type}</span>
-                        {job.experience_level && (
-                          <>
-                            <span>•</span>
-                            <span>{job.experience_level.replace(' Level', '').replace(' ', '').toLowerCase()}+</span>
-                          </>
-                        )}
+                        <span>{job.applications_count || 0} Applicants</span>
                       </div>
                     </div>
                   </div>
@@ -806,7 +814,7 @@ const JobsPage: React.FC = () => {
                 <p className="text-slate-600 mb-6">No jobs match your search criteria.</p>
                 <button
                   onClick={handleClearFilters}
-                  className="bg-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-300 transition-colors inline-flex items-center space-x-2 font-medium"
+                  className="bg-parchment-sunken text-slate-700 px-6 py-3 rounded-lg hover:bg-hairline transition-colors inline-flex items-center space-x-2 font-medium"
                 >
                   <X className="h-5 w-5" />
                   <span>Clear Search & Filters</span>
@@ -837,10 +845,10 @@ const JobsPage: React.FC = () => {
       {isMobile && selectedJob && (
         <div className="fixed inset-0 z-50 bg-white md:hidden slide-up-drawer">
           <div className="h-full flex flex-col">
-            <div className="shrink-0 h-14 px-3 border-b border-stone-divider flex items-center justify-between bg-white">
+            <div className="shrink-0 h-14 px-3 border-b border-hairline flex items-center justify-between bg-white">
               <button
                 onClick={() => setSelectedJob(null)}
-                className="h-10 w-10 rounded-lg flex items-center justify-center text-slate-600 hover:bg-stone-100"
+                className="h-11 w-11 rounded-lg flex items-center justify-center text-slate-600 hover:bg-stone-100" aria-label="Back to job list"
                 aria-label="Back to jobs list"
               >
                 <span className="material-symbols-outlined text-[22px]">arrow_back</span>
@@ -857,204 +865,89 @@ const JobsPage: React.FC = () => {
 
       {/* Filter Modal */}
       {
-        showFilters && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setShowFilters(false)}>
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto relative" onClick={e => e.stopPropagation()}>
-              <div className="bg-white border-b border-gray-200 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-gray-900">Filter Jobs</h3>
-                  <button
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                    onClick={() => setShowFilters(false)}
-                    aria-label="Close"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">Sort By</label>
-                    <div className="relative" ref={sortDropdownRef}>
-                      <button
-                        onClick={() => setShowSortDropdown(!showSortDropdown)}
-                        className={`w-full px-4 py-3 text-left border-2 rounded-lg transition-colors flex items-center justify-between ${filters.sortBy
-                          ? 'bg-green-50 text-green-700 font-semibold border-[#5F7261]'
-                          : 'bg-white text-gray-700 border-slate-200 hover:bg-gray-50'
-                          }`}
-                      >
-                        <span>
-                          {filters.sortBy === 'newest' ? 'Newest First' :
-                            filters.sortBy === 'oldest' ? 'Oldest First' :
-                              'Most Relevant'}
-                        </span>
-                        <ChevronDown className={`h-5 w-5 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {showSortDropdown && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg">
-                          <button
-                            onClick={() => {
-                              handleFilterChange('sortBy', '');
-                              setShowSortDropdown(false);
-                            }}
-                            className="w-full px-4 py-3 text-left hover:bg-slate-50 text-slate-700 border-b border-slate-100"
-                          >
-                            Most Relevant
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleFilterChange('sortBy', 'newest');
-                              setShowSortDropdown(false);
-                            }}
-                            className="w-full px-4 py-3 text-left hover:bg-slate-50 text-slate-700 border-b border-slate-100"
-                          >
-                            Newest First
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleFilterChange('sortBy', 'oldest');
-                              setShowSortDropdown(false);
-                            }}
-                            className="w-full px-4 py-3 text-left hover:bg-slate-50 text-slate-700"
-                          >
-                            Oldest First
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">Job Type</label>
-                    <div className="relative" ref={jobTypeDropdownRef}>
-                      <button
-                        onClick={() => setShowJobTypeDropdown(!showJobTypeDropdown)}
-                        className={`w-full px-4 py-3 text-left border-2 rounded-lg transition-colors flex items-center justify-between ${filters.jobType
-                          ? 'bg-green-50 text-green-700 font-semibold border-[#5F7261]'
-                          : 'bg-white text-gray-700 border-slate-200 hover:bg-gray-50'
-                          }`}
-                      >
-                        <span>{filters.jobType || 'Any Job Type'}</span>
-                        <ChevronDown className={`h-5 w-5 transition-transform ${showJobTypeDropdown ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {showJobTypeDropdown && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          <button
-                            onClick={() => {
-                              handleFilterChange('jobType', '');
-                              setShowJobTypeDropdown(false);
-                            }}
-                            className="w-full px-4 py-3 text-left hover:bg-slate-50 text-slate-700 border-b border-slate-100"
-                          >
-                            Any Job Type
-                          </button>
-                          {['Full-time', 'Part-time', 'Contract'].map((type) => (
-                            <button
-                              key={type}
-                              onClick={() => {
-                                handleFilterChange('jobType', type);
-                                setShowJobTypeDropdown(false);
-                              }}
-                              className="w-full px-4 py-3 text-left hover:bg-slate-50 text-slate-700 border-b border-slate-100 last:border-0"
-                            >
-                              {type}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Location</label>
-                  <div className="relative" ref={locationDropdownRef}>
-                    <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={locationQuery}
-                      onChange={handleLocationInput}
-                      placeholder="Enter city, state, or country"
-                      className={`w-full pl-12 pr-4 py-3 border-2 rounded-lg focus:ring-0 transition-colors ${locationError
-                        ? 'border-red-300 focus:border-red-500'
-                        : 'border-slate-200 focus:border-[#5F7261]'
-                        }`}
-                    />
-                    {locationSuggestions.length > 0 && (
-                      <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                        {locationSuggestions.map((suggestion, index) => (
-                          <button
-                            key={suggestion.place_id || index}
-                            className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:outline-none text-slate-800"
-                            onClick={() => handleLocationSelect(suggestion)}
-                          >
-                            {suggestion.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {locationError && (
-                    <p className="mt-1 text-sm text-red-500">{locationError}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Experience Level</label>
-                  <div className="relative">
-                    <select
-                      value={filters.experienceLevel || ''}
-                      onChange={e => handleFilterChange('experienceLevel', e.target.value)}
-                      data-filter-select="true"
-                      className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors bg-green-50 text-gray-900 font-medium appearance-none cursor-pointer"
-                      style={{
-                        borderColor: '#5F7261',
-                        minHeight: '48px'
-                      }}
-                    >
-                      <option value="">All Levels</option>
-                      <option value="Internship">Internship</option>
-                      <option value="Entry Level">Entry Level (0-2 years)</option>
-                      <option value="Mid Level">Mid Level (3-5 years)</option>
-                      <option value="Senior Level">Senior Level (5+ years)</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                      <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 border-t border-gray-200 px-6 py-4">
-                <div className="flex justify-between items-center gap-4">
-                  <button
-                    onClick={handleClearFilters}
-                    className="px-6 py-2 text-gray-600 hover:text-gray-900 font-semibold transition-colors hover:bg-gray-100 rounded-lg"
-                  >
-                    Clear Filters
-                  </button>
-                  <button
-                    onClick={() => { handleApplyFilters(); setShowFilters(false); }}
-                    className="px-8 py-2 text-white font-semibold rounded-lg transition-colors shadow-sm"
-                    style={{
-                      backgroundColor: '#5F7261'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4a5c4d'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#5F7261'}
-                  >
-                    Apply Filters
-                  </button>
-                </div>
-              </div>
+        <Modal
+          isOpen={showFilters}
+          onClose={() => setShowFilters(false)}
+          title="Filter referrals"
+          maxWidth="max-w-xl"
+          footer={
+            <>
+              <Button variant="ghost" onClick={handleClearFilters}>
+                Clear all
+              </Button>
+              <Button onClick={handleApplyFilters}>Apply filters</Button>
+            </>
+          }
+        >
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <Select
+                label="Sort by"
+                value={filters.sortBy}
+                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+              >
+                <option value="">Most relevant</option>
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+              </Select>
+              <Select
+                label="Job type"
+                value={filters.jobType}
+                onChange={(e) => handleFilterChange('jobType', e.target.value)}
+              >
+                <option value="">Any job type</option>
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Contract">Contract</option>
+              </Select>
             </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
+                Location
+              </label>
+              <div className="relative" ref={locationDropdownRef}>
+                <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={locationQuery}
+                  onChange={handleLocationInput}
+                  placeholder="City, state, or country"
+                  className={`w-full rounded-lg border bg-white py-2.5 pl-10 pr-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-150 focus:outline-none ${locationError
+                    ? 'border-red-300 focus:border-red-500'
+                    : 'border-slate-300 focus:border-accent'
+                    }`}
+                />
+                {locationSuggestions.length > 0 && (
+                  <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+                    {locationSuggestions.map((suggestion, index) => (
+                      <button
+                        key={suggestion.place_id || index}
+                        className="w-full px-3.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                        onClick={() => handleLocationSelect(suggestion)}
+                      >
+                        {suggestion.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {locationError && <p className="mt-1 text-xs font-medium text-red-600">{locationError}</p>}
+            </div>
+
+            <Select
+              label="Experience level"
+              value={filters.experienceLevel || ''}
+              onChange={(e) => handleFilterChange('experienceLevel', e.target.value)}
+            >
+              <option value="">All levels</option>
+              <option value="Internship">Internship</option>
+              <option value="Entry Level">Entry Level (0-2 years)</option>
+              <option value="Mid Level">Mid Level (3-5 years)</option>
+              <option value="Senior Level">Senior Level (5+ years)</option>
+            </Select>
           </div>
-        )
+        </Modal>
       }
       {/* Share Modal */}
       {
@@ -1095,8 +988,7 @@ const JobsPage: React.FC = () => {
             <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
               {applicationStep === 1 ? (
                 <>
-                  <div className="px-6 py-4 border-b border-stone-divider flex items-center justify-between bg-stone-50">
-                    <h3 className="text-xl font-bold text-slate-900">Apply for {selectedJob?.title}</h3>
+                  <div className="px-6 pt-5 pb-1 flex items-center justify-end">
                     <button onClick={() => setShowApplicationModal(false)} className="text-slate-400 hover:text-slate-600">
                       <X className="w-6 h-6" />
                     </button>
@@ -1161,10 +1053,9 @@ const JobsPage: React.FC = () => {
                     <div className="pt-2">
                       <button
                         onClick={handleApplicationSubmit}
-                        className="w-full h-12 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+                        className="w-full h-12 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg transition-all flex items-center justify-center"
                       >
-                        <span>Submit Application</span>
-                        <ArrowUpRight className="w-5 h-5" />
+                        Submit Application
                       </button>
                     </div>
                   </div>

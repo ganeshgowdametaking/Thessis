@@ -246,8 +246,8 @@ const AnalyticsPage: React.FC = () => {
           <div className="mx-auto max-w-[1400px] flex flex-col gap-8">
             {/* Header Skeleton */}
             <div className="flex flex-col gap-2 border-b border-slate-200 pb-6 animate-pulse">
-              <div className="h-8 w-64 bg-slate-200 rounded-lg"></div>
-              <div className="h-4 w-96 bg-slate-200 rounded-lg"></div>
+              <div className="h-8 w-64 bg-parchment-sunken rounded-lg"></div>
+              <div className="h-4 w-96 bg-parchment-sunken rounded-lg"></div>
             </div>
 
             {fetchError ? (
@@ -255,7 +255,7 @@ const AnalyticsPage: React.FC = () => {
                 <p className="text-red-600 font-medium">Failed to load analytics data.</p>
                 <button
                   onClick={handleRetry}
-                  className="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg font-bold hover:bg-red-50 transition-colors shadow-sm"
+                  className="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg font-bold hover:bg-red-50 transition-colors"
                 >
                   Retry Connection
                 </button>
@@ -381,12 +381,12 @@ const AnalyticsPage: React.FC = () => {
                   <div className="h-[350px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={analyticsData.founderStats.acquisitionChannels}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
                         <Tooltip
-                          cursor={{ fill: '#f8fafc' }}
-                          contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          cursor={{ fill: '#F8F9FC' }}
+                          contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                         />
                         <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={50} />
                       </BarChart>
@@ -411,7 +411,7 @@ const AnalyticsPage: React.FC = () => {
                           <h3 className="text-xl font-bold text-slate-900">Liquidity Ratio</h3>
                         </div>
                         <div className="flex items-baseline gap-2 mb-2">
-                          <span className="text-5xl font-black text-slate-900 tracking-tight">
+                          <span className="text-5xl font-black font-display text-slate-900 tracking-tight">
                             {analyticsData.founderStats.liquidityRatio.toFixed(2)}
                           </span>
                           <span className="text-sm font-bold text-slate-400 uppercase">Jobs / Verified User</span>
@@ -443,7 +443,7 @@ const AnalyticsPage: React.FC = () => {
                       <ResponsiveContainer width="100%" height="100%">
                         <FunnelChart>
                           <Tooltip
-                            contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                             formatter={(value: any) => [value, 'Users']}
                           />
                           <Funnel

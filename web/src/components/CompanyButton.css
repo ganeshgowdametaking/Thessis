@@ -28,7 +28,7 @@
 }
 
 .company-back-btn:hover {
-  box-shadow: 9px 9px 33px #1e293b33, -9px -9px 33px #334155;
+  box-shadow: 9px 9px 33px #1e293b33, -9px -9px 33px #374151;
   transform: translateY(-2px);
   background-color: #243056;
 } 

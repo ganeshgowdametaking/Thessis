@@ -130,7 +130,7 @@ const TrackingDashboard: React.FC = () => {
                   <Clock className="h-5 w-5 text-blue-600 mr-2" />
                   <span className="text-sm font-medium text-blue-800">Session Duration</span>
                 </div>
-                <p className="text-2xl font-bold text-blue-900">
+                <p className="text-2xl font-bold font-display text-blue-900">
                   {Math.round((Date.now() - new Date(currentSession.startTime).getTime()) / 1000)}s
                 </p>
               </div>
@@ -139,7 +139,7 @@ const TrackingDashboard: React.FC = () => {
                   <Eye className="h-5 w-5 text-green-600 mr-2" />
                   <span className="text-sm font-medium text-green-800">Pages Viewed</span>
                 </div>
-                <p className="text-2xl font-bold text-green-900">
+                <p className="text-2xl font-bold font-display text-green-900">
                   {currentSession.pageViews?.length || 0}
                 </p>
               </div>
@@ -148,7 +148,7 @@ const TrackingDashboard: React.FC = () => {
                   <MousePointer className="h-5 w-5 text-purple-600 mr-2" />
                   <span className="text-sm font-medium text-purple-800">Interactions</span>
                 </div>
-                <p className="text-2xl font-bold text-purple-900">
+                <p className="text-2xl font-bold font-display text-purple-900">
                   {currentSession.interactions?.length || 0}
                 </p>
               </div>
@@ -268,19 +268,19 @@ const TrackingDashboard: React.FC = () => {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">
+              <div className="text-3xl font-bold font-display text-blue-600 mb-2">
                 {analyticsData.conversionStats.signupRate.toFixed(1)}%
               </div>
               <div className="text-sm text-slate-600">Signup Rate</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600 mb-2">
+              <div className="text-3xl font-bold font-display text-green-600 mb-2">
                 {analyticsData.conversionStats.jobApplicationRate.toFixed(1)}%
               </div>
               <div className="text-sm text-slate-600">Job Application Rate</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600 mb-2">
+              <div className="text-3xl font-bold font-display text-purple-600 mb-2">
                 {analyticsData.conversionStats.referralCreationRate.toFixed(1)}%
               </div>
               <div className="text-sm text-slate-600">Referral Creation Rate</div>
