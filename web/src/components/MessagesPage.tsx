@@ -680,7 +680,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
   const handleSendMessage = useCallback(async (text?: string, file?: File) => {
     const contentToSend = text || '';
-    if (!contentToSend.trim()) return false;
+    if (!contentToSend.trim() && !file) return false;
 
     try {
       let conversationId = selectedChat;
@@ -940,62 +940,57 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
               {/* Messages Area */}
               <div
                 ref={messagesContainerRef}
-                className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-5 md:space-y-8 flex flex-col bg-white"
+                className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 bg-white"
                 style={isMobile ? { paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' } : undefined}
               >
-                {/* Load More Button */}
-                {hasMoreMessages && messages.length > 0 && (
-                  <div className="flex justify-center mb-4">
-                    <button
-                      onClick={handleLoadMore}
-                      className="text-xs text-slate-500 hover:text-sage transition-colors bg-stone-off px-3 py-1.5 rounded-full"
-                    >
-                      Load older messages
-                    </button>
-                  </div>
-                )}
+                <div className="min-h-full flex flex-col justify-end space-y-5 md:space-y-8">
+                  {/* Load More Button */}
+                  {hasMoreMessages && messages.length > 0 && (
+                    <div className="flex justify-center mb-4">
+                      <button
+                        onClick={handleLoadMore}
+                        className="text-xs text-slate-500 hover:text-sage transition-colors bg-stone-off px-3 py-1.5 rounded-full"
+                      >
+                        Load older messages
+                      </button>
+                    </div>
+                  )}
 
-                {/* Date Separator */}
-                <div className="flex justify-center">
-                  <span className="text-xs font-medium text-white bg-slate-900 px-3 py-1.5 rounded-full">
-                    Today, {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
+                  {messages.length > 0 ? (
+                    messageGroups.map((group) => (
+                      <MessageGroup
+                        key={group.id}
+                        group={group}
+                        otherParticipant={activeOtherParticipant}
+                        ownProfile={profile}
+                      />
+                    ))
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="text-center">
+                        <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-slate-900 mb-2">Start a conversation</h3>
+                        <p className="text-slate-600">
+                          Send a message to begin chatting with {activeOtherParticipant?.full_name}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Typing Indicator */}
+                  {otherUserTyping && (
+                    <div className="flex w-full gap-3">
+                      <Avatar profile={activeOtherParticipant} size="sm" />
+                      <div className="rounded-2xl bg-stone-off px-4 py-3.5 flex items-center gap-1.5 w-fit">
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    </div>
+                  )}
+
+                  <div ref={messagesEndRef} />
                 </div>
-
-                {messages.length > 0 ? (
-                  messageGroups.map((group) => (
-                    <MessageGroup
-                      key={group.id}
-                      group={group}
-                      otherParticipant={activeOtherParticipant}
-                      ownProfile={profile}
-                    />
-                  ))
-                ) : (
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center">
-                      <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-slate-900 mb-2">Start a conversation</h3>
-                      <p className="text-slate-600">
-                        Send a message to begin chatting with {activeOtherParticipant?.full_name}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Typing Indicator */}
-                {otherUserTyping && (
-                  <div className="flex w-full gap-3">
-                    <Avatar profile={activeOtherParticipant} size="sm" />
-                    <div className="rounded-2xl bg-stone-off px-4 py-3.5 flex items-center gap-1.5 w-fit">
-                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                  </div>
-                )}
-
-                <div ref={messagesEndRef} />
               </div>
 
               {/* Message Input */}

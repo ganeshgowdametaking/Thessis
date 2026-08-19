@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Smile, PlusCircle, Send, Image } from 'lucide-react';
+import { Smile, PlusCircle } from 'lucide-react';
 import { emojiData, emojiCategories, commonEmojis } from '../constants/emojis';
 
 // Debounce hook for typing indicator
@@ -224,14 +224,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
                 <div className="flex items-center gap-1 shrink-0">
                     <button
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="p-1.5 text-slate-500 hover:text-sage transition-colors rounded-lg h-8 w-8 flex items-center justify-center"
-                    >
-                        <Image className="text-[18px]" />
-                    </button>
-
-                    <button
-                        type="button"
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                         className={`p-1.5 transition-colors rounded-lg h-8 w-8 flex items-center justify-center ${showEmojiPicker ? 'text-sage bg-stone-off' : 'text-slate-500 hover:text-sage'}`}
                     >
@@ -245,7 +237,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
                         className="ml-1 flex items-center gap-1.5 h-9 px-4 rounded-full bg-sage text-white text-sm font-bold hover:bg-sage-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         <span>Send</span>
-                        <Send className="text-[15px]" />
                     </button>
                 </div>
             </div>

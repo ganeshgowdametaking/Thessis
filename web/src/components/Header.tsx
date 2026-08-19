@@ -281,7 +281,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
               <img
                 src="/logo2.png?v=2"
                 alt="Thessis Logo"
-                className="h-8 w-8 object-contain rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
+                className="h-8 w-8 object-contain cursor-pointer hover:opacity-80 transition-opacity"
               />
             </Link>
           </div>
