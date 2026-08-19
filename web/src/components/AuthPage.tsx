@@ -136,14 +136,20 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
       {/* Left: auth section */}
       <div className="relative w-full lg:w-1/2 flex items-center justify-center px-6 py-16 sm:py-20">
         <Link to="/" className="absolute top-6 left-6 sm:top-8 sm:left-8">
-          <img src="/logo2.png?v=2" alt="THESSIS Logo" className="h-10 w-10 object-contain" />
+          <img src="/logo2.png?v=2" alt="Thessis Logo" className="h-8 w-8 object-contain" />
         </Link>
 
         <div className="w-full max-w-md">
           {(mode === 'signin' || mode === 'signup') && (
-            <div className="text-center mb-10">
-              <h1 className="text-3xl font-bold text-ink">
-                {mode === 'signin' ? 'Welcome to Thessis!' : 'Create your account'}
+            <div className="text-left mb-4">
+              <h1 className="font-bold text-ink">
+                {mode === 'signin' ? (
+                  <>
+                    <span className="text-[24px]">Welcome to</span> <span className="text-3xl">Thessis!</span>
+                  </>
+                ) : (
+                  <span className="text-[24px]">Create your account</span>
+                )}
               </h1>
             </div>
           )}

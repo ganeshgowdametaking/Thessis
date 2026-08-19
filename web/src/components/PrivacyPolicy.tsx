@@ -6,10 +6,7 @@ interface PrivacyPolicyProps {
 }
 
 const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
-  console.log('PrivacyPolicy mounted');
-
   const handleBack = () => {
-    console.log('BACK CLICKED');
     onBack();
   };
 
@@ -30,18 +27,43 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
 
           <div className="prose prose-sm sm:prose prose-slate max-w-none">
             <p className="text-slate-600">
-              Last updated: February 6, 2026
+              Last updated: August 19, 2026
             </p>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">1. Introduction</h2>
+            <nav aria-label="Table of contents" className="not-prose bg-slate-50 border border-slate-200 rounded-lg p-4 sm:p-5 mt-6">
+              <p className="text-sm font-bold text-slate-900 mb-2">On this page</p>
+              <ol className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm list-decimal list-inside text-blue-600">
+                <li><a href="/privacy-policy#introduction" className="hover:text-blue-800 hover:underline">Introduction</a></li>
+                <li><a href="/privacy-policy#information-we-collect" className="hover:text-blue-800 hover:underline">Information We Collect</a></li>
+                <li><a href="/privacy-policy#how-we-use-your-information" className="hover:text-blue-800 hover:underline">How We Use Your Information</a></li>
+                <li><a href="/privacy-policy#legal-basis" className="hover:text-blue-800 hover:underline">Legal Basis for Processing (EU Users)</a></li>
+                <li><a href="/privacy-policy#data-sharing" className="hover:text-blue-800 hover:underline">Data Sharing and Disclosure</a></li>
+                <li><a href="/privacy-policy#data-retention" className="hover:text-blue-800 hover:underline">Data Retention</a></li>
+                <li><a href="/privacy-policy#international-transfers" className="hover:text-blue-800 hover:underline">International Data Transfers</a></li>
+                <li><a href="/privacy-policy#your-rights" className="hover:text-blue-800 hover:underline">Your Rights (incl. California)</a></li>
+                <li><a href="/privacy-policy#cookies" className="hover:text-blue-800 hover:underline">Cookies and Tracking Technologies</a></li>
+                <li><a href="/privacy-policy#automated-decisions" className="hover:text-blue-800 hover:underline">Automated Decision-Making</a></li>
+                <li><a href="/privacy-policy#data-security" className="hover:text-blue-800 hover:underline">Data Security</a></li>
+                <li><a href="/privacy-policy#childrens-privacy" className="hover:text-blue-800 hover:underline">Children's Privacy</a></li>
+                <li><a href="/privacy-policy#third-party-links" className="hover:text-blue-800 hover:underline">Third-Party Links</a></li>
+                <li><a href="/privacy-policy#marketing-communications" className="hover:text-blue-800 hover:underline">Marketing Communications</a></li>
+                <li><a href="/privacy-policy#changes" className="hover:text-blue-800 hover:underline">Changes to This Privacy Policy</a></li>
+                <li><a href="/privacy-policy#contact" className="hover:text-blue-800 hover:underline">Contact Us</a></li>
+              </ol>
+            </nav>
+
+            <h2 id="introduction" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">1. Introduction</h2>
             <p className="text-slate-700">
-              THESSIS ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform (the "Platform").
+              Thessis ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform (the "Platform").
             </p>
             <p className="text-slate-700 mt-4">
-              We process personal data in accordance with the EU General Data Protection Regulation (GDPR) and other applicable data protection laws.
+              Thessis was formerly known as Tanktide. Our social media accounts referenced in this Policy still use @tanktide handles during our ongoing brand transition — these are operated by the same company as Thessis.
+            </p>
+            <p className="text-slate-700 mt-4">
+              We process personal data in accordance with the EU General Data Protection Regulation (GDPR), the California Consumer Privacy Act as amended by the California Privacy Rights Act (CCPA/CPRA), and other applicable data protection laws.
             </p>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">2. Information We Collect</h2>
+            <h2 id="information-we-collect" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">2. Information We Collect</h2>
             <p className="text-slate-700">
               We collect information that you provide directly to us, information we obtain automatically when you use the Platform, and information from third-party sources.
             </p>
@@ -71,7 +93,7 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               <li><strong>Business partners:</strong> Information from companies you interact with through our Platform</li>
             </ul>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">3. How We Use Your Information</h2>
+            <h2 id="how-we-use-your-information" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">3. How We Use Your Information</h2>
             <p className="text-slate-700">
               We process your personal data for the following purposes, based on specific legal grounds:
             </p>
@@ -114,7 +136,7 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               Note: Certain information (email address and name) is required to create an account and use our services. Without this information, we cannot provide the Platform to you. All other information is optional, though it may enhance your experience.
             </p>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">4. Legal Basis for Processing (EU Users)</h2>
+            <h2 id="legal-basis" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">4. Legal Basis for Processing (EU Users)</h2>
             <p className="text-slate-700">
               For users in the European Economic Area (EEA), United Kingdom, and Switzerland, we process your personal data only when we have a valid legal basis:
             </p>
@@ -128,7 +150,7 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               You have the right to object to processing based on legitimate interests. See Section 8 for details on your rights.
             </p>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">5. Data Sharing and Disclosure</h2>
+            <h2 id="data-sharing" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">5. Data Sharing and Disclosure</h2>
             <p className="text-slate-700">
               We may share your information with the following categories of recipients:
             </p>
@@ -164,16 +186,16 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             <ul className="list-disc pl-6 text-slate-700 mt-2 space-y-2">
               <li>Comply with legal obligations, court orders, or government requests</li>
               <li>Enforce our Terms of Service and other agreements</li>
-              <li>Protect the rights, property, or safety of THESSIS, our users, or the public</li>
+              <li>Protect the rights, property, or safety of Thessis, our users, or the public</li>
               <li>Detect and prevent fraud, security issues, or technical problems</li>
             </ul>
 
             <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-3">5.5 Business Transfers</h3>
             <p className="text-slate-700">
-              If THESSIS is involved in a merger, acquisition, or sale of assets, your information may be transferred to the new entity. We will notify you before your data is transferred and becomes subject to a different privacy policy.
+              If Thessis is involved in a merger, acquisition, or sale of assets, your information may be transferred to the new entity. We will notify you before your data is transferred and becomes subject to a different privacy policy.
             </p>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">6. Data Retention</h2>
+            <h2 id="data-retention" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">6. Data Retention</h2>
             <p className="text-slate-700">
               We retain your personal data only as long as necessary for the purposes described in this Privacy Policy:
             </p>
@@ -185,10 +207,10 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               <li><strong>Analytics data:</strong> Aggregated and anonymized data may be retained indefinitely</li>
             </ul>
             <p className="text-slate-700 mt-4">
-              You can request deletion of your data at any time by contacting us at <a href="mailto:info@tanktide.com" className="text-blue-600 hover:text-blue-800 transition-colors">info@tanktide.com</a>.
+              You can request deletion of your data at any time by contacting us at <a href="mailto:info@thessis.com" className="text-blue-600 hover:text-blue-800 transition-colors">info@thessis.com</a>.
             </p>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">7. International Data Transfers</h2>
+            <h2 id="international-transfers" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">7. International Data Transfers</h2>
             <p className="text-slate-700">
               Your information may be transferred to and processed in countries other than your country of residence, including the United States and other countries where our service providers operate.
             </p>
@@ -201,7 +223,7 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               <li><strong>Your Consent:</strong> Where you have explicitly agreed to the transfer</li>
             </ul>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">8. Your Rights</h2>
+            <h2 id="your-rights" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">8. Your Rights</h2>
             <p className="text-slate-700">
               Depending on your location, you may have the following rights regarding your personal data:
             </p>
@@ -218,15 +240,31 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               <li><strong>Right to Lodge a Complaint:</strong> File a complaint with your local data protection authority</li>
             </ul>
 
-            <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-3">8.2 Exercising Your Rights</h3>
+            <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-3">8.2 Rights for California Residents (CCPA/CPRA)</h3>
             <p className="text-slate-700">
-              To exercise any of these rights, please contact us at <a href="mailto:info@tanktide.com" className="text-blue-600 hover:text-blue-800 transition-colors">info@tanktide.com</a>. We will respond within 30 days.
+              If you are a California resident, you have the following rights under the California Consumer Privacy Act, as amended by the California Privacy Rights Act:
             </p>
-            <p className="text-slate-700 mt-4">
-              You also have the right to lodge a complaint with a supervisory authority if you believe we have not handled your personal data properly. For EU users, you can find your data protection authority at: <a href="https://edpb.europa.eu/about-edpb/board/members_en" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">https://edpb.europa.eu/about-edpb/board/members_en</a>
+            <ul className="list-disc pl-6 text-slate-700 mt-2 space-y-2 text-sm sm:text-base">
+              <li><strong>Right to Know:</strong> Request disclosure of the categories and specific pieces of personal information we have collected, used, disclosed, or sold/shared about you, and the categories of sources and recipients</li>
+              <li><strong>Right to Delete:</strong> Request deletion of personal information we have collected from you, subject to certain exceptions</li>
+              <li><strong>Right to Correct:</strong> Request correction of inaccurate personal information</li>
+              <li><strong>Right to Opt Out of Sale/Sharing:</strong> Opt out of the "sale" or "sharing" of your personal information (as those terms are broadly defined under the CPRA, this may include certain analytics and advertising cookies described in Section 9)</li>
+              <li><strong>Right to Limit Use of Sensitive Personal Information:</strong> Direct us to limit the use of sensitive personal information to what is necessary to provide the Platform</li>
+              <li><strong>Right to Non-Discrimination:</strong> We will not deny you goods or services, charge different prices, or provide a different level of service because you exercised a CCPA/CPRA right</li>
+            </ul>
+            <p className="text-slate-700 mt-3 text-sm italic">
+              In the preceding 12 months, we have not sold personal information for money. We may "share" personal information (e.g., via analytics and advertising cookies) as that term is broadly defined under the CPRA. You can opt out at any time via our cookie banner or by contacting us at <a href="mailto:info@thessis.com" className="text-blue-600 hover:text-blue-800">info@thessis.com</a> with the subject line "Do Not Sell or Share My Personal Information."
             </p>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">9. Cookies and Tracking Technologies</h2>
+            <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-3">8.3 Exercising Your Rights</h3>
+            <p className="text-slate-700">
+              To exercise any of these rights, please contact us at <a href="mailto:info@thessis.com" className="text-blue-600 hover:text-blue-800 transition-colors">info@thessis.com</a>. We will respond within 30 days (EU/EEA users) or 45 days (California residents), as applicable. We may need to verify your identity before fulfilling certain requests.
+            </p>
+            <p className="text-slate-700 mt-4">
+              You also have the right to lodge a complaint with a supervisory authority if you believe we have not handled your personal data properly. For EU users, you can find your data protection authority at: <a href="https://edpb.europa.eu/about-edpb/board/members_en" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">https://edpb.europa.eu/about-edpb/board/members_en</a>. California residents may lodge a complaint with the <a href="https://oag.ca.gov/privacy/ccpa" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">California Attorney General's office</a>.
+            </p>
+
+            <h2 id="cookies" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">9. Cookies and Tracking Technologies</h2>
             <p className="text-slate-700">
               We use cookies and similar technologies to collect information about your browsing activities and improve your experience.
             </p>
@@ -242,17 +280,20 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-3">9.2 Managing Cookies</h3>
             <p className="text-slate-700">You can manage your cookie preferences through:</p>
             <ul className="list-disc pl-6 text-slate-700 mt-2 space-y-2">
-              <li>Our cookie consent banner (when you first visit)</li>
+              <li>Our cookie consent banner, shown on your first visit, where you can Accept All or Reject Non-Essential cookies</li>
               <li>Your browser settings (to block or delete cookies)</li>
               <li>Opting out of Google Analytics: <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">https://tools.google.com/dlpage/gaoptout</a></li>
             </ul>
+            <p className="text-slate-700 mt-2">
+              Rejecting non-essential cookies disables analytics and advertising cookies (including Google Analytics) for your session; only strictly necessary cookies remain active.
+            </p>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">10. Automated Decision-Making and Profiling</h2>
+            <h2 id="automated-decisions" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">10. Automated Decision-Making and Profiling</h2>
             <p className="text-slate-700">
               We do not use automated decision-making or profiling that produces legal effects or similarly significant effects on you.
             </p>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">11. Data Security</h2>
+            <h2 id="data-security" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">11. Data Security</h2>
             <p className="text-slate-700">
               We implement appropriate technical and organizational measures to protect your personal data against unauthorized access, loss, destruction, or alteration:
             </p>
@@ -269,30 +310,30 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               In the event of a data breach that is likely to result in a high risk to your rights and freedoms, we will notify you and the relevant supervisory authority within 72 hours of becoming aware of the breach, as required by law.
             </p>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">12. Children's Privacy</h2>
+            <h2 id="childrens-privacy" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">12. Children's Privacy</h2>
             <p className="text-slate-700">
               Our Platform is not intended for individuals under the age of 16 (or the minimum age in your country).
             </p>
             <p className="text-slate-700 mt-4">
-              We do not knowingly collect personal data from children. If you believe a child has provided us with personal data, please contact us at <a href="mailto:info@tanktide.com" className="text-blue-600 hover:text-blue-800">info@tanktide.com</a>, and we will delete the information promptly.
+              We do not knowingly collect personal data from children. If you believe a child has provided us with personal data, please contact us at <a href="mailto:info@thessis.com" className="text-blue-600 hover:text-blue-800">info@thessis.com</a>, and we will delete the information promptly.
             </p>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">13. Third-Party Links</h2>
+            <h2 id="third-party-links" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">13. Third-Party Links</h2>
             <p className="text-slate-700">
               The Platform may contain links to third-party websites or services that are not operated by us. We are not responsible for the privacy practices of these third parties.
             </p>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">14. Marketing Communications</h2>
+            <h2 id="marketing-communications" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">14. Marketing Communications</h2>
             <p className="text-slate-700">
               If you have consented to receive marketing emails from us, you can opt out at any time by:
             </p>
             <ul className="list-disc pl-6 text-slate-700 mt-4 space-y-2">
               <li>Clicking the "unsubscribe" link in any marketing email</li>
               <li>Updating your preferences in your account settings</li>
-              <li>Contacting us at <a href="mailto:info@tanktide.com" className="text-blue-600 hover:text-blue-800">info@tanktide.com</a></li>
+              <li>Contacting us at <a href="mailto:info@thessis.com" className="text-blue-600 hover:text-blue-800">info@thessis.com</a></li>
             </ul>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">15. Changes to This Privacy Policy</h2>
+            <h2 id="changes" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">15. Changes to This Privacy Policy</h2>
             <p className="text-slate-700">
               We may update this Privacy Policy from time to time. We will notify you of any material changes by:
             </p>
@@ -302,14 +343,14 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               <li>Displaying a prominent notice on the Platform</li>
             </ul>
 
-            <h2 className="text-xl font-bold text-slate-900 mt-8 mb-4">16. Contact Us</h2>
+            <h2 id="contact" className="text-xl font-bold text-slate-900 mt-8 mb-4 scroll-mt-6">16. Contact Us</h2>
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 mt-6">
-              <p className="text-slate-700"><strong>Email:</strong> <a href="mailto:info@tanktide.com" className="text-blue-600 hover:text-blue-800">info@tanktide.com</a></p>
-              <p className="text-slate-700 mt-2"><strong>Company:</strong> THESSIS (Remote-first company)</p>
+              <p className="text-slate-700"><strong>Email:</strong> <a href="mailto:info@thessis.com" className="text-blue-600 hover:text-blue-800">info@thessis.com</a></p>
+              <p className="text-slate-700 mt-2"><strong>Company:</strong> Thessis (Remote-first company)</p>
             </div>
 
             <p className="text-slate-500 text-sm mt-12 text-center">
-              Your privacy matters to us. Thank you for trusting THESSIS with your information.
+              Your privacy matters to us. Thank you for trusting Thessis with your information.
             </p>
           </div>
         </div>

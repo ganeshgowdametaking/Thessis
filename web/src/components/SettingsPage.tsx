@@ -812,7 +812,7 @@ const SettingsPage: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-slate-900">Feedback</h3>
-                      <p className="text-sm text-slate-500">Help us improve THESSIS by sharing your thoughts</p>
+                      <p className="text-sm text-slate-500">Help us improve Thessis by sharing your thoughts</p>
                     </div>
                   </div>
 
@@ -836,7 +836,7 @@ const SettingsPage: React.FC = () => {
                       <label className="block text-sm font-bold text-slate-800 mb-2">Message</label>
                       <textarea
                         className="block w-full rounded-lg border border-slate-300 bg-white py-3 px-4 text-slate-900 placeholder:text-slate-400 focus:ring-sage focus:border-sage sm:text-sm min-h-[200px] shadow-sm transition-all"
-                        placeholder="How can we make THESSIS better for you?"
+                        placeholder="How can we make Thessis better for you?"
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
                       />

@@ -13,9 +13,11 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
     return (
       <footer className="bg-parchment border-t border-hairline">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-slate-500">
-          <span>© 2026 THESSIS</span>
+          <span>© 2026 Thessis</span>
           <span aria-hidden="true">·</span>
           <a className="hover:text-ink transition-colors" href="/privacy-policy">Privacy</a>
+          <span aria-hidden="true">·</span>
+          <a className="hover:text-ink transition-colors" href="/cookie-policy">Cookies</a>
           <span aria-hidden="true">·</span>
           <a className="hover:text-ink transition-colors" href="/terms">Terms</a>
         </div>
@@ -25,16 +27,16 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
 
   if (compact) {
     return (
-      <footer className="bg-stone border-t border-slate-200">
+      <footer className="bg-parchment-sunken border-t border-slate-200">
         <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center text-slate-900 min-w-0">
               <img
                 src="/logo2.png?v=2"
-                alt="THESSIS Logo"
-                className="h-12 w-12 object-contain shrink-0"
+                alt="Thessis Logo"
+                className="h-8 w-8 object-contain shrink-0"
               />
-              <span className="ml-2 font-bold font-display text-sm text-slate-900 truncate">THESSIS</span>
+              <span className="ml-2 font-bold font-display text-sm text-slate-900 truncate">Thessis</span>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
@@ -72,6 +74,10 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
               Privacy
             </a>
             <span>•</span>
+            <a className="hover:text-sage transition-colors" href="/cookie-policy">
+              Cookies
+            </a>
+            <span>•</span>
             <a className="hover:text-sage transition-colors" href="/terms">
               Terms
             </a>
@@ -82,7 +88,7 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
   }
 
   return (
-    <footer className="bg-stone border-t border-slate-200">
+    <footer className="bg-parchment-sunken border-t border-slate-200">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-start justify-between gap-12">
           {/* Logo & Copyright */}
@@ -90,12 +96,12 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
             <div className="flex items-center text-slate-900">
               <img
                 src="/logo2.png?v=2"
-                alt="THESSIS Logo"
-                className="h-12 w-12 object-contain"
+                alt="Thessis Logo"
+                className="h-8 w-8 object-contain"
               />
-              <span className="ml-3 font-bold font-display text-xl text-slate-900">THESSIS</span>
+              <span className="ml-3 font-bold font-display text-xl text-slate-900">Thessis</span>
             </div>
-            <p className="text-slate-400 text-sm">© 2026 THESSIS. All rights reserved.</p>
+            <p className="text-slate-400 text-sm">© 2026 Thessis. All rights reserved.</p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-12 md:gap-24 w-full md:w-auto justify-center md:justify-end">
@@ -108,7 +114,10 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
               <a className="text-slate-500 hover:text-sage text-sm font-medium transition-colors" href="/terms">
                 Terms of Service
               </a>
-              <a className="text-slate-500 hover:text-sage text-sm font-medium transition-colors" href="mailto:info@tanktide.com">
+              <a className="text-slate-500 hover:text-sage text-sm font-medium transition-colors" href="/cookie-policy">
+                Cookie Policy
+              </a>
+              <a className="text-slate-500 hover:text-sage text-sm font-medium transition-colors" href="mailto:info@thessis.com">
                 Contact Support
               </a>
             </div>

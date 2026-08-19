@@ -161,7 +161,7 @@ const PasswordResetPage: React.FC = () => {
         <div className="flex justify-center mb-2 sm:mb-6 pt-[max(16px,env(safe-area-inset-top))] sm:pt-0">
           <img
             src="/logo2.png?v=2"
-            alt="THESSIS Logo"
+            alt="Thessis Logo"
             className="w-12 h-12 object-contain"
           />
         </div>
@@ -305,7 +305,7 @@ const PasswordResetPage: React.FC = () => {
 
         {/* Footer */}
         <p className="text-center text-copyright-slate text-xs pb-[calc(env(safe-area-inset-bottom)+8px)] sm:pb-0">
-          © 2026 THESSIS. All rights reserved.
+          © 2026 Thessis. All rights reserved.
         </p>
       </div>
     </div>

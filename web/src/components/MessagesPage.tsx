@@ -85,6 +85,9 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const messagesCacheRef = useRef<Record<string, { items: any[]; hasMore: boolean }>>({});
   const conversationReloadTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasMoreMessagesRef = useRef(true);
+  // Tracks which conversation we last auto-scrolled for, so opening/switching
+  // a chat jumps straight to the bottom instead of animating there.
+  const lastScrolledChatRef = useRef<string | null>(null);
 
   useEffect(() => {
     hasMoreMessagesRef.current = hasMoreMessages;
@@ -344,10 +347,13 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     syncConversation();
   }, [selectedApplicant, location.state?.selectedApplicant, location.state?.msgNavTs, user?.id]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom: instantly when a conversation is first opened or
+  // switched to, smoothly for new messages/typing while already viewing it.
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, otherUserTyping]); // Scroll when typing indicator appears too
+    const isConversationSwitch = lastScrolledChatRef.current !== selectedChat;
+    scrollToBottom(isConversationSwitch ? 'auto' : 'smooth');
+    lastScrolledChatRef.current = selectedChat;
+  }, [messages, otherUserTyping, selectedChat]);
 
   // UPDATED: Search functionality with user suggestions
   useEffect(() => {
@@ -405,11 +411,11 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     };
   }, [showActionsMenu]);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
         top: messagesContainerRef.current.scrollHeight,
-        behavior: 'smooth'
+        behavior
       });
     }
   };

@@ -12,7 +12,7 @@ const CompanyFooter: React.FC = () => {
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
                 <span className="text-white font-bold text-sm">T</span>
               </div>
-              <span className="text-xl font-bold font-display">THESSIS</span>
+              <span className="text-xl font-bold font-display">Thessis</span>
               <span className="ml-2 text-sm text-slate-400 bg-slate-800 px-2 py-1 rounded">Company Portal</span>
             </div>
             <p className="text-slate-300 mb-4 max-w-md">
@@ -95,7 +95,7 @@ const CompanyFooter: React.FC = () => {
         <div className="border-t border-slate-800 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="text-slate-400 text-sm">
-              © 2026 THESSIS. All rights reserved.
+              © 2026 Thessis. All rights reserved.
             </div>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link to="/" className="text-slate-400 hover:text-white text-sm transition-colors">

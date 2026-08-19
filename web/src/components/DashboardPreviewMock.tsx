@@ -8,9 +8,9 @@ const stats = [
 ];
 
 const referrals = [
-  { title: 'Product Manager', location: 'Bengaluru, India', tint: 'bg-indigo-100' },
-  { title: 'Business Analyst', location: 'Bengaluru, India', tint: 'bg-blue-100' },
-  { title: 'AI Engineer', location: 'Bengaluru, India', tint: 'bg-emerald-100' },
+  { title: 'Product Manager', location: 'Bengaluru, India', initials: 'PM', tint: 'bg-indigo-100 text-indigo-600' },
+  { title: 'Business Analyst', location: 'Bengaluru, India', initials: 'BA', tint: 'bg-blue-100 text-blue-600' },
+  { title: 'AI Engineer', location: 'Bengaluru, India', initials: 'AI', tint: 'bg-emerald-100 text-emerald-600' },
 ];
 
 const upcoming = [
@@ -21,7 +21,7 @@ const upcoming = [
 
 const DashboardPreviewMock = () => {
   return (
-    <div className="w-full aspect-[16/10] bg-white p-4 sm:p-6 flex flex-col gap-3 sm:gap-5 select-none">
+    <div className="w-full bg-white p-4 sm:p-6 flex flex-col gap-3 sm:gap-5 select-none">
       {/* Top bar */}
       <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
         <div className="hidden sm:block shrink-0">
@@ -64,7 +64,7 @@ const DashboardPreviewMock = () => {
       </div>
 
       {/* Content row */}
-      <div className="flex-1 flex gap-3 sm:gap-5 min-h-0">
+      <div className="flex gap-3 sm:gap-5">
         {/* My Referrals */}
         <div className="flex-1 min-w-0 flex flex-col gap-1.5 sm:gap-3">
           <p className="text-[10px] sm:text-sm font-bold text-slate-900">My Referrals</p>
@@ -74,7 +74,11 @@ const DashboardPreviewMock = () => {
                 key={r.title}
                 className="flex items-center gap-2 sm:gap-3 rounded-lg border border-slate-100 bg-white p-1.5 sm:p-2.5"
               >
-                <div className={`h-6 w-6 sm:h-9 sm:w-9 shrink-0 rounded-md sm:rounded-lg ${r.tint}`} />
+                <div
+                  className={`flex h-6 w-6 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-md sm:rounded-lg text-[7px] sm:text-[10px] font-bold ${r.tint}`}
+                >
+                  {r.initials}
+                </div>
                 <div className="min-w-0">
                   <p className="truncate text-[9px] sm:text-xs font-bold text-slate-900">{r.title}</p>
                   <p className="truncate text-[8px] sm:text-[10px] text-slate-400">{r.location}</p>

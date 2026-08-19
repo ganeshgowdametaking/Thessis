@@ -8,7 +8,7 @@ const fadeUp = {
 
 const Services = () => {
   return (
-    <section id="services" className="bg-parchment py-14 md:py-20">
+    <section id="services" className="relative z-10 py-14 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10 md:mb-16">
 
@@ -18,7 +18,7 @@ const Services = () => {
             viewport={{ once: true, amount: 0.6 }}
             variants={fadeUp}
             transition={{ duration: 0.6 }}
-            className="text-2xl md:text-3xl font-bold text-slate-900 mb-3 md:mb-4"
+            className="text-2xl md:text-3xl font-bold text-[#1C1C1C] mb-3 md:mb-4"
           >
             Better Referrals. Zero Friction
           </motion.h2>
@@ -34,53 +34,21 @@ const Services = () => {
           </motion.p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-0 items-center">
-          {/* Dashboard Preview Image - Left Side (Maximized Size) */}
+        <div className="flex items-center">
           <motion.div
             initial={{ opacity: 0, x: -32 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.7, ease: 'easeOut' }}
-            className="w-full lg:w-[70%] z-10"
+            className="w-full max-w-4xl mx-auto"
           >
-            <div className="relative rounded-2xl overflow-hidden border border-slate-100 shadow-lg lg:shadow-2xl transition-transform duration-500 lg:hover:scale-[1.005]">
-              <DashboardPreviewMock />
+            {/* Laptop frame: thin, uniform dark bezel around the screen, no base. */}
+            <div className="rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 p-1 sm:p-1.5 shadow-lg lg:shadow-2xl transition-transform duration-500 lg:hover:scale-[1.005]">
+              <div className="relative rounded-md overflow-hidden border border-slate-950/40">
+                <DashboardPreviewMock />
+              </div>
             </div>
           </motion.div>
-
-          {/* Feature Cards - Overlapping Right Side (Wider & Spaced) */}
-          <div className="flex flex-col justify-between w-full lg:w-[50%] lg:-ml-48 relative z-20 lg:self-stretch py-0 lg:py-8 gap-3 md:gap-4 lg:gap-0">
-            {[
-              {
-                title: 'CONNECT',
-                copy: 'Every referrer is authenticated via corporate email or LinkedIn',
-              },
-              {
-                title: 'REFER',
-                copy: '10x higher interview rate than direct applications',
-              },
-              {
-                title: 'SUCCESS',
-                copy: 'Referrers earn company bonuses & Seekers land dream roles',
-              },
-            ].map((card, index) => (
-              <motion.div
-                key={card.title}
-                initial={{ opacity: 0, x: 32 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, amount: 0.4 }}
-                transition={{ duration: 0.6, delay: index * 0.15, ease: 'easeOut' }}
-                className="group bg-white/90 backdrop-blur-sm py-4 md:py-6 px-5 md:px-10 rounded-2xl shadow-sm lg:shadow-xl lg:hover:shadow-2xl transition-all border border-slate-100 flex gap-4 md:gap-8 items-start"
-              >
-                <div>
-                  <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-1.5 md:mb-2 uppercase">{card.title}</h3>
-                  <p className="text-sm md:text-base text-slate-500 leading-relaxed">
-                    {card.copy}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
         </div>
       </div>
     </section>

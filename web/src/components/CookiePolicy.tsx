@@ -20,7 +20,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
 
       <div className="flex flex-col gap-3 sm:gap-4 mb-8 sm:mb-10 border-b border-slate-200 pb-5 sm:pb-8">
         <h1 className="text-slate-900 text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight tracking-[-0.033em]">Cookie Policy</h1>
-        <p className="text-slate-500 text-base font-medium">Last updated: October 24, 2023</p>
+        <p className="text-slate-500 text-base font-medium">Last updated: August 19, 2026</p>
       </div>
 
       <div className="space-y-8 sm:space-y-10">
@@ -29,19 +29,18 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed">
             Cookies are small text files that are placed on your computer or mobile device when you visit a website. 
             They are widely used to make websites work more efficiently, as well as to provide information to the owners of the site. 
-            At THESSIS, we use cookies to improve your experience, ensuring our platform is secure and easy to use.
+            At Thessis, we use cookies to improve your experience, ensuring our platform is secure and easy to use.
           </p>
         </section>
 
         <section>
-          <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-3 sm:mb-4">2. How THESSIS Uses Cookies</h2>
+          <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-3 sm:mb-4">2. How Thessis Uses Cookies</h2>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-4">
             We use both session cookies (which expire once you close your web browser) and persistent cookies 
             (which stay on your device for a set period of time or until you delete them). We use these technologies for the following purposes:
           </p>
           <ul className="list-disc pl-6 space-y-2 text-slate-700 text-base md:text-lg leading-relaxed marker:text-sage">
             <li>To recognize you when you sign in to use our services.</li>
-            <li>To keep track of your specified preferences (such as language or time zone).</li>
             <li>To prevent fraudulent activity and improve security.</li>
             <li>To analyze how our services are performing.</li>
           </ul>
@@ -86,22 +85,6 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
                     </td>
                     <td className="p-4 text-sm text-slate-600 align-top">2 years</td>
                   </tr>
-                  <tr className="hover:bg-slate-50 transition-colors">
-                    <td className="p-4 text-sm font-semibold text-slate-900 align-top">Functional</td>
-                    <td className="p-4 text-sm text-slate-600 font-mono align-top">pref_lang</td>
-                    <td className="p-4 text-sm text-slate-600 align-top">
-                      Stores the user's preferred language for the interface.
-                    </td>
-                    <td className="p-4 text-sm text-slate-600 align-top">1 year</td>
-                  </tr>
-                  <tr className="hover:bg-slate-50 transition-colors">
-                    <td className="p-4 text-sm font-semibold text-slate-900 align-top">Targeting</td>
-                    <td className="p-4 text-sm text-slate-600 font-mono align-top">ads_r_1</td>
-                    <td className="p-4 text-sm text-slate-600 align-top">
-                      Used to deliver advertisements more relevant to you and your interests.
-                    </td>
-                    <td className="p-4 text-sm text-slate-600 align-top">90 days</td>
-                  </tr>
                 </tbody>
               </table>
             </div>
@@ -110,9 +93,9 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
 
         <section>
           <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-3 sm:mb-4">4. Managing Your Preferences</h2>
-          <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-6">
-            You can change your cookie preferences at any time by changing your browser settings. 
-            Please note that if you disable cookies, some features of the THESSIS platform may not function correctly.
+          <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-4">
+            On your first visit, our cookie consent banner lets you choose "Accept All" or "Reject Non-Essential" — rejecting disables Performance cookies (including Google Analytics) for your session, leaving only Strictly Necessary cookies active. You can also change your cookie preferences at any time by changing your browser settings.
+            Please note that if you disable cookies, some features of the Thessis platform may not function correctly.
           </p>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-4">
             Find out how to manage cookies on popular browsers:
@@ -169,10 +152,10 @@ const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
           </p>
           <a 
             className="inline-flex items-center text-sage font-bold hover:underline" 
-            href="mailto:privacy@tanktide.com"
+            href="mailto:info@thessis.com"
           >
             <span className="material-symbols-outlined text-lg mr-2">mail</span>
-            privacy@tanktide.com
+            info@thessis.com
           </a>
         </div>
       </div>

@@ -544,7 +544,7 @@ Best regards,
             </div>
             <div className="flex items-center space-x-2">
               <Building className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold font-display text-slate-900">THESSIS</span>
+              <span className="text-xl font-bold font-display text-slate-900">Thessis</span>
             </div>
           </div>
         </div>

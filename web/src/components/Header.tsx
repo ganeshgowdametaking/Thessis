@@ -203,8 +203,8 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
               <Link to="/" className="block">
                 <img
                   src="/logo2.png?v=2"
-                  alt="THESSIS Logo"
-                  className="h-12 w-12 object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                  alt="Thessis Logo"
+                  className="h-8 w-8 object-contain cursor-pointer hover:opacity-80 transition-opacity"
                 />
               </Link>
             </div>
@@ -258,8 +258,8 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
         <Link to="/jobs" className="flex items-center justify-self-center min-w-0">
           <img
             src="/logo2.png?v=2"
-            alt="THESSIS Logo"
-            className="h-12 w-12 object-contain"
+            alt="Thessis Logo"
+            className="h-8 w-8 object-contain"
           />
         </Link>
 
@@ -280,8 +280,8 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
             <Link to="/jobs" className="block">
               <img
                 src="/logo2.png?v=2"
-                alt="THESSIS Logo"
-                className="h-[43px] w-[43px] object-contain rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
+                alt="Thessis Logo"
+                className="h-8 w-8 object-contain rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
               />
             </Link>
           </div>

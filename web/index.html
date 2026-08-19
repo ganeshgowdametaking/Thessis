@@ -7,6 +7,15 @@
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
+    // Default to denied until the user makes a cookie choice (see GDPRBanner.tsx,
+    // which calls gtag('consent', 'update', ...) once a decision is stored).
+    gtag('consent', 'default', {
+      'ad_storage': 'denied',
+      'analytics_storage': 'denied',
+      'ad_user_data': 'denied',
+      'ad_personalization': 'denied',
+      'wait_for_update': 500
+    });
     gtag('js', new Date());
 
     gtag('config', 'G-HFL38CLT2R');
@@ -15,7 +24,7 @@
   <link rel="icon" type="image/png" href="/favicon.png" sizes="64x64" />
   <link rel="apple-touch-icon" href="/favicon.png" sizes="180x180" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>THESSIS – Career Connections</title>
+  <title>Thessis – Career Connections</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"

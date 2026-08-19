@@ -32,7 +32,7 @@ const CompanyHeader: React.FC = () => {
               <div className="w-8 h-8 bg-ink rounded-lg flex items-center justify-center mr-3">
                 <span className="text-white font-bold text-sm">T</span>
               </div>
-              <span className="text-xl font-bold font-display text-slate-900">THESSIS</span>
+              <span className="text-xl font-bold font-display text-slate-900">Thessis</span>
               <span className="ml-2 text-sm text-slate-500 bg-slate-100 px-2 py-1 rounded">Company Portal</span>
             </Link>
           </div>

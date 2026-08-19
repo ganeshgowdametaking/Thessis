@@ -82,7 +82,7 @@ const CompanyConfirmationPage: React.FC = () => {
       <div className="flex items-center justify-between p-6">
         <div className="flex items-center space-x-2 text-white">
           <Building className="h-8 w-8" />
-          <span className="text-xl font-bold font-display">THESSIS</span>
+          <span className="text-xl font-bold font-display">Thessis</span>
         </div>
       </div>
 
@@ -98,7 +98,7 @@ const CompanyConfirmationPage: React.FC = () => {
 
           {/* Welcome Message */}
           <h1 className="text-3xl font-bold text-slate-900 mb-4">
-            Welcome to THESSIS!
+            Welcome to Thessis!
           </h1>
           
           <p className="text-lg text-slate-600 mb-2">
@@ -196,7 +196,7 @@ const CompanyConfirmationPage: React.FC = () => {
       <div className="border-t border-blue-600">
         <div className="max-w-4xl mx-auto px-4 py-8 text-center text-blue-100">
           <p className="text-sm">
-            © 2026 THESSIS. All rights reserved.
+            © 2026 Thessis. All rights reserved.
           </p>
         </div>
       </div>

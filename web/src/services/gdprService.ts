@@ -50,12 +50,11 @@ export const gdprService = {
   },
   
   // Save consent preferences to localStorage
-  saveConsent: (preferences: CookiePreferences): void => {
+  saveConsent: async (preferences: CookiePreferences): Promise<void> => {
     try {
       localStorage.setItem('gdpr_preferences', JSON.stringify(preferences));
       localStorage.setItem('gdpr_consent_timestamp', new Date().toISOString());
-      console.log('GDPR consent saved:', { preferences, timestamp: new Date().toISOString() });
-      const { data: { user } } = supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         gdprService.saveConsentToDatabase(user.id, preferences);
       }
