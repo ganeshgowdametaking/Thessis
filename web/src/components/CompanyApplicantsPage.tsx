@@ -163,7 +163,7 @@ const CompanyApplicantsPage: React.FC = () => {
           <select
             value={selectedJob}
             onChange={(e) => setSelectedJob(e.target.value)}
-            className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
           >
             <option value="all">All Jobs</option>
             {jobs.map((job) => (

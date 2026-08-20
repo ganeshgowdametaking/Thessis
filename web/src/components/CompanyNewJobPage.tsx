@@ -105,7 +105,7 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({ value, onChange }) 
           value={value}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
           placeholder="e.g., San Francisco, CA"
         />
         <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -378,7 +378,7 @@ const CompanyNewJobPage: React.FC = () => {
                   value={formData.title}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="e.g., Senior Software Engineer"
                 />
               </div>
@@ -390,7 +390,7 @@ const CompanyNewJobPage: React.FC = () => {
                   name="company"
                   value={formData.company}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="Your company name"
                 />
               </div>
@@ -409,7 +409,7 @@ const CompanyNewJobPage: React.FC = () => {
                   name="job_type"
                   value={formData.job_type}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                 >
                   <option value="full-time">Full-time</option>
                   <option value="part-time">Part-time</option>
@@ -425,7 +425,7 @@ const CompanyNewJobPage: React.FC = () => {
                   name="salary_min"
                   value={formData.salary_min}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="e.g., 80000"
                 />
               </div>
@@ -437,7 +437,7 @@ const CompanyNewJobPage: React.FC = () => {
                   name="salary_max"
                   value={formData.salary_max}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="e.g., 120000"
                 />
               </div>
@@ -456,7 +456,7 @@ const CompanyNewJobPage: React.FC = () => {
                   onChange={handleInputChange}
                   required
                   rows={6}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="Describe the role, responsibilities, and what makes this position exciting..."
                 />
               </div>
@@ -468,7 +468,7 @@ const CompanyNewJobPage: React.FC = () => {
                   value={formData.requirements}
                   onChange={handleInputChange}
                   rows={4}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="List the key requirements and qualifications..."
                 />
               </div>
@@ -480,7 +480,7 @@ const CompanyNewJobPage: React.FC = () => {
                   value={formData.benefits}
                   onChange={handleInputChange}
                   rows={4}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="List the benefits and perks of working at your company..."
                 />
               </div>

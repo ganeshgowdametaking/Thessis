@@ -229,7 +229,7 @@ const CompanyOnboardingPage: React.FC = () => {
           type="text"
           value={jobData.title}
           onChange={(e) => handleInputChange('title', e.target.value)}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
           placeholder="e.g., Senior Software Engineer"
         />
       </div>
@@ -242,7 +242,7 @@ const CompanyOnboardingPage: React.FC = () => {
           type="text"
           value={jobData.location}
           onChange={(e) => handleInputChange('location', e.target.value)}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
           placeholder="e.g., San Francisco, CA or Remote"
         />
       </div>
@@ -254,7 +254,7 @@ const CompanyOnboardingPage: React.FC = () => {
         <select
           value={jobData.employmentType}
           onChange={(e) => handleInputChange('employmentType', e.target.value)}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
         >
           <option value="full-time">Full-time</option>
           <option value="part-time">Part-time</option>
@@ -272,7 +272,7 @@ const CompanyOnboardingPage: React.FC = () => {
             type="number"
             value={jobData.salaryMin}
             onChange={(e) => handleInputChange('salaryMin', e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
             placeholder="50000"
           />
         </div>
@@ -284,7 +284,7 @@ const CompanyOnboardingPage: React.FC = () => {
             type="number"
             value={jobData.salaryMax}
             onChange={(e) => handleInputChange('salaryMax', e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
             placeholder="120000"
           />
         </div>
@@ -295,7 +295,7 @@ const CompanyOnboardingPage: React.FC = () => {
           <select
             value={jobData.currency}
             onChange={(e) => handleInputChange('currency', e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
           >
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
@@ -318,7 +318,7 @@ const CompanyOnboardingPage: React.FC = () => {
           value={jobData.description}
           onChange={(e) => handleInputChange('description', e.target.value)}
           rows={6}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
           placeholder="Describe the role, responsibilities, and requirements..."
         />
       </div>
@@ -332,7 +332,7 @@ const CompanyOnboardingPage: React.FC = () => {
             <input
               type="text"
               placeholder="Add a skill (e.g., React, Python)"
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   addSkill(e.currentTarget.value);
@@ -378,7 +378,7 @@ const CompanyOnboardingPage: React.FC = () => {
             <input
               type="text"
               placeholder="Add a screening question"
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   addScreeningQuestion(e.currentTarget.value);
@@ -448,7 +448,7 @@ const CompanyOnboardingPage: React.FC = () => {
                   <input
                     type="email"
                     placeholder="colleague@company.com"
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         addShareEmail(e.currentTarget.value);
@@ -489,7 +489,7 @@ const CompanyOnboardingPage: React.FC = () => {
               <h4 className="font-medium text-slate-900 mb-2">Email Template</h4>
               <textarea
                 rows={4}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                 defaultValue={`Hi there!
 
 I'm hiring for a ${jobData.title} position at our company. I thought you might know someone who would be a great fit.

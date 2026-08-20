@@ -201,7 +201,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
             )}
 
             {/* Input Area */}
-            <div className="relative flex items-end gap-2 bg-white rounded-lg p-1.5 shadow-sm border border-stone-border transition-all">
+            <div className="relative flex items-end gap-2 bg-white rounded-lg p-1.5 shadow-sm border border-stone-border focus-within:border-sage transition-all">
                 <button
                     onClick={() => fileInputRef.current?.click()}
                     className="p-1.5 text-slate-500 hover:text-sage transition-colors rounded-lg h-8 w-8 flex items-center justify-center shrink-0"

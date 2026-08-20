@@ -581,7 +581,7 @@ const CreateReferralPage: React.FC = () => {
                   <input
                     type="url"
                     placeholder="Paste job board link (LinkedIn, etc.)"
-                    className="w-full h-12 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#4353FF] focus:border-transparent outline-none transition-all"
+                    className="w-full h-12 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-sm focus:border-[#4353FF] focus:outline-none transition-all"
                     value={referralLink}
                     onChange={(e) => setReferralLink(e.target.value)}
                   />

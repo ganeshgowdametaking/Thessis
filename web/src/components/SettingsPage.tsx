@@ -505,7 +505,7 @@ const SettingsPage: React.FC = () => {
                                   <span className="material-symbols-outlined text-slate-500 text-[20px]">mail</span>
                                 </div>
                                 <input
-                                  className="block w-full rounded-lg border border-slate-500 bg-white pl-10 py-2.5 text-slate-900 placeholder:text-slate-500 focus:ring-sage focus:border-sage sm:text-sm shadow-sm transition-all"
+                                  className="block w-full rounded-lg border border-slate-500 bg-white pl-10 py-2.5 text-slate-900 placeholder:text-slate-500 focus:border-sage focus:outline-none sm:text-sm shadow-sm transition-all"
                                   placeholder="name@company.com"
                                   type="email"
                                   value={organizationEmail}
@@ -527,7 +527,7 @@ const SettingsPage: React.FC = () => {
                               <p className="text-sm text-slate-500">We've sent a 6-digit code to {organizationEmail}. Please enter it below.</p>
                               <div className="flex flex-wrap gap-3">
                                 <input
-                                  className="block w-full max-w-[200px] rounded-lg border border-slate-900 bg-white px-4 py-2.5 text-center text-xl font-bold tracking-widest text-slate-900 focus:ring-sage focus:border-sage shadow-sm transition-all"
+                                  className="block w-full max-w-[200px] rounded-lg border border-slate-900 bg-white px-4 py-2.5 text-center text-xl font-bold tracking-widest text-slate-900 focus:border-sage focus:outline-none shadow-sm transition-all"
                                   placeholder="000000"
                                   maxLength={6}
                                   value={verificationOtp}
@@ -579,7 +579,7 @@ const SettingsPage: React.FC = () => {
                     <div className="max-w-md space-y-5 pt-4">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Current Password</label>
-                        <input className="block w-full rounded-lg border border-stone-border bg-white py-2.5 text-slate-900 focus:ring-sage focus:border-sage sm:text-sm" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+                        <input className="block w-full rounded-lg border border-stone-border bg-white py-2.5 text-slate-900 focus:border-sage focus:outline-none sm:text-sm" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
                         <div className="flex justify-end mt-1">
                           <a className="text-xs font-medium text-sage hover:text-sage-dark" href="#">Forgot Password?</a>
                         </div>
@@ -587,11 +587,11 @@ const SettingsPage: React.FC = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
-                          <input className="block w-full rounded-lg border border-stone-border bg-white py-2.5 text-slate-900 focus:ring-sage focus:border-sage sm:text-sm" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                          <input className="block w-full rounded-lg border border-stone-border bg-white py-2.5 text-slate-900 focus:border-sage focus:outline-none sm:text-sm" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
-                          <input className="block w-full rounded-lg border border-stone-border bg-white py-2.5 text-slate-900 focus:ring-sage focus:border-sage sm:text-sm" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                          <input className="block w-full rounded-lg border border-stone-border bg-white py-2.5 text-slate-900 focus:border-sage focus:outline-none sm:text-sm" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
                         </div>
                       </div>
                       {message && (
@@ -673,7 +673,7 @@ const SettingsPage: React.FC = () => {
                     <div className="space-y-4 pt-4">
                       <p className="text-sm text-slate-600 italic">This action cannot be undone. All your data, referrals, and connections will be permanently deleted.</p>
                       <textarea
-                        className="block w-full rounded-lg border-stone-border bg-white py-2 px-3 text-slate-900 placeholder:text-slate-400 focus:ring-red-500 focus:border-red-500 sm:text-sm min-h-[100px]"
+                        className="block w-full rounded-lg border-stone-border bg-white py-2 px-3 text-slate-900 placeholder:text-slate-400 focus:border-red-500 focus:outline-none sm:text-sm min-h-[100px]"
                         placeholder="Please tell us why you are leaving..."
                         value={deleteReason}
                         onChange={(e) => setDeleteReason(e.target.value)}
@@ -822,7 +822,7 @@ const SettingsPage: React.FC = () => {
                       <select
                         value={feedbackSubject}
                         onChange={(e) => setFeedbackSubject(e.target.value)}
-                        className="block w-full rounded-lg border border-stone-border bg-white py-2.5 px-3 text-slate-900 focus:ring-sage focus:border-sage sm:text-sm shadow-sm transition-all cursor-pointer"
+                        className="block w-full rounded-lg border border-stone-border bg-white py-2.5 px-3 text-slate-900 focus:border-sage focus:outline-none sm:text-sm shadow-sm transition-all cursor-pointer"
                       >
                         <option>General Feedback</option>
                         <option>Bug Report</option>
@@ -835,7 +835,7 @@ const SettingsPage: React.FC = () => {
                     <div>
                       <label className="block text-sm font-bold text-slate-800 mb-2">Message</label>
                       <textarea
-                        className="block w-full rounded-lg border border-slate-300 bg-white py-3 px-4 text-slate-900 placeholder:text-slate-400 focus:ring-sage focus:border-sage sm:text-sm min-h-[200px] shadow-sm transition-all"
+                        className="block w-full rounded-lg border border-slate-300 bg-white py-3 px-4 text-slate-900 placeholder:text-slate-400 focus:border-sage focus:outline-none sm:text-sm min-h-[200px] shadow-sm transition-all"
                         placeholder="How can we make Thessis better for you?"
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
@@ -880,7 +880,7 @@ const SettingsPage: React.FC = () => {
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="admin@company.com"
-                  className="block w-full rounded-lg border border-stone-border bg-white py-2.5 px-3 text-slate-900 placeholder:text-slate-500 focus:ring-sage focus:border-sage sm:text-sm"
+                  className="block w-full rounded-lg border border-stone-border bg-white py-2.5 px-3 text-slate-900 placeholder:text-slate-500 focus:border-sage focus:outline-none sm:text-sm"
                 />
               </div>
               {inviteMessage && (

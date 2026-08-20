@@ -12,7 +12,7 @@ import LoadingSpinner from './LoadingSpinner';
 
 import { MessageInput } from './MessageInput';
 import { ConversationItem } from './ConversationItem';
-import { Avatar } from './Avatar';
+import { MessageAvatar } from './MessageAvatar';
 import { MessageGroup } from './MessageGroup';
 import { buildMessageGroups } from '../utils/messageGrouping';
 
@@ -803,7 +803,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                 <Search className="text-[20px]" />
               </div>
               <input
-                className="block w-full rounded-lg border-none bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-sage shadow-sm"
+                className="block w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder-slate-500 focus:border-sage focus:outline-none shadow-sm"
                 placeholder="Search messages..."
                 type="text"
                 value={searchQuery}
@@ -822,7 +822,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                       onClick={() => handleStartConversation(suggestion.id)}
                       className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-stone-off transition-colors text-left"
                     >
-                      <Avatar profile={suggestion} size="sm" className="rounded-full" />
+                      <MessageAvatar profile={suggestion} size="sm" className="rounded-full" />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-slate-900 text-sm truncate">{suggestion.full_name}</div>
                         <div className="text-xs text-slate-500 truncate">{suggestion.title || 'Professional'}</div>
@@ -890,7 +890,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                       className="cursor-pointer"
                       onClick={() => activeOtherParticipant && handleProfileClick(activeOtherParticipant.id)}
                     >
-                      <Avatar profile={activeOtherParticipant} size="md" />
+                      <MessageAvatar profile={activeOtherParticipant} size="md" />
                     </div>
                     <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-white"></span>
                   </div>
@@ -980,7 +980,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                   {/* Typing Indicator */}
                   {otherUserTyping && (
                     <div className="flex w-full gap-3">
-                      <Avatar profile={activeOtherParticipant} size="sm" />
+                      <MessageAvatar profile={activeOtherParticipant} size="sm" />
                       <div className="rounded-2xl bg-stone-off px-4 py-3.5 flex items-center gap-1.5 w-fit">
                         <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                         <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />

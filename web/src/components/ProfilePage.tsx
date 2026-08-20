@@ -763,7 +763,7 @@ const ProfilePage: React.FC = () => {
                       type="text"
                       value={editForm.full_name}
                       onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                       disabled={isSaving}
                     />
                   </div>
@@ -773,7 +773,7 @@ const ProfilePage: React.FC = () => {
                       type="text"
                       value={editForm.title}
                       onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                       disabled={isSaving}
                     />
                   </div>
@@ -783,7 +783,7 @@ const ProfilePage: React.FC = () => {
                       type="text"
                       value={editForm.company}
                       onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                       disabled={isSaving}
                     />
                   </div>
@@ -806,7 +806,7 @@ const ProfilePage: React.FC = () => {
                         setTimeout(() => setShowLocationSuggestions(false), 200);
                       }}
                       onFocus={() => setShowLocationSuggestions(true)}
-                      className={`w-full px-4 py-2 border ${locationError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      className={`w-full px-4 py-2 border ${locationError ? 'border-red-500' : 'border-slate-300'} rounded-lg focus:outline-none focus:border-blue-500`}
                       placeholder="Type a city, state, or country..."
                       disabled={isSaving}
                       autoComplete="off"
@@ -835,7 +835,7 @@ const ProfilePage: React.FC = () => {
                     value={editForm.bio}
                     onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
                     rows={4}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 resize-none"
                     disabled={isSaving}
                   />
                 </div>
@@ -883,7 +883,7 @@ const ProfilePage: React.FC = () => {
                             type="text"
                             value={exp.title}
                             onChange={(e) => handleExperienceTitleInput(exp.id, e.target.value)}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
                             autoComplete="off"
                           />
@@ -907,7 +907,7 @@ const ProfilePage: React.FC = () => {
                             type="text"
                             value={exp.company}
                             onChange={(e) => updateItem('experiences', exp.id, { ...exp, company: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
                           />
                         </div>
@@ -917,7 +917,7 @@ const ProfilePage: React.FC = () => {
                             type="text"
                             value={exp.location}
                             onChange={(e) => handleExperienceLocationInput(exp.id, e.target.value)}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             placeholder="Type a city, state, or country..."
                             disabled={isSaving}
                             autoComplete="off"
@@ -942,7 +942,7 @@ const ProfilePage: React.FC = () => {
                             type="date"
                             value={exp.startDate}
                             onChange={(e) => updateItem('experiences', exp.id, { ...exp, startDate: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
                           />
                         </div>
@@ -952,7 +952,7 @@ const ProfilePage: React.FC = () => {
                             type="date"
                             value={exp.endDate}
                             onChange={(e) => updateItem('experiences', exp.id, { ...exp, endDate: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={exp.current || isSaving}
                           />
                         </div>
@@ -972,7 +972,7 @@ const ProfilePage: React.FC = () => {
                             value={exp.description}
                             onChange={(e) => updateItem('experiences', exp.id, { ...exp, description: e.target.value })}
                             rows={3}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 resize-none"
                             disabled={isSaving}
                           />
                         </div>
@@ -1021,7 +1021,7 @@ const ProfilePage: React.FC = () => {
                             type="text"
                             value={edu.degree}
                             onChange={(e) => updateItem('education', edu.id, { ...edu, degree: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
                           />
                         </div>
@@ -1031,7 +1031,7 @@ const ProfilePage: React.FC = () => {
                             type="text"
                             value={edu.school}
                             onChange={(e) => updateItem('education', edu.id, { ...edu, school: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
                           />
                         </div>
@@ -1041,7 +1041,7 @@ const ProfilePage: React.FC = () => {
                             type="date"
                             value={edu.startDate}
                             onChange={(e) => updateItem('education', edu.id, { ...edu, startDate: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
                           />
                         </div>
@@ -1051,7 +1051,7 @@ const ProfilePage: React.FC = () => {
                             type="date"
                             value={edu.endDate}
                             onChange={(e) => updateItem('education', edu.id, { ...edu, endDate: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
                           />
                         </div>
@@ -1061,7 +1061,7 @@ const ProfilePage: React.FC = () => {
                             type="text"
                             value={edu.gpa}
                             onChange={(e) => updateItem('education', edu.id, { ...edu, gpa: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
                           />
                         </div>
@@ -1107,7 +1107,7 @@ const ProfilePage: React.FC = () => {
                             type="text"
                             value={skill.name}
                             onChange={(e) => updateItem('skills', skill.id, { ...skill, name: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
                           />
                         </div>
@@ -1155,7 +1155,7 @@ const ProfilePage: React.FC = () => {
                             type="text"
                             value={achievement.title}
                             onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, title: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
                           />
                         </div>
@@ -1165,7 +1165,7 @@ const ProfilePage: React.FC = () => {
                             type="text"
                             value={achievement.organization}
                             onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, organization: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
                           />
                         </div>
@@ -1175,7 +1175,7 @@ const ProfilePage: React.FC = () => {
                             type="date"
                             value={achievement.date}
                             onChange={(e) => updateItem('achievements', achievement.id, { ...achievement, date: e.target.value })}
-                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
                           />
                         </div>

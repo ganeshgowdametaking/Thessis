@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Avatar } from './Avatar';
+import { MessageAvatar } from './MessageAvatar';
 
 interface ConversationItemProps {
     conversation: any;
@@ -40,7 +40,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = memo(({
                 }`}
         >
             <div className="relative">
-                <Avatar profile={profile} size="md" />
+                <MessageAvatar profile={profile} size="md" />
                 {/* Online Status Indicator (Placeholder) */}
                 {/* <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div> */}
             </div>

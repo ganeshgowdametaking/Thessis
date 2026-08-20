@@ -456,8 +456,10 @@ const JobsPage: React.FC = () => {
 
     const diffInMonths = Math.floor(diffInDays / 30);
     return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
-  }; const
-    filteredJobs = jobs.filter(job => {
+  };
+
+  const filteredJobs = jobs
+    .filter(job => {
       const matchesSearch =
         job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         job.company.toLowerCase().includes(searchQuery.toLowerCase());
@@ -466,6 +468,12 @@ const JobsPage: React.FC = () => {
         (!filters.jobType || job.job_type === filters.jobType) &&
         (!filters.remote || job.remote_available);
       return matchesSearch && matchesFilters;
+    })
+    .sort((a, b) => {
+      const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (filters.sortBy === 'oldest') return diff;
+      if (filters.sortBy === 'newest') return -diff;
+      return 0;
     });
 
   const handleCopy = () => {
@@ -499,59 +507,55 @@ const JobsPage: React.FC = () => {
       <div className="max-w-4xl mx-auto p-8 lg:p-12 pb-24">
         {/* Job Header */}
         <div className="flex flex-col gap-4 pb-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <h1 className="text-2xl lg:text-[28px] font-bold text-slate-900 tracking-tight">
-              {selectedJob.title}
-            </h1>
-            <div className="flex items-center gap-3 shrink-0">
-              {appliedJobs.includes(selectedJob.id) ? (
-                <span className="flex items-center gap-1.5 text-emerald-700 font-semibold text-sm">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Applied
-                </span>
-              ) : (
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <h1 className="text-2xl lg:text-[28px] font-bold text-slate-900 tracking-tight">
+                {selectedJob.title}
+              </h1>
+              <div className="flex items-center gap-3 shrink-0">
+                {appliedJobs.includes(selectedJob.id) ? (
+                  <span className="flex items-center gap-1.5 text-emerald-700 font-semibold text-sm">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Applied
+                  </span>
+                ) : (
+                  <button
+                    onClick={handleApplyToJob}
+                    disabled={!user}
+                    className="px-6 h-11 rounded-lg bg-primary hover:bg-primary-hover text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center disabled:bg-slate-400 disabled:cursor-not-allowed"
+                  >
+                    Apply Now
+                  </button>
+                )}
                 <button
-                  onClick={handleApplyToJob}
-                  disabled={!user}
-                  className="px-6 h-11 rounded-lg bg-primary hover:bg-primary-hover text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center disabled:bg-slate-400 disabled:cursor-not-allowed"
+                  onClick={() => setShowShareModal(true)}
+                  aria-label="Share job"
+                  className="group flex items-center justify-center h-11 w-11 rounded-lg border border-hairline transition-colors hover:bg-parchment-sunken shrink-0"
                 >
-                  Apply Now
+                  <img
+                    src={shareIcon}
+                    alt="Share"
+                    className="h-5 w-5 object-contain transition-all duration-200 group-hover:scale-110"
+                  />
                 </button>
-              )}
-              <button
-                onClick={() => setShowShareModal(true)}
-                aria-label="Share job"
-                className="group flex items-center justify-center h-11 w-11 rounded-lg border border-hairline transition-colors hover:bg-parchment-sunken shrink-0"
-              >
-                <img
-                  src={shareIcon}
-                  alt="Share"
-                  className="h-5 w-5 object-contain transition-all duration-200 group-hover:scale-110"
-                />
-              </button>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <div className="rounded-full size-11 shadow-sm border border-slate-100 overflow-hidden shrink-0">
-              <CompanyAvatar company={selectedJob.company} logoUrl={((selectedJob as any).created_by_profile?.account_type === 'company' ? (selectedJob as any).created_by_profile?.avatar_url : undefined) || getCompanyLogoUrl(selectedJob.company)} size="sm" />
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-sm font-semibold text-primary">{selectedJob.company}</span>
-              {(selectedJob as any).created_by_profile?.work_email_verified && (
-                <BadgeCheck
-                  className="h-4 w-4 text-gold-600 shrink-0"
-                  aria-label="Verified employee referral"
-                />
-              )}
-              <span className="flex items-center gap-1 text-slate-500 font-medium">
-                <MapPin className="text-[14px]" />
-                {(() => {
-                  const parts = selectedJob.location.split(',').map(p => p.trim()).filter(Boolean);
-                  return parts.length > 2 ? `${parts[0]}, ${parts[parts.length - 1]}` : selectedJob.location;
-                })()}
-              </span>
-              <span className="text-slate-500 font-medium">Posted {formatTimeAgo(selectedJob.created_at)}</span>
+            <div className="flex items-center gap-3">
+              <div className="rounded-full size-11 shadow-sm border border-slate-100 overflow-hidden shrink-0">
+                <CompanyAvatar company={selectedJob.company} logoUrl={((selectedJob as any).created_by_profile?.account_type === 'company' ? (selectedJob as any).created_by_profile?.avatar_url : undefined) || getCompanyLogoUrl(selectedJob.company)} size="sm" />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-sm font-semibold text-primary">{selectedJob.company}</span>
+                <span className="flex items-center gap-1 text-slate-500 font-medium">
+                  <MapPin className="text-[14px]" />
+                  {(() => {
+                    const parts = selectedJob.location.split(',').map(p => p.trim()).filter(Boolean);
+                    return parts.length > 2 ? `${parts[0]}, ${parts[parts.length - 1]}` : selectedJob.location;
+                  })()}
+                </span>
+                <span className="text-slate-500 font-medium">Posted {formatTimeAgo(selectedJob.created_at)}</span>
+              </div>
             </div>
           </div>
 
@@ -566,9 +570,6 @@ const JobsPage: React.FC = () => {
             </span>
             <span className="px-2.5 py-1 rounded-full bg-parchment-sunken border border-hairline text-xs font-medium text-slate-600">
               {selectedJob.experience_level}
-            </span>
-            <span className="px-2.5 py-1 rounded-full bg-parchment-sunken border border-hairline text-xs font-medium text-slate-600">
-              {selectedJob.applications_count || 0} Applicants
             </span>
           </div>
         </div>
@@ -698,11 +699,11 @@ const JobsPage: React.FC = () => {
         <aside className="w-full md:max-w-[600px] flex flex-col border-r border-hairline bg-parchment relative z-10">
           {/* Sidebar Header */}
           <div className="flex flex-col gap-4 p-5 bg-parchment">
-            <div className="flex gap-3">
-              <div className="flex flex-1 items-center rounded-lg bg-white border border-hairline focus-within:ring-2 focus-within:ring-primary/50 transition-all shadow-sm">
+            <div className="flex gap-2">
+              <div className="flex flex-1 min-w-0 items-center rounded-lg bg-white border border-hairline focus-within:border-primary transition-all shadow-sm">
                 <Search className="text-slate-500 pl-3" />
                 <input
-                  className="w-full bg-transparent border-none text-base md:text-sm px-3 py-2.5 placeholder:text-slate-500 text-slate-900 focus:ring-0"
+                  className="w-full min-w-0 bg-transparent border-none text-base md:text-sm px-3 py-2.5 placeholder:text-slate-500 text-slate-900 focus:ring-0"
                   placeholder="Search role, company..." aria-label="Search role or company"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -716,11 +717,9 @@ const JobsPage: React.FC = () => {
                 <SlidersHorizontal className="text-[18px]" />
                 Filters
               </button>
-            </div>
-            <div className="flex items-center justify-end">
               <button
                 onClick={handleCreateReferralClick}
-                className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-sm font-bold px-4 h-10 rounded-lg transition-colors"
+                className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-sm font-bold px-4 h-[42px] rounded-lg transition-colors shrink-0"
               >
                 <Plus className="text-[20px]" />
                 <span className="hidden sm:inline">Referral</span>
@@ -750,7 +749,7 @@ const JobsPage: React.FC = () => {
                     </div>
                     <div className="flex flex-1 flex-col justify-center min-w-0">
                       <div className="flex justify-between items-start">
-                        <h3 className={`text-base font-bold pr-2 line-clamp-2 min-h-[3rem] ${isSelected ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'
+                        <h3 className={`text-base font-bold pr-2 line-clamp-2 ${isSelected ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'
                           }`}>
                           {job.title}
                         </h3>
@@ -776,12 +775,6 @@ const JobsPage: React.FC = () => {
                           {' • '}
                           {job.location.includes(',') ? job.location.split(',')[0] : job.location}
                         </p>
-                        {(job as any).created_by_profile?.work_email_verified && (
-                          <BadgeCheck
-                            className="h-3.5 w-3.5 text-gold-600 shrink-0"
-                            aria-label="Verified employee referral"
-                          />
-                        )}
                       </div>
                       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                         <span className="text-[10px] font-bold text-slate-600 bg-parchment-sunken px-2 py-0.5 rounded-full">
@@ -798,8 +791,6 @@ const JobsPage: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-400">
                         <span>{formatTimeAgo(job.created_at)}</span>
-                        <span>•</span>
-                        <span>{job.applications_count || 0} Applicants</span>
                       </div>
                     </div>
                   </div>
@@ -899,6 +890,7 @@ const JobsPage: React.FC = () => {
                 <option value="Full-time">Full-time</option>
                 <option value="Part-time">Part-time</option>
                 <option value="Contract">Contract</option>
+                <option value="Freelance">Freelance</option>
               </Select>
             </div>
 
@@ -1016,7 +1008,7 @@ const JobsPage: React.FC = () => {
                           type="email"
                           value={applicationForm.email}
                           onChange={(e) => handleApplicationInputChange('email', e.target.value)}
-                          className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                          className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary focus:outline-none transition-all"
                           placeholder="your@email.com"
                         />
                       </div>

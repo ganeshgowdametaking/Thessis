@@ -208,7 +208,7 @@ const SenioritySelector: React.FC<SenioritySelectorProps> = ({ onSave, isLoading
                     onChange={handleInputChange}
                     onFocus={() => jobTitle.length > 0 && suggestions.length > 0 && setShowSuggestions(true)}
                     placeholder={getPlaceholder(selectedSeniority)}
-                    className="block w-full rounded-xl border border-slate-300 bg-slate-50/50 px-4 py-3.5 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-sage focus:border-sage transition-all text-base shadow-sm"
+                    className="block w-full rounded-xl border border-slate-300 bg-slate-50/50 px-4 py-3.5 text-slate-900 placeholder:text-slate-400 focus:border-sage focus:outline-none transition-all text-base shadow-sm"
                 />
 
                 {showSuggestions && jobTitle.length > 0 && (

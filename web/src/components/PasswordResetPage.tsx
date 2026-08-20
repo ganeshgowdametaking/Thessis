@@ -213,7 +213,7 @@ const PasswordResetPage: React.FC = () => {
             {/* New Password Field */}
             <label className="flex flex-col w-full group">
               <p className="text-label-slate text-sm font-medium leading-normal pb-2">New Password</p>
-              <div className="flex w-full items-stretch rounded-lg transition-colors focus-within:ring-2 focus-within:ring-btn-sage/20 shadow-sm">
+              <div className="flex w-full items-stretch rounded-lg transition-colors shadow-sm">
                 <input
                   className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-lg text-title-slate focus:outline-0 focus:ring-0 border border-input-border bg-white focus:border-btn-sage h-12 placeholder:text-slate-400 p-4 text-base font-normal leading-normal"
                   placeholder="Enter at least 8 characters..."
@@ -257,7 +257,7 @@ const PasswordResetPage: React.FC = () => {
             {/* Confirm Password Field */}
             <label className="flex flex-col w-full group">
               <p className="text-label-slate text-sm font-medium leading-normal pb-2">Confirm New Password</p>
-              <div className="flex w-full items-stretch rounded-lg transition-colors focus-within:ring-2 focus-within:ring-btn-sage/20 shadow-sm">
+              <div className="flex w-full items-stretch rounded-lg transition-colors shadow-sm">
                 <input
                   className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-lg text-title-slate focus:outline-0 focus:ring-0 border border-input-border bg-white focus:border-btn-sage h-12 placeholder:text-slate-400 p-4 text-base font-normal leading-normal"
                   placeholder="Re-enter new password"

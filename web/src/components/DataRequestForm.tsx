@@ -205,7 +205,7 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
                     Request Details *
                   </label>
                   <textarea
-                    className="w-full min-h-[160px] p-4 rounded-lg border border-stone-border bg-white focus:ring-2 focus:ring-sage focus:border-transparent outline-none resize-none text-slate-700 placeholder-slate-400 transition-shadow"
+                    className="w-full min-h-[160px] p-4 rounded-lg border border-stone-border bg-white focus:border-sage focus:outline-none resize-none text-slate-700 placeholder-slate-400 transition-shadow"
                     id="details"
                     placeholder={getPlaceholderText()}
                     value={details}

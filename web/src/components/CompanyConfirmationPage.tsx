@@ -134,7 +134,7 @@ const CompanyConfirmationPage: React.FC = () => {
                 type="text"
                 value={otp}
                 onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl font-mono tracking-widest"
+                className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-500 text-center text-2xl font-mono tracking-widest"
                 placeholder="000000"
                 maxLength={6}
                 required

@@ -167,7 +167,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
                 type="text"
                 value={formData.otp}
                 onChange={(e) => handleInputChange('otp', e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full rounded-lg border border-slate-300 py-3 text-center text-3xl font-mono tracking-[0.5em] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 py-3 text-center text-3xl font-mono tracking-[0.5em] focus:border-primary focus:outline-none"
                 placeholder="000000"
                 maxLength={6}
               />

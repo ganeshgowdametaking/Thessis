@@ -25,7 +25,7 @@ const renderContentWithEmoji = (text: string): React.ReactNode =>
   );
 
 export const MessageGroup: React.FC<MessageGroupProps> = ({ group, otherParticipant }) => {
-  const senderName = group.isOwn ? 'You' : (otherParticipant?.full_name || 'User');
+  const senderName = otherParticipant?.full_name || 'User';
 
   return (
     <>
@@ -48,7 +48,9 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({ group, otherParticip
       <div className="flex w-full">
         <div className={`flex flex-col gap-1 max-w-[82%] md:max-w-[70%] ${group.isOwn ? 'items-end ml-auto' : 'items-start'}`}>
           <div className={`flex items-baseline gap-2 ${group.isOwn ? 'flex-row-reverse' : ''}`}>
-            <span className="text-sm font-semibold text-slate-900">{senderName}</span>
+            {!group.isOwn && (
+              <span className="text-sm font-semibold text-slate-900">{senderName}</span>
+            )}
             <span className="text-xs text-slate-500">{formatTime(group.messages[0].created_at)}</span>
           </div>
 

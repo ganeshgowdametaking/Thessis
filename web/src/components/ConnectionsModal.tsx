@@ -185,7 +185,7 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search connections by name, title, or company..."
-              className="w-full h-11 pl-10 pr-4 border border-slate-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full h-11 pl-10 pr-4 border border-slate-200 rounded-xl text-base focus:outline-none focus:border-blue-500"
               inputMode="search"
             />
           </div>

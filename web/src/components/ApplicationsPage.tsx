@@ -759,7 +759,7 @@ export default function ApplicationsPage({
               <div className="relative w-full lg:w-64">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
                 <input
-                  className="w-full h-10 pl-10 pr-4 rounded-lg border-none bg-white text-sm text-slate-700 placeholder:text-slate-400 focus:ring-1 focus:ring-[#4353FF] shadow-sm"
+                  className="w-full h-10 pl-10 pr-4 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#4353FF] focus:outline-none shadow-sm"
                   placeholder="Search applicants..."
                   type="text"
                   value={searchQuery}
