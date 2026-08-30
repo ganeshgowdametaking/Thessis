@@ -8,7 +8,6 @@ import { useAuthContext } from '../contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 import OfflineMessage from './OfflineMessage';
 import { isOnline, getCachedData, setCachedData, getOfflineMessage } from '../utils/offlineUtils';
-import BackArrowIcon from './icons/BackArrowIcon';
 import { ProfileTabs } from './ProfileTabs';
 import { ProfileExperienceList } from './ProfileExperienceList';
 import { ProfileEducationList } from './ProfileEducationList';
@@ -451,15 +450,6 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
       <main className="flex-1 px-4 py-8 md:px-6 md:py-10 flex justify-center w-full">
         <div className="w-full max-w-6xl">
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative">
-            {/* Back Button */}
-            <button
-              className="hidden md:block absolute top-4 left-4 z-10 p-2 bg-white bg-opacity-80 hover:bg-stone-off backdrop-blur-sm rounded-full text-slate-500 hover:text-sage transition-all border border-stone-border"
-              onClick={onBack}
-              aria-label="Go back"
-            >
-              <BackArrowIcon className="h-5 w-5 block" />
-            </button>
-
             {/* Header Section */}
             <div className="px-6 md:px-10 pt-6 md:pt-8 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-border">
               <div className="flex items-center gap-4 min-w-0">

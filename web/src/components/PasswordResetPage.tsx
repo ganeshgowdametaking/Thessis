@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, CheckCircle, Loader } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import BackArrowIcon from './icons/BackArrowIcon'
 
 const PasswordResetPage: React.FC = () => {
   const navigate = useNavigate()
@@ -291,14 +290,6 @@ const PasswordResetPage: React.FC = () => {
                 {loading ? 'Updating Password...' : 'Update Password'}
               </button>
 
-              <button
-                type="button"
-                onClick={() => navigate('/jobs')}
-                className="text-footer-slate hover:text-footer-hover text-sm font-medium leading-normal text-center transition-colors flex items-center justify-center gap-2 group"
-              >
-                <BackArrowIcon className="h-[18px] w-[18px] transition-transform group-hover:-translate-x-1" />
-                Back to Dashboard
-              </button>
             </div>
           </form>
         </div>

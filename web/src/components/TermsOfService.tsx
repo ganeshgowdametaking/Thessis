@@ -1,23 +1,12 @@
 import React from 'react';
-import BackArrowIcon from './icons/BackArrowIcon';
 
 interface TermsOfServiceProps {
   onBack: () => void;
 }
 
-const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
+const TermsOfService: React.FC<TermsOfServiceProps> = () => {
   return (
     <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-slate-100 p-4 sm:p-6 md:p-12 lg:p-16">
-      <div className="mb-5 sm:mb-8">
-        <button
-          onClick={onBack}
-          className="group flex items-center gap-2 rounded-lg py-2 pr-4 text-sm font-bold text-slate-600 transition-colors hover:text-slate-900"
-        >
-          <BackArrowIcon className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
-          <span>Back to Settings</span>
-        </button>
-      </div>
-
       <div className="mb-8 sm:mb-12 border-b border-slate-200 pb-5 sm:pb-8">
         <h1 className="mb-3 text-3xl sm:text-4xl font-black tracking-tight text-slate-900 lg:text-5xl">Terms of Service</h1>
         <p className="text-base font-medium text-slate-500">Last Updated: August 19, 2026</p>

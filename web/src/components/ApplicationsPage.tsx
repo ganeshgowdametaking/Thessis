@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from './LoadingSpinner';
-import BackArrowIcon from './icons/BackArrowIcon';
 import { applicationService } from '../services/applicationService';
 import { useMediaQuery } from 'react-responsive';
 
@@ -661,24 +660,13 @@ export default function ApplicationsPage({
       {/* Page Header */}
       <header className="bg-parchment pt-5 md:pt-8 pb-3 md:pb-4 px-4 md:px-8 shrink-0 z-10">
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-6">
-          <div
-            className="hidden md:flex items-center gap-2 text-slate-500 hover:text-ink transition-colors cursor-pointer w-fit"
-            onClick={onBack}
-          >
-            <BackArrowIcon className="h-5 w-5" />
-            <span className="text-sm font-medium">Back to Referrals</span>
-          </div>
-
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Applications</h1>
-                <span className="bg-white border border-slate-200 text-slate-600 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                  Active
-                </span>
+                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{referralTitle}</h1>
               </div>
               <p className="text-slate-500 font-medium">
-                {referralTitle} • <span className="text-ink font-semibold">{applications.length} Total Applicants</span>
+                <span className="text-ink font-semibold">{applications.length} Applicants</span>
               </p>
             </div>
 
@@ -690,22 +678,6 @@ export default function ApplicationsPage({
           {/* Tabs and Filters */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mt-2 border-b border-slate-200 pb-1">
             <div className="flex gap-6 overflow-x-auto no-scrollbar">
-              <button
-                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'top_ranked'
-                  ? 'border-[#4353FF] text-ink'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                  } transition-all`}
-                onClick={() => setActiveTab('top_ranked')}
-              >
-                <span className="font-bold text-sm whitespace-nowrap">Top applicants</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'top_ranked'
-                  ? 'bg-ink text-white'
-                  : 'bg-parchment-sunken text-slate-600'
-                  }`}>
-                  {statusCounts.top_ranked}
-                </span>
-              </button>
-
               <button
                 className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'all'
                   ? 'border-[#4353FF] text-ink'
@@ -756,17 +728,6 @@ export default function ApplicationsPage({
             </div>
 
             <div className="flex items-center gap-3 pb-2 w-full lg:w-auto">
-              <div className="relative w-full lg:w-64">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
-                <input
-                  className="w-full h-10 pl-10 pr-4 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#4353FF] focus:outline-none shadow-sm"
-                  placeholder="Search applicants..."
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <div className="h-6 w-px bg-parchment-sunken mx-1"></div>
               <button
                 className="h-10 px-4 rounded-lg bg-white border border-transparent hover:border-slate-200 text-slate-600 flex items-center gap-2 text-sm font-semibold transition-all whitespace-nowrap"
                 onClick={() => setSortOrder((prev) => (prev === 'earliest' ? 'latest' : 'earliest'))}
@@ -799,9 +760,6 @@ export default function ApplicationsPage({
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-2 md:mb-3">
               <div>
                 <h2 className="text-lg font-bold font-display text-slate-900">AI Resume Ranking</h2>
-                <p className="text-sm text-slate-500">
-                  Automatically ranks applicants when new applications are detected and updates shortlist insights.
-                </p>
                 {aiLastUpdatedAt && (
                   <p className="text-xs text-slate-400 mt-1">
                     Last updated: {new Date(aiLastUpdatedAt).toLocaleString()}
@@ -898,7 +856,7 @@ export default function ApplicationsPage({
               </p>
             </div>
           ) : (
-            <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 md:gap-5">
+            <div className="w-full md:w-[90%] md:mx-auto space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 md:gap-5">
               {sortedApplications.map((application) => (
                 <div
                   key={application.id}
@@ -927,9 +885,6 @@ export default function ApplicationsPage({
                         <h3 className="font-bold text-slate-900 text-base leading-tight">
                           {application.user_profile?.full_name || 'Unknown User'}
                         </h3>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {application.user_profile?.current_position || 'No position listed'}
-                        </p>
                       </div>
                     </button>
                     <button
@@ -944,20 +899,12 @@ export default function ApplicationsPage({
                   {/* Details */}
                   <div className="flex flex-col gap-2 mb-4">
                     <div className="flex items-center gap-2 text-slate-500 text-xs">
-                      <span className="material-symbols-outlined text-[16px]">apartment</span>
-                      <span>{application.user_profile?.current_company || 'No company'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-500 text-xs">
                       <span className="material-symbols-outlined text-[16px]">location_on</span>
                       <span>{application.user_profile?.location || 'Location not specified'}</span>
                     </div>
                     <div className="flex items-center gap-2 text-slate-500 text-xs">
                       <span className="material-symbols-outlined text-[16px]">calendar_today</span>
                       <span>{formatDate(application.created_at || (application as any).applied_at || new Date().toISOString())}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-500 text-xs mt-1 pt-2 border-t border-slate-100">
-                      <span className="material-symbols-outlined text-[16px]">mail</span>
-                      <span className="truncate">{application.user_profile?.email || 'No email'}</span>
                     </div>
                   </div>
 
@@ -991,20 +938,13 @@ export default function ApplicationsPage({
                       <span className="material-symbols-outlined text-[18px]">check_circle</span>
                       {application.status === 'shortlisted' ? 'Refer' : application.status === 'referred' ? 'Referred' : 'Shortlist'}
                     </button>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <button
                         className="bg-white border border-slate-200 hover:bg-parchment-sunken text-slate-700 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors"
                         onClick={() => setSelectedApplication(application)}
                       >
                         <span className="material-symbols-outlined text-[18px]">person</span>
                         View Details
-                      </button>
-                      <button
-                        className="bg-white border border-slate-200 hover:bg-parchment-sunken text-slate-700 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors"
-                        onClick={() => handleViewResume(application)}
-                      >
-                        <span className="material-symbols-outlined text-[18px]">description</span>
-                        Resume
                       </button>
                       <button
                         className="bg-white border border-slate-200 hover:bg-parchment-sunken text-slate-700 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors"
@@ -1045,9 +985,13 @@ export default function ApplicationsPage({
                   <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-slate-900`}>
                     {selectedApplication.user_profile?.full_name || 'Unknown User'}
                   </h2>
-                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-500`}>
-                    {selectedApplication.user_profile?.current_position} at {selectedApplication.user_profile?.current_company}
-                  </p>
+                  {(selectedApplication.user_profile?.current_position || selectedApplication.user_profile?.current_company) && (
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-500`}>
+                      {selectedApplication.user_profile?.current_position}
+                      {selectedApplication.user_profile?.current_position && selectedApplication.user_profile?.current_company && ' at '}
+                      {selectedApplication.user_profile?.current_company}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">

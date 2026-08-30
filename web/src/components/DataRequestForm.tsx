@@ -2,27 +2,19 @@ import React, { useState } from 'react';
 import { Download, Trash2, Edit3, Send, Check, Clock } from 'lucide-react';
 import { gdprService } from '../services/gdprService';
 import { useAuthContext } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from './LoadingSpinner';
-import BackArrowIcon from './icons/BackArrowIcon';
 
 interface DataRequestFormProps {
   onBack: () => void;
 }
 
-const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
+const DataRequestForm: React.FC<DataRequestFormProps> = () => {
   const { user } = useAuthContext();
-  const navigate = useNavigate();
   const [requestType, setRequestType] = useState<'access' | 'delete' | 'correct'>('correct');
   const [details, setDetails] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-
-  const handleBack = () => {
-    onBack();
-    navigate('/');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,12 +105,6 @@ const DataRequestForm: React.FC<DataRequestFormProps> = ({ onBack }) => {
         <div className="w-full max-w-4xl bg-white rounded-none sm:rounded-2xl shadow-none sm:shadow-xl overflow-hidden flex flex-col relative border-y border-slate-100 sm:border">
           {/* Header */}
           <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-4 flex items-center gap-3 sm:gap-4 border-b border-slate-100">
-            <button 
-              onClick={handleBack}
-              className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-100 transition-colors text-slate-900"
-            >
-              <BackArrowIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-            </button>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-slate-900">GDPR Data Request</h1>
           </div>
 

@@ -7,7 +7,6 @@ import { jobService } from '../services/jobService';
 import LoadingSpinner from './LoadingSpinner';
 import debounce from 'lodash.debounce';
 import * as pdfjsLib from 'pdfjs-dist';
-import BackArrowIcon from './icons/BackArrowIcon';
 import { useMediaQuery } from 'react-responsive';
 
 // Use the local worker from the node_modules
@@ -490,13 +489,6 @@ const CreateReferralPage: React.FC = () => {
       <main className="flex-grow w-full px-4 md:px-12 py-6 md:py-10 max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex flex-col gap-4 md:gap-6 mb-6 md:mb-10">
-          <button
-            className="hidden md:inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-ink transition-colors w-fit group"
-            onClick={() => navigate('/jobs')}
-          >
-            <BackArrowIcon className="h-[18px] w-[18px] group-hover:-translate-x-1 transition-transform" />
-            Back to Jobs
-          </button>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 font-display">

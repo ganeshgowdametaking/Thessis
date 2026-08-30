@@ -532,16 +532,7 @@ Best regards,
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/company-dashboard')}
-                className="flex items-center space-x-2 text-slate-600 hover:text-slate-900"
-              >
-                <BackArrowIcon className="h-5 w-5" />
-                <span>Back to Dashboard</span>
-              </button>
-            </div>
+          <div className="flex items-center justify-end">
             <div className="flex items-center space-x-2">
               <Building className="h-8 w-8 text-blue-600" />
               <span className="text-xl font-bold font-display text-slate-900">Thessis</span>

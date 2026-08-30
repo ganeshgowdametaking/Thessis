@@ -5,7 +5,6 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
-import BackArrowIcon from './icons/BackArrowIcon';
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface JobFormData {
@@ -269,12 +268,6 @@ const CompanyNewJobPage: React.FC = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <button
-              onClick={() => navigate('/company-hiring/jobs')}
-              className="p-2 text-slate-400 hover:text-slate-600"
-            >
-              <BackArrowIcon className="h-5 w-5" />
-            </button>
             <div>
               <h1 className="text-3xl font-bold text-slate-900">Create New Job</h1>
               <p className="text-slate-600 mt-2">Post a new job opening</p>

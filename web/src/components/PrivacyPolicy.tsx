@@ -1,27 +1,15 @@
 import React from 'react';
-import BackArrowIcon from './icons/BackArrowIcon';
 
 interface PrivacyPolicyProps {
   onBack: () => void;
 }
 
-const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
-  const handleBack = () => {
-    onBack();
-  };
-
+const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack: _onBack }) => {
   return (
     <div className="min-h-screen bg-slate-100">
       <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6">
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex items-center space-x-3 sm:space-x-4 mb-4 sm:mb-6">
-            <button
-              onClick={handleBack}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
-              aria-label="Go back"
-            >
-              <BackArrowIcon className="h-5 w-5" />
-            </button>
             <h1 className="text-xl sm:text-3xl font-bold text-slate-900">Privacy Policy</h1>
           </div>
 

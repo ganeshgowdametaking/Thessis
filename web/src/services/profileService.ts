@@ -16,7 +16,7 @@ export const profileService = {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, full_name, role, work_email_verified, secondary_email_verified, avatar_url, title, company, location, bio, country_code, experiences, education, skills, achievements')
+      .select('id, email, full_name, role, work_email_verified, secondary_email_verified, avatar_url, title, company, location, bio, country_code, experiences, education, skills, achievements, connections_count, verified')
       .eq('id', user.id)
       .single()
 

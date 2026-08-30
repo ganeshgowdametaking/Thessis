@@ -6,7 +6,6 @@ import { useAuthContext } from '../contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 import OfflineMessage from './OfflineMessage';
 import { isOnline, getCachedData, setCachedData, getOfflineMessage } from '../utils/offlineUtils';
-import BackArrowIcon from './icons/BackArrowIcon';
 import { useMediaQuery } from 'react-responsive';
 
 interface SearchResultsPageProps {
@@ -191,14 +190,6 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 pt-5 md:pt-8 pb-8 md:pb-12">
         {/* Header */}
         <div className="flex flex-col gap-4 md:gap-6 mb-6 md:mb-8">
-          <button
-            className="flex items-center gap-2 text-sm font-medium text-txt-sub hover:text-primary-sage transition-colors w-fit"
-            onClick={onBack}
-          >
-            <BackArrowIcon className="h-[18px] w-[18px]" />
-            Back
-          </button>
-
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h1 className="text-2xl md:text-3xl font-extrabold text-txt-main mb-1.5 md:mb-2">Search Results</h1>

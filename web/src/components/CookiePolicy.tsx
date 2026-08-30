@@ -1,23 +1,12 @@
 import React from 'react';
-import BackArrowIcon from './icons/BackArrowIcon';
 
 interface CookiePolicyProps {
   onBack: () => void;
 }
 
-const CookiePolicy: React.FC<CookiePolicyProps> = ({ onBack }) => {
+const CookiePolicy: React.FC<CookiePolicyProps> = () => {
   return (
     <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-slate-100 p-4 sm:p-6 md:p-12 lg:p-16">
-      <div className="flex justify-start mb-5 sm:mb-8">
-        <button 
-          onClick={onBack}
-          className="group flex items-center justify-center rounded-lg h-10 pr-4 text-slate-500 gap-2 text-sm font-bold leading-normal tracking-[0.015em] transition-all hover:text-sage"
-        >
-          <BackArrowIcon className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
-          <span className="truncate">Back to Settings</span>
-        </button>
-      </div>
-
       <div className="flex flex-col gap-3 sm:gap-4 mb-8 sm:mb-10 border-b border-slate-200 pb-5 sm:pb-8">
         <h1 className="text-slate-900 text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight tracking-[-0.033em]">Cookie Policy</h1>
         <p className="text-slate-500 text-base font-medium">Last updated: August 19, 2026</p>

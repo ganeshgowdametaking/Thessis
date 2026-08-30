@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Edit3, Plus, X, Trash2, Share2, Pencil } from 'lucide-react';
+import { Edit3, Plus, X, Trash2, Share2, Pencil, BadgeCheck } from 'lucide-react';
 import { jobTitles } from '../data/jobTitles';
 import debounce from 'lodash.debounce';
 import { profileService } from '../services/profileService';
@@ -551,6 +551,12 @@ const ProfilePage: React.FC = () => {
       return editForm.profile_picture_url;
     }
     return '/149071.png';
+  };
+
+  const formatConnectionsCount = (count?: number) => {
+    const value = typeof count === 'number' ? count : 0;
+    if (value < 1000) return String(value);
+    return `${(value / 1000).toFixed(2).replace(/\.?0+$/, '')}k`;
   };
 
   if (!profile) {

@@ -4,7 +4,6 @@ import { Building, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from './LoadingSpinner';
 import './CompanyButton.css';
-import BackArrowIcon from './icons/BackArrowIcon';
 
 const CompanyLoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -76,16 +75,6 @@ const CompanyLoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-700 to-blue-400 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-6">
-        <button
-          onClick={() => navigate('/companies')}
-          className="company-back-btn"
-        >
-          <BackArrowIcon className="h-5 w-5" />
-          Back
-        </button>
-      </div>
 
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center px-4 py-8">

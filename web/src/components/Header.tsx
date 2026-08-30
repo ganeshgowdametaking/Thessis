@@ -223,14 +223,9 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
     );
   }
 
-  const primaryMobileRoutes = ['/jobs', '/messages', '/notifications', '/profile'];
-  const shouldShowBackButton = location.pathname !== '/' && !primaryMobileRoutes.includes(location.pathname);
+  const shouldShowBackButton = false;
 
   const handleMobileLeadingAction = () => {
-    if (shouldShowBackButton) {
-      navigate(-1);
-      return;
-    }
     setIsMenuOpen((prev) => !prev);
   };
 
