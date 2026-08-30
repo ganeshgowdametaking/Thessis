@@ -5,6 +5,8 @@ import { Database } from '../lib/database.types';
 import { useNavigate } from 'react-router-dom';
 import { jobService } from '../services/jobService';
 import LoadingSpinner from './LoadingSpinner';
+import CompanyAvatar from './CompanyAvatar';
+import { getCompanyLogoUrl } from '../utils/companyLogo';
 import debounce from 'lodash.debounce';
 import * as pdfjsLib from 'pdfjs-dist';
 import { useMediaQuery } from 'react-responsive';
@@ -648,7 +650,7 @@ const CreateReferralPage: React.FC = () => {
                         <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Job Title</span>
                         <div className={fieldShellClass}>
                           <input
-                            className="w-full h-11 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                            className="w-full h-10 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
                             placeholder="e.g. Senior Product Designer"
                             type="text"
                             required
@@ -662,7 +664,7 @@ const CreateReferralPage: React.FC = () => {
                         <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Company</span>
                         <div className={fieldShellClass}>
                           <input
-                            className="w-full h-11 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                            className="w-full h-10 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
                             placeholder="e.g. Acme Corp"
                             type="text"
                             required
@@ -679,7 +681,7 @@ const CreateReferralPage: React.FC = () => {
                         <div className={fieldShellClass}>
                           <div className="relative">
                             <input
-                              className="w-full h-11 pl-10 pr-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                              className="w-full h-10 pl-10 pr-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
                               placeholder="City, State or Remote"
                               type="text"
                               required
@@ -726,7 +728,7 @@ const CreateReferralPage: React.FC = () => {
                         <div className={fieldShellClass}>
                           <div className="relative">
                             <select
-                              className="w-full h-11 px-4 bg-white border-0 rounded-lg text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
+                              className="w-full h-10 px-4 bg-white border-0 rounded-lg text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
                               required
                               value={formData.job_type}
                               onChange={(e) => handleInputChange('job_type', e.target.value)}
@@ -746,7 +748,7 @@ const CreateReferralPage: React.FC = () => {
                         <div className={fieldShellClass}>
                           <div className="relative">
                             <select
-                              className="w-full h-11 px-4 bg-white border-0 rounded-lg text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
+                              className="w-full h-10 px-4 bg-white border-0 rounded-lg text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
                               required
                               value={formData.experience_level}
                               onChange={(e) => handleInputChange('experience_level', e.target.value)}
@@ -796,7 +798,7 @@ const CreateReferralPage: React.FC = () => {
                         <div className={`${fieldShellClass} flex-grow`}>
                           <div className="relative">
                             <input
-                              className="w-full h-11 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
+                              className="w-full h-10 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
                               placeholder="Add a skill..."
                               type="text"
                               value={skillInput}
@@ -960,8 +962,13 @@ const CreateReferralPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <h4 className="font-bold text-slate-900 text-lg leading-tight">{job.title}</h4>
-                      <p className="text-sm text-slate-500 mb-4">{job.company} • {job.department || 'General'}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="rounded-full size-11 shadow-sm border border-slate-100 overflow-hidden shrink-0">
+                          <CompanyAvatar company={job.company} logoUrl={getCompanyLogoUrl(job.company)} size="sm" />
+                        </div>
+                        <h4 className="font-bold text-slate-900 text-lg leading-tight">{job.title}</h4>
+                      </div>
+                      <p className="text-sm text-slate-500 mb-4 mt-1">{job.department || 'General'}</p>
 
                       <div className="flex items-center justify-between pt-3 border-t border-stone-100">
                         <div className="flex -space-x-2">
