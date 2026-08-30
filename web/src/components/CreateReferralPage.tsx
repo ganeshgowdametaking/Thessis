@@ -962,13 +962,12 @@ const CreateReferralPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mb-4">
                         <div className="rounded-full size-11 shadow-sm border border-slate-100 overflow-hidden shrink-0">
                           <CompanyAvatar company={job.company} logoUrl={getCompanyLogoUrl(job.company)} size="sm" />
                         </div>
                         <h4 className="font-bold text-slate-900 text-lg leading-tight">{job.title}</h4>
                       </div>
-                      <p className="text-sm text-slate-500 mb-4 mt-1">{job.department || 'General'}</p>
 
                       <div className="flex items-center justify-between pt-3 border-t border-stone-100">
                         <div className="flex -space-x-2">
