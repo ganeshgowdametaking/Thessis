@@ -54,7 +54,7 @@ const CreateReferralPage: React.FC = () => {
   const [aiError, setAiError] = useState<string | null>(null);
   const [referralLink, setReferralLink] = useState('');
 
-  const fieldShellClass = 'rounded-lg p-1 border border-slate-200 bg-white md:border-2 md:border-[#4353FF]';
+  const fieldShellClass = 'rounded-lg p-1 border border-slate-200 bg-white focus-within:border-[#4353FF] transition-colors';
 
   // Fetch user's jobs (acting as referrals)
   const fetchMyReferrals = useCallback(async () => {
@@ -487,16 +487,6 @@ const CreateReferralPage: React.FC = () => {
   return (
     <div className="bg-stone-50 font-display text-slate-700 antialiased min-h-screen flex flex-col">
       <main className="flex-grow w-full px-4 md:px-12 py-6 md:py-10 max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col gap-4 md:gap-6 mb-6 md:mb-10">
-
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 font-display">
-              Create Referral
-            </h2>
-          </div>
-        </div>
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-10">
           <div className="bg-white p-4 md:p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
@@ -568,7 +558,7 @@ const CreateReferralPage: React.FC = () => {
 
               {/* Link Input */}
               <div className="flex flex-col justify-center gap-4">
-                <div className="relative">
+                <div className="relative focus-within:ring-0">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">link</span>
                   <input
                     type="url"
@@ -580,7 +570,7 @@ const CreateReferralPage: React.FC = () => {
                 </div>
                 <button
                   onClick={() => referralLink && handleAIAutoFill('link', referralLink)}
-                  className="h-12 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+                  className="h-12 bg-primary text-white font-bold rounded-lg hover:bg-primary-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
                   disabled={aiLoading || !referralLink}
                 >
                   {aiLoading ? (
@@ -621,7 +611,7 @@ const CreateReferralPage: React.FC = () => {
             <div className="bg-white rounded-xl border border-slate-100 shadow-card overflow-visible">
               <div className="px-4 py-4 md:px-8 md:py-6 border-b border-stone-100 bg-white">
                 <h3 className="text-lg font-bold text-slate-900">Referral Details</h3>
-                <p className="text-sm text-slate-500 mt-0.5">Fill in the details for the position you are referring for.</p>
+                <p className="text-sm text-slate-500 mt-0.5">Fill in the details for the position.</p>
               </div>
 
               <form onSubmit={handleSubmit} className="p-4 md:p-8 space-y-4 md:space-y-8">
@@ -683,21 +673,7 @@ const CreateReferralPage: React.FC = () => {
                       </label>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <label>
-                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department</span>
-                        <div className={fieldShellClass}>
-                          <input
-                            className="w-full h-11 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
-                            placeholder="e.g. Product Design"
-                            type="text"
-                            required
-                            value={formData.department || ''}
-                            onChange={(e) => handleInputChange('department', e.target.value)}
-                          />
-                        </div>
-                      </label>
-
+                    <div className="grid grid-cols-1 gap-6">
                       <label>
                         <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Location</span>
                         <div className={fieldShellClass}>
@@ -830,7 +806,7 @@ const CreateReferralPage: React.FC = () => {
                           </div>
                         </div>
                         <button
-                          className="size-11 flex-none flex items-center justify-center rounded-lg bg-ink text-white hover:bg-ink-deep transition-colors"
+                          className="size-11 flex-none flex items-center justify-center rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors"
                           type="button"
                           onClick={addSkill}
                         >
@@ -878,7 +854,7 @@ const CreateReferralPage: React.FC = () => {
 
                     <div className="pt-2 md:pt-4">
                       <button
-                        className="w-full h-12 rounded-lg bg-ink text-white font-bold text-sm hover:bg-ink-deep transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full h-12 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary-hover transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                         type="submit"
                         disabled={loading}
                       >

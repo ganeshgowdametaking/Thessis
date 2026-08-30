@@ -774,7 +774,7 @@ export default function ApplicationsPage({
                   <button
                     onClick={triggerAiRanking}
                     disabled={aiRankingLoading}
-                    className="h-9 px-4 rounded-lg bg-ink text-white text-xs font-bold hover:bg-ink-deep transition-all flex items-center gap-2 disabled:opacity-50"
+                    className="h-9 px-4 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-hover transition-all flex items-center gap-2 disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined text-[18px]">bolt</span>
                     Update AI Rankings
@@ -922,7 +922,7 @@ export default function ApplicationsPage({
                     <button
                       className={`w-full py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${application.status === 'referred'
                         ? 'bg-parchment-sunken text-slate-700 cursor-default'
-                        : 'bg-ink hover:bg-ink-deep text-white'
+                        : 'bg-primary hover:bg-primary-hover text-white'
                         }`}
                       onClick={() => {
                         if (application.status === 'shortlisted') {
@@ -1075,7 +1075,7 @@ export default function ApplicationsPage({
               <button
                 className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${selectedApplication.status === 'referred'
                   ? 'bg-parchment-sunken text-slate-700 cursor-default'
-                  : 'bg-ink text-white hover:bg-ink-deep'
+                  : 'bg-primary text-white hover:bg-primary-hover'
                   }`}
                 onClick={() => {
                   if (selectedApplication.status === 'shortlisted') {
