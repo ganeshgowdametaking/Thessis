@@ -639,7 +639,7 @@ const JobsPage: React.FC = () => {
     return (
       <div className="bg-parchment text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
         <main className="flex flex-1 min-h-0 overflow-hidden">
-          <aside className="w-full md:max-w-[600px] border-r border-hairline bg-parchment p-3 space-y-2">
+          <aside className="w-full md:max-w-[510px] border-r border-hairline bg-parchment p-3 space-y-2">
             <div className="p-2 pb-4 space-y-3">
               <Skeleton className="h-8 w-40" />
               <Skeleton className="h-10 w-full rounded-lg" />
@@ -696,7 +696,7 @@ const JobsPage: React.FC = () => {
     <div className="bg-parchment text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
       <main className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-full md:max-w-[600px] flex flex-col border-r border-hairline bg-parchment relative z-10">
+        <aside className="w-full md:max-w-[510px] flex flex-col border-r border-hairline bg-parchment relative z-10">
           {/* Sidebar Header */}
           <div className="flex flex-col gap-4 p-5 bg-parchment">
             <div className="flex gap-2">

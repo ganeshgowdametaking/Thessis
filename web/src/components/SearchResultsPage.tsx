@@ -146,7 +146,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
   const getConnectionButtonText = (userId: string) => {
     const status = userConnections[userId] || 'none';
     switch (status) {
-      case 'pending_sent': return 'Cancel Request';
+      case 'pending_sent': return 'Requested';
       case 'connected': return 'Disconnect';
       case 'pending_received': return 'Accept';
       default: return 'Connect';
@@ -155,7 +155,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
 
   const getConnectionButtonStyle = (userId: string) => {
     const status = userConnections[userId] || 'none';
-    const baseStyle = 'w-full h-10 px-4 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-sm';
+    const baseStyle = 'w-full md:min-w-[150px] h-10 px-4 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-sm';
 
     switch (status) {
       case 'connected':
@@ -169,35 +169,12 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
     }
   };
 
-  const getProfilePicture = (profile: any) => {
-    if (profile?.avatar_url) {
-      return profile.avatar_url;
-    }
-
-    const colors = ['#f97316', '#3b82f6', '#10b981', '#f59e0b', '#8B5CF6', '#06b6d4'];
-    const colorIndex = profile?.id ? profile.id.charCodeAt(0) % colors.length : 0;
-    const backgroundColor = colors[colorIndex];
-
-    const initials = profile?.full_name
-      ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 1)
-      : 'U';
-
-    return { backgroundColor, initials };
-  };
-
   return (
     <div className="bg-page-bg text-txt-body font-display antialiased min-h-screen flex flex-col">
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 pt-5 md:pt-8 pb-8 md:pb-12">
         {/* Header */}
         <div className="flex flex-col gap-4 md:gap-6 mb-6 md:mb-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-txt-main mb-1.5 md:mb-2">Search Results</h1>
-              <p className="text-txt-body font-medium text-base md:text-lg">
-                Results for <span className="text-txt-main font-bold">'{searchQuery}'</span>
-              </p>
-            </div>
-
+          <div className="flex flex-col md:flex-row md:items-end justify-end gap-4">
             <div className="flex items-center p-1 bg-stone-200/50 rounded-xl">
               <div className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand-dark text-white shadow-md">
                 <span className="material-symbols-outlined text-[20px]">group</span>
@@ -230,9 +207,8 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
                 <p className="text-slate-600">Try adjusting your search terms or browse all users.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5 mb-10 md:mb-12">
+              <div className="flex flex-col gap-3 md:gap-3.5 mb-10 md:mb-12">
                 {searchResults.people.map((person) => {
-                  const profilePic = getProfilePicture(person);
                   const connectionStatus = userConnections[person.id] || 'none';
 
                   if (isMobile) {
@@ -241,22 +217,13 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
                         <div className="flex items-start gap-3">
                           <button
                             onClick={() => onViewProfile(person.id)}
-                            className="size-12 rounded-full bg-slate-50 overflow-hidden ring-2 ring-slate-50 shrink-0"
+                            className="size-12 rounded-full bg-slate-50 overflow-hidden shrink-0"
                           >
-                            {person.avatar_url ? (
-                              <img
-                                alt="User"
-                                className="w-full h-full object-cover"
-                                src={person.avatar_url}
-                              />
-                            ) : (
-                              <div
-                                className="w-full h-full flex items-center justify-center text-white font-bold text-base"
-                                style={{ backgroundColor: profilePic.backgroundColor }}
-                              >
-                                {profilePic.initials}
-                              </div>
-                            )}
+                            <img
+                              alt="User"
+                              className="w-full h-full object-cover"
+                              src={person.avatar_url || '/default-avatar.svg'}
+                            />
                           </button>
 
                           <div className="flex-1 min-w-0">
@@ -264,14 +231,14 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
                               className="text-left w-full"
                               onClick={() => onViewProfile(person.id)}
                             >
-                              <h3 className="text-base font-bold text-txt-main truncate">{person.full_name}</h3>
-                              <p className="text-sm font-medium text-txt-body truncate mt-0.5">{person.title || 'Professional'}</p>
+                              <p className="text-sm leading-snug line-clamp-2 min-h-9">
+                                <span className="font-bold text-txt-main">{person.full_name}</span>
+                                {(person.title || person.company) && <span className="text-txt-sub"> · </span>}
+                                {person.title && <span className="font-medium text-txt-body">{person.title}</span>}
+                                {person.title && person.company && <span className="text-txt-sub"> @ </span>}
+                                {person.company && <span className="font-medium text-txt-body">{person.company}</span>}
+                              </p>
                             </button>
-
-                            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-txt-body bg-stone-100 px-2.5 py-1 rounded-full mt-2">
-                              <span className="material-symbols-outlined text-[14px] text-txt-sub">domain</span>
-                              <span className="truncate max-w-[180px]">{person.company || 'Unknown Company'}</span>
-                            </div>
 
                             <div className="mt-3">
                               <button
@@ -300,23 +267,14 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
                   }
 
                   return (
-                    <div key={person.id} className="group bg-white rounded-2xl border border-card-border p-5 shadow-sm hover:shadow-lg hover:border-primary-sage/30 transition-all duration-300 flex flex-col items-center text-center">
-                      <div className="relative mb-4">
-                        <div className="size-20 rounded-full bg-slate-50 overflow-hidden ring-4 ring-slate-50">
-                          {person.avatar_url ? (
-                            <img
-                              alt="User"
-                              className="w-full h-full object-cover"
-                              src={person.avatar_url}
-                            />
-                          ) : (
-                            <div
-                              className="w-full h-full flex items-center justify-center text-white font-bold text-2xl"
-                              style={{ backgroundColor: profilePic.backgroundColor }}
-                            >
-                              {profilePic.initials}
-                            </div>
-                          )}
+                    <div key={person.id} className="group bg-white rounded-2xl border border-card-border p-4 shadow-sm hover:border-hairline-strong hover:shadow-sm transition-all duration-300 flex items-center gap-4">
+                      <div className="relative shrink-0">
+                        <div className="size-14 rounded-full bg-slate-50 overflow-hidden">
+                          <img
+                            alt="User"
+                            className="w-full h-full object-cover"
+                            src={person.avatar_url || '/default-avatar.svg'}
+                          />
                         </div>
                         {person.id === 'user4' && (
                           <span className="absolute top-0 right-0 flex h-4 w-4">
@@ -326,22 +284,24 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
                         )}
                       </div>
 
-                      <h3
-                        className="text-lg font-bold text-txt-main hover:text-primary-sage cursor-pointer transition-colors mb-1"
-                        onClick={() => onViewProfile(person.id)}
-                      >
-                        {person.full_name}
-                      </h3>
-                      <p className="text-sm font-medium text-txt-body mb-3">{person.title}</p>
-
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-txt-main bg-search-bg px-3 py-1.5 rounded-full mb-6">
-                        <span className="material-symbols-outlined text-[16px] text-txt-sub">domain</span>
-                        {person.company}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base leading-snug line-clamp-2 min-h-10">
+                          <span
+                            className="font-bold text-txt-main hover:text-primary-sage cursor-pointer transition-colors"
+                            onClick={() => onViewProfile(person.id)}
+                          >
+                            {person.full_name}
+                          </span>
+                          {(person.title || person.company) && <span className="text-txt-sub"> · </span>}
+                          {person.title && <span className="font-medium text-txt-body">{person.title}</span>}
+                          {person.title && person.company && <span className="text-txt-sub"> @ </span>}
+                          {person.company && <span className="font-medium text-txt-body">{person.company}</span>}
+                        </p>
                       </div>
 
-                      <div className="w-full mt-auto">
+                      <div className="shrink-0">
                         <button
-                          className={getConnectionButtonStyle(person.id)}
+                          className={`${getConnectionButtonStyle(person.id)} !w-auto`}
                           onClick={() => handleConnect(person.id)}
                         >
                           {connectionStatus === 'connected' && (

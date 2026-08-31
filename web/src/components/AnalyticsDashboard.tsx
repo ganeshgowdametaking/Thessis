@@ -410,13 +410,7 @@ function OverviewTab({
                             <div key={user.id} className="px-6 py-4 hover:bg-slate-50 transition-colors">
                                 <div className="flex items-center gap-3">
                                     <div className="h-10 w-10 bg-parchment-sunken rounded-full flex items-center justify-center overflow-hidden">
-                                        {user.avatar_url ? (
-                                            <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
-                                        ) : (
-                                            <span className="text-slate-500 font-medium">
-                                                {(user.full_name || user.email || '?').charAt(0).toUpperCase()}
-                                            </span>
-                                        )}
+                                        <img src={user.avatar_url || '/default-avatar.svg'} alt="" className="h-full w-full object-cover" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium text-slate-900 truncate">{user.full_name || 'Anonymous User'}</p>

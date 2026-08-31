@@ -14,7 +14,7 @@ const sizeClasses = {
 };
 
 export const MessageAvatar: React.FC<MessageAvatarProps> = React.memo(({ profile, size = 'md', className = '' }) => {
-    const avatarUrl = profile?.avatar_url || '/149071.png';
+    const avatarUrl = profile?.avatar_url || '/default-avatar.svg';
 
     return (
         <div

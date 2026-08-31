@@ -345,7 +345,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
     switch (connectionStatus) {
       case 'connected': return 'Disconnect';
-      case 'pending_sent': return 'Cancel Request';
+      case 'pending_sent': return 'Requested';
       case 'pending_received': return 'Respond';
       default: return 'Connect';
     }
@@ -377,7 +377,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     if (user?.avatar_url) {
       return user.avatar_url;
     }
-    return '/149071.png';
+    return '/default-avatar.svg';
   };
 
   const formatDate = (dateString: string) => {

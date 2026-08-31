@@ -868,18 +868,12 @@ export default function ApplicationsPage({
                       className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                       onClick={() => application.user_id && onViewProfile(application.user_id)}
                     >
-                      <div className="h-12 w-12 rounded-full bg-cover bg-center bg-parchment-sunken flex items-center justify-center">
-                        {application.user_profile?.avatar_url ? (
-                          <img
-                            src={application.user_profile.avatar_url}
-                            alt={application.user_profile.full_name || 'User'}
-                            className="h-12 w-12 rounded-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-slate-500 font-medium text-lg">
-                            {application.user_profile?.full_name?.charAt(0) || 'U'}
-                          </span>
-                        )}
+                      <div className="h-12 w-12 rounded-full bg-cover bg-center bg-parchment-sunken flex items-center justify-center overflow-hidden">
+                        <img
+                          src={application.user_profile?.avatar_url || '/default-avatar.svg'}
+                          alt={application.user_profile?.full_name || 'User'}
+                          className="h-12 w-12 rounded-full object-cover"
+                        />
                       </div>
                       <div>
                         <h3 className="font-bold text-slate-900 text-base leading-tight">
@@ -968,18 +962,12 @@ export default function ApplicationsPage({
           <div className={`bg-white w-full shadow-2xl flex flex-col overflow-hidden ${isMobile ? 'h-[92vh] rounded-t-2xl rounded-b-none' : 'max-w-3xl max-h-[90vh] rounded-xl'}`}>
             <div className={`flex items-center justify-between border-b border-slate-100 shrink-0 ${isMobile ? 'p-4' : 'p-6'}`}>
               <div className="flex items-center gap-4">
-                <div className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} rounded-full bg-cover bg-center bg-parchment-sunken flex items-center justify-center`}>
-                  {selectedApplication.user_profile?.avatar_url ? (
-                    <img
-                      src={selectedApplication.user_profile.avatar_url}
-                      alt={selectedApplication.user_profile.full_name || 'User'}
-                      className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} rounded-full object-cover`}
-                    />
-                  ) : (
-                    <span className={`${isMobile ? 'text-lg' : 'text-2xl'} text-slate-500 font-medium`}>
-                      {selectedApplication.user_profile?.full_name?.charAt(0) || 'U'}
-                    </span>
-                  )}
+                <div className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} rounded-full bg-cover bg-center bg-parchment-sunken flex items-center justify-center overflow-hidden`}>
+                  <img
+                    src={selectedApplication.user_profile?.avatar_url || '/default-avatar.svg'}
+                    alt={selectedApplication.user_profile?.full_name || 'User'}
+                    className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} rounded-full object-cover`}
+                  />
                 </div>
                 <div>
                   <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-slate-900`}>

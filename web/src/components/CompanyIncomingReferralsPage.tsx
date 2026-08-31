@@ -163,19 +163,11 @@ const CompanyIncomingReferralsPage: React.FC = () => {
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
                     <div className="relative">
-                      {referral.referrer.avatar_url ? (
-                        <img
-                          src={referral.referrer.avatar_url}
-                          alt={referral.referrer.full_name}
-                          className="h-12 w-12 rounded-full"
-                        />
-                      ) : (
-                        <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-medium">
-                            {referral.referrer.full_name?.charAt(0) || 'R'}
-                          </span>
-                        </div>
-                      )}
+                      <img
+                        src={referral.referrer.avatar_url || '/default-avatar.svg'}
+                        alt={referral.referrer.full_name}
+                        className="h-12 w-12 rounded-full object-cover"
+                      />
                       <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-green-100 rounded-full flex items-center justify-center">
                         <Users className="h-3 w-3 text-green-600" />
                       </div>

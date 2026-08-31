@@ -546,7 +546,6 @@ const CreateReferralPage: React.FC = () => {
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <span className="material-symbols-outlined text-ink text-[32px] mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
                     <p className="mb-1 text-sm text-slate-700 font-bold">Upload Job Description PDF</p>
-                    <p className="text-xs text-slate-500">Fast, local, and secure</p>
                   </div>
                   <input
                     type="file"

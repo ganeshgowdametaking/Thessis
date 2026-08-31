@@ -196,19 +196,11 @@ const CompanyApplicantsPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
-                    {applicant.user.avatar_url ? (
-                      <img 
-                        src={applicant.user.avatar_url} 
-                        alt={applicant.user.full_name}
-                        className="h-12 w-12 rounded-full"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 bg-slate-300 rounded-full flex items-center justify-center">
-                        <span className="text-slate-600 font-medium">
-                          {applicant.user.full_name?.charAt(0) || 'U'}
-                        </span>
-                      </div>
-                    )}
+                    <img
+                      src={applicant.user.avatar_url || '/default-avatar.svg'}
+                      alt={applicant.user.full_name}
+                      className="h-12 w-12 rounded-full object-cover"
+                    />
                   </div>
                   
                   <div className="flex-1">

@@ -550,7 +550,7 @@ const ProfilePage: React.FC = () => {
     if (editForm.profile_picture_url?.trim()) {
       return editForm.profile_picture_url;
     }
-    return '/149071.png';
+    return '/default-avatar.svg';
   };
 
   const formatConnectionsCount = (count?: number) => {
@@ -566,76 +566,74 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="bg-stone-bg text-text-main font-display min-h-screen flex flex-col overflow-x-hidden antialiased">
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-[1024px] mx-auto px-4 md:px-6 py-5 md:py-12 flex flex-col gap-6 md:gap-8">
-        {/* Profile Header Section */}
-        <section className="w-full flex items-center justify-between gap-4 pb-5 border-b border-slate-border-card">
-          <div className="flex items-center gap-4 min-w-0">
+      <main className="flex-1 w-full max-w-[1380px] mx-auto px-4 md:px-6 py-5 md:py-12">
+        <div className="flex flex-col lg:grid lg:grid-cols-[2fr_3fr] gap-6 md:gap-8 items-start">
+          {/* Left column: profile details — 40% */}
+          <aside className="w-full bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col items-center text-center lg:sticky lg:top-8">
             <div className="relative shrink-0">
               <div
-                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-sm"
+                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-24 w-24 border-2 border-white shadow-sm"
                 style={{ backgroundImage: `url("${getProfilePicture()}")` }}
               ></div>
               <div className="absolute bottom-0 right-0 bg-emerald-500 border-2 border-white size-4 rounded-full" title="Online"></div>
             </div>
 
-            <div className="flex flex-col gap-1 min-w-0">
-              <h1 className="text-text-main text-xl md:text-2xl font-extrabold leading-tight tracking-tight truncate">
-                {editForm.full_name || 'Your Name'}
-              </h1>
-              <div className="flex items-center gap-1.5 text-text-secondary text-sm md:text-base font-medium min-w-0">
-                {editForm.company && (
-                  <div className="h-5 w-5 rounded-full overflow-hidden shrink-0">
-                    <CompanyAvatar company={editForm.company} size="sm" />
-                  </div>
-                )}
-                <span className="truncate">
-                  {editForm.title || 'Professional Title'} {editForm.company && `at ${editForm.company}`}
-                </span>
-              </div>
+            <h1 className="text-text-main text-xl font-extrabold leading-tight tracking-tight mt-4">
+              {editForm.full_name || 'Your Name'}
+            </h1>
+            <div className="flex items-center justify-center gap-1.5 text-text-secondary text-sm font-medium mt-1 min-w-0">
+              {editForm.company && (
+                <div className="h-5 w-5 rounded-full overflow-hidden shrink-0">
+                  <CompanyAvatar company={editForm.company} size="sm" />
+                </div>
+              )}
+              <span className="truncate">
+                {editForm.title || 'Professional Title'} {editForm.company && `at ${editForm.company}`}
+              </span>
             </div>
-          </div>
 
-          <div className="flex gap-2 md:gap-3 shrink-0">
-            <button
-              onClick={() => setIsEditing(true)}
-              className="size-9 md:size-8 flex items-center justify-center bg-ink rounded-full transition-all transform hover:scale-110 shadow-sm"
-              title="Edit Profile"
-            >
-              <Pencil className="w-4 h-4 text-white fill-white" />
-            </button>
-            <button
-              onClick={() => {
-                const profileUrl = `${window.location.origin}/user/${user?.id}`;
-                navigator.clipboard.writeText(profileUrl).then(() => {
-                  setShareSuccess(true);
-                  setShowShareModal(true);
-                  setTimeout(() => {
-                    setShowShareModal(false);
-                    setShareSuccess(false);
-                  }, 2000);
-                });
-              }}
-              className="size-9 md:size-8 flex items-center justify-center bg-ink rounded-full transition-all transform hover:scale-110 shadow-sm"
-              title="Share Profile"
-            >
-              <Share2 className="w-4 h-4 text-white" strokeWidth={3} />
-            </button>
-          </div>
-        </section>
+            <div className="flex gap-2 md:gap-3 mt-4">
+              <button
+                onClick={() => setIsEditing(true)}
+                className="size-9 md:size-8 flex items-center justify-center bg-ink rounded-full transition-all transform hover:scale-110 shadow-sm"
+                title="Edit Profile"
+              >
+                <Pencil className="w-4 h-4 text-white fill-white" />
+              </button>
+              <button
+                onClick={() => {
+                  const profileUrl = `${window.location.origin}/user/${user?.id}`;
+                  navigator.clipboard.writeText(profileUrl).then(() => {
+                    setShareSuccess(true);
+                    setShowShareModal(true);
+                    setTimeout(() => {
+                      setShowShareModal(false);
+                      setShareSuccess(false);
+                    }, 2000);
+                  });
+                }}
+                className="size-9 md:size-8 flex items-center justify-center bg-ink rounded-full transition-all transform hover:scale-110 shadow-sm"
+                title="Share Profile"
+              >
+                <Share2 className="w-4 h-4 text-white" strokeWidth={3} />
+              </button>
+            </div>
+          </aside>
 
-        <div className="mt-6 md:mt-10">
-          <ProfileTabs
-            tabs={[
-              { id: 'about', label: 'About' },
-              { id: 'experience', label: 'Experience' },
-              { id: 'education', label: 'Education' },
-            ]}
-            activeTab={activeTab}
-            onChange={setActiveTab}
-          />
+          {/* Right column: tabbed detail content — 60% */}
+          <div className="min-w-0 w-full bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+            <ProfileTabs
+              tabs={[
+                { id: 'about', label: 'About' },
+                { id: 'experience', label: 'Experience' },
+                { id: 'education', label: 'Education' },
+              ]}
+              activeTab={activeTab}
+              onChange={setActiveTab}
+            />
 
-          <div className="mt-6 md:mt-10">
-            {activeTab === 'about' && (
+            <div className="mt-6 md:mt-10">
+              {activeTab === 'about' && (
               <div className="flex flex-col gap-6 md:gap-10">
                 {/* Skills Section */}
                 <section>
@@ -700,6 +698,7 @@ const ProfilePage: React.FC = () => {
                 <ProfileEducationList education={editForm.education} />
               </section>
             )}
+          </div>
           </div>
         </div>
       </main>
