@@ -22,13 +22,12 @@ export const ProfileExperienceList: React.FC<ProfileExperienceListProps> = ({ ex
 
   return (
     <div className="relative pl-0.5 md:pl-2">
-      <div className="absolute left-[19px] md:left-[31px] top-5 md:top-6 bottom-5 md:bottom-6 w-px bg-slate-100" />
       <div className="space-y-7 md:space-y-14">
         {experiences.map((exp) => (
-          <div key={exp.id} className="relative flex gap-3 md:gap-10">
+          <div key={exp.id} className="relative flex gap-3 md:gap-4">
             <div className="relative z-10 shrink-0">
-              <div className="bg-white rounded-full size-14 md:size-20 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
-                <CompanyAvatar company={exp.company} logoUrl={getCompanyLogoUrl(exp.company)} size="lg" />
+              <div className="bg-white rounded-full size-9 md:size-12 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
+                <CompanyAvatar company={exp.company} logoUrl={getCompanyLogoUrl(exp.company)} size="sm" />
               </div>
             </div>
 

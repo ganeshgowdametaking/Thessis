@@ -231,13 +231,14 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
                               className="text-left w-full"
                               onClick={() => onViewProfile(person.id)}
                             >
-                              <p className="text-sm leading-snug line-clamp-2 min-h-9">
-                                <span className="font-bold text-txt-main">{person.full_name}</span>
-                                {(person.title || person.company) && <span className="text-txt-sub"> · </span>}
-                                {person.title && <span className="font-medium text-txt-body">{person.title}</span>}
-                                {person.title && person.company && <span className="text-txt-sub"> @ </span>}
-                                {person.company && <span className="font-medium text-txt-body">{person.company}</span>}
-                              </p>
+                              <p className="text-sm font-bold text-txt-main truncate">{person.full_name}</p>
+                              {(person.title || person.company) && (
+                                <p className="text-sm font-medium text-txt-body truncate mt-0.5">
+                                  {person.title}
+                                  {person.title && person.company && ' @ '}
+                                  {person.company}
+                                </p>
+                              )}
                             </button>
 
                             <div className="mt-3">
@@ -285,18 +286,19 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-base leading-snug line-clamp-2 min-h-10">
-                          <span
-                            className="font-bold text-txt-main hover:text-primary-sage cursor-pointer transition-colors"
-                            onClick={() => onViewProfile(person.id)}
-                          >
-                            {person.full_name}
-                          </span>
-                          {(person.title || person.company) && <span className="text-txt-sub"> · </span>}
-                          {person.title && <span className="font-medium text-txt-body">{person.title}</span>}
-                          {person.title && person.company && <span className="text-txt-sub"> @ </span>}
-                          {person.company && <span className="font-medium text-txt-body">{person.company}</span>}
+                        <p
+                          className="text-base font-bold text-txt-main hover:text-primary-sage cursor-pointer transition-colors truncate"
+                          onClick={() => onViewProfile(person.id)}
+                        >
+                          {person.full_name}
                         </p>
+                        {(person.title || person.company) && (
+                          <p className="text-sm font-medium text-txt-body truncate mt-0.5">
+                            {person.title}
+                            {person.title && person.company && ' @ '}
+                            {person.company}
+                          </p>
+                        )}
                       </div>
 
                       <div className="shrink-0">

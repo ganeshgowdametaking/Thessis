@@ -27,8 +27,8 @@ export const ProfileEducationList: React.FC<ProfileEducationListProps> = ({ educ
         {education.map((edu) => (
           <div key={edu.id} className="relative flex gap-3 md:gap-6">
             <div className="relative z-10 shrink-0">
-              <div className="size-14 md:size-20 rounded-full bg-white border border-stone-border flex items-center justify-center overflow-hidden">
-                <CompanyAvatar company={edu.school} logoUrl={getCompanyLogoUrl(edu.school)} size="lg" />
+              <div className="size-9 md:size-12 rounded-full bg-white border border-stone-border flex items-center justify-center overflow-hidden">
+                <CompanyAvatar company={edu.school} logoUrl={getCompanyLogoUrl(edu.school)} size="sm" />
               </div>
             </div>
             <div className="flex flex-col flex-1 pt-0.5 md:pt-2">

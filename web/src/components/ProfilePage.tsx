@@ -11,7 +11,6 @@ import ImageCropper from './ImageCropper';
 import { ProfileTabs } from './ProfileTabs';
 import { ProfileExperienceList } from './ProfileExperienceList';
 import { ProfileEducationList } from './ProfileEducationList';
-import CompanyAvatar from './CompanyAvatar';
 
 interface Experience {
   id: number | string;
@@ -125,7 +124,7 @@ const ProfilePage: React.FC = () => {
 
   const { user, profile, updateProfile } = useAuthContext();
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState('about');
+  const [activeTab, setActiveTab] = useState('experience');
   const [showPostsModal, setShowPostsModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -146,6 +145,7 @@ const ProfilePage: React.FC = () => {
     work_email_verified: false,
   });
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   // Location autocomplete state
   const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
   const [locationQuery, setLocationQuery] = useState('');
@@ -342,6 +342,17 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setCoverImageFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setEditForm((prev) => ({ ...prev, cover_image_url: previewUrl }));
+      // Reset target value to allow selecting same file again
+      e.target.value = '';
+    }
+  };
+
   const handleCropComplete = useCallback((croppedBlob: Blob) => {
     const croppedFile = new File([croppedBlob], 'profile_picture.jpg', { type: 'image/jpeg' });
     const croppedUrl = URL.createObjectURL(croppedBlob);
@@ -468,6 +479,18 @@ const ProfilePage: React.FC = () => {
         updates.avatar_url = base64String; // Store Base64 in avatar_url
       }
 
+      // Handle cover image file
+      if (coverImageFile) {
+        const maxSizeMB = 5;
+        if (coverImageFile.size > maxSizeMB * 1024 * 1024) {
+          throw new Error(`Cover image is too large. Maximum size is ${maxSizeMB}MB.`);
+        }
+
+        const base64String = await compressImageToDataURL(coverImageFile, 1200, 400, 0.82);
+
+        updates.cover_image_url = base64String;
+      }
+
       console.log('Submitting profile updates:', updates);
 
       // We ONLY call updateProfile from AuthContext which handles both
@@ -476,6 +499,7 @@ const ProfilePage: React.FC = () => {
 
       setIsEditing(false);
       setProfilePictureFile(null);
+      setCoverImageFile(null);
     } catch (error: any) {
       console.error('Profile update error:', {
         message: error.message,
@@ -495,6 +519,7 @@ const ProfilePage: React.FC = () => {
     setIsEditing(false);
     setSaveError(null);
     setProfilePictureFile(null);
+    setCoverImageFile(null);
     if (profile) {
       const normalizedSections = getNormalizedProfileSections(profile);
       setEditForm({
@@ -567,109 +592,107 @@ const ProfilePage: React.FC = () => {
     <div className="bg-stone-bg text-text-main font-display min-h-screen flex flex-col overflow-x-hidden antialiased">
       {/* Main Content */}
       <main className="flex-1 w-full max-w-[1380px] mx-auto px-4 md:px-6 py-5 md:py-12">
-        <div className="flex flex-col lg:grid lg:grid-cols-[2fr_3fr] gap-6 md:gap-8 items-start">
+        <div className="flex flex-col lg:grid lg:grid-cols-[1fr_1fr] gap-6 md:gap-8 items-start">
           {/* Left column: profile details — 40% */}
-          <aside className="w-full bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col items-center text-center lg:sticky lg:top-8">
-            <div className="relative shrink-0">
-              <div
-                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-24 w-24 border-2 border-white shadow-sm"
-                style={{ backgroundImage: `url("${getProfilePicture()}")` }}
-              ></div>
-              <div className="absolute bottom-0 right-0 bg-emerald-500 border-2 border-white size-4 rounded-full" title="Online"></div>
+          <aside className="w-full bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden lg:sticky lg:top-8">
+            <div
+              className="relative w-full h-20 bg-center bg-cover bg-no-repeat"
+              style={{
+                backgroundImage: editForm.cover_image_url
+                  ? `url("${editForm.cover_image_url}")`
+                  : 'linear-gradient(135deg, #4353FF 0%, #7C86FF 50%, #C7CCFF 100%)',
+              }}
+            >
+              <div className="absolute top-2 right-2 flex gap-1.5">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="size-7 flex items-center justify-center bg-black/20 hover:bg-black/30 backdrop-blur-sm rounded-full transition-all transform hover:scale-110"
+                  title="Edit Profile"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-white fill-white" />
+                </button>
+                <button
+                  onClick={() => {
+                    const profileUrl = `${window.location.origin}/user/${user?.id}`;
+                    navigator.clipboard.writeText(profileUrl).then(() => {
+                      setShareSuccess(true);
+                      setShowShareModal(true);
+                      setTimeout(() => {
+                        setShowShareModal(false);
+                        setShareSuccess(false);
+                      }, 2000);
+                    });
+                  }}
+                  className="size-7 flex items-center justify-center bg-black/20 hover:bg-black/30 backdrop-blur-sm rounded-full transition-all transform hover:scale-110"
+                  title="Share Profile"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                </button>
+              </div>
             </div>
 
-            <h1 className="text-text-main text-xl font-extrabold leading-tight tracking-tight mt-4">
-              {editForm.full_name || 'Your Name'}
-            </h1>
-            <div className="flex items-center justify-center gap-1.5 text-text-secondary text-sm font-medium mt-1 min-w-0">
-              {editForm.company && (
-                <div className="h-5 w-5 rounded-full overflow-hidden shrink-0">
-                  <CompanyAvatar company={editForm.company} size="sm" />
+            <div className="px-5 pb-5">
+              <div className="flex items-end gap-2.5 -mt-10">
+                <div className="relative shrink-0">
+                  <div
+                    className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-20 w-20 ring-4 ring-white shadow-sm"
+                    style={{ backgroundImage: `url("${getProfilePicture()}")` }}
+                  ></div>
+                  <div className="absolute bottom-1 right-1 bg-emerald-500 border-2 border-white size-3.5 rounded-full" title="Online"></div>
                 </div>
+                <div className="pb-1">
+                  <span className="text-text-main text-lg font-extrabold">{formatConnectionsCount(profile?.connections_count)}</span>{' '}
+                  <span className="text-text-secondary text-sm font-medium">Connections</span>
+                </div>
+              </div>
+
+              <h1 className="text-text-main text-lg font-extrabold leading-tight tracking-tight mt-2 flex items-center gap-1.5">
+                {editForm.full_name || 'Your Name'}
+                {profile?.verified && (
+                  <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500 stroke-white shrink-0" />
+                )}
+              </h1>
+
+              {editForm.bio && (
+                <p className="text-text-secondary text-sm leading-snug mt-1">
+                  {editForm.bio}
+                </p>
               )}
-              <span className="truncate">
-                {editForm.title || 'Professional Title'} {editForm.company && `at ${editForm.company}`}
-              </span>
-            </div>
 
-            <div className="flex gap-2 md:gap-3 mt-4">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="size-9 md:size-8 flex items-center justify-center bg-ink rounded-full transition-all transform hover:scale-110 shadow-sm"
-                title="Edit Profile"
-              >
-                <Pencil className="w-4 h-4 text-white fill-white" />
-              </button>
-              <button
-                onClick={() => {
-                  const profileUrl = `${window.location.origin}/user/${user?.id}`;
-                  navigator.clipboard.writeText(profileUrl).then(() => {
-                    setShareSuccess(true);
-                    setShowShareModal(true);
-                    setTimeout(() => {
-                      setShowShareModal(false);
-                      setShareSuccess(false);
-                    }, 2000);
-                  });
-                }}
-                className="size-9 md:size-8 flex items-center justify-center bg-ink rounded-full transition-all transform hover:scale-110 shadow-sm"
-                title="Share Profile"
-              >
-                <Share2 className="w-4 h-4 text-white" strokeWidth={3} />
-              </button>
-            </div>
-          </aside>
-
-          {/* Right column: tabbed detail content — 60% */}
-          <div className="min-w-0 w-full bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-            <ProfileTabs
-              tabs={[
-                { id: 'about', label: 'About' },
-                { id: 'experience', label: 'Experience' },
-                { id: 'education', label: 'Education' },
-              ]}
-              activeTab={activeTab}
-              onChange={setActiveTab}
-            />
-
-            <div className="mt-6 md:mt-10">
-              {activeTab === 'about' && (
-              <div className="flex flex-col gap-6 md:gap-10">
+              <div className="flex flex-col gap-6 mt-6 text-left">
                 {/* Skills Section */}
                 <section>
-                  <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                  <div className="flex items-center mb-3 pb-2 border-b border-slate-200/70">
                     <h2 className="text-lg font-semibold text-slate-900">Skills</h2>
                   </div>
-                  <div className="px-1">
-                    <div className="flex flex-wrap gap-2 md:gap-2">
-                      {editForm.skills.length > 0 ? (
-                        editForm.skills.map((skill) => (
-                          <span
-                            key={skill.id}
-                            className="px-2.5 md:px-3 py-1.5 rounded-lg bg-white text-slate-body cursor-default text-[13px] md:text-sm font-bold tracking-tight md:tracking-wide border border-stone-border"
-                          >
-                            {skill.name}
-                          </span>
-                        ))
-                      ) : null}
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    {editForm.skills.length > 0 ? (
+                      editForm.skills.map((skill) => (
+                        <span
+                          key={skill.id}
+                          className="px-2.5 py-1.5 rounded-lg bg-white text-slate-body cursor-default text-[13px] font-bold tracking-tight border border-stone-border"
+                        >
+                          {skill.name}
+                        </span>
+                      ))
+                    ) : null}
                   </div>
                 </section>
 
                 {/* Achievements Section */}
                 <section>
-                  <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                  <div className="flex items-center mb-3 pb-2 border-b border-slate-200/70">
                     <h2 className="text-lg font-semibold text-slate-900">Achievements</h2>
                   </div>
-                  <div className="flex flex-col gap-1 md:gap-4 divide-y divide-slate-200/80 md:divide-y-0">
+                  <div className="flex flex-col gap-1 divide-y divide-slate-200/80">
                     {Array.isArray(editForm.achievements) && editForm.achievements.length > 0 ? (
                       editForm.achievements.map((achievement) => (
-                        <div key={achievement.id} className="px-1 py-3 md:py-1 flex items-start justify-between gap-3 md:gap-4">
+                        <div key={achievement.id} className="py-3 flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h4 className="text-text-main font-bold text-[1.05rem] md:text-base leading-tight">{achievement.title}</h4>
-                            <p className="text-slate-meta text-[13px] md:text-sm mt-1 font-semibold">{achievement.organization}</p>
+                            <h4 className="text-text-main font-bold text-[1.05rem] leading-tight">{achievement.title}</h4>
+                            <p className="text-slate-meta text-[13px] mt-1 font-semibold">{achievement.organization}</p>
                             {achievement.description?.trim() && (
-                              <p className="text-text-secondary text-sm mt-1.5 md:mt-2 leading-snug">{achievement.description}</p>
+                              <p className="text-text-secondary text-sm mt-1.5 leading-snug">{achievement.description}</p>
                             )}
                           </div>
                           <span className={`${timelineTextClass} shrink-0 pt-0.5`}>{formatDate(achievement.date)}</span>
@@ -679,12 +702,26 @@ const ProfilePage: React.FC = () => {
                   </div>
                 </section>
               </div>
-            )}
+            </div>
+          </aside>
+
+          {/* Right column: tabbed detail content — 50% */}
+          <div className="min-w-0 w-full bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+            <ProfileTabs
+              tabs={[
+                { id: 'experience', label: 'Experience' },
+                { id: 'education', label: 'Education' },
+              ]}
+              activeTab={activeTab}
+              onChange={setActiveTab}
+            />
+
+            <div className="mt-6 md:mt-10">
 
             {activeTab === 'experience' && (
               <section>
                 <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
-                  <h2 className="text-lg font-semibold text-slate-900">Experience</h2>
+                  <h2 className="text-2xl font-semibold text-slate-900">Experience</h2>
                 </div>
                 <ProfileExperienceList experiences={editForm.experiences} />
               </section>
@@ -693,7 +730,7 @@ const ProfilePage: React.FC = () => {
             {activeTab === 'education' && (
               <section>
                 <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
-                  <h2 className="text-lg font-semibold text-slate-900">Education</h2>
+                  <h2 className="text-2xl font-semibold text-slate-900">Education</h2>
                 </div>
                 <ProfileEducationList education={editForm.education} />
               </section>
@@ -758,6 +795,29 @@ const ProfilePage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Cover Image */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Cover Banner</label>
+                  <div
+                    className="relative group w-full h-28 rounded-lg overflow-hidden bg-center bg-cover mb-2"
+                    style={{
+                      backgroundImage: editForm.cover_image_url
+                        ? `url("${editForm.cover_image_url}")`
+                        : 'linear-gradient(135deg, #4353FF 0%, #7C86FF 50%, #C7CCFF 100%)',
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                      <Edit3 className="text-white h-5 w-5" />
+                    </div>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverImageChange}
+                    className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer"
+                    disabled={isSaving}
+                  />
+                </div>
 
 
                 {/* Basic Info */}
@@ -1067,6 +1127,16 @@ const ProfilePage: React.FC = () => {
                             value={edu.gpa}
                             onChange={(e) => updateItem('education', edu.id, { ...edu, gpa: e.target.value })}
                             className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
+                          <textarea
+                            value={edu.description}
+                            onChange={(e) => updateItem('education', edu.id, { ...edu, description: e.target.value })}
+                            rows={3}
+                            className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 resize-none"
                             disabled={isSaving}
                           />
                         </div>
