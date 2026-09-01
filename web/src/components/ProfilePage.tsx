@@ -3,6 +3,7 @@ import { Edit3, Plus, X, Trash2, Share2, Pencil, BadgeCheck } from 'lucide-react
 import { jobTitles } from '../data/jobTitles';
 import debounce from 'lodash.debounce';
 import { profileService } from '../services/profileService';
+import { connectionService } from '../services/connectionService';
 import { useAuthContext } from '../contexts/AuthContext';
 import PostsModal from './PostsModal';
 import LoadingSpinner from './LoadingSpinner';
@@ -154,6 +155,7 @@ const ProfilePage: React.FC = () => {
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [connectionsCount, setConnectionsCount] = useState(0);
 
   // Cropping state
   const [isCropping, setIsCropping] = useState(false);
@@ -183,22 +185,19 @@ const ProfilePage: React.FC = () => {
         work_email_verified: (profile as any).work_email_verified || false,
       });
       setLocationQuery(profile.location || '');
-
-      // Load cover image lazily to keep initial profile payload light and fast.
-      if (profile.id && !profile.cover_image_url) {
-        profileService
-          .getProfileCoverImage(profile.id)
-          .then((data) => {
-            if (data?.cover_image_url) {
-              setEditForm((prev) => ({ ...prev, cover_image_url: data.cover_image_url }));
-            }
-          })
-          .catch(() => {
-            // Keep gradient fallback silently on failure.
-          });
-      }
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (user?.id) {
+      connectionService
+        .getConnectionsForUser(user.id)
+        .then((connections) => setConnectionsCount(connections.length))
+        .catch(() => {
+          // Keep the count at 0 silently on failure.
+        });
+    }
+  }, [user?.id]);
 
   const formatLocationSuggestion = (suggestion: any): string => {
     const address = suggestion.address || {};
@@ -596,7 +595,7 @@ const ProfilePage: React.FC = () => {
           {/* Left column: profile details — 40% */}
           <aside className="w-full bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden lg:sticky lg:top-8">
             <div
-              className="relative w-full h-20 bg-center bg-cover bg-no-repeat"
+              className="relative w-full h-24 bg-center bg-cover bg-no-repeat"
               style={{
                 backgroundImage: editForm.cover_image_url
                   ? `url("${editForm.cover_image_url}")`
@@ -638,10 +637,9 @@ const ProfilePage: React.FC = () => {
                     className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-20 w-20 ring-4 ring-white shadow-sm"
                     style={{ backgroundImage: `url("${getProfilePicture()}")` }}
                   ></div>
-                  <div className="absolute bottom-1 right-1 bg-emerald-500 border-2 border-white size-3.5 rounded-full" title="Online"></div>
                 </div>
                 <div className="pb-1">
-                  <span className="text-text-main text-lg font-extrabold">{formatConnectionsCount(profile?.connections_count)}</span>{' '}
+                  <span className="text-text-main text-lg font-extrabold">{formatConnectionsCount(connectionsCount)}</span>{' '}
                   <span className="text-text-secondary text-sm font-medium">Connections</span>
                 </div>
               </div>

@@ -31,7 +31,7 @@ export const ProfileEducationList: React.FC<ProfileEducationListProps> = ({ educ
                 <CompanyAvatar company={edu.school} logoUrl={getCompanyLogoUrl(edu.school)} size="sm" />
               </div>
             </div>
-            <div className="flex flex-col flex-1 pt-0.5 md:pt-2">
+            <div className="flex flex-col flex-1 pt-0 md:pt-1">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 mb-1">
                 <h3 className="text-text-main text-[1.08rem] md:text-lg font-bold">{edu.degree}</h3>
                 <span className={timelineTextClass}>{formatDate(edu.endDate)}</span>

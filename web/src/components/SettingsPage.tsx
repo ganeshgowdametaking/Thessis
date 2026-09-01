@@ -641,7 +641,7 @@ const SettingsPage: React.FC = () => {
                       <div className="bg-stone-off rounded-xl p-4 md:p-6 border border-slate-100">
                         <h4 className="text-base font-semibold text-slate-900 mb-2">Invite Administrator</h4>
                         <p className="text-sm text-slate-500 mb-6 leading-relaxed">Admins have full access to your organization's settings, billing, and user management. Only invite trusted team members.</p>
-                        <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors shadow-sm">
+                        <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-hover transition-colors shadow-sm">
                           <span className="material-symbols-outlined text-[18px]">add</span>
                           Promote New Admin
                         </button>

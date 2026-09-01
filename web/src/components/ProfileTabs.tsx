@@ -29,7 +29,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({ tabs, activeTab, onCha
             key={tab.id}
             onClick={() => onChange(tab.id)}
             className={`h-9 px-4 rounded-full text-sm font-bold transition-colors whitespace-nowrap border inline-flex items-center gap-1.5 ${isActive
-              ? 'bg-ink text-white border-[#4353FF]'
+              ? 'bg-primary text-white border-primary'
               : 'bg-white text-slate-600 border-stone-header hover:border-slate-300'
               }`}
           >

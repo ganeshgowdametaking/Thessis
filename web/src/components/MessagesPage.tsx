@@ -892,7 +892,6 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                     >
                       <MessageAvatar profile={activeOtherParticipant} size="md" />
                     </div>
-                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-white"></span>
                   </div>
                   <div>
                     <>

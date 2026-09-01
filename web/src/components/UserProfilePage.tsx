@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BadgeCheck } from 'lucide-react';
 import { profileService } from '../services/profileService';
 import { connectionService } from '../services/connectionService';
 import { messageService } from '../services/messageService';
@@ -11,7 +12,6 @@ import { isOnline, getCachedData, setCachedData, getOfflineMessage } from '../ut
 import { ProfileTabs } from './ProfileTabs';
 import { ProfileExperienceList } from './ProfileExperienceList';
 import { ProfileEducationList } from './ProfileEducationList';
-import CompanyAvatar from './CompanyAvatar';
 import type { Experience, Education, Skill, Achievement } from '../types/profileSections';
 
 interface UserProfilePageProps {
@@ -32,7 +32,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(!isOnline());
-  const [activeTab, setActiveTab] = useState('about');
+  const [activeTab, setActiveTab] = useState('experience');
+  const [connectionsCount, setConnectionsCount] = useState(0);
 
   // Use actual data from profile instead of hardcoded mock data
   const [experiences, setExperiences] = useState<Experience[]>([]);
@@ -45,7 +46,18 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   // between two different people's profiles reuses this mounted instance —
   // reset to the first tab whenever the viewed profile changes.
   useEffect(() => {
-    setActiveTab('about');
+    setActiveTab('experience');
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      connectionService
+        .getConnectionsForUser(userId)
+        .then((connections) => setConnectionsCount(connections.length))
+        .catch(() => {
+          // Keep the count at 0 silently on failure.
+        });
+    }
   }, [userId]);
 
   const tryParseJson = (value: string): unknown => {
@@ -380,6 +392,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     return '/default-avatar.svg';
   };
 
+  const formatConnectionsCount = (count?: number) => {
+    const value = typeof count === 'number' ? count : 0;
+    if (value < 1000) return String(value);
+    return `${(value / 1000).toFixed(2).replace(/\.?0+$/, '')}k`;
+  };
+
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -438,53 +456,54 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   }
 
   const displayName = profile.full_name?.trim() || profile.username?.trim() || 'User';
-  const title = profile.title?.trim() || '';
-  const company = profile.company?.trim() || '';
   const bio = profile.bio?.trim() || '';
-  const hasHeadline = Boolean(title || company);
 
   console.log('Rendering profile page for:', profile.full_name);
 
   return (
     <div className="bg-stone text-slate-700 min-h-screen flex flex-col">
-      <main className="flex-1 px-4 py-8 md:px-6 md:py-10 flex justify-center w-full">
-        <div className="w-full max-w-6xl">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative">
-            {/* Header Section */}
-            <div className="px-6 md:px-10 pt-6 md:pt-8 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-border">
-              <div className="flex items-center gap-4 min-w-0">
+      <main className="flex-1 w-full max-w-[1380px] mx-auto px-4 md:px-6 py-5 md:py-12">
+        <div className="flex flex-col lg:grid lg:grid-cols-[1fr_1fr] gap-6 md:gap-8 items-start">
+          {/* Left column: profile details — 50% */}
+          <aside className="w-full bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden lg:sticky lg:top-8">
+            <div
+              className="relative w-full h-24 bg-center bg-cover bg-no-repeat"
+              style={{
+                backgroundImage: profile.cover_image_url
+                  ? `url("${profile.cover_image_url}")`
+                  : 'linear-gradient(135deg, #4353FF 0%, #7C86FF 50%, #C7CCFF 100%)',
+              }}
+            ></div>
+
+            <div className="px-5 pb-5">
+              <div className="flex items-end gap-2.5 -mt-10">
                 <div className="relative shrink-0">
                   <div
-                    className="bg-center bg-no-repeat bg-cover rounded-full h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-sm bg-stone-off"
+                    className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-20 w-20 ring-4 ring-white shadow-sm"
                     style={{ backgroundImage: `url("${getProfilePicture(profile)}")` }}
                   ></div>
-                  <div className="absolute bottom-0 right-0 h-4 w-4 bg-green-500 rounded-full border-2 border-white" title="Online"></div>
                 </div>
-
-                <div className="flex flex-col gap-1 min-w-0">
-                  <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight truncate">
-                    {displayName}
-                  </h1>
-                  {hasHeadline && (
-                    <div className="flex items-center gap-1.5 text-slate-700 text-sm md:text-base font-medium min-w-0">
-                      {company && (
-                        <div className="h-5 w-5 rounded-full overflow-hidden shrink-0">
-                          <CompanyAvatar company={company} size="sm" />
-                        </div>
-                      )}
-                      <span className="truncate">
-                        {title}
-                        {title && company ? ' at ' : ''}
-                        {company && <span className="text-slate-900 font-semibold">{company}</span>}
-                      </span>
-                    </div>
-                  )}
+                <div className="pb-1">
+                  <span className="text-slate-900 text-lg font-extrabold">{formatConnectionsCount(connectionsCount)}</span>{' '}
+                  <span className="text-slate-500 text-sm font-medium">Connections</span>
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              <h1 className="text-slate-900 text-lg font-extrabold leading-tight tracking-tight mt-2 flex items-center gap-1.5">
+                {displayName}
+                {profile?.verified && (
+                  <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500 stroke-white shrink-0" />
+                )}
+              </h1>
+
+              {bio && (
+                <p className="text-slate-500 text-sm leading-snug mt-1">
+                  {bio}
+                </p>
+              )}
+
               {userId !== user?.id && (
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2 mt-4">
                   <button
                     className={getConnectionButtonStyle()}
                     onClick={handleConnect}
@@ -495,7 +514,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                   </button>
 
                   <button
-                    className="lg:min-w-[120px] h-10 px-5 bg-white border border-stone-border hover:bg-stone-off hover:border-sage text-slate-900 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                    className="h-10 px-5 bg-white border border-stone-border hover:bg-stone-off hover:border-sage text-slate-900 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
                     onClick={handleMessage}
                   >
                     <span className="material-symbols-outlined text-xl">mail</span>
@@ -511,7 +530,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                     </button>
 
                     {showActionsMenu && (
-                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-stone-border overflow-hidden z-20">
+                      <div className="absolute left-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-stone-border overflow-hidden z-20">
                         <button
                           className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isBlocked
                             ? 'text-green-600 hover:bg-green-50'
@@ -530,96 +549,82 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Main Content */}
-            <div className="p-6 md:p-10">
-              <ProfileTabs
-                tabs={[
-                  { id: 'about', label: 'About' },
-                  { id: 'experience', label: 'Experience' },
-                  { id: 'education', label: 'Education' },
-                ]}
-                activeTab={activeTab}
-                onChange={setActiveTab}
-              />
-
-              <div className="mt-8 md:mt-10">
-                {activeTab === 'about' && (
-                  <div className="flex flex-col gap-8 md:gap-10">
-                    {bio && (
-                      <section>
-                        <div className="flex items-center mb-6 px-1">
-                          <h2 className="text-lg font-semibold text-slate-900">Short bio</h2>
-                        </div>
-                        <p className="px-1 text-slate-700 max-w-2xl text-sm leading-relaxed">{bio}</p>
-                      </section>
-                    )}
-
-                    {/* Skills Section */}
-                    <section>
-                      <div className="flex items-center mb-6 px-1">
-                        <h2 className="text-lg font-semibold text-slate-900">Skills</h2>
-                      </div>
-                      <div className="px-1">
-                        <div className="flex flex-wrap gap-2">
-                          {Array.isArray(skills) && skills.length > 0 ? (
-                            skills.map((skill) => (
-                              <span
-                                key={skill.id}
-                                className="px-3 py-1.5 rounded-lg bg-white text-slate-body cursor-default text-sm font-bold tracking-wide border border-stone-border"
-                              >
-                                {skill.name}
-                              </span>
-                            ))
-                          ) : null}
-                        </div>
-                      </div>
-                    </section>
-
-                    {/* Achievements Section */}
-                    <section>
-                      <div className="flex items-center mb-6 px-1">
-                        <h2 className="text-lg font-semibold text-slate-900">Achievements</h2>
-                      </div>
-                      <div className="flex flex-col gap-4">
-                        {Array.isArray(achievements) && achievements.length > 0 ? (
-                          achievements.map((achievement) => (
-                            <div key={achievement.id} className="px-1 py-1 flex items-start justify-between gap-4">
-                              <div className="min-w-0">
-                                <h4 className="text-text-main font-bold text-base leading-tight">{achievement.title}</h4>
-                                <p className="text-slate-meta text-sm mt-1 font-semibold">{achievement.organization}</p>
-                                {achievement.description && (
-                                  <p className="text-text-secondary text-sm mt-2 leading-snug">{achievement.description}</p>
-                                )}
-                              </div>
-                              <span className={`${timelineTextClass} shrink-0 pt-0.5`}>{formatDate(achievement.date)}</span>
-                            </div>
-                          ))
-                        ) : null}
-                      </div>
-                    </section>
+              <div className="flex flex-col gap-6 mt-6 text-left">
+                {/* Skills Section */}
+                <section>
+                  <div className="flex items-center mb-3 pb-2 border-b border-slate-200/70">
+                    <h2 className="text-lg font-semibold text-slate-900">Skills</h2>
                   </div>
-                )}
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(skills) && skills.length > 0 ? (
+                      skills.map((skill) => (
+                        <span
+                          key={skill.id}
+                          className="px-2.5 py-1.5 rounded-lg bg-white text-slate-body cursor-default text-[13px] font-bold tracking-tight border border-stone-border"
+                        >
+                          {skill.name}
+                        </span>
+                      ))
+                    ) : null}
+                  </div>
+                </section>
 
-                {activeTab === 'experience' && (
-                  <section>
-                    <div className="flex items-center mb-6 px-1">
-                      <h2 className="text-lg font-semibold text-slate-900">Experience</h2>
-                    </div>
-                    <ProfileExperienceList experiences={experiences} />
-                  </section>
-                )}
-
-                {activeTab === 'education' && (
-                  <section>
-                    <div className="flex items-center mb-6 px-1">
-                      <h2 className="text-lg font-semibold text-slate-900">Education</h2>
-                    </div>
-                    <ProfileEducationList education={education} />
-                  </section>
-                )}
+                {/* Achievements Section */}
+                <section>
+                  <div className="flex items-center mb-3 pb-2 border-b border-slate-200/70">
+                    <h2 className="text-lg font-semibold text-slate-900">Achievements</h2>
+                  </div>
+                  <div className="flex flex-col gap-1 divide-y divide-slate-200/80">
+                    {Array.isArray(achievements) && achievements.length > 0 ? (
+                      achievements.map((achievement) => (
+                        <div key={achievement.id} className="py-3 flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h4 className="text-text-main font-bold text-[1.05rem] leading-tight">{achievement.title}</h4>
+                            <p className="text-slate-meta text-[13px] mt-1 font-semibold">{achievement.organization}</p>
+                            {achievement.description && (
+                              <p className="text-text-secondary text-sm mt-1.5 leading-snug">{achievement.description}</p>
+                            )}
+                          </div>
+                          <span className={`${timelineTextClass} shrink-0 pt-0.5`}>{formatDate(achievement.date)}</span>
+                        </div>
+                      ))
+                    ) : null}
+                  </div>
+                </section>
               </div>
+            </div>
+          </aside>
+
+          {/* Right column: tabbed detail content — 50% */}
+          <div className="min-w-0 w-full bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+            <ProfileTabs
+              tabs={[
+                { id: 'experience', label: 'Experience' },
+                { id: 'education', label: 'Education' },
+              ]}
+              activeTab={activeTab}
+              onChange={setActiveTab}
+            />
+
+            <div className="mt-6 md:mt-10">
+              {activeTab === 'experience' && (
+                <section>
+                  <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                    <h2 className="text-2xl font-semibold text-slate-900">Experience</h2>
+                  </div>
+                  <ProfileExperienceList experiences={experiences} />
+                </section>
+              )}
+
+              {activeTab === 'education' && (
+                <section>
+                  <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
+                    <h2 className="text-2xl font-semibold text-slate-900">Education</h2>
+                  </div>
+                  <ProfileEducationList education={education} />
+                </section>
+              )}
             </div>
           </div>
         </div>
