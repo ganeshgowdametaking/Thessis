@@ -97,6 +97,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
         }
         const { error } = await supabase.auth.updateUser({ password: formData.password })
         if (error) throw error
+        supabase.rpc('send_password_changed_email').catch(() => {})
         setSuccess('Password updated successfully!')
         setTimeout(() => {
           setMode('signin')

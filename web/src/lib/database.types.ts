@@ -566,6 +566,10 @@ export interface Database {
         }
         Returns: string | null
       }
+      send_password_changed_email: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

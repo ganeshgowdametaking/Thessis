@@ -29,40 +29,14 @@ serve(async (req) => {
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
-    const resendApiKey =
-      Deno.env.get("RESEND_API_KEY") ||
-      Deno.env.get("RESEND_KEY") ||
-      Deno.env.get("RESEND_TOKEN") ||
-      Deno.env.get("RESEND_SMTP_PASSWORD") ||
-      Deno.env.get("SMTP_PASSWORD");
-    // @ts-expect-error: Deno.env is available in Supabase Edge Functions
-    const resendFromEmail =
-      Deno.env.get("RESEND_FROM_EMAIL") ||
-      Deno.env.get("SMTP_FROM_EMAIL") ||
-      Deno.env.get("MAIL_FROM") ||
-      "onboarding@resend.dev";
-    // @ts-expect-error: Deno.env is available in Supabase Edge Functions
     const frontendUrl = (
       Deno.env.get("FRONTEND_URL") ||
       Deno.env.get("SITE_URL") ||
-      "https://tanktide.com"
+      "https://thessis.com"
     ).replace(/\/+$/, "");
 
     if (!supabaseUrl || !serviceRoleKey) {
       return json(500, { error: "Supabase configuration missing" });
-    }
-
-    if (!resendApiKey) {
-      return json(500, {
-        error: "Resend API key is missing in Supabase function secrets",
-        expected_any_of: [
-          "RESEND_API_KEY",
-          "RESEND_KEY",
-          "RESEND_TOKEN",
-          "RESEND_SMTP_PASSWORD",
-          "SMTP_PASSWORD",
-        ],
-      });
     }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
@@ -121,8 +95,8 @@ serve(async (req) => {
     }
 
     // Threshold-based milestone detection: Find the highest milestone reached that hasn't been sent yet.
-    // Order is important: we check 5 first, then 1.
-    const possibleMilestones = [5, 1];
+    // Order is important: we check 10 first, then 1.
+    const possibleMilestones = [10, 1];
     let candidateMilestone: number | null = null;
 
     // Check existing milestones for this job
@@ -231,15 +205,15 @@ serve(async (req) => {
         </div>
       `;
     } else {
-      subject = `Your Top 5 candidates are ready for ${job.title}`;
+      subject = `Your Top 10 candidates are ready for ${job.title}`;
       html = `
         <div style="${emailStyles}">
-          <h1 style="font-size: 24px; font-weight: 800; tracking: -0.02em; margin-bottom: 24px;">Your Top 5 candidates are ready.</h1>
+          <h1 style="font-size: 24px; font-weight: 800; tracking: -0.02em; margin-bottom: 24px;">Your Top 10 candidates are ready.</h1>
           <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563;">
-            Hi ${greetingName}, your referral for <strong>${job.title}</strong> has now surpassed 5 applicants.
+            Hi ${greetingName}, your referral for <strong>${job.title}</strong> has now surpassed 10 applicants.
           </p>
           <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563;">
-            Thessis AI has ranked the <strong>top 5 candidates</strong> that best fit your referral criteria.
+            Thessis AI has ranked the <strong>top 10 candidates</strong> that best fit your referral criteria.
           </p>
           <p style="margin-bottom: 20px; font-size: 16px; color: #4b5563; font-style: italic;">
             Click below to log in and review the top candidates on your applications page.
@@ -254,26 +228,21 @@ serve(async (req) => {
       `;
     }
 
-    const resendRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: `Thessis Team <${resendFromEmail}>`,
-        to: [creatorProfile.email],
-        subject,
-        html,
-      }),
+    // Delegates to the shared Postgres helper (public.send_transactional_email)
+    // so this function doesn't need its own ZeptoMail credentials — the token
+    // lives once, in Supabase Vault, and the SQL function reads it there.
+    const { error: sendError } = await supabaseAdmin.rpc("send_transactional_email", {
+      p_to_email: creatorProfile.email,
+      p_to_name: greetingName,
+      p_subject: subject,
+      p_html_body: html,
     });
 
-    if (!resendRes.ok) {
-      const sendErrorDetails = await resendRes.text();
+    if (sendError) {
       if (milestoneRow?.id) {
         await supabaseAdmin.from("job_application_email_milestones").delete().eq("id", milestoneRow.id);
       }
-      return json(500, { error: "Failed to send milestone email via Resend", provider: "resend", details: sendErrorDetails });
+      return json(500, { error: "Failed to send milestone email via ZeptoMail", provider: "zeptomail", details: sendError.message });
     }
 
     if (milestoneRow?.id) {
@@ -288,7 +257,7 @@ serve(async (req) => {
       milestone,
       applicationsCount,
       recipient: creatorProfile.email,
-      provider: "resend",
+      provider: "zeptomail",
     });
   } catch (error: any) {
     return json(500, { error: "Internal server error", details: error?.message || "Unknown error" });

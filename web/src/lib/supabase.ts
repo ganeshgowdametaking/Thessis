@@ -257,6 +257,9 @@ export const auth = {
         return { data: null, error }
       } else {
         console.log('✅ Password update successful')
+        supabase.rpc('send_password_changed_email').then(({ error: emailError }) => {
+          if (emailError) console.error('❌ Password-changed email error:', emailError)
+        })
 
         if (options?.logoutOthers) {
           console.log('🔐 Triggering global sign-out for other devices...')
