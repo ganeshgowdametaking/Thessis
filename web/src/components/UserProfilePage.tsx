@@ -411,7 +411,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   if (loading) {
     console.log('Showing loading spinner');
     return (
-      <div className="bg-stone text-slate-700 min-h-screen flex items-center justify-center">
+      <div className="bg-stone-bg text-slate-700 min-h-screen flex items-center justify-center">
         <LoadingSpinner />
       </div>
     );
@@ -420,7 +420,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   // Show offline message if offline and no profile data
   if (isOffline && !profile) {
     return (
-      <div className="bg-stone text-slate-700 min-h-screen flex flex-col">
+      <div className="bg-stone-bg text-slate-700 min-h-screen flex flex-col">
         <div className="flex-1 flex items-center justify-center">
           <OfflineMessage
             {...getOfflineMessage('profile')}
@@ -435,7 +435,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   // Show not found message if no profile data available
   if (!profile) {
     return (
-      <div className="bg-stone text-slate-700 min-h-screen flex flex-col">
+      <div className="bg-stone-bg text-slate-700 min-h-screen flex flex-col">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center py-16">
             <div className="w-20 h-20 rounded-full bg-stone-off flex items-center justify-center mx-auto mb-6">
@@ -461,7 +461,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   console.log('Rendering profile page for:', profile.full_name);
 
   return (
-    <div className="bg-stone text-slate-700 min-h-screen flex flex-col">
+    <div className="bg-stone-bg text-slate-700 min-h-screen flex flex-col">
       <main className="flex-1 w-full max-w-[1380px] mx-auto px-4 md:px-6 py-5 md:py-12">
         <div className="flex flex-col lg:grid lg:grid-cols-[1fr_1fr] gap-6 md:gap-8 items-start">
           {/* Left column: profile details — 50% */}
