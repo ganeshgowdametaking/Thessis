@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
-import SenioritySelector, { SeniorityBucket } from './SenioritySelector';
 import { trustService } from '../services/TrustService';
 import { supabase } from '../lib/supabase';
 
@@ -59,7 +58,7 @@ const SettingsPage: React.FC = () => {
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   // Verification Step Logic
-  const [verificationStep, setVerificationStep] = useState<'input' | 'otp' | 'seniority' | 'verified'>(
+  const [verificationStep, setVerificationStep] = useState<'input' | 'otp' | 'verified'>(
     ((profile as any)?.work_email_verified || profile?.secondary_email_verified) ? 'verified' : 'input'
   );
   const [verificationOtp, setVerificationOtp] = useState('');
@@ -235,42 +234,26 @@ const SettingsPage: React.FC = () => {
         setMessage({ type: 'error', text: error || 'Invalid verification code.' });
         return;
       }
-      setVerificationStep('seniority');
-      setMessage({ type: 'success', text: 'Email verified successfully! Now, tell us about your role.' });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Invalid verification code.' });
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const handleSaveProfessionalIdentity = async (seniority: SeniorityBucket, title: string) => {
-    if (!user) return;
-    setLoading(true);
-    try {
       await updateProfile({
-        seniority,
-        title: title, // Sync with main title field for UI
-        display_title: title,
-        secondary_email: organizationEmail.trim().toLowerCase(),
+        secondary_email: normalizedEmail,
         secondary_email_verified: true,
-        work_email: organizationEmail.trim().toLowerCase(),
+        work_email: normalizedEmail,
         work_email_verified: true
       });
       setVerificationStep('verified');
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      setMessage({ type: 'success', text: 'Email verified successfully!' });
     } catch (err: any) {
-      console.error('❌ Profile update failed:', err);
-      let errorMessage = err.message || 'Unknown error';
+      console.error('❌ Verification failed:', err);
+      let errorMessage = err.message || 'Invalid verification code.';
 
       // Handle the specific unique constraint violation for verified secondary emails
       if (err.code === '23505' && err.message?.includes('unique_verified_secondary_email')) {
         errorMessage = 'This organization email is already verified on another account. Please use a unique email.';
       }
 
-      setMessage({ type: 'error', text: `Failed to update profile: ${errorMessage}` });
+      setMessage({ type: 'error', text: errorMessage });
     } finally {
-      setLoading(false);
+      setIsVerifying(false);
     }
   };
 
@@ -542,12 +525,6 @@ const SettingsPage: React.FC = () => {
                                 </button>
                               </div>
                               <button onClick={() => setVerificationStep('input')} className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider">Change Email</button>
-                            </div>
-                          )}
-
-                          {verificationStep === 'seniority' && (
-                            <div className="pt-2">
-                              <SenioritySelector onSave={handleSaveProfessionalIdentity} isLoading={loading} />
                             </div>
                           )}
                         </div>
