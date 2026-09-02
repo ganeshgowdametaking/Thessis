@@ -57,8 +57,14 @@ BEGIN
     RETURN;
   END IF;
 
+  -- ZeptoMail's dashboard "click to copy" on the Send Mail token copies the
+  -- full "Zoho-enczapikey <token>" string, prefix included. Strip it if
+  -- present so this works whether the raw token or that full string was
+  -- pasted into Vault — either way we end up prepending the prefix exactly once.
+  v_token := regexp_replace(v_token, '^\s*Zoho-enczapikey\s+', '', 'i');
+
   PERFORM net.http_post(
-    url := 'https://api.zeptomail.com/v1.1/email',
+    url := 'https://api.zeptomail.in/v1.1/email',
     headers := jsonb_build_object(
       'Authorization', 'Zoho-enczapikey ' || v_token,
       'Content-Type', 'application/json'
