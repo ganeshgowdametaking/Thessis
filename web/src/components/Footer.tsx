@@ -41,7 +41,7 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
 
             <div className="flex items-center gap-3 shrink-0">
               <a
-                href="https://x.com/tanktide?s=21"
+                href="https://x.com/thessisngl?s=11"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="opacity-80 hover:opacity-100 transition-opacity"
@@ -50,7 +50,7 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
                 <img src={socialX} alt="X" className="h-4 w-4 object-contain brightness-0" />
               </a>
               <a
-                href="https://www.instagram.com/tanktideorg?igsh=MWJ2YXhreWRkbjhjOA=="
+                href="https://www.instagram.com/thethessis/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="opacity-80 hover:opacity-100 transition-opacity"
@@ -127,7 +127,7 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
               <span className="text-slate-900 font-bold text-sm uppercase tracking-wider mb-2">Socials</span>
               <div className="flex gap-4 items-center">
                 <a
-                  href="https://x.com/tanktide?s=21"
+                  href="https://x.com/thessisngl?s=11"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:opacity-70 transition-opacity"
@@ -135,7 +135,7 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
                   <img src={socialX} alt="X" className="h-5 w-5 object-contain brightness-0" />
                 </a>
                 <a
-                  href="https://www.instagram.com/tanktideorg?igsh=MWJ2YXhreWRkbjhjOA=="
+                  href="https://www.instagram.com/thethessis/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:opacity-70 transition-opacity"

@@ -424,52 +424,58 @@ export const jobService = {
 
       console.log('Application created:', data);
 
-      // Trigger notification for the job creator
-      try {
-        const { data: jobData } = await supabase
-          .from('jobs')
-          .select('title, company, created_by')
-          .eq('id', application.job_id)
-          .single();
-
-        if (jobData && (jobData as any).created_by) {
-          const { data: applicantProfile } = await (supabase
-            .from('profiles') as any)
-            .select('full_name')
-            .eq('id', user.id)
+      // Notification + milestone email are bookkeeping for the referrer, not
+      // something the applicant needs to wait on — fire-and-forget instead of
+      // awaiting, since this chain (2 lookups + a notification insert + a full
+      // edge function invocation with its own DB queries and a live ZeptoMail
+      // call) was adding several seconds to every submit before the UI could
+      // show success.
+      (async () => {
+        try {
+          const { data: jobData } = await supabase
+            .from('jobs')
+            .select('title, company, created_by')
+            .eq('id', application.job_id)
             .single();
 
-          await notificationService.createNotification({
-            type: 'job_application',
-            title: 'New Job Application',
-            message: `${(applicantProfile as any)?.full_name || 'Someone'} has applied for your referral for ${(jobData as any).title} at ${(jobData as any).company}.`,
-            actionable: true,
-            priority: 'high',
-            metadata: {
-              job_id: application.job_id,
-              applicant_id: user.id,
-              company: (jobData as any).company,
-              title: (jobData as any).title
-            }
-          }, (jobData as any).created_by);
-        }
-      } catch (notifErr) {
-        console.warn('Failed to send application notification:', notifErr);
-      }
+          if (jobData && (jobData as any).created_by) {
+            const { data: applicantProfile } = await (supabase
+              .from('profiles') as any)
+              .select('full_name')
+              .eq('id', user.id)
+              .single();
 
-      // Trigger backend milestone email notifications (1 and 5 applications).
-      try {
-        const { error: milestoneEmailError } = await supabase.functions.invoke(
-          'send-referral-application-milestone',
-          { body: { jobId: application.job_id } }
-        );
-
-        if (milestoneEmailError) {
-          console.warn('Failed to trigger referral milestone email:', milestoneEmailError);
+            await notificationService.createNotification({
+              type: 'job_application',
+              title: 'New Job Application',
+              message: `${(applicantProfile as any)?.full_name || 'Someone'} has applied for your referral for ${(jobData as any).title} at ${(jobData as any).company}.`,
+              actionable: true,
+              priority: 'high',
+              metadata: {
+                job_id: application.job_id,
+                applicant_id: user.id,
+                company: (jobData as any).company,
+                title: (jobData as any).title
+              }
+            }, (jobData as any).created_by);
+          }
+        } catch (notifErr) {
+          console.warn('Failed to send application notification:', notifErr);
         }
-      } catch (milestoneInvokeError) {
-        console.warn('Failed to invoke referral milestone email function:', milestoneInvokeError);
-      }
+
+        try {
+          const { error: milestoneEmailError } = await supabase.functions.invoke(
+            'send-referral-application-milestone',
+            { body: { jobId: application.job_id } }
+          );
+
+          if (milestoneEmailError) {
+            console.warn('Failed to trigger referral milestone email:', milestoneEmailError);
+          }
+        } catch (milestoneInvokeError) {
+          console.warn('Failed to invoke referral milestone email function:', milestoneInvokeError);
+        }
+      })();
 
       return (data as any)?.job_id;
     } catch (error: any) {
@@ -623,6 +629,48 @@ export const jobService = {
     } catch (error) {
       console.error('❌ DEBUG: Error in debugCheckApplicationsTable:', error);
       return null;
+    }
+  },
+
+  // Fetch this user's first-viewed timestamp for each of the given jobs
+  // (drives the per-user 24h "New" tag).
+  getFirstViewedMap: async (jobIds: string[]): Promise<Record<string, string>> => {
+    if (jobIds.length === 0) return {};
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return {};
+
+    const { data, error } = await supabase
+      .from('job_first_views' as any)
+      .select('job_id, first_viewed_at')
+      .eq('user_id', user.id)
+      .in('job_id', jobIds);
+
+    if (error) {
+      console.warn('Failed to fetch job first-view map:', error);
+      return {};
+    }
+
+    const map: Record<string, string> = {};
+    (data as any[] || []).forEach((row) => {
+      map[row.job_id] = row.first_viewed_at;
+    });
+    return map;
+  },
+
+  // Record this user's first view of each job that isn't already tracked.
+  // Safe to call repeatedly — ignores duplicates so the earliest view wins.
+  recordJobFirstViews: async (jobIds: string[]): Promise<void> => {
+    if (jobIds.length === 0) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const rows = jobIds.map((job_id) => ({ job_id, user_id: user.id }));
+    const { error } = await supabase
+      .from('job_first_views' as any)
+      .upsert(rows as any, { onConflict: 'job_id,user_id', ignoreDuplicates: true });
+
+    if (error) {
+      console.warn('Failed to record job first views:', error);
     }
   },
 };

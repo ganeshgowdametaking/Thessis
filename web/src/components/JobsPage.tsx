@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 // Cache buster: 2025-01-25-15:30
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, MapPin, Briefcase, X, CheckCircle, Copy, SlidersHorizontal, CheckCircle2, Upload, BadgeCheck } from 'lucide-react';
+import { Plus, Search, MapPin, Briefcase, X, CheckCircle, Copy, SlidersHorizontal, CheckCircle2, Upload, BadgeCheck, Loader2 } from 'lucide-react';
 import shareIcon from '../assets/share-icon.png';
 import { useAuthContext } from '../contexts/AuthContext';
 import { jobService } from '../services/jobService';
@@ -51,6 +51,7 @@ const JobsPage: React.FC = () => {
     experienceLevel: ''
   });
   const [userJobs, setUserJobs] = useState<string[]>([]);
+  const [firstViewedMap, setFirstViewedMap] = useState<Record<string, string>>({});
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [applicationForm, setApplicationForm] = useState<ApplicationFormData>({
@@ -60,6 +61,7 @@ const JobsPage: React.FC = () => {
     customFields: {},
   });
   const [applicationError, setApplicationError] = useState<string | null>(null);
+  const [isSubmittingApplication, setIsSubmittingApplication] = useState(false);
   const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
   const [applicationsCount, setApplicationsCount] = useState(0);
   const [applicationStep, setApplicationStep] = useState(1);
@@ -152,6 +154,23 @@ const JobsPage: React.FC = () => {
 
       if (!selectedJob && data && data.length > 0 && !isMobile) {
         setSelectedJob(data[0]);
+      }
+
+      if (data && data.length > 0) {
+        const jobIds = data.map((job) => job.id);
+        jobService.getFirstViewedMap(jobIds).then((map) => {
+          setFirstViewedMap((prev) => ({ ...prev, ...map }));
+          const unseenIds = jobIds.filter((id) => !map[id]);
+          if (unseenIds.length > 0) {
+            jobService.recordJobFirstViews(unseenIds);
+            const now = new Date().toISOString();
+            setFirstViewedMap((prev) => {
+              const next = { ...prev };
+              unseenIds.forEach((id) => { if (!next[id]) next[id] = now; });
+              return next;
+            });
+          }
+        });
       }
     } catch (error: any) {
       console.error('Failed to load jobs:', error);
@@ -395,6 +414,7 @@ const JobsPage: React.FC = () => {
     }
     try {
       setApplicationError(null);
+      setIsSubmittingApplication(true);
       const file = applicationForm.resume as File;
 
       // For development: Convert file to base64 instead of uploading to S3
@@ -416,8 +436,9 @@ const JobsPage: React.FC = () => {
       // Call jobService to save the application
       await jobService.createApplication(applicationData);
       setApplicationStep(2); // Go to success step
-      await loadUserApplications();
-      await loadJobs();
+      setIsSubmittingApplication(false);
+      loadUserApplications();
+      loadJobs();
       setTimeout(() => {
         setShowApplicationModal(false);
         setApplicationStep(1);
@@ -432,6 +453,7 @@ const JobsPage: React.FC = () => {
     } catch (error: any) {
       console.error('❌ Application submission error:', error);
       setApplicationError(error.message || 'Failed to submit application.');
+      setIsSubmittingApplication(false);
     }
   };
 
@@ -731,7 +753,8 @@ const JobsPage: React.FC = () => {
             {filteredJobs.length > 0 ? (
               filteredJobs.map((job, index) => {
                 const isSelected = selectedJob?.id === job.id;
-                const isFirstJob = index === 0;
+                const firstViewedAt = firstViewedMap[job.id];
+                const isNewForUser = Boolean(firstViewedAt) && (Date.now() - new Date(firstViewedAt).getTime() < 24 * 60 * 60 * 1000);
 
                 return (
                   <div
@@ -758,7 +781,7 @@ const JobsPage: React.FC = () => {
                             Urgent
                           </span>
                         )}
-                        {isFirstJob && !job.urgent_hiring && (
+                        {isNewForUser && !job.urgent_hiring && (
                           <span className="text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-olive px-2 py-0.5 rounded-full shrink-0">
                             New
                           </span>
@@ -1045,9 +1068,17 @@ const JobsPage: React.FC = () => {
                     <div className="pt-2">
                       <button
                         onClick={handleApplicationSubmit}
-                        className="w-full h-12 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg transition-all flex items-center justify-center"
+                        disabled={isSubmittingApplication}
+                        className="w-full h-12 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                       >
-                        Submit Application
+                        {isSubmittingApplication ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          'Submit Application'
+                        )}
                       </button>
                     </div>
                   </div>
