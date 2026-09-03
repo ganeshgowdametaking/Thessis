@@ -5,7 +5,6 @@ import { useAuthContext } from '../contexts/AuthContext'
 import GoogleSignInButton from './GoogleSignInButton'
 import { supabase } from '../lib/supabase'
 import { getUTMForSignup, clearUTMData } from '../utils/utmHandler'
-import BackArrowIcon from './icons/BackArrowIcon'
 
 type AuthMode = 'signin' | 'signup' | 'verify-email' | 'forgot-password' | 'verify-reset-otp' | 'update-password'
 
@@ -97,7 +96,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
         }
         const { error } = await supabase.auth.updateUser({ password: formData.password })
         if (error) throw error
-        supabase.rpc('send_password_changed_email').catch(() => {})
+        supabase.rpc('send_password_changed_email').then(undefined, () => {})
         setSuccess('Password updated successfully!')
         setTimeout(() => {
           setMode('signin')
@@ -157,7 +156,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
           {mode === 'verify-email' && <div className="text-center mb-6"><h1 className="text-2xl font-bold text-ink">Verify Email</h1><p className="text-sm text-slate-500 mt-1">Enter the code sent to {formData.email}</p></div>}
           {mode === 'forgot-password' && <div className="text-center mb-6"><h1 className="text-2xl font-bold text-ink">Reset Password</h1><p className="text-sm text-slate-500 mt-1">Enter your email to receive a recovery code</p></div>}
           {mode === 'verify-reset-otp' && <div className="text-center mb-6"><h1 className="text-2xl font-bold text-ink">Verify Identity</h1><p className="text-sm text-slate-500 mt-1">Enter the 6-digit recovery code sent to your email</p></div>}
-          {mode === 'update-password' && <div className="text-center mb-6"><h1 className="text-2xl font-bold text-ink">New Password</h1><p className="text-sm text-slate-500 mt-1">Set a secure password for your account</p></div>}
+          {mode === 'update-password' && <div className="text-center mb-6"><h1 className="text-2xl font-bold text-ink">New Password</h1></div>}
 
           {error && <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm">{error}</div>}
           {success && <div className="mb-4 p-3 bg-green-50 border border-green-100 rounded-lg text-green-600 text-sm flex items-center gap-2"><CheckCircle size={16} />{success}</div>}
@@ -270,7 +269,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
 
           {mode !== 'signin' && mode !== 'signup' && (
             <button onClick={() => setMode('signin')} className="mt-6 text-sm font-bold text-slate-400 hover:text-primary transition-colors flex items-center justify-center gap-2 w-full">
-              <BackArrowIcon className="h-4 w-4" /> Back to Sign In
+              Back to Sign In
             </button>
           )}
         </div>

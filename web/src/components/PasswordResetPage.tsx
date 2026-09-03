@@ -118,7 +118,7 @@ const PasswordResetPage: React.FC = () => {
 
       if (error) throw error
 
-      supabase.rpc('send_password_changed_email').catch(() => {})
+      supabase.rpc('send_password_changed_email').then(undefined, () => {})
 
       // Global sign-out for other devices
       await supabase.auth.signOut({ scope: 'others' })
