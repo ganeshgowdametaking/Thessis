@@ -117,30 +117,26 @@ export const connectionService = {
     localStorage.setItem(cacheKey, JSON.stringify(cacheData))
     console.log('💾 Cached connection state:', cacheData)
 
-    // Create notification for the addressee
-    try {
-      // Get current user's profile for notification
-      const { data: requesterProfile } = await supabase
-        .from('profiles')
-        .select('full_name, title, company')
-        .eq('id', user.id)
-        .single()
-
-      // Create notification for the addressee
-      await notificationService.createNotification({
-        type: 'connection',
-        title: 'New Connection Request',
-        message: '',
-        actionable: true,
-        priority: 'high',
-        metadata: {
-          connection_id: data.id,
-          requester_id: user.id
-        }
-      }, addresseeId)
-    } catch (notificationError) {
-      console.warn('Failed to create connection notification:', notificationError)
-    }
+    // Notification for the addressee is bookkeeping for them, not something
+    // the requester needs to wait on — fire-and-forget so the button can
+    // update immediately instead of blocking on a profile fetch + insert.
+    (async () => {
+      try {
+        await notificationService.createNotification({
+          type: 'connection',
+          title: 'New Connection Request',
+          message: '',
+          actionable: true,
+          priority: 'high',
+          metadata: {
+            connection_id: data.id,
+            requester_id: user.id
+          }
+        }, addresseeId)
+      } catch (notificationError) {
+        console.warn('Failed to create connection notification:', notificationError)
+      }
+    })()
 
     return data
   },
@@ -260,26 +256,26 @@ export const connectionService = {
 
       console.log('🎯 Found connection to delete:', connectionToDelete)
 
-      // STEP 2: Try using the database function first (if it exists)
+      // STEP 2: Use the database function — it deletes the connection AND its
+      // related notifications atomically server-side (a plain client-side
+      // delete can't clean up the other user's notification due to RLS).
+      // Note: the RPC's SQL signature is `RETURNS boolean`, so `result` here
+      // is a plain true/false, not an object — checking `result.success`
+      // (as this used to) is always undefined on a boolean, so that check
+      // always failed and silently fell through to a redundant manual
+      // delete on every single call. Checking the boolean directly instead.
       try {
-        console.log('🔄 Attempting to use database function...')
         const { data: result, error: rpcError } = await supabase
           .rpc('delete_connection_safely',
             { connection_id: connectionToDelete.id }
           )
 
-        if (!rpcError && result) {
-          console.log('✅ Database function result:', result)
-
-          if (result.success) {
-            console.log('✅ Connection deleted successfully via database function')
-            return {
-              success: true,
-              message: 'Connection deleted successfully'
-            }
-          } else {
-            console.warn('⚠️ Database function returned failure:', result.error)
-            // Fall through to manual deletion
+        if (!rpcError && result === true) {
+          console.log('✅ Connection deleted successfully via database function')
+          localStorage.removeItem(cacheKey)
+          return {
+            success: true,
+            message: 'Connection deleted successfully'
           }
         } else if (rpcError) {
           console.warn('⚠️ Database function failed:', rpcError.message)

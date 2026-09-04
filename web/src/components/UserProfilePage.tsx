@@ -21,7 +21,7 @@ interface UserProfilePageProps {
 }
 
 const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onViewProfile }) => {
-  const { user, userConnections, refreshUserConnections } = useAuthContext();
+  const { user, userConnections, refreshUserConnections, setConnectionStatus } = useAuthContext();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -284,18 +284,18 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
       if (connectionStatus === 'none') {
         // Send connection request
         await connectionService.sendConnectionRequest(userId);
-        await new Promise(res => setTimeout(res, 300));
-        refreshUserConnections(); // Update global state
+        setConnectionStatus(userId, 'pending_sent'); // Instant UI update
+        refreshUserConnections(); // Reconcile with server in the background
       } else if (connectionStatus === 'pending_sent') {
         // Cancel connection request
         await connectionService.cancelConnectionRequest(userId);
-        await new Promise(res => setTimeout(res, 300));
-        refreshUserConnections(); // Update global state
+        setConnectionStatus(userId, 'none');
+        refreshUserConnections();
       } else if (connectionStatus === 'connected') {
         // Disconnect from user
         await connectionService.cancelConnectionRequest(userId);
-        await new Promise(res => setTimeout(res, 300));
-        refreshUserConnections(); // Update global state
+        setConnectionStatus(userId, 'none');
+        refreshUserConnections();
       } else if (connectionStatus === 'pending_received') {
         // Redirect to notifications page to respond to the request
         console.log('User should go to notifications page to respond to connection request');

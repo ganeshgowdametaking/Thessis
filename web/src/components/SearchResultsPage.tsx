@@ -15,7 +15,7 @@ interface SearchResultsPageProps {
 }
 
 const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBack, onViewProfile }) => {
-  const { user, userConnections, refreshUserConnections } = useAuthContext();
+  const { user, userConnections, refreshUserConnections, setConnectionStatus } = useAuthContext();
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState({
@@ -124,15 +124,18 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
       if (currentStatus === 'none') {
         // Send connection request
         await connectionService.sendConnectionRequest(userId);
-        refreshUserConnections(); // Update global state
+        setConnectionStatus(userId, 'pending_sent'); // Instant UI update
+        refreshUserConnections(); // Reconcile with server in the background
       } else if (currentStatus === 'pending_sent') {
         // Cancel connection request
         await connectionService.cancelConnectionRequest(userId);
-        refreshUserConnections(); // Update global state
+        setConnectionStatus(userId, 'none');
+        refreshUserConnections();
       } else if (currentStatus === 'connected') {
         // Disconnect from user
         await connectionService.cancelConnectionRequest(userId);
-        refreshUserConnections(); // Update global state
+        setConnectionStatus(userId, 'none');
+        refreshUserConnections();
       } else if (currentStatus === 'pending_received') {
         // Accept the request - redirect to notifications page
         alert('Please go to your Notifications page to accept or decline this connection request.');

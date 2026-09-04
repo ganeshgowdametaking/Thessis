@@ -539,11 +539,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
       onClick={() => onNotificationClick(notification)}
       className={`group relative flex items-start gap-3 md:gap-4 p-3.5 md:p-5 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:border-sage/30 transition-all duration-300 cursor-pointer ${isUnread ? 'opacity-100' : 'opacity-80 hover:opacity-100'
         }`}>
-      {/* Unread indicator */}
-      {isUnread && (
-        <div className="absolute left-0 top-6 w-1 h-8 bg-sage rounded-r-full"></div>
-      )}
-
       {/* Avatar or Icon */}
       <div className="shrink-0 relative">
         {notification.actorProfile ? (
@@ -554,13 +549,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
               alt={notification.actorProfile.full_name}
               onClick={() => onProfileClick(notification.actorProfile.id)}
             />
-            {notification.type === 'connection' && (
-              <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
-                <div className="bg-stone-off rounded-full p-0.5">
-                  <UserPlus className="text-sage text-[16px]" />
-                </div>
-              </div>
-            )}
           </>
         ) : (
           <div className="flex items-center justify-center size-12 rounded-full bg-stone-off text-slate-500">
@@ -592,7 +580,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
         </div>
 
         {/* Description */}
-        {(notification.message || notification.actorProfile) && notification.type !== 'connection' && (
+        {(notification.message || notification.actorProfile) && !['connection', 'job_application'].includes(notification.type) && (
           <p className="text-slate-body text-sm mt-1 line-clamp-2">
             {notification.message}
           </p>

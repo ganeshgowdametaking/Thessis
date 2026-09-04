@@ -14,6 +14,7 @@ interface AuthContextType {
   error: string | null
   userConnections: Record<string, string>
   refreshUserConnections: () => Promise<void>
+  setConnectionStatus: (userId: string, status: string | null) => void
   signUp: (email: string, password: string, userData: any) => Promise<any>
   signIn: (email: string, password: string) => Promise<any>
   signInWithGoogle: () => Promise<any>
@@ -62,6 +63,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Error refreshing user connections:', err)
     }
+  }
+
+  // Updates one connection's status locally, immediately — used right after
+  // a send/cancel succeeds so the Connect/Requested button reflects the new
+  // state instantly instead of waiting on a full refreshUserConnections()
+  // round-trip (which refetches every connection just to learn about one).
+  const setConnectionStatus = (userId: string, status: string | null) => {
+    setUserConnections(prev => {
+      const next = { ...prev }
+      if (status === null) {
+        delete next[userId]
+      } else {
+        next[userId] = status
+      }
+      return next
+    })
   }
 
   useEffect(() => {
@@ -180,6 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     error: combinedError,
     userConnections,
     refreshUserConnections,
+    setConnectionStatus,
     signUp,
     signIn,
     signInWithGoogle,
