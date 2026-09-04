@@ -20,7 +20,7 @@ type JobInsert = Database['public']['Tables']['jobs']['Insert'];
 
 const CreateReferralPage: React.FC = () => {
   // Force refresh - Sage & Stone Design
-  const { user } = useAuthContext();
+  const { user, profile } = useAuthContext();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [myReferrals, setMyReferrals] = useState<Job[]>([]);
@@ -55,6 +55,7 @@ const CreateReferralPage: React.FC = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [referralLink, setReferralLink] = useState('');
+  const [submitMessage, setSubmitMessage] = useState<string | null>(null);
 
   const fieldShellClass = 'rounded-lg p-1 border border-slate-200 bg-white focus-within:border-[#4353FF] transition-colors';
 
@@ -177,33 +178,72 @@ const CreateReferralPage: React.FC = () => {
     if (!user?.id) return;
 
     setLoading(true);
+    setSubmitMessage(null);
     try {
-      const jobData = {
-        title: formData.title.trim(),
-        company: formData.company.trim(),
-        department: formData.department || null,
-        location: formData.location.trim(),
-        job_type: formData.job_type,
-        description: formData.description.trim(),
-        skills: formData.skills || [],
-        benefits: formData.benefits || [],
-        remote_available: formData.remote_available || false,
-        urgent_hiring: formData.urgent_hiring || false,
-        experience_level: formData.experience_level,
-        application_deadline: formData.application_deadline || null,
-        contact_email: formData.contact_email || null,
-        created_by: user.id,
-        status: 'active'
-      };
+      const title = formData.title.trim();
+      const company = formData.company.trim();
 
-      const { error } = await supabase
-        .from('jobs')
-        .insert([jobData as any])
-        .select()
-        .single();
+      // If this role already exists as a posting (same company + title),
+      // join its referrer pool instead of creating a competing duplicate —
+      // the platform routes candidates to one canonical job per role, not
+      // one per person who refers for it.
+      const { data: existingJobId, error: matchError } = await supabase
+        .rpc('find_canonical_job', { p_company: company, p_title: title } as any);
 
-      if (error) {
-        throw new Error(`Database error: ${error.message}`);
+      if (matchError) {
+        throw new Error(`Database error: ${matchError.message}`);
+      }
+
+      if (existingJobId) {
+        const { error: joinError } = await supabase
+          .rpc('join_job_as_referrer', { p_job_id: existingJobId } as any);
+
+        if (joinError) {
+          throw new Error(`Database error: ${joinError.message}`);
+        }
+
+        setSubmitMessage(`${title} at ${company} already has an active referral — you've joined as a referrer for it instead of creating a duplicate.`);
+      } else {
+        const jobData = {
+          title,
+          company,
+          department: formData.department || null,
+          location: formData.location.trim(),
+          job_type: formData.job_type,
+          description: formData.description.trim(),
+          skills: formData.skills || [],
+          benefits: formData.benefits || [],
+          remote_available: formData.remote_available || false,
+          urgent_hiring: formData.urgent_hiring || false,
+          experience_level: formData.experience_level,
+          application_deadline: formData.application_deadline || null,
+          contact_email: formData.contact_email || null,
+          created_by: user.id,
+          status: 'active'
+        };
+
+        const { data: newJob, error } = await supabase
+          .from('jobs')
+          .insert([jobData as any])
+          .select()
+          .single();
+
+        if (error) {
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        // The creator becomes a referrer for their own posting too — unless
+        // they're a company account, since a company posting the role isn't
+        // itself an individual who can personally handle referral requests.
+        if ((newJob as any)?.id && profile?.account_type !== 'company') {
+          const { error: joinSelfError } = await supabase
+            .rpc('join_job_as_referrer', { p_job_id: (newJob as any).id } as any);
+          if (joinSelfError) {
+            console.warn('Failed to join own referrer pool:', joinSelfError);
+          }
+        }
+
+        setSubmitMessage('Referral created successfully!');
       }
 
       // Reset form
@@ -229,9 +269,7 @@ const CreateReferralPage: React.FC = () => {
 
       // Refresh referrals list
       fetchMyReferrals();
-
-      // Success - no popup, just refresh the list
-      console.log('✅ Job referral created successfully!');
+      setTimeout(() => setSubmitMessage(null), 6000);
     } catch (error: any) {
       console.error('Error creating referral:', error);
       // Keep error alert for now since user needs to know about errors
@@ -616,6 +654,11 @@ const CreateReferralPage: React.FC = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="p-4 md:p-8 space-y-4 md:space-y-8">
+                {submitMessage && (
+                  <div className="p-3 bg-sage-50 border border-sage-200 rounded-lg text-ink text-sm font-semibold">
+                    {submitMessage}
+                  </div>
+                )}
                 {isMobile && (
                   <div className="grid grid-cols-3 gap-2">
                     {['Basics', 'Role', 'Skills'].map((label, index) => {
