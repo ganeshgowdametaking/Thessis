@@ -307,6 +307,23 @@ export const jobService = {
     if (error) throw error;
   },
 
+  // Upload a resume file to Storage and return its public URL. Replaces the
+  // old base64-in-the-database approach, which sent a multi-MB text payload
+  // on every application submit.
+  uploadResume: async (file: File, userId: string): Promise<string> => {
+    const path = `${userId}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage
+      .from('resumes')
+      .upload(path, file, { upsert: false });
+
+    if (uploadError) {
+      throw new Error(`Failed to upload resume: ${uploadError.message}`);
+    }
+
+    const { data } = supabase.storage.from('resumes').getPublicUrl(path);
+    return data.publicUrl;
+  },
+
   // Create application
   createApplication: async (application: {
     job_id: string;

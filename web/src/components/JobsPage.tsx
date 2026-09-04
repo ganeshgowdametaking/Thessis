@@ -416,20 +416,12 @@ const JobsPage: React.FC = () => {
       setApplicationError(null);
       setIsSubmittingApplication(true);
       const file = applicationForm.resume as File;
+      const resumeUrl = await jobService.uploadResume(file, user.id);
 
-      // For development: Convert file to base64 instead of uploading to S3
-      const fileReader = new FileReader();
-      const fileData = await new Promise<string>((resolve, reject) => {
-        fileReader.onload = () => resolve(fileReader.result as string);
-        fileReader.onerror = reject;
-        fileReader.readAsDataURL(file);
-      });
-
-      // Create application data with base64 file data
       const applicationData = {
         job_id: selectedJob.id,
         applicant_id: user.id,
-        resume: fileData, // Store base64 data as resume
+        resume: resumeUrl,
         email: applicationForm.email
       };
 
