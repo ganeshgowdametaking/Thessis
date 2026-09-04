@@ -477,8 +477,12 @@ const JobsPage: React.FC = () => {
       const matchesSearch =
         job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         job.company.toLowerCase().includes(searchQuery.toLowerCase());
+      // filters.location is a full "City, State, Country" string from the
+      // geocoding suggestion, but job.location is usually just the city (or
+      // city + country) — match on the city portion, not the whole string.
+      const filterCity = filters.location.split(',')[0].trim().toLowerCase();
       const matchesFilters =
-        (!filters.location || job.location.toLowerCase().includes(filters.location.toLowerCase())) &&
+        (!filterCity || job.location.toLowerCase().includes(filterCity)) &&
         (!filters.jobType || job.job_type === filters.jobType) &&
         (!filters.remote || job.remote_available);
       return matchesSearch && matchesFilters;
@@ -518,18 +522,20 @@ const JobsPage: React.FC = () => {
     if (!selectedJob) return null;
 
     return (
-      <div className="max-w-4xl mx-auto p-8 lg:p-12 pb-24">
+      <div className="w-full p-8 lg:p-12 pb-24">
         {/* Job Header */}
         <div className="flex flex-col gap-4 pb-6 mb-6">
           <div className="flex flex-col gap-2">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-              <h1 className="text-2xl lg:text-[28px] font-bold text-slate-900 tracking-tight">
-                {selectedJob.title}
-              </h1>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full size-11 shadow-sm border border-slate-100 overflow-hidden shrink-0">
+                  <CompanyAvatar company={selectedJob.company} logoUrl={((selectedJob as any).created_by_profile?.account_type === 'company' ? (selectedJob as any).created_by_profile?.avatar_url : undefined) || getCompanyLogoUrl(selectedJob.company)} size="sm" />
+                </div>
+                <span className="text-sm font-semibold text-primary">{selectedJob.company}</span>
+              </div>
               <div className="flex items-center gap-3 shrink-0">
                 {appliedJobs.includes(selectedJob.id) ? (
                   <span className="flex items-center gap-1.5 text-emerald-700 font-semibold text-sm">
-                    <CheckCircle2 className="h-4 w-4" />
                     Applied
                   </span>
                 ) : (
@@ -555,21 +561,18 @@ const JobsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="rounded-full size-11 shadow-sm border border-slate-100 overflow-hidden shrink-0">
-                <CompanyAvatar company={selectedJob.company} logoUrl={((selectedJob as any).created_by_profile?.account_type === 'company' ? (selectedJob as any).created_by_profile?.avatar_url : undefined) || getCompanyLogoUrl(selectedJob.company)} size="sm" />
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-sm font-semibold text-primary">{selectedJob.company}</span>
-                <span className="flex items-center gap-1 text-slate-500 font-medium">
-                  <MapPin className="text-[14px]" />
-                  {(() => {
-                    const parts = selectedJob.location.split(',').map(p => p.trim()).filter(Boolean);
-                    return parts.length > 2 ? `${parts[0]}, ${parts[parts.length - 1]}` : selectedJob.location;
-                  })()}
-                </span>
-                <span className="text-slate-500 font-medium">Posted {formatTimeAgo(selectedJob.created_at)}</span>
-              </div>
+            <h1 className="text-2xl lg:text-[28px] font-bold text-slate-900 tracking-tight">
+              {selectedJob.title}
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-slate-500 font-medium">
+                {(() => {
+                  const parts = selectedJob.location.split(',').map(p => p.trim()).filter(Boolean);
+                  return parts.length > 2 ? `${parts[0]}, ${parts[parts.length - 1]}` : selectedJob.location;
+                })()}
+              </span>
+              <span className="text-slate-500 font-medium">Posted {formatTimeAgo(selectedJob.created_at)}</span>
             </div>
           </div>
 
@@ -817,7 +820,6 @@ const JobsPage: React.FC = () => {
                   <Briefcase className="h-8 w-8 text-slate-400" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 mb-2">No jobs found</h3>
-                <p className="text-slate-600 mb-6">No jobs match your search criteria.</p>
                 <button
                   onClick={handleClearFilters}
                   className="bg-parchment-sunken text-slate-700 px-6 py-3 rounded-lg hover:bg-hairline transition-colors inline-flex items-center space-x-2 font-medium"
