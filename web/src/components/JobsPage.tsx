@@ -1081,9 +1081,6 @@ const JobsPage: React.FC = () => {
                     <CheckCircle2 className="w-10 h-10 text-green-600" />
                   </div>
                   <h3 className="text-2xl font-bold text-slate-900 mb-2">Application Sent!</h3>
-                  <p className="text-slate-600 mb-8">
-                    Thanks for applying. The hiring team has been notified and will review your application shortly.
-                  </p>
                 </div>
               )}
             </div>

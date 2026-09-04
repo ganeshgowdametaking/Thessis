@@ -54,7 +54,11 @@ const TrackingDashboard: React.FC = () => {
   }, [isEUUser, euLoading]);
 
   if (loading || euLoading) {
-    return <LoadingSpinner text="Loading tracking data..." />;
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center">
+        <LoadingSpinner text="Loading tracking data..." />
+      </div>
+    );
   }
 
   if (!trackingData?.isTrackingEnabled) {

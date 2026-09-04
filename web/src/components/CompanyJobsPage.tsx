@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Briefcase, Plus, Eye, Edit, Trash2, Filter } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import LoadingSpinner from './LoadingSpinner';
 
 interface Job {
   id: string;
@@ -131,10 +132,7 @@ const CompanyJobsPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-slate-600 mt-4">Loading jobs...</p>
-        </div>
+        <LoadingSpinner text="Loading jobs..." />
       ) : filteredJobs.length === 0 ? (
         <div className="text-center py-12">
           <Briefcase className="h-12 w-12 text-slate-400 mx-auto mb-4" />

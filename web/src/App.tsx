@@ -475,7 +475,11 @@ function AppContent() {
   }
 
   if (loading) {
-    return <LoadingSpinner text="Initializing..." />;
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center">
+        <LoadingSpinner text="Initializing..." />
+      </div>
+    );
   }
 
   const isHeroPage = !user && location.pathname === '/';
@@ -485,7 +489,11 @@ function AppContent() {
   if (isAuthPage) {
     return (
       <div className="min-h-screen bg-parchment">
-        <React.Suspense fallback={<LoadingSpinner text="Loading page..." />}>
+        <React.Suspense fallback={
+          <div className="min-h-screen w-full flex items-center justify-center">
+            <LoadingSpinner text="Loading page..." />
+          </div>
+        }>
           {routes}
         </React.Suspense>
       </div>
@@ -501,7 +509,11 @@ function AppContent() {
         onJoinNow={() => navigate('/signup')}
       />
       <main className={`flex-grow ${showBottomTabBar ? 'pb-14' : ''}`}>
-        <React.Suspense fallback={<LoadingSpinner text="Loading page..." />}>
+        <React.Suspense fallback={
+          <div className="min-h-screen w-full flex items-center justify-center">
+            <LoadingSpinner text="Loading page..." />
+          </div>
+        }>
           {routes}
         </React.Suspense>
       </main>

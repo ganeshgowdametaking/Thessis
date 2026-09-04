@@ -59,7 +59,7 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
                 <img src={socialInstagram} alt="Instagram" className="h-5 w-5 object-contain brightness-0" />
               </a>
               <a
-                href="https://www.linkedin.com/company/tanktide/"
+                href="https://www.linkedin.com/company/thessisai/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="opacity-80 hover:opacity-100 transition-opacity"
@@ -143,7 +143,7 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
                   <img src={socialInstagram} alt="Instagram" className="h-6 w-6 object-contain brightness-0" />
                 </a>
                 <a
-                  href="https://www.linkedin.com/company/tanktide/"
+                  href="https://www.linkedin.com/company/thessisai/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:opacity-70 transition-opacity"

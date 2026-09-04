@@ -652,7 +652,11 @@ export default function ApplicationsPage({
   const showAiPanelDetails = !isMobile || isAiPanelExpanded;
 
   if (loading) {
-    return <LoadingSpinner text="Loading applications..." />;
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center">
+        <LoadingSpinner text="Loading applications..." />
+      </div>
+    );
   }
 
   return (

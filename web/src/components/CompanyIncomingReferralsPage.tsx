@@ -4,6 +4,7 @@ import { Users, Eye, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
 import shareIcon from '../assets/share-icon.png';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import LoadingSpinner from './LoadingSpinner';
 
 interface Referral {
   id: string;
@@ -136,10 +137,7 @@ const CompanyIncomingReferralsPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-slate-600 mt-4">Loading referrals...</p>
-        </div>
+        <LoadingSpinner text="Loading referrals..." />
       ) : filteredReferrals.length === 0 ? (
         <div className="text-center py-12">
           <img
