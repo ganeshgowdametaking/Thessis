@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 // Cache buster: 2025-01-25-15:30
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Plus, Search, MapPin, Briefcase, X, CheckCircle, Copy, SlidersHorizontal, CheckCircle2, Upload, BadgeCheck, Loader2 } from 'lucide-react';
 import shareIcon from '../assets/share-icon.png';
 import { useAuthContext } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import { jobService } from '../services/jobService';
 import { Database } from '../lib/database.types';
 import { useMediaQuery } from 'react-responsive';
@@ -62,6 +63,7 @@ const JobsPage: React.FC = () => {
   });
   const [applicationError, setApplicationError] = useState<string | null>(null);
   const [isSubmittingApplication, setIsSubmittingApplication] = useState(false);
+  const [completenessScore, setCompletenessScore] = useState<number | null>(null);
   const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
   const [applicationsCount, setApplicationsCount] = useState(0);
   const [applicationStep, setApplicationStep] = useState(1);
@@ -364,6 +366,12 @@ const JobsPage: React.FC = () => {
       customFields: {},
     });
     setApplicationError(null);
+    setCompletenessScore(null);
+    supabase
+      .rpc('calculate_profile_completeness', { p_profile_id: user.id })
+      .then(({ data, error }) => {
+        if (!error && typeof data === 'number') setCompletenessScore(data);
+      });
   };
 
   const handleApplicationInputChange = (field: string, value: string | File | null) => {
@@ -1007,6 +1015,19 @@ const JobsPage: React.FC = () => {
                       <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200 text-sm font-medium flex items-center gap-2">
                         <X className="w-4 h-4" />
                         {applicationError}
+                      </div>
+                    )}
+
+                    {completenessScore !== null && completenessScore < 70 && (
+                      <div className="bg-amber-50 text-amber-800 p-4 rounded-lg border border-amber-200 text-sm">
+                        <p className="font-semibold">Your profile is only {completenessScore}% complete</p>
+                        <p className="mt-0.5 text-amber-700">Referrers respond better to complete profiles. Add your work experience, education, or skills to stand out.</p>
+                        <Link
+                          to="/onboarding"
+                          className="mt-2 inline-block font-semibold underline hover:text-amber-900"
+                        >
+                          Update your profile
+                        </Link>
                       </div>
                     )}
 

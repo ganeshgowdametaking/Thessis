@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import LoadingSpinner from './LoadingSpinner';
 import { applicationService } from '../services/applicationService';
 import { useMediaQuery } from 'react-responsive';
+import { useAuthContext } from '../contexts/AuthContext';
 
 interface Application {
   id: string;
@@ -16,6 +17,8 @@ interface Application {
   rating?: number | null;
   shortlisted?: boolean;
   notes?: string | null;
+  assigned_referrer_id?: string | null;
+  assignment_expires_at?: string | null;
   // Mapped fields for compatibility
   user_id?: string;
   created_at?: string;
@@ -75,6 +78,7 @@ export default function ApplicationsPage({
   onMessage,
   onViewProfile
 }: ApplicationsPageProps) {
+  const { user } = useAuthContext();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -122,6 +126,8 @@ export default function ApplicationsPage({
           rating,
           shortlisted,
           notes,
+          assigned_referrer_id,
+          assignment_expires_at,
           user_profile:profiles!applications_applicant_id_fkey (
             id,
             full_name,
@@ -517,6 +523,41 @@ export default function ApplicationsPage({
       );
     } catch (error) {
       console.error('Error updating application status:', error);
+    }
+  };
+
+  const handleAcceptAssignment = async (applicationId: string) => {
+    try {
+      const { error } = await supabase.rpc('accept_referral_assignment' as any, {
+        p_application_id: applicationId,
+      } as any);
+      if (error) throw error;
+
+      setApplications(prev =>
+        prev.map(app =>
+          app.id === applicationId
+            ? { ...app, status: 'referred', shortlisted: true, assignment_expires_at: null }
+            : app
+        )
+      );
+    } catch (error) {
+      console.error('Error accepting assignment:', error);
+    }
+  };
+
+  const handleRejectAssignment = async (applicationId: string) => {
+    try {
+      const { error } = await supabase.rpc('reject_referral_assignment' as any, {
+        p_application_id: applicationId,
+      } as any);
+      if (error) throw error;
+
+      // Rejecting hands the candidate to the next referrer in the pool —
+      // it's no longer this referrer's to see, so drop it from the list
+      // rather than showing a stale "assigned to you" state.
+      setApplications(prev => prev.filter(app => app.id !== applicationId));
+    } catch (error) {
+      console.error('Error rejecting assignment:', error);
     }
   };
 
@@ -917,25 +958,49 @@ export default function ApplicationsPage({
 
                   {/* Actions */}
                   <div className="mt-auto flex flex-col gap-2">
-                    <button
-                      className={`w-full py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${application.status === 'referred'
-                        ? 'bg-parchment-sunken text-slate-700 cursor-default'
-                        : 'bg-primary hover:bg-primary-hover text-white'
-                        }`}
-                      onClick={() => {
-                        if (application.status === 'shortlisted') {
-                          handleStatusUpdate(application.id, 'referred');
-                          return;
-                        }
-                        if (application.status !== 'referred') {
-                          handleStatusUpdate(application.id, 'shortlisted');
-                        }
-                      }}
-                      disabled={application.status === 'referred'}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                      {application.status === 'shortlisted' ? 'Refer' : application.status === 'referred' ? 'Referred' : 'Shortlist'}
-                    </button>
+                    {application.assigned_referrer_id === user?.id && application.status === 'pending' && application.assignment_expires_at ? (
+                      <>
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs font-semibold text-amber-800">
+                          Assigned to you — respond by {formatDate(application.assignment_expires_at)}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            className="w-full py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-hover text-white transition-colors"
+                            onClick={() => handleAcceptAssignment(application.id)}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                            Accept
+                          </button>
+                          <button
+                            className="w-full py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                            onClick={() => handleRejectAssignment(application.id)}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">cancel</span>
+                            Reject
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <button
+                        className={`w-full py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${application.status === 'referred'
+                          ? 'bg-parchment-sunken text-slate-700 cursor-default'
+                          : 'bg-primary hover:bg-primary-hover text-white'
+                          }`}
+                        onClick={() => {
+                          if (application.status === 'shortlisted') {
+                            handleStatusUpdate(application.id, 'referred');
+                            return;
+                          }
+                          if (application.status !== 'referred') {
+                            handleStatusUpdate(application.id, 'shortlisted');
+                          }
+                        }}
+                        disabled={application.status === 'referred'}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                        {application.status === 'shortlisted' ? 'Refer' : application.status === 'referred' ? 'Referred' : 'Shortlist'}
+                      </button>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <button
                         className="bg-white border border-slate-200 hover:bg-parchment-sunken text-slate-700 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors"
@@ -1064,26 +1129,51 @@ export default function ApplicationsPage({
                 <span className="material-symbols-outlined text-[18px]">download</span>
                 Download Resume
               </button>
-              <button
-                className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${selectedApplication.status === 'referred'
-                  ? 'bg-parchment-sunken text-slate-700 cursor-default'
-                  : 'bg-primary text-white hover:bg-primary-hover'
-                  }`}
-                onClick={() => {
-                  if (selectedApplication.status === 'shortlisted') {
-                    handleStatusUpdate(selectedApplication.id, 'referred');
-                  } else {
-                    if (selectedApplication.status !== 'referred') {
-                      handleStatusUpdate(selectedApplication.id, 'shortlisted');
+              {selectedApplication.assigned_referrer_id === user?.id && selectedApplication.status === 'pending' && selectedApplication.assignment_expires_at ? (
+                <>
+                  <button
+                    className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg bg-white border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center gap-2`}
+                    onClick={() => {
+                      handleRejectAssignment(selectedApplication.id);
+                      setSelectedApplication(null);
+                    }}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">cancel</span>
+                    Reject
+                  </button>
+                  <button
+                    className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors flex items-center gap-2`}
+                    onClick={() => {
+                      handleAcceptAssignment(selectedApplication.id);
+                      setSelectedApplication(null);
+                    }}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                    Accept
+                  </button>
+                </>
+              ) : (
+                <button
+                  className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${selectedApplication.status === 'referred'
+                    ? 'bg-parchment-sunken text-slate-700 cursor-default'
+                    : 'bg-primary text-white hover:bg-primary-hover'
+                    }`}
+                  onClick={() => {
+                    if (selectedApplication.status === 'shortlisted') {
+                      handleStatusUpdate(selectedApplication.id, 'referred');
+                    } else {
+                      if (selectedApplication.status !== 'referred') {
+                        handleStatusUpdate(selectedApplication.id, 'shortlisted');
+                      }
                     }
-                  }
-                  setSelectedApplication(null);
-                }}
-                disabled={selectedApplication.status === 'referred'}
-              >
-                <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                {selectedApplication.status === 'shortlisted' ? 'Refer' : selectedApplication.status === 'referred' ? 'Referred' : 'Shortlist Candidate'}
-              </button>
+                    setSelectedApplication(null);
+                  }}
+                  disabled={selectedApplication.status === 'referred'}
+                >
+                  <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                  {selectedApplication.status === 'shortlisted' ? 'Refer' : selectedApplication.status === 'referred' ? 'Referred' : 'Shortlist Candidate'}
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Settings } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { notificationService } from '../services/notificationService';
-import profileIcon from '../assets/profile-icon.png';
 
 
 // Add global type for refreshUnreadCounts
@@ -261,7 +260,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
         <div className="flex items-center justify-end gap-1">
           <Link to="/profile" className="h-11 w-11 flex items-center justify-center rounded-lg hover:bg-stone-100 transition-colors outline-none focus:outline-none focus-visible:outline-none" aria-label="Profile">
             <img
-              src={profile?.avatar_url || profileIcon}
+              src={profile?.avatar_url || '/default-avatar.svg'}
               alt={profile?.full_name || 'Profile'}
               className="h-8 w-8 object-cover rounded-full"
             />
@@ -336,7 +335,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
               className="group flex items-center justify-center h-11 w-11 rounded-lg transition-colors duration-150 outline-none focus:outline-none focus-visible:outline-none"
             >
               <img
-                src={profile?.avatar_url || profileIcon}
+                src={profile?.avatar_url || '/default-avatar.svg'}
                 alt={profile?.full_name || "Profile"}
                 className="h-8 w-8 object-cover rounded-full"
               />

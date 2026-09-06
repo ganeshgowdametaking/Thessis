@@ -29,6 +29,7 @@ const SearchResultsPage = React.lazy(() => import('./components/SearchResultsPag
 const MessagesPage = React.lazy(() => import('./components/MessagesPage'));
 const NotificationsPage = React.lazy(() => import('./components/NotificationsPage'));
 const ProfilePage = React.lazy(() => import('./components/ProfilePage'));
+const OnboardingPage = React.lazy(() => import('./components/OnboardingPage'));
 const UserProfilePage = React.lazy(() => import('./components/UserProfilePage'));
 const SettingsPage = React.lazy(() => import('./components/SettingsPage'));
 const AnalyticsDashboard = React.lazy(() => import('./components/AnalyticsDashboard'));
@@ -436,6 +437,7 @@ function AppContent() {
           <Route path="/messages" element={<MessagesPageWrapper />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
           <Route path="/settings" element={<SettingsPageWrapper />} />
           <Route path="/accept-admin-invite" element={<AcceptAdminInvitePage />} />
@@ -484,7 +486,8 @@ function AppContent() {
 
   const isHeroPage = !user && location.pathname === '/';
   const isAuthPage = !user && (location.pathname === '/login' || location.pathname === '/signup');
-  const showBottomTabBar = Boolean(user) && isMobile && location.pathname !== '/messages';
+  const isOnboardingPage = location.pathname === '/onboarding';
+  const showBottomTabBar = Boolean(user) && isMobile && location.pathname !== '/messages' && !isOnboardingPage;
 
   if (isAuthPage) {
     return (
@@ -504,10 +507,12 @@ function AppContent() {
     // <TrackingProvider>
     <div className={`flex min-h-screen flex-col relative ${isHeroPage ? 'bg-parchment' : 'bg-parchment-sunken'}`}>
       <GDPRBanner />
-      <Header
-        onSignIn={() => navigate('/login')}
-        onJoinNow={() => navigate('/signup')}
-      />
+      {!isOnboardingPage && (
+        <Header
+          onSignIn={() => navigate('/login')}
+          onJoinNow={() => navigate('/signup')}
+        />
+      )}
       <main className={`flex-grow ${showBottomTabBar ? 'pb-14' : ''}`}>
         <React.Suspense fallback={
           <div className="min-h-screen w-full flex items-center justify-center">

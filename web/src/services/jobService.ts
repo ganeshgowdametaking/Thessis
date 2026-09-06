@@ -362,7 +362,7 @@ export const jobService = {
       let { data, error } = await supabase
         .from('applications')
         .insert(applicationData as any)
-        .select('job_id')
+        .select('id, job_id')
         .single();
 
       // If that fails, try with user_id instead of applicant_id
@@ -491,6 +491,17 @@ export const jobService = {
           }
         } catch (milestoneInvokeError) {
           console.warn('Failed to invoke referral milestone email function:', milestoneInvokeError);
+        }
+
+        // Route this application to a referrer (waterfall assignment) — not
+        // something the applicant needs to wait on either.
+        if ((data as any)?.id) {
+          const { error: routeError } = await supabase.rpc('route_new_application' as any, {
+            p_application_id: (data as any).id,
+          } as any);
+          if (routeError) {
+            console.warn('Failed to route application to a referrer:', routeError);
+          }
         }
       })();
 

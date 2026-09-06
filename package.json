@@ -1,18 +1,24 @@
 {
-    "name": "thessis-monorepo",
-    "private": true,
-    "workspaces": [
-        "web",
-        "mobile"
-    ],
-    "scripts": {
-        "web": "cd web && npm run dev",
-        "mobile": "cd mobile && npm start",
-        "build": "cd web && npm run build",
-        "start": "cd web && npm run start",
-        "install-all": "npm install && cd web && npm install && cd mobile && npm install"
-    },
-    "dependencies": {
-        "react-gtm-module": "^2.0.11"
-    }
+  "name": "thessis-monorepo",
+  "private": true,
+  "workspaces": [
+    "web",
+    "mobile"
+  ],
+  "scripts": {
+    "web": "cd web && npm run dev",
+    "mobile": "cd mobile && npm start",
+    "build": "cd web && npm run build",
+    "start": "cd web && npm run start",
+    "install-all": "npm install && cd web && npm install && cd mobile && npm install"
+  },
+  "dependencies": {
+    "react-gtm-module": "^2.0.11"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.4.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
 }

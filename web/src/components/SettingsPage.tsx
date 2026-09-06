@@ -11,6 +11,8 @@ const SettingsPage: React.FC = () => {
   const [emailVerificationOpen, setEmailVerificationOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [adminInviteOpen, setAdminInviteOpen] = useState(false);
+  const [verificationCooldownUntil, setVerificationCooldownUntil] = useState<number | null>(null);
+  const [, forceCooldownTick] = useState(0);
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
 
   // Sync organization email and step when profile loads
@@ -25,6 +27,21 @@ const SettingsPage: React.FC = () => {
       setVerificationStep('input');
     }
   }, [profile]);
+
+  // Tick every second while the "Send Code" cooldown is active, purely so
+  // the countdown label updates — the real rate limit is enforced
+  // server-side in generate_verification_code, this is just UX politeness.
+  React.useEffect(() => {
+    if (!verificationCooldownUntil) return;
+    const interval = setInterval(() => {
+      if (Date.now() >= verificationCooldownUntil) {
+        setVerificationCooldownUntil(null);
+      } else {
+        forceCooldownTick((t) => t + 1);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [verificationCooldownUntil]);
 
   // Account State
   const [organizationEmail, setOrganizationEmail] = useState('');
@@ -207,6 +224,7 @@ const SettingsPage: React.FC = () => {
         return;
       }
       setVerificationStep('otp');
+      setVerificationCooldownUntil(Date.now() + 60000);
       setMessage({ type: 'success', text: 'Verification code sent to ' + normalizedEmail });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message });
@@ -497,10 +515,14 @@ const SettingsPage: React.FC = () => {
                               </div>
                               <button
                                 onClick={handleSendVerificationCode}
-                                disabled={loading || !organizationEmail || !organizationEmail.includes('@')}
+                                disabled={loading || !organizationEmail || !organizationEmail.includes('@') || Boolean(verificationCooldownUntil)}
                                 className="bg-sage text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-sage-dark transition-all whitespace-nowrap active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
                               >
-                                {loading ? 'Sending...' : 'Send Code'}
+                                {loading
+                                  ? 'Sending...'
+                                  : verificationCooldownUntil
+                                    ? `Wait ${Math.max(0, Math.ceil((verificationCooldownUntil - Date.now()) / 1000))}s`
+                                    : 'Send Code'}
                               </button>
                             </div>
                           )}
@@ -594,38 +616,40 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </details>
 
-                <details className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" open={adminInviteOpen}>
-                  <summary
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setAdminInviteOpen((prev) => !prev);
-                    }}
-                    className="flex items-center justify-between p-4 md:p-6 cursor-pointer hover:bg-stone-off/50 transition-colors select-none"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500">
-                        <span className="material-symbols-outlined">admin_panel_settings</span>
+                {(isSuperUser || profile?.role === 'admin') && (
+                  <details className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" open={adminInviteOpen}>
+                    <summary
+                      onClick={(event) => {
+                        event.preventDefault();
+                        setAdminInviteOpen((prev) => !prev);
+                      }}
+                      className="flex items-center justify-between p-4 md:p-6 cursor-pointer hover:bg-stone-off/50 transition-colors select-none"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500">
+                          <span className="material-symbols-outlined">admin_panel_settings</span>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-slate-900">Admin Invite</h3>
+                          <p className="text-sm text-slate-500">Add administrators to your organization</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-900">Admin Invite</h3>
-                        <p className="text-sm text-slate-500">Add administrators to your organization</p>
+                      <span className="material-symbols-outlined text-slate-500 group-open:rotate-90 transition-transform duration-200">chevron_right</span>
+                    </summary>
+                    <div className="px-4 md:px-6 pb-4 md:pb-6 pt-2 border-t border-slate-100">
+                      <div className="space-y-4 pt-4">
+                        <div className="bg-stone-off rounded-xl p-4 md:p-6 border border-slate-100">
+                          <h4 className="text-base font-semibold text-slate-900 mb-2">Invite Administrator</h4>
+                          <p className="text-sm text-slate-500 mb-6 leading-relaxed">Admins have full access to your organization's settings, billing, and user management. Only invite trusted team members.</p>
+                          <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-hover transition-colors shadow-sm">
+                            <span className="material-symbols-outlined text-[18px]">add</span>
+                            Promote New Admin
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <span className="material-symbols-outlined text-slate-500 group-open:rotate-90 transition-transform duration-200">chevron_right</span>
-                  </summary>
-                  <div className="px-4 md:px-6 pb-4 md:pb-6 pt-2 border-t border-slate-100">
-                    <div className="space-y-4 pt-4">
-                      <div className="bg-stone-off rounded-xl p-4 md:p-6 border border-slate-100">
-                        <h4 className="text-base font-semibold text-slate-900 mb-2">Invite Administrator</h4>
-                        <p className="text-sm text-slate-500 mb-6 leading-relaxed">Admins have full access to your organization's settings, billing, and user management. Only invite trusted team members.</p>
-                        <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-hover transition-colors shadow-sm">
-                          <span className="material-symbols-outlined text-[18px]">add</span>
-                          Promote New Admin
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </details>
+                  </details>
+                )}
 
                 <details className="group bg-red-50/40 rounded-2xl shadow-sm border border-red-100 overflow-hidden" open={deleteAccountOpen}>
                   <summary

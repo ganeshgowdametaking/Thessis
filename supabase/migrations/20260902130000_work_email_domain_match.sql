@@ -48,7 +48,7 @@ BEGIN
   -- 2. Need a current-role Experience entry to check the domain against.
   SELECT elem->>'company'
   INTO v_current_company
-  FROM public.profiles p, unnest(p.experiences) AS elem
+  FROM public.profiles p, jsonb_array_elements(p.experiences) AS elem
   WHERE p.id = p_user_id
     AND (elem->>'current')::boolean IS TRUE
   LIMIT 1;

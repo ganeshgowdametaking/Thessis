@@ -12,6 +12,7 @@ import ImageCropper from './ImageCropper';
 import { ProfileTabs } from './ProfileTabs';
 import { ProfileExperienceList } from './ProfileExperienceList';
 import { ProfileEducationList } from './ProfileEducationList';
+import { getNormalizedProfileSections, isBlankExperience, validateExperienceDates } from '../utils/profileSectionNormalization';
 
 interface Experience {
   id: number | string;
@@ -53,75 +54,6 @@ interface Achievement {
 
 const ProfilePage: React.FC = () => {
   const createClientItemId = () => Date.now() + Math.floor(Math.random() * 1000000);
-
-  const tryParseJson = (value: string): unknown => {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return null;
-    }
-  };
-
-  const parsePgJsonArrayLiteral = (value: string): unknown[] => {
-    if (!(value.startsWith('{') && value.endsWith('}'))) return [];
-
-    const matches = value.match(/"((?:\\.|[^"\\])*)"/g);
-    if (!matches) return [];
-
-    return matches
-      .map((entry) => {
-        const unquoted = entry
-          .slice(1, -1)
-          .replace(/\\"/g, '"')
-          .replace(/\\\\/g, '\\');
-
-        return tryParseJson(unquoted) ?? unquoted;
-      })
-      .filter((entry) => entry !== null && entry !== undefined);
-  };
-
-  const toArray = (value: unknown): unknown[] => {
-    if (Array.isArray(value)) return value;
-
-    if (typeof value === 'string') {
-      const parsed = tryParseJson(value);
-      if (Array.isArray(parsed)) return parsed;
-      if (parsed && typeof parsed === 'object') return [parsed];
-
-      const pgParsed = parsePgJsonArrayLiteral(value);
-      if (pgParsed.length > 0) return pgParsed;
-    }
-
-    return [];
-  };
-
-  function normalizeSectionItems<T extends Record<string, any>>(value: unknown): Array<T & { id: number | string }> {
-    const sourceItems = toArray(value);
-
-    return sourceItems
-      .map((item) => {
-        if (item && typeof item === 'object') return item;
-        if (typeof item !== 'string') return null;
-
-        const parsed = tryParseJson(item) ?? tryParseJson(item.replace(/\\"/g, '"'));
-        return parsed && typeof parsed === 'object' ? parsed : null;
-      })
-      .filter((item): item is T & { id?: number | string } => Boolean(item))
-      .map((item, index) => {
-        const normalizedItem = item as T & { id?: number | string };
-        return {
-          ...normalizedItem,
-          id: normalizedItem.id ?? `${Date.now()}-${index}`,
-        };
-      });
-  }
-
-  const getNormalizedProfileSections = (source: any) => ({
-    experiences: normalizeSectionItems<Experience>(source?.experiences),
-    education: normalizeSectionItems<Education>(source?.education),
-    skills: normalizeSectionItems<Skill>(source?.skills),
-    achievements: normalizeSectionItems<Achievement>(source?.achievements),
-  });
 
   const { user, profile, updateProfile } = useAuthContext();
   const [isEditing, setIsEditing] = useState(false);
@@ -446,10 +378,21 @@ const ProfilePage: React.FC = () => {
       return;
     }
 
+    // Validate experience dates (blank, untouched entries are exempt — they
+    // get dropped below instead of blocking the save).
+    const experienceDateError = validateExperienceDates(editForm.experiences);
+    if (experienceDateError) {
+      setSaveError(experienceDateError);
+      return;
+    }
+
     setIsSaving(true);
     setSaveError(null);
     try {
-      const normalizedSections = getNormalizedProfileSections(editForm);
+      const normalizedSections = getNormalizedProfileSections({
+        ...editForm,
+        experiences: editForm.experiences.filter((exp) => !isBlankExperience(exp)),
+      });
 
       const updates: any = {
         full_name: editForm.full_name,
@@ -1004,7 +947,7 @@ const ProfilePage: React.FC = () => {
                           )}
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-700 mb-1">Start Date</label>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Start Date *</label>
                           <input
                             type="date"
                             value={exp.startDate}
@@ -1014,7 +957,7 @@ const ProfilePage: React.FC = () => {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-700 mb-1">End Date</label>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">End Date {!exp.current && '*'}</label>
                           <input
                             type="date"
                             value={exp.endDate}

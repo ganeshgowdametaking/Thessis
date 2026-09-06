@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, User, Eye, EyeOff, Loader, CheckCircle } from 'lucide-react'
 import { useAuthContext } from '../contexts/AuthContext'
 import GoogleSignInButton from './GoogleSignInButton'
+import LinkedInSignInButton from './LinkedInSignInButton'
 import { supabase } from '../lib/supabase'
 import { getUTMForSignup, clearUTMData } from '../utils/utmHandler'
 
@@ -72,7 +73,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
         const { error } = await verifyOTP(formData.email, formData.otp, 'signup')
         if (error) throw error
         setSuccess('Email verified successfully!')
-        setTimeout(() => navigate('/jobs'), 2000)
+        setTimeout(() => navigate('/onboarding'), 2000)
       } else if (mode === 'forgot-password') {
         if (!formData.email) throw new Error('Please enter your email')
         const { error } = await resetPassword(formData.email)
@@ -204,6 +205,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
           ) : (
             <>
               <GoogleSignInButton className="w-full py-2.5 border border-slate-300 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors" />
+              <LinkedInSignInButton className="w-full mt-3 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2" />
 
               <div className="relative flex items-center py-6">
                 <div className="flex-grow border-t border-slate-200"></div>
