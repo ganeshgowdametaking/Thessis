@@ -17,6 +17,11 @@ interface Application {
   rating?: number | null;
   shortlisted?: boolean;
   notes?: string | null;
+  ai_score?: number | null;
+  ai_semantic_score?: number | null;
+  ai_skill_score?: number | null;
+  ai_rationale?: string | null;
+  ai_ranked_at?: string | null;
   assigned_referrer_id?: string | null;
   assignment_expires_at?: string | null;
   // Mapped fields for compatibility
@@ -47,30 +52,6 @@ interface ApplicationsPageProps {
   onViewProfile: (userId: string) => void;
 }
 
-interface AIRankingCandidate {
-  id: number;
-  name: string;
-  email: string;
-  score: number | null;
-  rationale: string | null;
-  shortlisted: boolean;
-  shortlist_reason: string | null;
-  status: string;
-}
-
-interface AIRankingLeaderboard {
-  job: {
-    id: number;
-    title: string;
-  };
-  top_5: AIRankingCandidate[];
-  others: AIRankingCandidate[];
-  total_ranked: number;
-  shortlisted_count?: number;
-  pending_count: number;
-  failed_count: number;
-}
-
 export default function ApplicationsPage({
   referralId,
   referralTitle,
@@ -88,16 +69,17 @@ export default function ApplicationsPage({
   const [sortOrder, setSortOrder] = useState<'earliest' | 'latest'>('earliest');
   const [aiRankingLoading, setAiRankingLoading] = useState(false);
   const [aiRankingError, setAiRankingError] = useState<string | null>(null);
-  const [aiLeaderboard, setAiLeaderboard] = useState<AIRankingLeaderboard | null>(null);
+  const [aiRankingFailures, setAiRankingFailures] = useState<{ name: string; reason: string }[]>([]);
   const [aiLastUpdatedAt, setAiLastUpdatedAt] = useState<string | null>(null);
   const [aiLastRunKey, setAiLastRunKey] = useState<string>('');
   const [applicationToDelete, setApplicationToDelete] = useState<Application | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [removalMode, setRemovalMode] = useState<'delete' | 'unshortlist'>('delete');
   const isMobile = useMediaQuery({ maxWidth: 767 });
-  const [isAiPanelExpanded, setIsAiPanelExpanded] = useState(false);
 
-  const configuredRankingApi = (import.meta.env.VITE_RESUME_RANKING_API || '/api/ranking').trim();
+  // Default targets the Vercel Python function at api/rank-application.py —
+  // deployed alongside the rest of the site, no separate service/billing.
+  const configuredRankingApi = (import.meta.env.VITE_RESUME_RANKING_API || '/api').trim();
   const resumeRankingApiBase = configuredRankingApi.replace(/\/+$/, '');
 
   useEffect(() => {
@@ -106,10 +88,11 @@ export default function ApplicationsPage({
     return () => controller.abort();
   }, [referralId]);
 
-  const fetchApplications = async (controller?: AbortController) => {
+  const fetchApplications = async (controller?: AbortController, options?: { silent?: boolean }) => {
     const fetchController = controller || new AbortController();
+    const silent = options?.silent ?? false;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
 
       const timeoutMs = 60000;
@@ -123,11 +106,17 @@ export default function ApplicationsPage({
           applied_at,
           updated_at,
           cover_letter,
+          resume_url,
           rating,
           shortlisted,
           notes,
           assigned_referrer_id,
           assignment_expires_at,
+          ai_score,
+          ai_semantic_score,
+          ai_skill_score,
+          ai_rationale,
+          ai_ranked_at,
           user_profile:profiles!applications_applicant_id_fkey (
             id,
             full_name,
@@ -169,84 +158,23 @@ export default function ApplicationsPage({
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       console.error('Error fetching applications:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load applications');
-      setApplications([]);
+      if (!silent) {
+        setError(err instanceof Error ? err.message : 'Failed to load applications');
+        setApplications([]);
+      }
     } finally {
-      if (!fetchController.signal.aborted) {
+      if (!fetchController.signal.aborted && !silent) {
         setLoading(false);
       }
     }
   };
 
-  const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  const extractJobDescriptionFromRecord = (record: Record<string, unknown> | null): string => {
-    if (!record) {
-      return '';
-    }
-
-    const candidates = [
-      record.description,
-      record.job_description,
-      record.requirements,
-      record.responsibilities,
-      record.summary,
-    ];
-
-    for (const entry of candidates) {
-      if (typeof entry === 'string' && entry.trim().length > 0) {
-        return entry.trim();
-      }
-    }
-
-    return '';
-  };
-
-  const fallbackJobDescription = () =>
-    [
-      `Job Title: ${referralTitle}`,
-      'Please evaluate candidates for this role using the resume and profile details.',
-      'Prioritize role-fit, required skills, and relevant years of experience.',
-    ].join('\n');
-
-  const buildProfileText = (application: Application) => {
-    const profile = application.user_profile;
-    const chunks = [
-      profile?.current_position,
-      profile?.current_company,
-      profile?.location,
-      Array.isArray(profile?.skills) ? profile?.skills.join(', ') : '',
-      profile?.linkedin_url,
-    ].filter((value) => typeof value === 'string' && value.trim().length > 0) as string[];
-
-    return chunks.join('\n');
-  };
-
-  const resumeUrlToPdfFile = async (resumeUrl: string, fileStem: string): Promise<File> => {
-    const response = await fetch(resumeUrl);
-    if (!response.ok) {
-      throw new Error(`Resume fetch failed (${response.status})`);
-    }
-
-    const blob = await response.blob();
-    const safeName = fileStem.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
-    return new File([blob], `${safeName || 'resume'}.pdf`, { type: blob.type || 'application/pdf' });
-  };
-
-  const fetchRankingLeaderboard = async (jobId: number): Promise<AIRankingLeaderboard> => {
-    const res = await fetch(`${resumeRankingApiBase}/jobs/${jobId}/leaderboard`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch leaderboard (${res.status})`);
-    }
-    return (await res.json()) as AIRankingLeaderboard;
-  };
-
   const getValidApplications = () =>
     applications.filter((application) => {
-      // We no longer check resume_url here as it's fetched on-demand to save payload
       const hasEmail = Boolean(application.user_profile?.email);
       const hasName = Boolean(application.user_profile?.full_name);
-      return hasEmail && hasName;
+      const hasResume = Boolean(application.resume_url);
+      return hasEmail && hasName && hasResume;
     });
 
   const buildAiRunKey = () => {
@@ -257,10 +185,44 @@ export default function ApplicationsPage({
     return `${referralId}|${serial}`;
   };
 
+  // Ranks applicants one request per applicant (small concurrency cap) — the
+  // ranking service scores synchronously and writes the result straight onto
+  // applications.ai_* columns, so there's no job-creation or leaderboard
+  // polling step anymore; a plain re-fetch afterward picks the scores up.
+  // Kept low (rather than e.g. 5) because Supabase's free-tier compute has a
+  // small connection pool — too many simultaneous RPC calls can exhaust it
+  // and cause transient 502/504s, which the retry below also guards against.
+  const RANKING_CONCURRENCY = 3;
+  const RETRYABLE_STATUS = new Set([502, 503, 504]);
+  const RETRY_DELAY_MS = 1500;
+
+  const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  // The ranking API's error responses are `{"error": "..."}` with a short,
+  // already human-readable message (the backend is responsible for never
+  // putting raw upstream detail — HTML pages, storage JSON errors — in this
+  // field). This just strips the leading "(502) " status prefix and unwraps
+  // the JSON envelope.
+  const extractErrorReason = (rawMessage: string): string => {
+    const jsonStart = rawMessage.indexOf('{');
+    if (jsonStart !== -1) {
+      try {
+        const parsed = JSON.parse(rawMessage.slice(jsonStart));
+        if (typeof parsed?.error === 'string') {
+          return parsed.error;
+        }
+      } catch {
+        // fall through to raw-text handling below
+      }
+    }
+    return rawMessage.length > 140 ? `${rawMessage.slice(0, 140)}…` : rawMessage;
+  };
+
   const handleRunAiRanking = async () => {
     try {
       setAiRankingLoading(true);
       setAiRankingError(null);
+      setAiRankingFailures([]);
 
       if (!resumeRankingApiBase) {
         setAiRankingError('AI ranking service is not configured. Set VITE_RESUME_RANKING_API to your deployed ranking API URL.');
@@ -268,114 +230,84 @@ export default function ApplicationsPage({
       }
 
       const validApplications = getValidApplications();
-
       if (validApplications.length === 0) {
         setAiRankingError('No applicants with complete profile/email/resume data were found.');
         return;
       }
 
-      const { data: jobData, error: jobError } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', referralId)
-        .maybeSingle();
-
-      if (jobError) {
-        console.warn('Could not fetch full job description from jobs table:', jobError.message);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setAiRankingError('Your session has expired. Please sign in again.');
+        return;
       }
 
-      const jobRecord = (jobData as Record<string, unknown> | null) || null;
-      const jdText = extractJobDescriptionFromRecord(jobRecord) || fallbackJobDescription();
+      let succeeded = 0;
+      let lastError: string | null = null;
+      const failures: { name: string; reason: string }[] = [];
+      const queue = [...validApplications];
 
-      const createJobForm = new FormData();
-      createJobForm.append('title', referralTitle);
-      createJobForm.append('description', jdText);
+      const rankOnce = (application: Application) =>
+        fetch(`${resumeRankingApiBase}/rank-application?applicationId=${application.id}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
 
-      const createJobRes = await fetch(`${resumeRankingApiBase}/jobs/`, {
-        method: 'POST',
-        body: createJobForm,
-      });
-
-      if (!createJobRes.ok) {
-        const errorBody = await createJobRes.text().catch(() => '');
-        throw new Error(`Ranking service unavailable (${createJobRes.status})${errorBody ? `: ${errorBody}` : ''}`);
-      }
-
-      const createdJob = (await createJobRes.json()) as { id: number };
-      const rankingJobId = createdJob.id;
-
-      // Submit all applications in parallel
-      const submissionPromises = validApplications.map(async (application) => {
-        try {
-          // Fetch resume_url on demand if not present
-          let currentResumeUrl = (application as any).resume_url;
-          if (!currentResumeUrl) {
-            const { data: appData, error: appError } = await (supabase
-              .from('applications') as any)
-              .select('resume_url')
-              .eq('id', application.id)
-              .single();
-
-            if (appError || !(appData as any)?.resume_url) {
-              console.warn(`Could not fetch resume for application ${application.id}:`, appError);
-              return false;
+      const worker = async () => {
+        while (queue.length > 0) {
+          const application = queue.shift();
+          if (!application) continue;
+          try {
+            let res = await rankOnce(application);
+            if (!res.ok && RETRYABLE_STATUS.has(res.status)) {
+              // Likely transient contention on Supabase's free-tier connection
+              // pool (concurrent RPC calls briefly exhausting it) rather than
+              // a real failure — one retry after a short pause resolves most
+              // of these without surfacing an error to the user at all.
+              await pause(RETRY_DELAY_MS);
+              res = await rankOnce(application);
             }
-            currentResumeUrl = (appData as any).resume_url;
+            if (!res.ok) {
+              const body = await res.text().catch(() => '');
+              throw new Error(`(${res.status}) ${body}`.trim());
+            }
+            succeeded += 1;
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            lastError = message;
+            failures.push({
+              name: application.user_profile?.full_name || 'Unknown applicant',
+              reason: extractErrorReason(message),
+            });
+            console.warn(`Ranking failed for application ${application.id}:`, err);
           }
-
-          const fullName = application.user_profile?.full_name || 'Unknown';
-          const email = application.user_profile?.email || '';
-          const phone = (application.user_profile as any)?.phone || '';
-          const profileText = buildProfileText(application);
-          const file = await resumeUrlToPdfFile(currentResumeUrl as string, fullName);
-
-          const appForm = new FormData();
-          appForm.append('name', fullName);
-          appForm.append('email', email);
-          appForm.append('phone', phone);
-          appForm.append('profile_text', profileText);
-          appForm.append('file', file);
-
-          const submitRes = await fetch(`${resumeRankingApiBase}/jobs/${rankingJobId}/applications/`, {
-            method: 'POST',
-            body: appForm,
-          });
-
-          if (submitRes.ok) {
-            return true;
-          }
-        } catch (submissionError) {
-          console.warn('Skipping applicant for AI ranking due to upload error:', submissionError);
         }
-        return false;
-      });
+      };
 
-      const results = await Promise.all(submissionPromises);
-      const submitted = results.filter(Boolean).length;
+      await Promise.all(
+        Array.from({ length: Math.min(RANKING_CONCURRENCY, validApplications.length) }, () => worker())
+      );
 
-      if (submitted === 0) {
-        throw new Error('Could not submit any applicant resumes to the ranking service.');
+      if (succeeded === 0) {
+        throw new Error(
+          lastError
+            ? `Could not rank any applicants. Last error: ${lastError}`
+            : 'Could not rank any applicants.'
+        );
       }
 
-      const timeoutMs = 240000;
-      const pollIntervalMs = 2500;
-      const start = Date.now();
-      let latestBoard: AIRankingLeaderboard | null = null;
-
-      while (Date.now() - start < timeoutMs) {
-        latestBoard = await fetchRankingLeaderboard(rankingJobId);
-        if (latestBoard.pending_count === 0) {
-          break;
-        }
-        await pause(pollIntervalMs);
-      }
-
-      if (!latestBoard) {
-        throw new Error('Ranking service did not return a leaderboard.');
-      }
-
-      setAiLeaderboard(latestBoard);
+      // Silent: this is a background refresh after ranking, not the page's
+      // initial load — it must not trip the full-page loading spinner that
+      // `fetchApplications()` normally shows (that spinner replaces the
+      // entire page, which felt like a full reload for what should just be
+      // the ranking panel updating in place).
+      await fetchApplications(undefined, { silent: true });
       setAiLastUpdatedAt(new Date().toISOString());
+      setAiRankingFailures(failures);
+
+      if (succeeded < validApplications.length) {
+        setAiRankingError(`Ranked ${succeeded} of ${validApplications.length} applicants — ${failures.length} could not be scored.`);
+      }
     } catch (runError) {
       const message =
         runError instanceof TypeError && runError.message.includes('Failed to fetch')
@@ -622,38 +554,21 @@ export default function ApplicationsPage({
   const topRankedApplications = useMemo(() => {
     if (applications.length === 0) return [] as Application[];
 
-    // Primary source: AI leaderboard mapping by applicant email.
-    if (aiLeaderboard) {
-      const leaderboardCandidates = [
-        ...(aiLeaderboard.top_5 || []),
-        ...(aiLeaderboard.others || []),
-      ]
-        .filter((candidate) => typeof candidate?.score === 'number')
-        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-        .slice(0, 5);
+    const ranked = applications
+      .filter((application) => typeof application.ai_score === 'number')
+      .sort((a, b) => (b.ai_score ?? 0) - (a.ai_score ?? 0))
+      .slice(0, 5);
 
-      const rankedEmailSet = new Set(
-        leaderboardCandidates
-          .map((candidate) => candidate.email?.toLowerCase?.().trim?.())
-          .filter((email) => Boolean(email))
-      );
-
-      const leaderboardMapped = applications.filter((application) => {
-        const applicantEmail = application.user_profile?.email?.toLowerCase?.().trim?.();
-        return applicantEmail ? rankedEmailSet.has(applicantEmail) : false;
-      });
-
-      if (leaderboardMapped.length > 0) {
-        return leaderboardMapped;
-      }
+    if (ranked.length > 0) {
+      return ranked;
     }
 
-    // Fallback source: existing rating field if available.
+    // Fallback source: existing manual rating field, if set.
     return [...applications]
       .filter((application) => typeof application.rating === 'number')
       .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
       .slice(0, 5);
-  }, [applications, aiLeaderboard]);
+  }, [applications]);
 
   const filteredApplications = applications.filter(app => {
     const matchesTopRanked = activeTab === 'top_ranked'
@@ -690,7 +605,6 @@ export default function ApplicationsPage({
   };
 
   const statusCounts = getStatusCounts();
-  const showAiPanelDetails = !isMobile || isAiPanelExpanded;
 
   if (loading) {
     return (
@@ -812,9 +726,11 @@ export default function ApplicationsPage({
                 )}
               </div>
               <div className="w-full lg:w-auto flex flex-col sm:flex-row items-center gap-3">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${aiRankingLoading ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                  {aiRankingLoading ? 'AI Ranking In Progress' : 'Auto Ranking Enabled'}
-                </span>
+                {aiRankingLoading && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                    AI Ranking In Progress
+                  </span>
+                )}
                 {canRunAiRanking && (
                   <button
                     onClick={triggerAiRanking}
@@ -828,68 +744,60 @@ export default function ApplicationsPage({
               </div>
             </div>
 
-            {isMobile && (
-              <button
-                className="h-9 px-3 rounded-lg border border-slate-200 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5"
-                onClick={() => setIsAiPanelExpanded((prev) => !prev)}
-              >
-                <span className="material-symbols-outlined text-[16px]">{isAiPanelExpanded ? 'expand_less' : 'expand_more'}</span>
-                {isAiPanelExpanded ? 'Collapse AI Details' : 'Expand AI Details'}
-              </button>
-            )}
-
-            {showAiPanelDetails && aiRankingError && (
+            {aiRankingError && (
               <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-3">
                 {aiRankingError}
               </div>
             )}
 
-            {showAiPanelDetails && aiLeaderboard && (
+            {aiRankingFailures.length > 0 && (
+              <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
+                <p className="font-semibold mb-1">Could not score:</p>
+                <ul className="space-y-0.5 list-disc list-inside">
+                  {aiRankingFailures.map((failure, index) => (
+                    <li key={index}>
+                      <span className="font-medium">{failure.name}</span> — {failure.reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {applications.some((application) => typeof application.ai_score === 'number') && (
               <div className="space-y-3 mt-3">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-parchment-sunken rounded-lg p-3">
-                    <p className="text-xs text-slate-500">Shortlisted</p>
-                    <p className="text-lg font-bold font-display text-slate-900">{aiLeaderboard.shortlisted_count ?? aiLeaderboard.top_5.length}</p>
-                  </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div className="bg-parchment-sunken rounded-lg p-3">
                     <p className="text-xs text-slate-500">Ranked</p>
-                    <p className="text-lg font-bold font-display text-slate-900">{aiLeaderboard.total_ranked}</p>
+                    <p className="text-lg font-bold font-display text-slate-900">
+                      {applications.filter((application) => typeof application.ai_score === 'number').length}
+                    </p>
                   </div>
                   <div className="bg-parchment-sunken rounded-lg p-3">
-                    <p className="text-xs text-slate-500">Pending</p>
-                    <p className="text-lg font-bold font-display text-slate-900">{aiLeaderboard.pending_count}</p>
-                  </div>
-                  <div className="bg-parchment-sunken rounded-lg p-3">
-                    <p className="text-xs text-slate-500">Failed</p>
-                    <p className="text-lg font-bold font-display text-slate-900">{(aiLeaderboard as any).failed_count}</p>
+                    <p className="text-xs text-slate-500">Unranked</p>
+                    <p className="text-lg font-bold font-display text-slate-900">
+                      {applications.filter((application) => typeof application.ai_score !== 'number').length}
+                    </p>
                   </div>
                 </div>
 
-                {(aiLeaderboard.top_5.length > 0 || aiLeaderboard.others.length > 0) ? (
-                  <div className="bg-parchment rounded-lg border border-slate-200 overflow-hidden">
-                    <div className="px-4 py-2 border-b border-slate-200">
-                      <p className="text-sm font-semibold text-slate-700">
-                        {aiLeaderboard.top_5.length > 0
-                          ? `Top Qualified Candidates (${aiLeaderboard.top_5.length} found)`
-                          : `Top Ranked Candidates (${Math.min(aiLeaderboard.others.length, 5)} shown)`}
-                      </p>
-                    </div>
-                    <div className="divide-y divide-slate-100">
-                      {(aiLeaderboard.top_5.length > 0 ? aiLeaderboard.top_5 : aiLeaderboard.others.slice(0, 5)).map((candidate, index) => (
-                        <div key={candidate.id} className="px-4 py-3">
-                          <p className="text-sm font-semibold text-slate-900">
-                            {index + 1}. {candidate.name} <span className="text-ink">({(candidate.score ?? 0).toFixed(2)}%)</span>
-                          </p>
-                          <p className="text-xs text-slate-500 mt-1">{candidate.rationale || 'No rationale provided.'}</p>
-                        </div>
-                      ))}
-                    </div>
+                <div className="bg-parchment rounded-lg border border-slate-200 overflow-hidden">
+                  <div className="px-4 py-2 border-b border-slate-200">
+                    <p className="text-sm font-semibold text-slate-700">
+                      Top Ranked Candidates ({topRankedApplications.length} shown)
+                    </p>
                   </div>
-                ) : (
-                  <div className="text-sm text-slate-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                    No candidates met shortlist thresholds for this job yet.
+                  <div className="divide-y divide-slate-100">
+                    {topRankedApplications.map((application, index) => (
+                      <div key={application.id} className="px-4 py-3">
+                        <p className="text-sm font-semibold text-slate-900">
+                          {index + 1}. {application.user_profile?.full_name || 'Unknown'}{' '}
+                          <span className="text-ink">({(application.ai_score ?? application.rating ?? 0).toFixed(2)}{typeof application.ai_score === 'number' ? '%' : ''})</span>
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">{application.ai_rationale || 'No rationale available.'}</p>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
             )}
           </div>
@@ -1028,7 +936,7 @@ export default function ApplicationsPage({
       {/* Resume Modal */}
       {selectedApplication && (
         <div className={`fixed inset-0 z-50 flex bg-slate-900/40 backdrop-blur-sm ${isMobile ? 'items-end justify-stretch p-0' : 'items-center justify-center p-4'}`}>
-          <div className={`bg-white w-full shadow-2xl flex flex-col overflow-hidden ${isMobile ? 'h-[92vh] rounded-t-2xl rounded-b-none' : 'max-w-3xl max-h-[90vh] rounded-xl'}`}>
+          <div className={`bg-white w-full shadow-2xl flex flex-col overflow-hidden ${isMobile ? 'max-h-[50vh] rounded-t-2xl rounded-b-none' : 'max-w-3xl max-h-[90vh] rounded-xl'}`}>
             <div className={`flex items-center justify-between border-b border-slate-100 shrink-0 ${isMobile ? 'p-4' : 'p-6'}`}>
               <div className="flex items-center gap-4">
                 <div className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} rounded-full bg-cover bg-center bg-parchment-sunken flex items-center justify-center overflow-hidden`}>

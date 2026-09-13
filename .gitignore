@@ -45,11 +45,13 @@ Thessis.com/xcuserdata/
 # Generated runtime artifacts
 web/resume-ranking/uploaded_resumes/
 web/resume-ranking/*.db
-web/resume-ranking/__pycache__/
 web/resume-ranking/.venv/
-web/resume-ranking/*.pyc
-web/resume-ranking/*.pyo
-web/resume-ranking/*.pyd
+
+# Python bytecode cache — applies anywhere (api/_ranking/, web/resume-ranking/, etc.)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # User-specific Xcode metadata
 Thessis.com/**/xcuserdata/
@@ -67,3 +69,5 @@ Thessis.com/**/xcschememanagement.plist
 .chaos-crawler-auth*.json
 .chaos-crawler.env
 qa-report.md
+.vercel
+.env*

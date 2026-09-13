@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, MessageSquare, Trash2 } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { messageService } from '../services/messageService';
 import { profileService } from '../services/profileService';
@@ -65,6 +65,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   // emojiSearch & activeCategory state removed
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const isInitialMount = useRef(true);
 
@@ -75,9 +76,9 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Mobile route includes a global header, so reserve that space to prevent
-  // the chat composer from being pushed below the fold.
-  const viewportHeight = isMobile ? 'calc(100dvh - 4rem)' : 'calc(100vh - 5rem)';
+  // Mobile no longer renders the global header on this route, so the chat
+  // view can use the full viewport height.
+  const viewportHeight = isMobile ? '100dvh' : 'calc(100vh - 5rem)';
 
   // Pending User Info (for header when chat is pending)
   const [pendingUserInfo, setPendingUserInfo] = useState<any>(null);
@@ -274,8 +275,10 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
   // Handle "Message" click from other pages
   useEffect(() => {
-    // Determine the target applicant from props OR location state
-    const targetApplicant = selectedApplicant || location.state?.selectedApplicant;
+    // Determine the target applicant from props, location state, or a
+    // ?userId= query param — the latter is what email links use (e.g. the
+    // "you got referred" email), since a plain URL can't carry router state.
+    const targetApplicant = selectedApplicant || location.state?.selectedApplicant || searchParams.get('userId');
     const navTs = location.state?.msgNavTs;
 
     // Wait until auth is available so DB query uses a real user id.
@@ -345,7 +348,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     };
 
     syncConversation();
-  }, [selectedApplicant, location.state?.selectedApplicant, location.state?.msgNavTs, user?.id]);
+  }, [selectedApplicant, location.state?.selectedApplicant, location.state?.msgNavTs, searchParams, user?.id]);
 
   // Auto-scroll to bottom: instantly when a conversation is first opened or
   // switched to, smoothly for new messages/typing while already viewing it.
@@ -752,12 +755,28 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     }
   };
 
-  const handleBackToConversations = () => {
-    setShowConversationsList(true);
-    setSelectedChat(null);
-    setPendingChatUserId(null); // Clear pending chat
-    setPendingUserInfo(null); // Clear pending user info
-  };
+  // Mobile has no in-app back button in the conversation header anymore —
+  // the device's own back gesture is meant to close it. Opening a
+  // conversation is just local state (no route/URL change), so without
+  // this the OS back button would leave the Messages page entirely instead
+  // of returning to the conversation list. This pushes a history entry
+  // when a conversation opens on mobile, and pops back to the list on the
+  // native back gesture — same pattern used for the mobile job details view.
+  useEffect(() => {
+    if (!(isMobile && !showConversationsList)) return;
+    window.history.pushState({ conversationOpen: true }, '');
+    const handlePopState = () => {
+      setShowConversationsList(true);
+      setSelectedChat(null);
+      setPendingChatUserId(null);
+      setPendingUserInfo(null);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile, showConversationsList]);
 
   // Helper function to get profile picture with fallback
 
@@ -871,19 +890,12 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
         </div>
 
         {/* Main Chat Area */}
-        <main className={`${!showConversationsList ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-white min-h-0 relative max-h-full`}>
+        <main className={`${!showConversationsList ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-white min-h-0 min-w-0 relative max-h-full`}>
           {currentConversation || pendingUserInfo || pendingChatUserId ? (
             <>
               {/* Chat Header */}
               <header className="h-16 md:h-20 shrink-0 border-b border-stone-border flex items-center justify-between px-4 md:px-6 bg-white z-10">
                 <div className="flex items-center gap-4">
-                  {/* Back button for mobile */}
-                  <button
-                    onClick={handleBackToConversations}
-                    className="md:hidden inline-flex items-center gap-1.5 p-2 text-slate-600 hover:text-slate-900 hover:bg-stone-off rounded-lg transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-                  </button>
 
                   <div className="relative">
                     <div

@@ -6,11 +6,9 @@ const cors = require('cors');
 const cheerio = require('cheerio');
 const Groq = require('groq-sdk');
 const axios = require('axios');
-const multer = require('multer');
 
 const app = express();
 const port = 3001;
-const upload = multer({ storage: multer.memoryStorage() });
 const rankingApiBase = (process.env.RANKING_API_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
 const debugLogsEnabled = process.env.DEBUG_LOGS === '1' || process.env.NODE_ENV !== 'production';
 const debugLog = (...args) => {
@@ -434,50 +432,23 @@ const forwardRankingResponse = async (upstreamRes, res) => {
   res.send(text);
 };
 
-app.post('/ranking/jobs', upload.none(), async (req, res) => {
+// Scores one real applications.id against its job. Synchronous — the
+// ranking service parses the resume, scores it, and writes the result
+// straight onto applications.ai_* columns before responding. The referrer's
+// own Supabase session JWT is forwarded as-is so the ranking service can
+// verify it (auth.py); this proxy does not itself check permissions.
+app.post('/ranking/applications/:applicationId/rank', async (req, res) => {
   try {
-    const form = new FormData();
-    form.append('title', req.body.title || '');
-    form.append('description', req.body.description || '');
-
-    const upstreamRes = await fetch(`${rankingApiBase}/jobs/`, {
-      method: 'POST',
-      body: form,
-    });
-
-    await forwardRankingResponse(upstreamRes, res);
-  } catch (error) {
-    res.status(502).json({ error: `Ranking service unreachable at ${rankingApiBase}` });
-  }
-});
-
-app.post('/ranking/jobs/:jobId/applications', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'Missing resume file' });
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Missing Authorization header' });
     }
 
-    const form = new FormData();
-    form.append('name', req.body.name || '');
-    form.append('email', req.body.email || '');
-    form.append('phone', req.body.phone || '');
-    form.append('profile_text', req.body.profile_text || '');
-    form.append('file', new Blob([req.file.buffer], { type: req.file.mimetype || 'application/pdf' }), req.file.originalname || 'resume.pdf');
-
-    const upstreamRes = await fetch(`${rankingApiBase}/jobs/${req.params.jobId}/applications/`, {
+    const upstreamRes = await fetch(`${rankingApiBase}/applications/${req.params.applicationId}/rank`, {
       method: 'POST',
-      body: form,
+      headers: { Authorization: authHeader },
     });
 
-    await forwardRankingResponse(upstreamRes, res);
-  } catch (error) {
-    res.status(502).json({ error: `Ranking service unreachable at ${rankingApiBase}` });
-  }
-});
-
-app.get('/ranking/jobs/:jobId/leaderboard', async (req, res) => {
-  try {
-    const upstreamRes = await fetch(`${rankingApiBase}/jobs/${req.params.jobId}/leaderboard`);
     await forwardRankingResponse(upstreamRes, res);
   } catch (error) {
     res.status(502).json({ error: `Ranking service unreachable at ${rankingApiBase}` });

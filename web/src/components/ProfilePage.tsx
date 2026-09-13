@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Edit3, Plus, X, Trash2, Share2, Pencil, BadgeCheck } from 'lucide-react';
 import { jobTitles } from '../data/jobTitles';
+import countries from 'world-countries';
 import debounce from 'lodash.debounce';
 import { profileService } from '../services/profileService';
 import { connectionService } from '../services/connectionService';
@@ -63,8 +64,6 @@ const ProfilePage: React.FC = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     full_name: '',
-    title: '',
-    company: '',
     location: '',
     bio: '',
     profile_picture_url: '',
@@ -94,6 +93,8 @@ const ProfilePage: React.FC = () => {
   const [activeExperienceLocationId, setActiveExperienceLocationId] = useState<number | string | null>(null);
   const [activeExperienceTitleId, setActiveExperienceTitleId] = useState<number | string | null>(null);
   const [filteredJobTitles, setFilteredJobTitles] = useState<string[]>([]);
+  const [activeExperienceCompanyId, setActiveExperienceCompanyId] = useState<number | string | null>(null);
+  const [companySuggestions, setCompanySuggestions] = useState<{ name: string; domain: string | null; logo_url: string | null }[]>([]);
   const [tempImage, setTempImage] = useState<string | null>(null);
 
 
@@ -102,8 +103,6 @@ const ProfilePage: React.FC = () => {
       const normalizedSections = getNormalizedProfileSections(profile);
       setEditForm({
         full_name: profile.full_name || '',
-        title: profile.title || '',
-        company: profile.company || '',
         location: profile.location || '',
         bio: profile.bio || '',
         profile_picture_url: profile.avatar_url || '',
@@ -187,9 +186,26 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  // Nominatim (with addressdetails=1, already requested above) returns a
+  // lowercase ISO 3166-1 alpha-2 country_code on every suggestion's address —
+  // map it to the alpha-3 code CountryPicker/world-countries expects, so
+  // picking a location keeps Country in sync instead of the two being able
+  // to silently contradict each other.
+  const countryCodeFromSuggestion = (suggestion: any): string | null => {
+    const alpha2 = suggestion?.address?.country_code;
+    if (!alpha2) return null;
+    const match = countries.find((c: any) => c.cca2.toLowerCase() === String(alpha2).toLowerCase());
+    return match?.cca3 || null;
+  };
+
   const handleLocationSelect = (suggestion: any) => {
     const displayName = suggestion.label || formatLocationSuggestion(suggestion);
-    setEditForm({ ...editForm, location: displayName });
+    const derivedCountryCode = countryCodeFromSuggestion(suggestion);
+    setEditForm({
+      ...editForm,
+      location: displayName,
+      ...(derivedCountryCode ? { country_code: derivedCountryCode } : {}),
+    });
     setLocationQuery(displayName);
     setShowLocationSuggestions(false);
     setLocationError('');
@@ -199,6 +215,7 @@ const ProfilePage: React.FC = () => {
     updateItem('experiences', expId, { location: value });
     setActiveExperienceLocationId(expId);
     setActiveExperienceTitleId(null); // Reset title search
+    setActiveExperienceCompanyId(null); // Reset company search
     setShowLocationSuggestions(false); // Reset main search
     if (value) {
       fetchLocationSuggestions(value);
@@ -218,6 +235,7 @@ const ProfilePage: React.FC = () => {
     updateItem('experiences', expId, { title: value });
     setActiveExperienceTitleId(expId);
     setActiveExperienceLocationId(null); // Reset location search
+    setActiveExperienceCompanyId(null); // Reset company search
     setShowLocationSuggestions(false); // Reset main search
 
     if (value.trim()) {
@@ -234,6 +252,64 @@ const ProfilePage: React.FC = () => {
     updateItem('experiences', expId, { title });
     setActiveExperienceTitleId(null);
     setFilteredJobTitles([]);
+  };
+
+  // Debounced fetch against api/company-suggestions.js (proxies logo.dev's
+  // Brand Search API — real companies, not a static list, same reasoning as
+  // the location autocomplete above).
+  const fetchCompanySuggestions = useCallback(
+    debounce(async (query: string) => {
+      if (!query || query.trim().length < 2) {
+        setCompanySuggestions([]);
+        return;
+      }
+      try {
+        const response = await fetch(`/api/company-suggestions?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        setCompanySuggestions(Array.isArray(data) ? data : []);
+      } catch (error) {
+        setCompanySuggestions([]);
+      }
+    }, 300),
+    []
+  );
+
+  const handleExperienceCompanyInput = (expId: number | string, value: string) => {
+    updateItem('experiences', expId, { company: value });
+    setActiveExperienceCompanyId(expId);
+    setActiveExperienceTitleId(null);
+    setActiveExperienceLocationId(null);
+    setShowLocationSuggestions(false);
+    fetchCompanySuggestions(value);
+  };
+
+  const handleExperienceCompanySelect = (expId: number | string, suggestion: { name: string }) => {
+    updateItem('experiences', expId, { company: suggestion.name });
+    setActiveExperienceCompanyId(null);
+    setCompanySuggestions([]);
+  };
+
+  // Suggestions are the primary fix (real companies, not a bare text box).
+  // On top of that, this blocks only unambiguous non-names — repeated single
+  // characters, or text with no letters at all — deliberately not a
+  // stricter "looks like a real word" check, since that would reject
+  // legitimate short acronym company names (BMW, HP, GE, DHL, ...).
+  const isVagueCompanyName = (value: string): boolean => {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.length < 2) return true;
+    if (!/[a-zA-Z]/.test(trimmed)) return true;
+    if (/^(.)\1*$/.test(trimmed)) return true;
+    return false;
+  };
+
+  const validateExperienceCompanies = () => {
+    for (const exp of editForm.experiences) {
+      if (isBlankExperience(exp)) continue;
+      if (exp.company && isVagueCompanyName(exp.company)) {
+        return false;
+      }
+    }
+    return true;
   };
 
   const handleDeleteAvatar = () => {
@@ -257,6 +333,18 @@ const ProfilePage: React.FC = () => {
       }
     }
     return true;
+  };
+
+  // profile.title/company (shown elsewhere as a person's "current role" —
+  // e.g. applicant cards, connections, messages) are no longer separate
+  // manually-typed fields in this form; they're derived from Experience
+  // instead, so there's exactly one place to keep them accurate. Prefers
+  // the entry marked "current", falling back to the most recently started.
+  const deriveCurrentRole = (experiences: Experience[]): { title: string; company: string } => {
+    const real = experiences.filter((exp) => !isBlankExperience(exp));
+    const current = real.find((exp) => exp.current);
+    const mostRecent = current || [...real].sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''))[0];
+    return { title: mostRecent?.title || '', company: mostRecent?.company || '' };
   };
 
   const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -378,6 +466,12 @@ const ProfilePage: React.FC = () => {
       return;
     }
 
+    // Validate experience companies
+    if (!validateExperienceCompanies()) {
+      setSaveError('Please enter a valid company name for each work experience entry — pick one from the suggestions if possible.');
+      return;
+    }
+
     // Validate experience dates (blank, untouched entries are exempt — they
     // get dropped below instead of blocking the save).
     const experienceDateError = validateExperienceDates(editForm.experiences);
@@ -394,10 +488,12 @@ const ProfilePage: React.FC = () => {
         experiences: editForm.experiences.filter((exp) => !isBlankExperience(exp)),
       });
 
+      const currentRole = deriveCurrentRole(normalizedSections.experiences as Experience[]);
+
       const updates: any = {
         full_name: editForm.full_name,
-        title: editForm.title,
-        company: editForm.company,
+        title: currentRole.title,
+        company: currentRole.company,
         location: editForm.location,
         bio: editForm.bio,
         experiences: normalizedSections.experiences,
@@ -466,8 +562,6 @@ const ProfilePage: React.FC = () => {
       const normalizedSections = getNormalizedProfileSections(profile);
       setEditForm({
         full_name: profile.full_name || '',
-        title: profile.title || '',
-        company: profile.company || '',
         location: profile.location || '',
         bio: profile.bio || '',
         profile_picture_url: profile.avatar_url || '',
@@ -778,26 +872,6 @@ const ProfilePage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
-                    <input
-                      type="text"
-                      value={editForm.title}
-                      onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      disabled={isSaving}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Company</label>
-                    <input
-                      type="text"
-                      value={editForm.company}
-                      onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      disabled={isSaving}
-                    />
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Country</label>
                     <CountryPicker
                       value={editForm.country_code}
@@ -911,15 +985,32 @@ const ProfilePage: React.FC = () => {
                             </ul>
                           )}
                         </div>
-                        <div>
+                        <div className="relative">
                           <label className="block text-xs font-medium text-slate-700 mb-1">Company</label>
                           <input
                             type="text"
                             value={exp.company}
-                            onChange={(e) => updateItem('experiences', exp.id, { ...exp, company: e.target.value })}
+                            onChange={(e) => handleExperienceCompanyInput(exp.id, e.target.value)}
                             className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={isSaving}
+                            autoComplete="off"
                           />
+                          {activeExperienceCompanyId === exp.id && companySuggestions.length > 0 && (
+                            <ul className="absolute z-10 bg-white border border-slate-200 rounded-lg mt-1 w-full max-h-40 overflow-y-auto shadow-lg">
+                              {companySuggestions.map((suggestion, idx) => (
+                                <li
+                                  key={`${suggestion.name}-${idx}`}
+                                  className="px-3 py-1.5 text-xs cursor-pointer hover:bg-blue-100 flex items-center gap-2"
+                                  onMouseDown={() => handleExperienceCompanySelect(exp.id, suggestion)}
+                                >
+                                  {suggestion.logo_url && (
+                                    <img src={suggestion.logo_url} alt="" className="h-4 w-4 rounded-sm object-contain" />
+                                  )}
+                                  {suggestion.name}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
                         <div className="relative">
                           <label className="block text-xs font-medium text-slate-700 mb-1">Location</label>
@@ -961,6 +1052,7 @@ const ProfilePage: React.FC = () => {
                           <input
                             type="date"
                             value={exp.endDate}
+                            min={exp.startDate || undefined}
                             onChange={(e) => updateItem('experiences', exp.id, { ...exp, endDate: e.target.value })}
                             className="w-full px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
                             disabled={exp.current || isSaving}

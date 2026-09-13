@@ -225,7 +225,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
                     <button
                         type="button"
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        className={`p-1.5 transition-colors rounded-lg h-8 w-8 flex items-center justify-center ${showEmojiPicker ? 'text-sage bg-stone-off' : 'text-slate-500 hover:text-sage'}`}
+                        className={`hidden md:flex p-1.5 transition-colors rounded-lg h-8 w-8 items-center justify-center ${showEmojiPicker ? 'text-sage bg-stone-off' : 'text-slate-500 hover:text-sage'}`}
                     >
                         <Smile className="text-[18px]" />
                     </button>

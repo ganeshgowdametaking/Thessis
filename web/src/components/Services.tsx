@@ -40,7 +40,7 @@ const Services = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.7, ease: 'easeOut' }}
-            className="w-full max-w-4xl mx-auto"
+            className="w-[90%] sm:w-full max-w-4xl mx-auto"
           >
             {/* Laptop frame: thin, uniform dark bezel around the screen, no base. */}
             <div className="rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 p-1 sm:p-1.5 shadow-lg lg:shadow-2xl transition-transform duration-500 lg:hover:scale-[1.005]">

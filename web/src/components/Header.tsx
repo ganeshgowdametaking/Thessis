@@ -208,11 +208,11 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
               </Link>
             </div>
             <nav className="hidden md:flex items-center gap-8"></nav>
-            <div className="flex items-center gap-3">
-              <button onClick={onSignIn} className="hidden sm:flex h-9 items-center justify-center rounded-full px-4 text-sm font-bold text-slate-700 hover:bg-black/5 transition-colors">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button onClick={onSignIn} className="flex h-8 sm:h-9 items-center justify-center rounded-full px-3 sm:px-4 text-xs sm:text-sm font-bold text-slate-700 hover:bg-black/5 transition-colors">
                 Login
               </button>
-              <button onClick={onJoinNow} className="flex h-9 items-center justify-center rounded-full bg-sage px-4 text-sm font-bold text-white hover:bg-sage-dark transition-all">
+              <button onClick={onJoinNow} className="flex h-8 sm:h-9 items-center justify-center rounded-full bg-sage px-3 sm:px-4 text-xs sm:text-sm font-bold text-white hover:bg-sage-dark transition-all">
                 Signup
               </button>
             </div>
@@ -234,7 +234,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
         isScrolled ? 'bg-[#F3F4F6]' : 'bg-parchment'
       }`}
     >
-      <div className="md:hidden h-16 px-2 grid grid-cols-[88px_1fr_88px] items-center">
+      <div className="md:hidden h-[60.8px] px-2 grid grid-cols-[88px_1fr_88px] items-center">
         <div className="flex items-center justify-start">
           <button
             onClick={handleMobileLeadingAction}

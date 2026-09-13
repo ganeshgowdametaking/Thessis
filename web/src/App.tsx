@@ -49,7 +49,6 @@ const AcceptAdminInvitePage = React.lazy(() => import('./components/AcceptAdminI
 import AuthCallback from './components/AuthCallback';
 import ScrollToTop from './components/ScrollToTop';
 import CompanyLayout from './components/CompanyLayout';
-import BottomTabBar from './components/BottomTabBar';
 import { analyticsService } from './services/analyticsService';
 import { captureUTMParams } from './utils/utmHandler';
 
@@ -487,7 +486,6 @@ function AppContent() {
   const isHeroPage = !user && location.pathname === '/';
   const isAuthPage = !user && (location.pathname === '/login' || location.pathname === '/signup');
   const isOnboardingPage = location.pathname === '/onboarding';
-  const showBottomTabBar = Boolean(user) && isMobile && location.pathname !== '/messages' && !isOnboardingPage;
 
   if (isAuthPage) {
     return (
@@ -507,13 +505,13 @@ function AppContent() {
     // <TrackingProvider>
     <div className={`flex min-h-screen flex-col relative ${isHeroPage ? 'bg-parchment' : 'bg-parchment-sunken'}`}>
       <GDPRBanner />
-      {!isOnboardingPage && (
+      {!isOnboardingPage && (!isMobile || location.pathname === '/jobs' || isHeroPage) && (
         <Header
           onSignIn={() => navigate('/login')}
           onJoinNow={() => navigate('/signup')}
         />
       )}
-      <main className={`flex-grow ${showBottomTabBar ? 'pb-14' : ''}`}>
+      <main className="flex-grow">
         <React.Suspense fallback={
           <div className="min-h-screen w-full flex items-center justify-center">
             <LoadingSpinner text="Loading page..." />
@@ -522,7 +520,6 @@ function AppContent() {
           {routes}
         </React.Suspense>
       </main>
-      {showBottomTabBar && <BottomTabBar />}
       {!(isMobile && location.pathname === '/messages') && (
         <Footer compact={isMobile} slim={Boolean(user)} />
       )}

@@ -196,6 +196,7 @@ const ExperienceStep: React.FC<{
                 type="date"
                 className={inputClass}
                 value={exp.endDate}
+                min={exp.startDate || undefined}
                 disabled={exp.current}
                 onChange={(e) => update(exp.id, { endDate: e.target.value })}
               />

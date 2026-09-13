@@ -27,20 +27,20 @@ const ReferralStats: React.FC = () => {
           Backed by hiring data from thousands of referrals.
         </h2>
 
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-6 lg:gap-x-12 lg:ml-auto shrink-0">
+        <div className="flex flex-nowrap items-start gap-x-3 w-full sm:flex-wrap sm:items-center sm:gap-x-8 sm:gap-y-6 sm:w-auto lg:gap-x-12 lg:ml-auto shrink-0">
           {stats.map((stat, i) => (
             <React.Fragment key={stat.label}>
               {i > 0 && (
                 <span className="hidden sm:block h-12 w-px bg-white/15" aria-hidden="true" />
               )}
-              <div>
-                <p className="font-poppins text-4xl sm:text-5xl font-bold text-gold">
+              <div className="flex-1 min-w-0 text-center sm:flex-none sm:text-left">
+                <p className="font-poppins text-2xl sm:text-5xl font-bold text-gold">
                   {stat.number}
-                  <span className={`text-xl sm:text-2xl align-baseline relative ${stat.unitOffset}`}>
+                  <span className={`text-base sm:text-2xl align-baseline relative ${stat.unitOffset}`}>
                     {stat.unit}
                   </span>
                 </p>
-                <p className="font-poppins mt-1 text-sm text-white/60">{stat.label}</p>
+                <p className="font-poppins mt-1 text-[11px] sm:text-sm text-white/60">{stat.label}</p>
               </div>
             </React.Fragment>
           ))}

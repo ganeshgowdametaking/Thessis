@@ -1,3 +1,5 @@
+import json
+import os
 import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Tuple
@@ -7,77 +9,27 @@ import numpy as np
 import ranker
 
 
-SKILL_SYNONYMS: Dict[str, Set[str]] = {
-    "python": {"python", "py"},
-    "django": {"django"},
-    "fastapi": {"fastapi"},
-    "flask": {"flask"},
-    "postgresql": {"postgresql", "postgres", "psql"},
-    "redis": {"redis"},
-    "docker": {"docker"},
-    "kubernetes": {"kubernetes", "k8s"},
-    "aws": {"aws", "amazon web services"},
-    "gcp": {"gcp", "google cloud"},
-    "azure": {"azure"},
-    "nodejs": {"node", "nodejs", "node.js"},
-    "react": {"react", "reactjs", "react.js"},
-    "typescript": {"typescript", "ts"},
-    "redux": {"redux"},
-    "tailwind": {"tailwind", "tailwindcss"},
-    "sql": {"sql"},
-    "tensorflow": {"tensorflow"},
-    "pytorch": {"pytorch"},
-    "pandas": {"pandas"},
-    "numpy": {"numpy"},
-    "scikit-learn": {"scikit-learn", "sklearn"},
-    "java": {"java"},
-    "spring": {"spring", "spring boot", "springboot"},
-    "express": {"express", "expressjs"},
-    "go": {"go", "golang"},
-    "csharp": {"c#", "csharp", ".net", "dotnet"},
-    "javascript": {"javascript", "js"},
-    "html": {"html", "html5"},
-    "css": {"css", "css3"},
-    "selenium": {"selenium"},
-    "cypress": {"cypress"},
-    "jira": {"jira"},
-    "scrum": {"scrum"},
-    "agile": {"agile"},
-    "terraform": {"terraform"},
-    "jenkins": {"jenkins"},
-}
+def _load_taxonomy() -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]], Dict[Tuple[str, str], float]]:
+    """Loads skills/roles/role-compatibility from skills_taxonomy.json.
 
-ROLE_KEYWORDS: Dict[str, Set[str]] = {
-    "backend": {
-        "backend",
-        "api",
-        "microservice",
-        "server",
-        "python",
-        "django",
-        "fastapi",
-        "postgresql",
-        "redis",
-    },
-    "frontend": {"frontend", "react", "typescript", "javascript", "redux", "ui", "tailwind"},
-    "devops": {"devops", "sre", "kubernetes", "docker", "terraform", "ci/cd", "infra", "aws"},
-    "data_science": {"data scientist", "machine learning", "ml", "pandas", "numpy", "tensorflow", "pytorch"},
-    "product": {"product manager", "product owner", "roadmap", "stakeholder"},
-    "qa": {"qa", "quality", "test automation", "selenium", "cypress"},
-}
+    This file is the intended single place to widen matching (its own
+    _comment says as much) — do not add terms back into this module.
+    """
+    path = os.path.join(os.path.dirname(__file__), "skills_taxonomy.json")
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-ROLE_FAMILY_COMPATIBILITY: Dict[Tuple[str, str], float] = {
-    ("backend", "devops"): 0.45,
-    ("devops", "backend"): 0.45,
-    ("backend", "data_science"): 0.35,
-    ("data_science", "backend"): 0.35,
-    ("frontend", "product"): 0.45,
-    ("product", "frontend"): 0.45,
-    ("qa", "backend"): 0.4,
-    ("backend", "qa"): 0.4,
-    ("qa", "frontend"): 0.45,
-    ("frontend", "qa"): 0.45,
-}
+    skill_synonyms = {canonical: set(aliases) for canonical, aliases in data["skills"].items()}
+    role_keywords = {role: set(keywords) for role, keywords in data["roles"].items()}
+    role_family_compatibility = {}
+    for key, weight in data.get("role_family_compatibility", {}).items():
+        role_a, role_b = key.split(",")
+        role_family_compatibility[(role_a, role_b)] = float(weight)
+
+    return skill_synonyms, role_keywords, role_family_compatibility
+
+
+SKILL_SYNONYMS, ROLE_KEYWORDS, ROLE_FAMILY_COMPATIBILITY = _load_taxonomy()
 
 # Bounded signal: used as a small additive score only.
 BRAND_WEIGHTS: Dict[str, float] = {

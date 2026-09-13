@@ -106,6 +106,11 @@ export const validateExperienceDates = (experiences: ExperienceLike[]): string |
     if (!exp.current && !exp.endDate) {
       return 'Please add an end date for each work experience entry, or check "I currently work here".';
     }
+    // Date inputs are plain "YYYY-MM-DD" strings, so a direct string
+    // comparison is a valid chronological comparison too.
+    if (!exp.current && exp.endDate && exp.startDate > exp.endDate) {
+      return `The end date for "${exp.title || exp.company || 'an experience entry'}" can't be before its start date.`;
+    }
   }
   return null;
 };

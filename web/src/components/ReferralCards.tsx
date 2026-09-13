@@ -54,11 +54,11 @@ const fadeUp = {
 const ReferralCards: React.FC = () => {
   return (
     <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16 lg:pb-20 -mt-48 sm:-mt-56 lg:-mt-64">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10">
+      <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:gap-8 sm:overflow-visible sm:pb-0 lg:grid-cols-4 lg:gap-10">
         {cards.map((card, i) => (
           <div
             key={card.role}
-            className={i === 0 || i === 3 ? 'lg:relative lg:-top-14' : ''}
+            className={`shrink-0 w-[82%] snap-center sm:w-auto sm:shrink sm:snap-align-none ${i === 0 || i === 3 ? 'lg:relative lg:-top-14' : ''}`}
           >
             <motion.div
               initial="hidden"

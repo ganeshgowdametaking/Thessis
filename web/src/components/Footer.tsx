@@ -69,17 +69,18 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
               </a>
             </div>
           </div>
-          <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
+          <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-slate-500">
             <a className="hover:text-sage transition-colors" href="/privacy-policy">
               Privacy
             </a>
-            <span>•</span>
             <a className="hover:text-sage transition-colors" href="/cookie-policy">
               Cookies
             </a>
-            <span>•</span>
             <a className="hover:text-sage transition-colors" href="/terms">
               Terms
+            </a>
+            <a className="hover:text-sage transition-colors" href="mailto:info@thessis.com">
+              Contact Support
             </a>
           </div>
         </div>

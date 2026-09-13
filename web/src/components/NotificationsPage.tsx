@@ -268,6 +268,8 @@ const NotificationsPage: React.FC = () => {
       navigate('/settings'); // Or wherever payouts are handled
     } else if (notification.type === 'analytics') {
       navigate('/analytics');
+    } else if (notification.type === 'referral' && notification.metadata?.referrerId) {
+      navigate(`/messages?userId=${notification.metadata.referrerId}`);
     }
 
     // Mark as read when clicked

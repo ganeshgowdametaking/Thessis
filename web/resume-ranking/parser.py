@@ -1,21 +1,22 @@
-import os
 import re
 
 import ranker
 
 try:
-    import fitz  # PyMuPDF
+    import pymupdf as fitz  # `fitz` is the deprecated import alias
 except Exception:
     fitz = None
 
 
-def extract_clean_text(pdf_path):
-    """Extracts and cleans text from a PDF file."""
+def extract_clean_text_from_bytes(pdf_bytes: bytes) -> str:
+    """Extracts and cleans text from an in-memory PDF (no disk I/O —
+    the service is stateless, so resumes are scored straight from the bytes
+    downloaded from Supabase Storage rather than written to a local file)."""
     if fitz is None:
         raise RuntimeError("PyMuPDF (fitz) is not installed")
 
     try:
-        doc = fitz.open(pdf_path)
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         raw_text = ""
         for page in doc:
             raw_text += page.get_text("text")
@@ -73,8 +74,8 @@ def chunk_sections(text):
     return sections
 
 
-def process_resume(pdf_path):
-    text = extract_clean_text(pdf_path)
+def process_resume(pdf_bytes: bytes):
+    text = extract_clean_text_from_bytes(pdf_bytes)
     if not text:
         return None
 
@@ -86,12 +87,7 @@ def process_resume(pdf_path):
         "experience_vector": ranker.encode_text(sections.get("experience", "")),
     }
 
-    metadata = {
-        "filename": os.path.basename(pdf_path),
-    }
-
     return {
-        "metadata": metadata,
         "sections": sections,
         "vectors": vectors,
     }

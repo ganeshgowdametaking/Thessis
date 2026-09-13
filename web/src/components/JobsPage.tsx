@@ -70,6 +70,59 @@ const JobsPage: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const isMobile = useMediaQuery({ maxWidth: 767 });
+
+  // Mobile has no in-app header/back-button on the job detail view anymore —
+  // the device's own back gesture is meant to close it. Since opening it is
+  // just local state (no route change), the OS back button wouldn't
+  // otherwise know to do anything but leave the page entirely. This pushes a
+  // history entry when the sheet opens so back closes it instead, and pops
+  // that entry itself if the sheet is dismissed some other way (backdrop
+  // tap, swipe-down) via dismissJobSheet below, so the history stack never
+  // has an orphaned entry regardless of how the user closes it.
+  const [isJobSheetExpanded, setIsJobSheetExpanded] = useState(false);
+  useEffect(() => {
+    if (!(isMobile && selectedJob)) return;
+    setIsJobSheetExpanded(false);
+    window.history.pushState({ jobDetailSheet: true }, '');
+    const handlePopState = () => setSelectedJob(null);
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile, selectedJob?.id]);
+
+  const dismissJobSheet = () => {
+    // Pop the history entry pushed above rather than clearing selectedJob
+    // directly — that triggers the popstate handler above, keeping every
+    // dismissal path (backdrop tap, swipe-down, native back) consistent.
+    window.history.back();
+  };
+
+  const jobSheetDragStartY = React.useRef<number | null>(null);
+  const handleJobSheetDragStart = (e: React.TouchEvent) => {
+    jobSheetDragStartY.current = e.touches[0].clientY;
+  };
+  const handleJobSheetDragEnd = (e: React.TouchEvent) => {
+    if (jobSheetDragStartY.current === null) return;
+    const deltaY = e.changedTouches[0].clientY - jobSheetDragStartY.current;
+    jobSheetDragStartY.current = null;
+    const DRAG_THRESHOLD = 50;
+    if (deltaY < -DRAG_THRESHOLD) {
+      setIsJobSheetExpanded(true);
+    } else if (deltaY > DRAG_THRESHOLD) {
+      if (isJobSheetExpanded) {
+        setIsJobSheetExpanded(false);
+      } else {
+        dismissJobSheet();
+      }
+    }
+  };
+  const handleJobSheetContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (!isJobSheetExpanded && e.currentTarget.scrollTop > 0) {
+      setIsJobSheetExpanded(true);
+    }
+  };
   const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
   const [locationQuery, setLocationQuery] = useState(filters.location);
   const [locationError, setLocationError] = useState('');
@@ -724,11 +777,43 @@ const JobsPage: React.FC = () => {
         <aside className="w-full md:max-w-[510px] flex flex-col border-r border-hairline bg-parchment relative z-10">
           {/* Sidebar Header */}
           <div className="flex flex-col gap-4 p-5 bg-parchment">
-            <div className="flex gap-2">
+            {/* Mobile only: search + filters merged into one pill, Referral
+                as its own full-width row below. Desktop block further down
+                is untouched. */}
+            <div className="flex flex-col gap-3 md:hidden">
+              <div className="flex items-center rounded-lg bg-white border border-hairline focus-within:border-primary transition-all shadow-sm">
+                <Search className="text-slate-500 pl-3 shrink-0" />
+                <input
+                  className="flex-1 min-w-0 bg-transparent border-none text-base px-3 py-2.5 placeholder:text-slate-500 text-slate-900 focus:ring-0"
+                  placeholder="Search role, company..." aria-label="Search role or company"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                />
+                <div className="w-px self-stretch my-2 bg-hairline shrink-0" />
+                <button
+                  onClick={() => setShowFilters(true)}
+                  className="flex items-center gap-1.5 px-4 h-[42px] shrink-0 text-slate-900 font-semibold text-sm"
+                >
+                  Filters
+                  <SlidersHorizontal className="text-[18px]" />
+                </button>
+              </div>
+              <button
+                onClick={handleCreateReferralClick}
+                className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white text-sm font-bold h-[46px] rounded-lg transition-colors w-full"
+              >
+                <Plus className="text-[20px]" />
+                Referral
+              </button>
+            </div>
+
+            {/* Desktop only: unchanged from before. */}
+            <div className="hidden md:flex gap-2">
               <div className="flex flex-1 min-w-0 items-center rounded-lg bg-white border border-hairline focus-within:border-primary transition-all shadow-sm">
                 <Search className="text-slate-500 pl-3" />
                 <input
-                  className="w-full min-w-0 bg-transparent border-none text-base md:text-sm px-3 py-2.5 placeholder:text-slate-500 text-slate-900 focus:ring-0"
+                  className="w-full min-w-0 bg-transparent border-none text-sm px-3 py-2.5 placeholder:text-slate-500 text-slate-900 focus:ring-0"
                   placeholder="Search role, company..." aria-label="Search role or company"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -857,26 +942,31 @@ const JobsPage: React.FC = () => {
         </section>
       </main>
 
-      {/* Mobile Full-Screen Job Details */}
+      {/* Mobile Job Details Bottom Sheet */}
       {isMobile && selectedJob && (
-        <div className="fixed inset-0 z-50 bg-white md:hidden slide-up-drawer">
-          <div className="h-full flex flex-col">
-            <div className="shrink-0 h-14 px-3 border-b border-hairline flex items-center justify-between bg-white">
-              <button
-                onClick={() => setSelectedJob(null)}
-                className="h-11 w-11 rounded-lg flex items-center justify-center text-slate-600 hover:bg-stone-100" aria-label="Back to job list"
-                aria-label="Back to jobs list"
-              >
-                <span className="material-symbols-outlined text-[22px]">arrow_back</span>
-              </button>
-              <h2 className="text-sm font-bold tracking-wide text-slate-900 uppercase">Job Details</h2>
-              <span className="h-10 w-10" aria-hidden="true"></span>
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-slate-900/40 md:hidden transition-opacity"
+            onClick={dismissJobSheet}
+            aria-hidden="true"
+          />
+          <div
+            className={`fixed inset-x-0 bottom-0 z-50 bg-white md:hidden slide-up-drawer rounded-t-2xl overflow-hidden flex flex-col transition-[height] duration-300 ease-in-out ${isJobSheetExpanded ? 'h-[100dvh] rounded-t-none' : 'h-[75dvh]'
+              }`}
+          >
+            <div
+              className="flex justify-center pt-2.5 pb-1.5 shrink-0 touch-none"
+              onTouchStart={handleJobSheetDragStart}
+              onTouchEnd={handleJobSheetDragEnd}
+              aria-hidden="true"
+            >
+              <div className="w-10 h-1.5 rounded-full bg-slate-300" />
             </div>
-            <div className="flex-1 overflow-y-auto bg-white">
+            <div className="flex-1 overflow-y-auto bg-white" onScroll={handleJobSheetContentScroll}>
               {renderSelectedJobDetails()}
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Filter Modal */}
