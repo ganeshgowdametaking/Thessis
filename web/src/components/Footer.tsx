@@ -39,7 +39,7 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
               <span className="ml-2 font-bold font-display text-sm text-slate-900 truncate">Thessis</span>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-5 shrink-0">
               <a
                 href="https://x.com/thessisngl?s=11"
                 target="_blank"
@@ -126,7 +126,7 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
             {/* Socials */}
             <div className="flex flex-col items-center md:items-start gap-3">
               <span className="text-slate-900 font-bold text-sm uppercase tracking-wider mb-2">Socials</span>
-              <div className="flex gap-4 items-center">
+              <div className="flex gap-6 items-center">
                 <a
                   href="https://x.com/thessisngl?s=11"
                   target="_blank"
