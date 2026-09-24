@@ -82,8 +82,8 @@ const CompanyJobsPage: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'draft': return 'bg-yellow-100 text-yellow-800';
+      case 'active': return 'bg-success-tint text-success-ink';
+      case 'draft': return 'bg-amber-tint text-amber-ink';
       case 'closed': return 'bg-slate-100 text-slate-800';
       default: return 'bg-slate-100 text-slate-800';
     }
@@ -101,7 +101,7 @@ const CompanyJobsPage: React.FC = () => {
           </div>
           <button
             onClick={handleCreateJob}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary-hover transition-colors flex items-center space-x-2"
           >
             <Plus className="h-5 w-5" />
             <span>Post New Job</span>
@@ -121,7 +121,7 @@ const CompanyJobsPage: React.FC = () => {
               onClick={() => setFilter(tab.key as any)}
               className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 filter === tab.key
-                  ? 'bg-white text-blue-600 shadow-sm'
+                  ? 'bg-white text-primary shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -146,7 +146,7 @@ const CompanyJobsPage: React.FC = () => {
           {filter === 'all' && (
             <button
               onClick={handleCreateJob}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary-hover transition-colors"
             >
               Post Your First Job
             </button>
@@ -173,14 +173,14 @@ const CompanyJobsPage: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => handleViewJob(job.id)}
-                    className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
+                    className="p-2 text-slate-400 hover:text-primary transition-colors"
                     title="View Job"
                   >
                     <Eye className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleEditJob(job.id)}
-                    className="p-2 text-slate-400 hover:text-green-600 transition-colors"
+                    className="p-2 text-slate-400 hover:text-success-ink transition-colors"
                     title="Edit Job"
                   >
                     <Edit className="h-4 w-4" />

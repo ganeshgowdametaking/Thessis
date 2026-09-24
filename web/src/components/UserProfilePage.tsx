@@ -370,7 +370,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
       case 'pending_sent':
         return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-slate-500 hover:bg-slate-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
       case 'pending_received':
-        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
+        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
       default:
         return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-sage hover:bg-sage-dark text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
     }
@@ -533,7 +533,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                       <div className="absolute left-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-stone-border overflow-hidden z-20">
                         <button
                           className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isBlocked
-                            ? 'text-green-600 hover:bg-green-50'
+                            ? 'text-success-ink hover:bg-success-tint'
                             : 'text-red-500 hover:bg-red-50'
                             } ${blockLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                           onClick={handleBlock}

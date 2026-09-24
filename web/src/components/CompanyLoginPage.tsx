@@ -81,8 +81,8 @@ const CompanyLoginPage: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Building className="h-8 w-8 text-blue-600" />
+              <div className="bg-ink-wash p-3 rounded-full">
+                <Building className="h-8 w-8 text-primary" />
               </div>
             </div>
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome Back</h1>
@@ -108,7 +108,7 @@ const CompanyLoginPage: React.FC = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="Enter your email"
                   required
                 />
@@ -127,7 +127,7 @@ const CompanyLoginPage: React.FC = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="Enter your password"
                   required
                 />
@@ -145,7 +145,7 @@ const CompanyLoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {loading ? (
                 <>
@@ -162,7 +162,7 @@ const CompanyLoginPage: React.FC = () => {
               Don't have a company account?{' '}
               <button
                 onClick={() => navigate('/company-signup')}
-                className="text-blue-600 hover:text-blue-800 font-medium"
+                className="text-primary hover:text-primary-hover font-medium"
               >
                 Sign up here
               </button>

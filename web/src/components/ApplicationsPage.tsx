@@ -4,6 +4,7 @@ import LoadingSpinner from './LoadingSpinner';
 import { applicationService } from '../services/applicationService';
 import { useMediaQuery } from 'react-responsive';
 import { useAuthContext } from '../contexts/AuthContext';
+import { AlertCircle, ArrowLeft, ArrowUpDown, ArrowUpRight, Check, Clock, Download, FileText, Hourglass, Inbox, Link2, Loader2, Mail, MapPin, MessageSquare, Phone, Search, Sparkles, Trash2, Users, X } from 'lucide-react';
 
 interface Application {
   id: string;
@@ -52,6 +53,117 @@ interface ApplicationsPageProps {
   onViewProfile: (userId: string) => void;
 }
 
+// Same bands the ranking service uses when it writes its rationale
+// (api/_ranking/scoring.py), so the label here always agrees with it.
+const getMatchVerdict = (score: number) => {
+  if (score >= 80) return { label: 'Strong', pill: 'bg-success-tint text-success-ink', ring: 'stroke-success' };
+  if (score >= 60) return { label: 'Good', pill: 'bg-ink-wash text-primary-hover', ring: 'stroke-primary' };
+  if (score >= 40) return { label: 'Potential', pill: 'bg-amber-tint text-amber-ink', ring: 'stroke-amber-500' };
+  return { label: 'Weak', pill: 'bg-parchment-sunken text-slate-600', ring: 'stroke-slate-400' };
+};
+
+const getStatusMeta = (status: string) => {
+  if (status === 'referred') return { label: 'Referred', className: 'bg-success-tint text-success-ink' };
+  if (status === 'shortlisted') return { label: 'Shortlisted', className: 'bg-ink-wash text-primary-hover' };
+  return { label: 'Applied', className: 'bg-parchment-sunken text-slate-600' };
+};
+
+// The rationale arrives as one string of sentences ("Strong Match (86.20%).
+// Matched required skills: … Signals - …"). Show the readable middle
+// sentences as a list; the verdict and raw signal numbers are already
+// shown by the score ring and bars.
+const parseRationale = (rationale: string) =>
+  rationale
+    .split(/\.\s+(?=[A-Z])/)
+    .map((line) => line.trim().replace(/\.$/, ''))
+    .filter((line) => line && !/^(Strong|Good|Potential|Weak) Match/i.test(line) && !line.startsWith('Signals'));
+
+const formatDeadline = (dateString: string) =>
+  new Date(dateString).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+const formatShortDate = (dateString: string) =>
+  new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+const AVATAR_TONES = [
+  'bg-ink-wash text-primary-hover',
+  'bg-success-tint text-success-ink',
+  'bg-amber-tint text-amber-ink',
+  'bg-danger-tint text-red-700',
+  'bg-parchment-sunken text-slate-600',
+];
+
+function ApplicantAvatar({ name, url, size }: { name: string; url?: string; size: number }) {
+  if (url) {
+    return <img src={url} alt={name} className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} />;
+  }
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '?';
+  const tone = AVATAR_TONES[(name.charCodeAt(0) || 0) % AVATAR_TONES.length];
+  return (
+    <span
+      className={`rounded-full flex items-center justify-center font-display font-extrabold shrink-0 ${tone}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.34) }}
+      aria-hidden="true"
+    >
+      {initials}
+    </span>
+  );
+}
+
+function ScoreRing({ score, size }: { score: number; size: number }) {
+  const radius = 34;
+  const circumference = 2 * Math.PI * radius;
+  const pct = Math.max(0, Math.min(100, score));
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox="0 0 84 84" aria-hidden="true">
+        <circle cx="42" cy="42" r={radius} fill="none" className="stroke-slate-100" strokeWidth="8" />
+        <circle
+          cx="42"
+          cy="42"
+          r={radius}
+          fill="none"
+          className={getMatchVerdict(score).ring}
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={`${(circumference * pct) / 100} ${circumference}`}
+          transform="rotate(-90 42 42)"
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center font-display font-extrabold text-ink" style={{ fontSize: Math.round(size * 0.26) }}>
+        {Math.round(score)}
+      </span>
+    </div>
+  );
+}
+
+function ScoreBar({ label, value }: { label: string; value: number }) {
+  const pct = Math.max(0, Math.min(100, value));
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex justify-between text-xs">
+        <span className="font-semibold text-slate-600">{label}</span>
+        <span className="font-bold text-ink">{Math.round(value)}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-parchment-sunken overflow-hidden">
+        <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function MatchPill({ score }: { score?: number | null }) {
+  if (typeof score !== 'number') {
+    return <span className="shrink-0 whitespace-nowrap rounded-full bg-parchment-sunken px-2.5 py-1 text-[11.5px] font-semibold text-slate-500">Not ranked</span>;
+  }
+  const verdict = getMatchVerdict(score);
+  return (
+    <span className={`shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-bold ${verdict.pill}`}>
+      <Sparkles className="h-3 w-3" />
+      {Math.round(score)} · {verdict.label}
+    </span>
+  );
+}
+
 export default function ApplicationsPage({
   referralId,
   referralTitle,
@@ -75,7 +187,7 @@ export default function ApplicationsPage({
   const [applicationToDelete, setApplicationToDelete] = useState<Application | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [removalMode, setRemovalMode] = useState<'delete' | 'unshortlist'>('delete');
-  const isMobile = useMediaQuery({ maxWidth: 767 });
+  const isDesktop = useMediaQuery({ minWidth: 1024 });
 
   // Default targets the Vercel Python function at api/rank-application.py —
   // deployed alongside the rest of the site, no separate service/billing.
@@ -543,8 +655,8 @@ export default function ApplicationsPage({
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffHours < 24) {
-      if (diffHours < 1) return 'Just now';
-      return `${diffHours} hours ago`;
+      if (diffHours < 1) return 'Applied just now';
+      return `Applied ${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
     }
     if (diffDays === 1) return 'Applied yesterday';
     if (diffDays < 7) return `Applied ${diffDays} days ago`;
@@ -606,6 +718,15 @@ export default function ApplicationsPage({
 
   const statusCounts = getStatusCounts();
 
+  // Read the open applicant from the live list so status changes show
+  // straight away, and a declined/deleted applicant closes the panel.
+  const selected = selectedApplication
+    ? applications.find((app) => app.id === selectedApplication.id) ?? null
+    : null;
+
+  const isAssignedToMe = (app: Application) =>
+    app.assigned_referrer_id === user?.id && app.status === 'pending' && !!app.assignment_expires_at;
+
   if (loading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center">
@@ -614,516 +735,664 @@ export default function ApplicationsPage({
     );
   }
 
-  return (
-    <div className="min-h-screen bg-parchment flex flex-col overflow-hidden">
-      {/* Page Header */}
-      <header className="bg-parchment pt-5 md:pt-8 pb-3 md:pb-4 px-4 md:px-8 shrink-0 z-10">
-        <div className="max-w-7xl mx-auto w-full flex flex-col gap-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{referralTitle}</h1>
-              </div>
-              <p className="text-slate-500 font-medium">
-                <span className="text-ink font-semibold">{applications.length} Applicants</span>
-              </p>
-            </div>
+  const rankedCount = applications.filter((application) => typeof application.ai_score === 'number').length;
+  const rankableCount = getValidApplications().length;
+  const tabs = [
+    { id: 'all', label: 'All', count: statusCounts.all },
+    { id: 'top_ranked', label: 'Top matches', count: statusCounts.top_ranked },
+    { id: 'shortlisted', label: 'Shortlisted', count: statusCounts.shortlisted },
+    { id: 'referred', label: 'Referred', count: statusCounts.referred },
+  ];
+  const emptyTabCopy: Record<string, string> = {
+    top_ranked: 'Update rankings to see your top matches here.',
+    shortlisted: 'Applicants you shortlist will show up here.',
+    referred: 'Applicants you refer will show up here.',
+  };
 
-            <div className="flex gap-3">
-              {/* Add Candidate button removed */}
-            </div>
+  const firstNameOf = (app: Application) => (app.user_profile?.full_name || 'This applicant').split(' ')[0];
+  const roleOf = (app: Application) =>
+    [app.user_profile?.current_position, app.user_profile?.current_company].filter(Boolean).join(' at ');
+
+  const renderStatusBadge = (status: string) => {
+    const meta = getStatusMeta(status);
+    return (
+      <span className={`shrink-0 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[10.5px] font-bold uppercase tracking-wide ${meta.className}`}>
+        {meta.label}
+      </span>
+    );
+  };
+
+  const renderPrimaryAction = (app: Application) => {
+    const firstName = firstNameOf(app);
+
+    if (isAssignedToMe(app)) {
+      return (
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="flex-1 h-11 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover transition-colors flex items-center justify-center gap-2"
+              onClick={() => handleAcceptAssignment(app.id)}
+            >
+              <Check className="h-4 w-4" strokeWidth={2.5} />
+              Accept &amp; refer
+            </button>
+            <button
+              type="button"
+              className="flex-1 h-11 rounded-xl border border-red-200 bg-white text-red-600 text-sm font-bold hover:bg-danger-tint transition-colors"
+              onClick={() => handleRejectAssignment(app.id)}
+            >
+              Decline
+            </button>
           </div>
+          <p className="text-[11.5px] text-slate-500">Accepting marks {firstName} as referred and emails them.</p>
+        </div>
+      );
+    }
 
-          {/* Tabs and Filters */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mt-2 border-b border-slate-200 pb-1">
-            <div className="flex gap-6 overflow-x-auto no-scrollbar">
-              <button
-                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'all'
-                  ? 'border-[#4353FF] text-ink'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                  } transition-all`}
-                onClick={() => setActiveTab('all')}
-              >
-                <span className="font-bold text-sm">All</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'all'
-                  ? 'bg-ink text-white'
-                  : 'bg-parchment-sunken text-slate-600'
-                  }`}>
-                  {statusCounts.all}
-                </span>
-              </button>
+    const isReferred = app.status === 'referred';
+    const label = app.status === 'shortlisted' ? 'Mark as referred' : isReferred ? 'Referred' : 'Shortlist';
+    const helper = app.status === 'shortlisted'
+      ? `${firstName} will get an email saying you referred them.`
+      : isReferred
+        ? `You've referred ${firstName}.`
+        : `${firstName} will get an email saying they've been shortlisted.`;
 
-              <button
-                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'shortlisted'
-                  ? 'border-[#4353FF] text-ink'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                  } transition-all`}
-                onClick={() => setActiveTab('shortlisted')}
-              >
-                <span className="font-medium text-sm">Shortlisted</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'shortlisted'
-                  ? 'bg-ink text-white'
-                  : 'bg-parchment-sunken text-slate-600'
-                  }`}>
-                  {statusCounts.shortlisted}
-                </span>
-              </button>
+    return (
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          className={`w-full h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors ${isReferred
+            ? 'bg-success-tint text-success-ink cursor-default'
+            : 'bg-primary text-white hover:bg-primary-hover'
+            }`}
+          onClick={() => {
+            if (app.status === 'shortlisted') {
+              handleStatusUpdate(app.id, 'referred');
+              return;
+            }
+            if (app.status !== 'referred') {
+              handleStatusUpdate(app.id, 'shortlisted');
+            }
+          }}
+          disabled={isReferred}
+        >
+          <Check className="h-4 w-4" strokeWidth={2.5} />
+          {label}
+        </button>
+        <p className="text-[11.5px] text-slate-500">{helper}</p>
+      </div>
+    );
+  };
 
-              <button
-                className={`flex items-center gap-2 pb-3 border-b-2 px-1 ${activeTab === 'referred'
-                  ? 'border-[#4353FF] text-ink'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                  } transition-all`}
-                onClick={() => setActiveTab('referred')}
-              >
-                <span className="font-medium text-sm">Referred</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === 'referred'
-                  ? 'bg-ink text-white'
-                  : 'bg-parchment-sunken text-slate-600'
-                  }`}>
-                  {statusCounts.referred}
-                </span>
-              </button>
-            </div>
+  const secondaryButtonClass = 'h-11 px-4 rounded-xl border border-slate-200 bg-white text-[13px] font-bold text-ink hover:bg-parchment-sunken transition-colors flex items-center justify-center gap-2';
 
-            <div className="flex items-center gap-3 pb-2 w-full lg:w-auto">
-              <button
-                className="h-10 px-4 rounded-lg bg-white border border-transparent hover:border-slate-200 text-slate-600 flex items-center gap-2 text-sm font-semibold transition-all whitespace-nowrap"
-                onClick={() => setSortOrder((prev) => (prev === 'earliest' ? 'latest' : 'earliest'))}
-                title="Toggle applicant sort order"
-              >
-                <span className="material-symbols-outlined text-[20px]">sort</span>
-                {sortOrder === 'earliest' ? 'Earliest First' : 'Latest First'}
-              </button>
-            </div>
+  const renderAssignedBanner = (app: Application) =>
+    isAssignedToMe(app) && app.assignment_expires_at ? (
+      <div className="flex gap-2.5 rounded-xl bg-amber-tint px-3.5 py-3 text-amber-ink">
+        <Hourglass className="h-4 w-4 shrink-0 mt-0.5" />
+        <div className="text-[12.5px] flex flex-col gap-0.5">
+          <span className="font-bold">Assigned to you — respond by {formatDeadline(app.assignment_expires_at)}</span>
+          <span>Thessis picked you to refer this applicant. If you decline, they'll be offered to another referrer.</span>
+        </div>
+      </div>
+    ) : null;
+
+  const renderMatch = (app: Application, ringSize: number) => {
+    if (typeof app.ai_score !== 'number') {
+      return (
+        <div className="rounded-2xl border border-dashed border-slate-300 p-4 flex items-center gap-3">
+          <span className="size-10 shrink-0 rounded-xl bg-ink-wash text-primary flex items-center justify-center">
+            <Sparkles className="h-[18px] w-[18px]" />
+          </span>
+          <div>
+            <p className="text-[13.5px] font-bold text-ink">Not ranked yet</p>
+            <p className="text-xs text-slate-500 mt-0.5">Use Update rankings to score this resume against the job.</p>
           </div>
         </div>
-      </header>
+      );
+    }
 
-      {/* Applications Grid */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:py-6">
-        <div className="max-w-7xl mx-auto">
-          {error && (
-            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-center justify-between gap-3">
-              <p className="text-sm text-amber-800">{error}</p>
-              <button
-                className="h-8 px-3 rounded-lg bg-white border border-amber-200 text-amber-800 text-xs font-semibold"
-                onClick={() => fetchApplications()}
-              >
-                Retry
-              </button>
+    const verdict = getMatchVerdict(app.ai_score);
+    const reasons = app.ai_rationale ? parseRationale(app.ai_rationale) : [];
+
+    return (
+      <div className="rounded-2xl border border-slate-200 p-4 md:p-5 flex flex-col gap-4">
+        <div className="flex items-center gap-4 md:gap-5">
+          <ScoreRing score={app.ai_score} size={ringSize} />
+          <div className="flex-1 min-w-0 flex flex-col gap-3">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="font-display text-base font-extrabold text-ink">{verdict.label} match</span>
+              <span className="text-[11px] text-slate-500">AI resume match</span>
             </div>
+            {typeof app.ai_skill_score === 'number' && <ScoreBar label="Skills fit" value={app.ai_skill_score} />}
+            {typeof app.ai_semantic_score === 'number' && <ScoreBar label="Resume relevance" value={app.ai_semantic_score} />}
+          </div>
+        </div>
+        {reasons.length > 0 ? (
+          <ul className="rounded-xl bg-parchment px-3.5 py-3 flex flex-col gap-2 text-[12.5px] leading-snug text-slate-600">
+            {reasons.map((reason, index) => {
+              const isGap = reason.startsWith('Missing') && !/:\s*none$/i.test(reason);
+              const isGood = reason.startsWith('Matched') || reason.startsWith('Missing');
+              return (
+                <li key={index} className="flex gap-2">
+                  {isGap ? (
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
+                  ) : isGood ? (
+                    <Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-success" strokeWidth={3} />
+                  ) : (
+                    <span className="size-1.5 shrink-0 rounded-full bg-slate-400 mt-1.5 mx-1" />
+                  )}
+                  {reason}
+                </li>
+              );
+            })}
+          </ul>
+        ) : app.ai_rationale ? (
+          <p className="rounded-xl bg-parchment px-3.5 py-3 text-[12.5px] leading-relaxed text-slate-600">{app.ai_rationale}</p>
+        ) : null}
+        <p className="text-[11.5px] text-slate-500">Scores are a guide — always read the resume before you decide.</p>
+      </div>
+    );
+  };
+
+  const renderExtras = (app: Application) => (
+    <>
+      {app.cover_letter && (
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">Cover letter</h3>
+          <p className="text-[13.5px] leading-relaxed text-slate-600 whitespace-pre-line">{app.cover_letter}</p>
+        </section>
+      )}
+      {(app.user_profile?.phone || app.user_profile?.linkedin_url) && (
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">Contact</h3>
+          {app.user_profile?.phone && (
+            <span className="flex items-center gap-2 text-[13px] text-slate-600"><Phone className="h-4 w-4 text-slate-400" />{app.user_profile.phone}</span>
           )}
+          {app.user_profile?.linkedin_url && (
+            <a className="flex items-center gap-2 text-[13px] font-semibold text-primary hover:underline" href={app.user_profile.linkedin_url} target="_blank" rel="noopener noreferrer">
+              <Link2 className="h-4 w-4" />LinkedIn profile
+            </a>
+          )}
+        </section>
+      )}
+      {app.user_profile?.skills && app.user_profile.skills.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">Skills</h3>
+          <div className="flex flex-wrap gap-1.5">
+            {app.user_profile.skills.map((skill, index) => (
+              <span key={index} className="rounded-full bg-parchment-sunken px-2.5 py-1 text-xs font-semibold text-slate-600">{skill}</span>
+            ))}
+          </div>
+        </section>
+      )}
+    </>
+  );
 
-          <div className="bg-white rounded-lg p-4 md:p-5 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-2 md:mb-3">
-              <div>
-                <h2 className="text-lg font-bold font-display text-slate-900">AI Resume Ranking</h2>
-                {aiLastUpdatedAt && (
-                  <p className="text-xs text-slate-400 mt-1">
-                    Last updated: {new Date(aiLastUpdatedAt).toLocaleString()}
-                  </p>
-                )}
-              </div>
-              <div className="w-full lg:w-auto flex flex-col sm:flex-row items-center gap-3">
-                {aiRankingLoading && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
-                    AI Ranking In Progress
-                  </span>
-                )}
-                {canRunAiRanking && (
-                  <button
-                    onClick={triggerAiRanking}
-                    disabled={aiRankingLoading}
-                    className="h-9 px-4 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-hover transition-all flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">bolt</span>
-                    Update AI Rankings
-                  </button>
-                )}
-              </div>
-            </div>
+  const renderRemoveButton = (app: Application) => (
+    <button
+      type="button"
+      className="flex items-center gap-1.5 h-9 px-3 rounded-lg text-[12.5px] font-bold text-red-600 hover:bg-danger-tint transition-colors"
+      onClick={() => handleDeleteApplication(app)}
+    >
+      <Trash2 className="h-4 w-4" />
+      {activeTab === 'shortlisted' ? 'Take off shortlist' : 'Remove applicant'}
+    </button>
+  );
 
-            {aiRankingError && (
-              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-3">
-                {aiRankingError}
-              </div>
+  const renderIdentity = (app: Application, avatarSize: number) => {
+    const role = roleOf(app);
+    return (
+      <div className="flex items-start gap-3.5 md:gap-4">
+        <ApplicantAvatar name={app.user_profile?.full_name || 'Unknown'} url={app.user_profile?.avatar_url} size={avatarSize} />
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h2 className="font-display text-lg md:text-xl font-extrabold text-ink">{app.user_profile?.full_name || 'Unknown applicant'}</h2>
+            {renderStatusBadge(app.status)}
+          </div>
+          {role && <p className="text-[13.5px] text-slate-600">{role}</p>}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-0.5">
+            {app.user_profile?.location && (
+              <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{app.user_profile.location}</span>
             )}
-
-            {aiRankingFailures.length > 0 && (
-              <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
-                <p className="font-semibold mb-1">Could not score:</p>
-                <ul className="space-y-0.5 list-disc list-inside">
-                  {aiRankingFailures.map((failure, index) => (
-                    <li key={index}>
-                      <span className="font-medium">{failure.name}</span> — {failure.reason}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {applications.some((application) => typeof application.ai_score === 'number') && (
-              <div className="space-y-3 mt-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-parchment-sunken rounded-lg p-3">
-                    <p className="text-xs text-slate-500">Ranked</p>
-                    <p className="text-lg font-bold font-display text-slate-900">
-                      {applications.filter((application) => typeof application.ai_score === 'number').length}
-                    </p>
-                  </div>
-                  <div className="bg-parchment-sunken rounded-lg p-3">
-                    <p className="text-xs text-slate-500">Unranked</p>
-                    <p className="text-lg font-bold font-display text-slate-900">
-                      {applications.filter((application) => typeof application.ai_score !== 'number').length}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-parchment rounded-lg border border-slate-200 overflow-hidden">
-                  <div className="px-4 py-2 border-b border-slate-200">
-                    <p className="text-sm font-semibold text-slate-700">
-                      Top Ranked Candidates ({topRankedApplications.length} shown)
-                    </p>
-                  </div>
-                  <div className="divide-y divide-slate-100">
-                    {topRankedApplications.map((application, index) => (
-                      <div key={application.id} className="px-4 py-3">
-                        <p className="text-sm font-semibold text-slate-900">
-                          {index + 1}. {application.user_profile?.full_name || 'Unknown'}{' '}
-                          <span className="text-ink">({(application.ai_score ?? application.rating ?? 0).toFixed(2)}{typeof application.ai_score === 'number' ? '%' : ''})</span>
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">{application.ai_rationale || 'No rationale available.'}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+            <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{formatDate(app.created_at || app.applied_at || new Date().toISOString())}</span>
+            {app.user_profile?.email && (
+              <span className="flex items-center gap-1 break-all"><Mail className="h-3.5 w-3.5 shrink-0" />{app.user_profile.email}</span>
             )}
           </div>
+        </div>
+        {app.user_id && (
+          <button
+            type="button"
+            className="hidden sm:flex shrink-0 items-center gap-1 text-[12.5px] font-bold text-primary hover:underline"
+            onClick={() => app.user_id && onViewProfile(app.user_id)}
+          >
+            View full profile
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+    );
+  };
 
-          {sortedApplications.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-slate-500 text-lg">
-                {searchQuery ? 'No applicants match your search' : 'No applications yet'}
-              </p>
-            </div>
-          ) : (
-            <div className="w-full md:w-[90%] md:mx-auto space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 md:gap-5">
-              {sortedApplications.map((application) => (
-                <div
-                  key={application.id}
-                  className="bg-white rounded-lg p-4 md:p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-shadow border border-slate-100 flex flex-col h-full group relative"
-                >
-                  {/* Profile Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <button
-                      className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                      onClick={() => application.user_id && onViewProfile(application.user_id)}
-                    >
-                      <div className="h-12 w-12 rounded-full bg-cover bg-center bg-parchment-sunken flex items-center justify-center overflow-hidden">
-                        <img
-                          src={application.user_profile?.avatar_url || '/default-avatar.svg'}
-                          alt={application.user_profile?.full_name || 'User'}
-                          className="h-12 w-12 rounded-full object-cover"
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-slate-900 text-base leading-tight">
-                          {application.user_profile?.full_name || 'Unknown User'}
-                        </h3>
-                      </div>
-                    </button>
-                    <button
-                      className="text-slate-300 hover:text-red-500 transition-colors p-1"
-                      onClick={() => handleDeleteApplication(application)}
-                      title="Remove Applicant"
-                    >
-                      <span className="material-symbols-outlined text-[20px]">close</span>
-                    </button>
-                  </div>
+  const renderApplicantRow = (application: Application) => {
+    const isSelected = selected?.id === application.id;
+    const role = roleOf(application);
+    const assigned = isAssignedToMe(application);
 
-                  {/* Details */}
-                  <div className="flex flex-col gap-2 mb-4">
-                    <div className="flex items-center gap-2 text-slate-500 text-xs">
-                      <span className="material-symbols-outlined text-[16px]">location_on</span>
-                      <span>{application.user_profile?.location || 'Location not specified'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-500 text-xs">
-                      <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                      <span>{formatDate(application.created_at || (application as any).applied_at || new Date().toISOString())}</span>
-                    </div>
-                  </div>
-
-                  {/* Cover Letter Preview */}
-                  {application.cover_letter && (
-                    <div className="mb-5 bg-parchment-sunken p-3 rounded-lg">
-                      <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed italic">
-                        "{application.cover_letter}"
-                      </p>
-                    </div>
+    return (
+      <div key={application.id} className="flex flex-col gap-2">
+        <button
+          type="button"
+          aria-current={isSelected ? 'true' : undefined}
+          onClick={() => setSelectedApplication(application)}
+          className={`w-full text-left rounded-2xl p-3.5 md:p-4 border transition-colors ${isSelected
+            ? 'bg-ink-wash border-primary ring-1 ring-primary'
+            : 'bg-white border-slate-200 hover:border-slate-300'
+            }`}
+        >
+          <div className="flex items-start gap-3">
+            <ApplicantAvatar name={application.user_profile?.full_name || 'Unknown'} url={application.user_profile?.avatar_url} size={42} />
+            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[14.5px] font-bold text-ink truncate">{application.user_profile?.full_name || 'Unknown applicant'}</span>
+                {renderStatusBadge(application.status)}
+              </div>
+              {role && <span className="text-[12.5px] text-slate-600 truncate">{role}</span>}
+              <div className="flex items-center justify-between gap-2 mt-1.5">
+                <span className="flex items-center gap-2.5 min-w-0 text-[11.5px] text-slate-500 whitespace-nowrap">
+                  {application.user_profile?.location && (
+                    <span className="hidden sm:flex items-center gap-1 min-w-0"><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{application.user_profile.location}</span></span>
                   )}
+                  <span className="flex items-center gap-1"><Clock className="h-3 w-3 shrink-0" />{formatDate(application.created_at || application.applied_at || new Date().toISOString())}</span>
+                </span>
+                <MatchPill score={application.ai_score} />
+              </div>
+            </div>
+          </div>
+          {assigned && application.assignment_expires_at && (
+            <div className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-amber-tint px-2.5 py-1.5 text-xs font-bold text-amber-ink">
+              <Hourglass className="h-3.5 w-3.5 shrink-0" />
+              Assigned to you · respond by {formatShortDate(application.assignment_expires_at)}
+            </div>
+          )}
+        </button>
+        {assigned && !isDesktop && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="flex-1 h-10 rounded-xl bg-primary text-white text-[13px] font-bold hover:bg-primary-hover transition-colors"
+              onClick={() => handleAcceptAssignment(application.id)}
+            >
+              Accept &amp; refer
+            </button>
+            <button
+              type="button"
+              className="flex-1 h-10 rounded-xl border border-red-200 bg-white text-red-600 text-[13px] font-bold hover:bg-danger-tint transition-colors"
+              onClick={() => handleRejectAssignment(application.id)}
+            >
+              Decline
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
-                  {/* Actions */}
-                  <div className="mt-auto flex flex-col gap-2">
-                    {application.assigned_referrer_id === user?.id && application.status === 'pending' && application.assignment_expires_at ? (
-                      <>
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs font-semibold text-amber-800">
-                          Assigned to you — respond by {formatDate(application.assignment_expires_at)}
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            className="w-full py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-hover text-white transition-colors"
-                            onClick={() => handleAcceptAssignment(application.id)}
-                          >
-                            <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                            Accept
-                          </button>
-                          <button
-                            className="w-full py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-                            onClick={() => handleRejectAssignment(application.id)}
-                          >
-                            <span className="material-symbols-outlined text-[18px]">cancel</span>
-                            Reject
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <button
-                        className={`w-full py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${application.status === 'referred'
-                          ? 'bg-parchment-sunken text-slate-700 cursor-default'
-                          : 'bg-primary hover:bg-primary-hover text-white'
-                          }`}
-                        onClick={() => {
-                          if (application.status === 'shortlisted') {
-                            handleStatusUpdate(application.id, 'referred');
-                            return;
-                          }
-                          if (application.status !== 'referred') {
-                            handleStatusUpdate(application.id, 'shortlisted');
-                          }
-                        }}
-                        disabled={application.status === 'referred'}
-                      >
-                        <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                        {application.status === 'shortlisted' ? 'Refer' : application.status === 'referred' ? 'Referred' : 'Shortlist'}
-                      </button>
-                    )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <button
-                        className="bg-white border border-slate-200 hover:bg-parchment-sunken text-slate-700 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors"
-                        onClick={() => setSelectedApplication(application)}
-                      >
-                        <span className="material-symbols-outlined text-[18px]">person</span>
-                        View Details
-                      </button>
-                      <button
-                        className="bg-white border border-slate-200 hover:bg-parchment-sunken text-slate-700 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors"
-                        onClick={() => onMessage(application.applicant_id)}
-                      >
-                        <span className="material-symbols-outlined text-[18px]">chat_bubble</span>
-                        Message
-                      </button>
+  const renderEmptyList = () => {
+    if (applications.length === 0) {
+      return (
+        <div className="bg-white rounded-2xl border border-slate-200 px-6 py-10 flex flex-col items-center gap-2 text-center">
+          <span className="size-12 rounded-full bg-parchment-sunken text-slate-400 flex items-center justify-center mb-1"><Inbox className="h-5 w-5" /></span>
+          <p className="font-display text-base font-extrabold text-ink">No applicants yet</p>
+          <p className="text-[13px] text-slate-500">New applicants for this role will show up here.</p>
+        </div>
+      );
+    }
+    if (searchQuery) {
+      return (
+        <div className="bg-white rounded-2xl border border-slate-200 px-6 py-10 flex flex-col items-center gap-2 text-center">
+          <span className="size-12 rounded-full bg-parchment-sunken text-slate-400 flex items-center justify-center mb-1"><Search className="h-5 w-5" /></span>
+          <p className="font-display text-base font-extrabold text-ink">No one matches “{searchQuery}”</p>
+          <p className="text-[13px] text-slate-500">Try a different name, email or company.</p>
+          <button type="button" className="mt-1 text-[12.5px] font-bold text-primary hover:underline" onClick={() => setSearchQuery('')}>
+            Clear search
+          </button>
+        </div>
+      );
+    }
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 px-6 py-10 flex flex-col items-center gap-2 text-center">
+        <span className="size-12 rounded-full bg-parchment-sunken text-slate-400 flex items-center justify-center mb-1"><Users className="h-5 w-5" /></span>
+        <p className="font-display text-base font-extrabold text-ink">No one here yet</p>
+        <p className="text-[13px] text-slate-500">{emptyTabCopy[activeTab] || 'Applicants will show up here.'}</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-parchment">
+      <div className="max-w-7xl mx-auto w-full px-4 md:px-8 py-5 md:py-8 flex flex-col gap-4 md:gap-5">
+        <button
+          type="button"
+          onClick={onBack}
+          className="self-start flex items-center gap-1.5 text-[13px] font-bold text-slate-600 hover:text-ink transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+
+        <header className="flex flex-col gap-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Applicants</span>
+          <h1 className="font-display text-2xl md:text-[28px] font-extrabold text-ink">{referralTitle}</h1>
+          <p className="text-sm text-slate-500">
+            <strong className="text-ink">{applications.length} {applications.length === 1 ? 'person' : 'people'}</strong> {applications.length === 1 ? 'has' : 'have'} applied
+          </p>
+        </header>
+
+        {error && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-danger-tint px-4 py-3" role="alert">
+            <div className="flex gap-2.5 min-w-0">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-600" />
+              <div className="text-[12.5px] min-w-0">
+                <p className="font-bold text-red-600">Couldn't load applicants</p>
+                <p className="text-slate-600 break-words">{error}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="shrink-0 h-9 px-3.5 rounded-lg border border-red-200 bg-white text-red-600 text-[12.5px] font-bold hover:bg-red-50 transition-colors"
+              onClick={() => fetchApplications()}
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {applications.length > 0 && (
+          <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-5 rounded-2xl border border-indigo-200 bg-white px-4 py-3.5 md:px-5">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="size-10 shrink-0 rounded-xl bg-ink-wash text-primary flex items-center justify-center">
+                  <Sparkles className="h-[18px] w-[18px]" />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-display text-[14.5px] font-bold text-ink">AI resume match</p>
+                  <p className="text-[12.5px] text-slate-500">
+                    {aiRankingLoading
+                      ? 'Checking each resume against the job description.'
+                      : rankedCount > 0
+                        ? <><strong className="text-ink">{rankedCount} of {applications.length}</strong> applicants ranked{aiLastUpdatedAt ? ` · updated at ${new Date(aiLastUpdatedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ''}</>
+                        : rankableCount === 0
+                          ? 'Applicants need a resume on file before they can be ranked.'
+                          : "Score each applicant's resume against the job description."}
+                  </p>
+                </div>
+              </div>
+              {aiRankingLoading ? (
+                <div className="flex items-center gap-3 sm:min-w-[240px]" role="status">
+                  <Loader2 className="h-[18px] w-[18px] shrink-0 text-primary animate-spin" />
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <span className="text-[12.5px] font-bold text-primary-hover">Scoring {rankableCount} applicants…</span>
+                    <div className="h-1.5 rounded-full bg-indigo-100 overflow-hidden">
+                      <div className="h-full w-2/5 rounded-full bg-primary animate-indeterminate" />
                     </div>
                   </div>
                 </div>
-              ))}
+              ) : canRunAiRanking ? (
+                <button
+                  type="button"
+                  onClick={triggerAiRanking}
+                  disabled={aiRankingLoading}
+                  className="shrink-0 h-10 px-4 rounded-xl bg-primary text-white text-[13px] font-bold hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {rankedCount > 0 ? 'Update rankings' : 'Rank applicants'}
+                </button>
+              ) : null}
+            </div>
+
+            {aiRankingFailures.length > 0 ? (
+              <div className="flex gap-2.5 rounded-xl border border-amber-200 bg-amber-tint px-4 py-3 text-amber-ink" role="alert">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div className="text-[12.5px] flex flex-col gap-1">
+                  <p className="font-bold">{aiRankingError || 'Some applicants could not be scored.'}</p>
+                  <ul className="flex flex-col gap-0.5">
+                    {aiRankingFailures.map((failure, index) => (
+                      <li key={index}><strong>{failure.name}</strong> — {failure.reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : aiRankingError ? (
+              <div className="flex gap-2.5 rounded-xl border border-red-200 bg-danger-tint px-4 py-3" role="alert">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-600" />
+                <div className="text-[12.5px]">
+                  <p className="font-bold text-red-600">Couldn't rank applicants</p>
+                  <p className="text-slate-600 break-words">{aiRankingError}</p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`shrink-0 flex items-center gap-2 h-9 md:h-10 px-3.5 rounded-full border text-[13px] font-bold transition-colors ${isActive
+                    ? 'bg-ink border-ink text-white'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                >
+                  {tab.id === 'top_ranked' && <Sparkles className="h-3.5 w-3.5" />}
+                  {tab.label}
+                  <span className={`min-w-5 h-5 px-1.5 rounded-full text-[11px] flex items-center justify-center ${isActive ? 'bg-white/20 text-white' : 'bg-parchment-sunken text-slate-500'}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex gap-2">
+            <div className="relative flex-1 lg:w-72 lg:flex-none">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="search"
+                aria-label="Search applicants"
+                placeholder="Search name, email or company"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-10 pl-10 pr-3.5 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none transition-colors"
+              />
+            </div>
+            <button
+              type="button"
+              className="shrink-0 h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-[13px] font-bold text-ink hover:border-slate-300 transition-colors flex items-center gap-2"
+              onClick={() => setSortOrder((prev) => (prev === 'earliest' ? 'latest' : 'earliest'))}
+              title="Change sort order"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+              <span className="hidden sm:inline">{sortOrder === 'earliest' ? 'Oldest first' : 'Newest first'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
+          <div className="w-full lg:w-[420px] xl:w-[500px] shrink-0 flex flex-col gap-2.5">
+            {sortedApplications.length === 0 ? renderEmptyList() : sortedApplications.map(renderApplicantRow)}
+          </div>
+
+          {isDesktop && (
+            <div className="flex-1 min-w-0 w-full lg:sticky lg:top-24">
+              {selected ? (
+                <div className="bg-white border border-slate-200 rounded-2xl flex flex-col lg:max-h-[calc(100vh-7.5rem)] overflow-hidden">
+                  <div className="px-6 py-5 border-b border-slate-100">
+                    {renderIdentity(selected, 56)}
+                  </div>
+                  <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
+                    {renderAssignedBanner(selected)}
+                    <div className="flex flex-wrap items-start gap-2">
+                      <div className="flex-1 min-w-[220px]">{renderPrimaryAction(selected)}</div>
+                      <button type="button" className={secondaryButtonClass} onClick={() => onMessage(selected.applicant_id)}>
+                        <MessageSquare className="h-4 w-4" />
+                        Message
+                      </button>
+                      <button type="button" className={secondaryButtonClass} onClick={() => handleViewResume(selected)}>
+                        <FileText className="h-4 w-4" />
+                        View resume
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Download resume"
+                        title="Download resume"
+                        className={`${secondaryButtonClass} !px-0 w-11`}
+                        onClick={() => handleDownloadResume(selected)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {renderMatch(selected, 84)}
+                    {renderExtras(selected)}
+                  </div>
+                  <div className="px-6 py-3 border-t border-slate-100 flex justify-end">
+                    {renderRemoveButton(selected)}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border-[1.5px] border-dashed border-slate-300 bg-white px-6 py-14 flex flex-col items-center gap-2 text-center">
+                  <span className="size-12 rounded-full bg-ink-wash text-primary flex items-center justify-center mb-1"><Users className="h-5 w-5" /></span>
+                  <p className="font-display text-base font-extrabold text-ink">Pick an applicant</p>
+                  <p className="text-[13px] text-slate-500 max-w-xs">Their resume match, cover letter and actions will show here.</p>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Resume Modal */}
-      {selectedApplication && (
-        <div className={`fixed inset-0 z-50 flex bg-slate-900/40 backdrop-blur-sm ${isMobile ? 'items-end justify-stretch p-0' : 'items-center justify-center p-4'}`}>
-          <div className={`bg-white w-full shadow-2xl flex flex-col overflow-hidden ${isMobile ? 'max-h-[50vh] rounded-t-2xl rounded-b-none' : 'max-w-3xl max-h-[90vh] rounded-xl'}`}>
-            <div className={`flex items-center justify-between border-b border-slate-100 shrink-0 ${isMobile ? 'p-4' : 'p-6'}`}>
-              <div className="flex items-center gap-4">
-                <div className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} rounded-full bg-cover bg-center bg-parchment-sunken flex items-center justify-center overflow-hidden`}>
-                  <img
-                    src={selectedApplication.user_profile?.avatar_url || '/default-avatar.svg'}
-                    alt={selectedApplication.user_profile?.full_name || 'User'}
-                    className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} rounded-full object-cover`}
-                  />
-                </div>
-                <div>
-                  <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-slate-900`}>
-                    {selectedApplication.user_profile?.full_name || 'Unknown User'}
-                  </h2>
-                  {(selectedApplication.user_profile?.current_position || selectedApplication.user_profile?.current_company) && (
-                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-500`}>
-                      {selectedApplication.user_profile?.current_position}
-                      {selectedApplication.user_profile?.current_position && selectedApplication.user_profile?.current_company && ' at '}
-                      {selectedApplication.user_profile?.current_company}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  className="p-2 text-slate-400 hover:bg-parchment-sunken rounded-lg transition-colors"
-                  onClick={() => setSelectedApplication(null)}
-                >
-                  <span className="material-symbols-outlined">close</span>
-                </button>
-              </div>
-            </div>
-
-            <div className={`flex-1 overflow-y-auto ${isMobile ? 'p-4' : 'p-8'}`}>
-              <div className={isMobile ? 'flex flex-col gap-6' : 'grid grid-cols-3 gap-8'}>
-                <div className={`${isMobile ? 'flex flex-col gap-6' : 'col-span-1 flex flex-col gap-6 border-r border-slate-100 pr-8'}`}>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Contact</h4>
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center gap-3 text-slate-600 text-sm">
-                        <span className="material-symbols-outlined text-ink">mail</span>
-                        <span>{selectedApplication.user_profile?.email}</span>
-                      </div>
-                      {selectedApplication.user_profile?.phone && (
-                        <div className="flex items-center gap-3 text-slate-600 text-sm">
-                          <span className="material-symbols-outlined text-ink">phone</span>
-                          <span>{selectedApplication.user_profile.phone}</span>
-                        </div>
-                      )}
-                      {selectedApplication.user_profile?.linkedin_url && (
-                        <div className="flex items-center gap-3 text-slate-600 text-sm">
-                          <span className="material-symbols-outlined text-ink">link</span>
-                          <a className="text-ink hover:underline" href={selectedApplication.user_profile.linkedin_url} target="_blank" rel="noopener noreferrer">
-                            LinkedIn Profile
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {selectedApplication.user_profile?.skills && (
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Skills</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedApplication.user_profile.skills.map((skill, index) => (
-                          <span key={index} className="bg-parchment-sunken text-slate-600 text-xs px-2 py-1 rounded-lg">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className={isMobile ? 'flex flex-col gap-6' : 'col-span-2 flex flex-col gap-8'}>
-                  {selectedApplication.cover_letter && (
-                    <section>
-                      <h3 className="text-lg font-bold font-display text-slate-900 mb-2">Cover Letter</h3>
-                      <p className="text-slate-600 text-sm leading-relaxed">
-                        {selectedApplication.cover_letter}
-                      </p>
-                    </section>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className={`border-t border-slate-100 bg-parchment-sunken/50 shrink-0 ${isMobile ? 'p-3 flex flex-col-reverse gap-2' : 'p-4 flex justify-end gap-3'}`}>
+      {/* Applicant details — full screen on phones, a dialog on tablets */}
+      {!isDesktop && selected && (
+        <div
+          className="fixed inset-0 z-[60] flex md:items-center md:justify-center md:p-6 bg-ink/45"
+          onClick={() => setSelectedApplication(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={selected.user_profile?.full_name || 'Applicant'}
+            className="bg-white w-full h-[100dvh] md:h-auto md:max-h-[90vh] md:max-w-2xl md:rounded-2xl flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 shrink-0">
+              <span className="font-display text-[15px] font-extrabold text-ink">Applicant</span>
               <button
-                className={`${isMobile ? 'w-full' : ''} px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-white transition-colors`}
+                type="button"
+                aria-label="Close"
+                className="size-9 rounded-full bg-parchment-sunken text-ink flex items-center justify-center hover:bg-slate-200 transition-colors"
                 onClick={() => setSelectedApplication(null)}
               >
-                Dismiss
+                <X className="h-4 w-4" />
               </button>
-              <button
-                className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-parchment-sunken transition-colors flex items-center gap-2`}
-                onClick={() => handleDownloadResume(selectedApplication)}
-              >
-                <span className="material-symbols-outlined text-[18px]">download</span>
-                Download Resume
-              </button>
-              {selectedApplication.assigned_referrer_id === user?.id && selectedApplication.status === 'pending' && selectedApplication.assignment_expires_at ? (
-                <>
-                  <button
-                    className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg bg-white border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center gap-2`}
-                    onClick={() => {
-                      handleRejectAssignment(selectedApplication.id);
-                      setSelectedApplication(null);
-                    }}
-                  >
-                    <span className="material-symbols-outlined text-[18px]">cancel</span>
-                    Reject
-                  </button>
-                  <button
-                    className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors flex items-center gap-2`}
-                    onClick={() => {
-                      handleAcceptAssignment(selectedApplication.id);
-                      setSelectedApplication(null);
-                    }}
-                  >
-                    <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                    Accept
-                  </button>
-                </>
-              ) : (
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4">
+              {renderIdentity(selected, 52)}
+              {renderAssignedBanner(selected)}
+              <div className="grid grid-cols-3 gap-2">
+                <button type="button" className={`${secondaryButtonClass} !h-10 !px-2 text-[12.5px]`} onClick={() => handleViewResume(selected)}>
+                  <FileText className="h-4 w-4" />
+                  Resume
+                </button>
+                <button type="button" className={`${secondaryButtonClass} !h-10 !px-2 text-[12.5px]`} onClick={() => handleDownloadResume(selected)}>
+                  <Download className="h-4 w-4" />
+                  Download
+                </button>
+                <button type="button" className={`${secondaryButtonClass} !h-10 !px-2 text-[12.5px]`} onClick={() => onMessage(selected.applicant_id)}>
+                  <MessageSquare className="h-4 w-4" />
+                  Message
+                </button>
+              </div>
+              {selected.user_id && (
                 <button
-                  className={`${isMobile ? 'w-full justify-center' : ''} px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${selectedApplication.status === 'referred'
-                    ? 'bg-parchment-sunken text-slate-700 cursor-default'
-                    : 'bg-primary text-white hover:bg-primary-hover'
-                    }`}
-                  onClick={() => {
-                    if (selectedApplication.status === 'shortlisted') {
-                      handleStatusUpdate(selectedApplication.id, 'referred');
-                    } else {
-                      if (selectedApplication.status !== 'referred') {
-                        handleStatusUpdate(selectedApplication.id, 'shortlisted');
-                      }
-                    }
-                    setSelectedApplication(null);
-                  }}
-                  disabled={selectedApplication.status === 'referred'}
+                  type="button"
+                  className="sm:hidden self-start flex items-center gap-1 text-[12.5px] font-bold text-primary"
+                  onClick={() => selected.user_id && onViewProfile(selected.user_id)}
                 >
-                  <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                  {selectedApplication.status === 'shortlisted' ? 'Refer' : selectedApplication.status === 'referred' ? 'Referred' : 'Shortlist Candidate'}
+                  View full profile
+                  <ArrowUpRight className="h-3.5 w-3.5" />
                 </button>
               )}
+              {renderMatch(selected, 68)}
+              {renderExtras(selected)}
+              <div className="self-start">{renderRemoveButton(selected)}</div>
+            </div>
+            <div className="shrink-0 border-t border-slate-100 px-4 pt-3 pb-5 md:px-6 md:pb-4">
+              {renderPrimaryAction(selected)}
             </div>
           </div>
         </div>
       )}
-      {/* Custom Delete Confirmation Modal */}
+
+      {/* Remove confirmation */}
       {applicationToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-ink/45"
             onClick={() => !isDeleting && setApplicationToDelete(null)}
           ></div>
-          <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl relative z-10 overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-8 text-center">
-              <div className="size-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-6">
-                <span className="material-symbols-outlined text-red-600 text-[32px]">delete_forever</span>
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Remove Applicant?</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="remove-applicant-title"
+            className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative z-10 overflow-hidden"
+          >
+            <div className="px-7 pt-8 pb-6 flex flex-col items-center text-center gap-3">
+              <span className="size-14 rounded-full bg-danger-tint text-red-600 flex items-center justify-center">
+                <Trash2 className="h-6 w-6" />
+              </span>
+              <h3 id="remove-applicant-title" className="font-display text-lg font-extrabold text-ink">
+                {removalMode === 'unshortlist'
+                  ? `Take ${firstNameOf(applicationToDelete)} off your shortlist?`
+                  : `Delete ${firstNameOf(applicationToDelete)}'s application?`}
+              </h3>
+              <p className="text-[13.5px] text-slate-500 leading-relaxed">
                 {removalMode === 'unshortlist' ? (
-                  <>Are you sure you want to remove <strong>{applicationToDelete.user_profile?.full_name}</strong> from the shortlisted section?</>
+                  <><strong className="text-ink">{applicationToDelete.user_profile?.full_name}</strong> will move back to Applied. Their application stays.</>
                 ) : (
-                  <>Are you sure you want to remove <strong>{applicationToDelete.user_profile?.full_name}</strong>? This action will permanently delete their application.</>
+                  <><strong className="text-ink">{applicationToDelete.user_profile?.full_name}</strong>'s application will be permanently deleted. This can't be undone.</>
                 )}
               </p>
             </div>
-            <div className="flex border-t border-slate-100">
+            <div className="flex gap-2.5 px-5 py-4 border-t border-slate-100 bg-parchment">
               <button
-                className="flex-1 px-6 py-4 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors border-r border-slate-100 disabled:opacity-50"
+                type="button"
+                autoFocus
+                className="flex-1 h-11 rounded-xl border border-slate-200 bg-white text-sm font-bold text-ink hover:bg-parchment-sunken transition-colors disabled:opacity-50"
                 onClick={() => setApplicationToDelete(null)}
                 disabled={isDeleting}
               >
                 Cancel
               </button>
               <button
-                className="flex-1 px-6 py-4 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                type="button"
+                className="flex-1 h-11 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                 onClick={confirmDelete}
                 disabled={isDeleting}
               >
                 {isDeleting ? (
-                  <div className="size-4 border-2 border-red-600/30 border-t-red-600 rounded-full animate-spin"></div>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : removalMode === 'unshortlist' ? (
+                  'Remove from shortlist'
                 ) : (
-                  'Yes, Remove'
+                  'Delete'
                 )}
               </button>
             </div>

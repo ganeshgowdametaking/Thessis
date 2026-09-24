@@ -300,7 +300,7 @@ export default function AnalyticsDashboard() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex items-center gap-2 pb-3 px-1 border-b-2 transition-colors ${activeTab === tab.id
-                                        ? 'border-blue-500 text-blue-600'
+                                        ? 'border-primary text-primary'
                                         : 'border-transparent text-slate-500 hover:text-slate-700'
                                         }`}
                                 >
@@ -347,10 +347,10 @@ interface StatCardProps {
 }
 
 const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
+    blue: 'bg-primary/10 text-primary',
+    green: 'bg-success-tint text-success-ink',
     purple: 'bg-purple-50 text-purple-600',
-    orange: 'bg-orange-50 text-orange-600',
+    orange: 'bg-amber-tint text-amber-ink',
 };
 
 function StatCard({ title, value, icon: Icon, loading, color }: StatCardProps) {
@@ -389,7 +389,7 @@ function OverviewTab({
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100">
                     <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <Users className="h-5 w-5 text-blue-500" />
+                        <Users className="h-5 w-5 text-primary" />
                         Recent Signups
                     </h2>
                 </div>
@@ -431,7 +431,7 @@ function OverviewTab({
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100">
                     <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-green-500" />
+                        <TrendingUp className="h-5 w-5 text-success-ink" />
                         Recent Applications
                     </h2>
                 </div>
@@ -485,9 +485,9 @@ function GrowthTab({
 
     if (error) {
         return (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
-                <p className="text-yellow-700 font-medium">Data temporarily unavailable</p>
-                <p className="text-yellow-600 text-sm mt-1">Growth metrics could not be loaded. Please try refreshing.</p>
+            <div className="bg-amber-tint border border-amber-200 rounded-xl p-8 text-center">
+                <p className="text-amber-ink font-medium">Data temporarily unavailable</p>
+                <p className="text-amber-ink text-sm mt-1">Growth metrics could not be loaded. Please try refreshing.</p>
             </div>
         );
     }
@@ -506,12 +506,12 @@ function GrowthTab({
                     <>
                         <div className="flex items-center gap-2">
                             {growthData.growthRate >= 0 ? (
-                                <TrendingUp className="h-8 w-8 text-green-500" />
+                                <TrendingUp className="h-8 w-8 text-success-ink" />
                             ) : (
                                 <TrendingDown className="h-8 w-8 text-red-500" />
                             )}
                             <span
-                                className={`text-3xl font-bold font-display ${growthData.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                                className={`text-3xl font-bold font-display ${growthData.growthRate >= 0 ? 'text-success-ink' : 'text-red-prof'}`}
                             >
                                 {growthData.growthRate >= 0 ? '+' : ''}
                                 {growthData.growthRate}%
@@ -695,9 +695,9 @@ function ComplianceTab({
 }) {
     if (error) {
         return (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
-                <p className="text-yellow-700 font-medium">Data temporarily unavailable</p>
-                <p className="text-yellow-600 text-sm mt-1">EU compliance data could not be loaded. Please try refreshing.</p>
+            <div className="bg-amber-tint border border-amber-200 rounded-xl p-8 text-center">
+                <p className="text-amber-ink font-medium">Data temporarily unavailable</p>
+                <p className="text-amber-ink text-sm mt-1">EU compliance data could not be loaded. Please try refreshing.</p>
             </div>
         );
     }
@@ -707,8 +707,8 @@ function ComplianceTab({
             {/* EU User Stats */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                        <Shield className="h-5 w-5 text-blue-600" />
+                    <div className="p-2 bg-ink-wash rounded-lg">
+                        <Shield className="h-5 w-5 text-primary" />
                     </div>
                     <h3 className="text-sm font-medium text-slate-500">EU User Base</h3>
                 </div>
@@ -723,7 +723,7 @@ function ComplianceTab({
                         <p className="text-slate-500 text-sm mt-1">{euData.euPercentage}% of total users</p>
                         <div className="mt-4 w-full bg-slate-100 rounded-full h-2">
                             <div
-                                className="bg-blue-500 h-2 rounded-full transition-all"
+                                className="bg-ink-wash0 h-2 rounded-full transition-all"
                                 style={{ width: `${Math.min(euData.euPercentage, 100)}%` }}
                             ></div>
                         </div>
@@ -756,8 +756,8 @@ function ComplianceTab({
                                     <td className="px-6 py-4">
                                         <span
                                             className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${action.status === 'Passed'
-                                                ? 'bg-green-100 text-green-700'
-                                                : 'bg-blue-100 text-blue-700'
+                                                ? 'bg-success-tint text-success-ink'
+                                                : 'bg-ink-wash text-primary'
                                                 }`}
                                         >
                                             {action.status}
@@ -905,7 +905,7 @@ function AcquisitionSourcesSection({ data, conversionData, loading }: Acquisitio
                         {conversionTableData.length > 0 && (
                             <div>
                                 <div className="flex items-center gap-2 mb-4">
-                                    <Activity className="h-4 w-4 text-blue-500" />
+                                    <Activity className="h-4 w-4 text-primary" />
                                     <h3 className="text-sm font-medium text-slate-500">Conversion Tracking</h3>
                                 </div>
                                 <div className="overflow-hidden rounded-lg border border-slate-200">
@@ -929,14 +929,14 @@ function AcquisitionSourcesSection({ data, conversionData, loading }: Acquisitio
                                                     <td className="px-4 py-3 text-right text-slate-900">
                                                         {row.totalSignups.toLocaleString()}
                                                     </td>
-                                                    <td className="px-4 py-3 text-right font-semibold text-blue-600">
+                                                    <td className="px-4 py-3 text-right font-semibold text-primary">
                                                         {row.applications.toLocaleString()}
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
                                                         <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${row.conversionRate > 50
-                                                                ? 'bg-green-100 text-green-700'
+                                                                ? 'bg-success-tint text-success-ink'
                                                                 : row.conversionRate > 25
-                                                                    ? 'bg-blue-100 text-blue-700'
+                                                                    ? 'bg-ink-wash text-primary'
                                                                     : 'bg-slate-100 text-slate-600'
                                                             }`}>
                                                             {row.conversionRate}%

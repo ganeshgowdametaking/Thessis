@@ -10,6 +10,7 @@ import { getCompanyLogoUrl } from '../utils/companyLogo';
 import debounce from 'lodash.debounce';
 import * as pdfjsLib from 'pdfjs-dist';
 import { useMediaQuery } from 'react-responsive';
+import { AlertCircle, Briefcase, Check, ChevronDown, Eye, FileText, Link2, Loader2, MapPin, Plus, Sparkles, Trash2, Upload, Users, X, Zap } from 'lucide-react';
 
 // Use the local worker from the node_modules
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
@@ -56,8 +57,8 @@ const CreateReferralPage: React.FC = () => {
   const [aiError, setAiError] = useState<string | null>(null);
   const [referralLink, setReferralLink] = useState('');
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
-
-  const fieldShellClass = 'rounded-lg p-1 border border-slate-200 bg-white focus-within:border-[#4353FF] transition-colors';
+  const [submitKind, setSubmitKind] = useState<'created' | 'joined'>('created');
+  const [referralToDelete, setReferralToDelete] = useState<Job | null>(null);
 
   // Fetch user's jobs (acting as referrals)
   const fetchMyReferrals = useCallback(async () => {
@@ -202,6 +203,7 @@ const CreateReferralPage: React.FC = () => {
           throw new Error(`Database error: ${joinError.message}`);
         }
 
+        setSubmitKind('joined');
         setSubmitMessage(`${title} at ${company} already has an active referral — you've joined as a referrer for it instead of creating a duplicate.`);
       } else {
         const jobData = {
@@ -243,7 +245,8 @@ const CreateReferralPage: React.FC = () => {
           }
         }
 
-        setSubmitMessage('Referral created successfully!');
+        setSubmitKind('created');
+        setSubmitMessage("It's live on the Jobs page now.");
       }
 
       // Reset form
@@ -501,550 +504,528 @@ const CreateReferralPage: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-ink text-white">
-            <span className="size-1.5 rounded-full bg-white"></span>
-            Active
-          </span>
-        );
-      case 'closed':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-stone-100 text-stone-600 border border-stone-200">
-            Closed
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-600 border border-slate-200">
-            Draft
-          </span>
-        );
-    }
+    const label = status === 'active' ? 'Active' : status === 'closed' ? 'Closed' : 'Draft';
+    const tone =
+      status === 'active'
+        ? 'bg-success-tint text-success-ink'
+        : status === 'closed'
+          ? 'bg-parchment-sunken text-slate-600'
+          : 'bg-amber-tint text-amber-ink';
+    return (
+      <span className={`inline-flex shrink-0 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold uppercase tracking-wide ${tone}`}>
+        {label}
+      </span>
+    );
   };
 
+  const inputClass = 'w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none transition-colors';
+  const labelClass = 'block text-[12.5px] font-semibold text-slate-600 mb-1.5';
+  const stepHidden = (step: number) => (isMobile && mobileFormStep !== step ? 'hidden' : '');
+
+  const sectionHeading = (step: number, title: string, subtitle: string) => (
+    <div className="hidden md:flex items-center gap-3">
+      <span className="size-7 shrink-0 rounded-full bg-ink-wash text-primary-hover font-display font-extrabold text-[12.5px] flex items-center justify-center">
+        {step}
+      </span>
+      <div>
+        <h3 className="font-display text-[15px] font-bold text-ink">{title}</h3>
+        <p className="text-xs text-slate-500">{subtitle}</p>
+      </div>
+    </div>
+  );
+
+  const toggleRow = (field: 'remote_available' | 'urgent_hiring', label: string, hint: string) => (
+    <label className="flex-1 flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 cursor-pointer">
+      <span className="flex flex-col gap-0.5">
+        <span className="text-[13.5px] font-bold text-ink">{label}</span>
+        <span className="text-xs text-slate-500">{hint}</span>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        className="peer sr-only"
+        checked={!!formData[field]}
+        onChange={(e) => handleInputChange(field, e.target.checked)}
+      />
+      <span
+        aria-hidden="true"
+        className="relative h-[23px] w-10 shrink-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40 after:absolute after:left-[3px] after:top-[3px] after:h-[17px] after:w-[17px] after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-[17px]"
+      />
+    </label>
+  );
+
+  const stats = [
+    { label: 'Your referrals', value: myReferrals.length, icon: <Users className="h-[18px] w-[18px]" />, tone: 'bg-ink-wash text-primary' },
+    { label: 'Applications received', value: myReferrals.reduce((sum, job) => sum + (job.applications_count || 0), 0), icon: <FileText className="h-[18px] w-[18px]" />, tone: 'bg-amber-tint text-amber-ink' },
+    { label: 'Active referrals', value: myReferrals.filter(job => job.status === 'active').length, icon: <Zap className="h-[18px] w-[18px]" />, tone: 'bg-success-tint text-success-ink' },
+  ];
+
   return (
-    <div className="bg-stone-50 font-display text-slate-700 antialiased min-h-screen flex flex-col">
-      <main className="flex-grow w-full px-4 md:px-12 py-6 md:py-10 max-w-5xl mx-auto">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-10">
-          <div className="bg-white p-4 md:p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-wider font-bold text-slate-500">Total Referrals</p>
-              <p className="text-2xl font-bold font-display text-slate-900 mt-1">{myReferrals.length}</p>
-            </div>
-            <div className="size-10 rounded-full bg-stone-50 flex items-center justify-center text-ink border border-stone-100">
-              <span className="material-symbols-outlined">group_add</span>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 md:p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-wider font-bold text-slate-500">Applications Received</p>
-              <p className="text-2xl font-bold font-display text-slate-900 mt-1">
-                {myReferrals.reduce((sum, job) => sum + (job.applications_count || 0), 0)}
-              </p>
-            </div>
-            <div className="size-10 rounded-full bg-stone-50 flex items-center justify-center text-ink border border-stone-100">
-              <span className="material-symbols-outlined">description</span>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 md:p-5 rounded-lg border border-slate-100 shadow-soft flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-wider font-bold text-slate-500">Active Referrals</p>
-              <p className="text-2xl font-bold font-display text-slate-900 mt-1">
-                {myReferrals.filter(job => job.status === 'active').length}
-              </p>
-            </div>
-            <div className="size-10 rounded-full bg-stone-50 flex items-center justify-center text-ink border border-stone-100">
-              <span className="material-symbols-outlined">bolt</span>
-            </div>
-          </div>
+    <div className="bg-parchment font-display text-slate-700 antialiased min-h-screen flex flex-col">
+      <main className="flex-grow w-full px-4 md:px-10 lg:px-12 py-6 md:py-10 max-w-6xl mx-auto">
+        <div className="mb-5 md:mb-8">
+          <h1 className="font-display text-2xl md:text-[28px] font-extrabold text-ink">Post a referral</h1>
+          <p className="text-sm text-slate-500 mt-1">Share a role at your company that you can refer people into.</p>
         </div>
 
-        {/* AI Auto-fill Section */}
-        <div className="mb-6 md:mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="bg-ink/5 border border-[#4353FF]/20 rounded-xl p-4 md:p-8 shadow-sm">
-            <div className="flex items-center gap-3 mb-4 md:mb-6">
-              <div className="bg-ink p-2 rounded-lg text-white">
-                <span className="material-symbols-outlined text-[24px]">magic_button</span>
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-2.5 md:gap-4 mb-6 md:mb-8">
+          {stats.map((stat) => (
+            <div key={stat.label} className="bg-white border border-slate-200 rounded-2xl p-3.5 md:p-5 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] md:text-xs font-semibold text-slate-500 leading-tight">{stat.label}</p>
+                <p className="font-display text-xl md:text-[26px] font-extrabold text-ink mt-1">{stat.value}</p>
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">AI Referral Magic</h3>
-                <p className="text-sm text-slate-600">Upload a PDF or paste a link to auto-fill this entire form.</p>
+              <span className={`hidden sm:flex size-10 shrink-0 rounded-xl items-center justify-center ${stat.tone}`}>{stat.icon}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 lg:gap-7 items-start">
+          <div className="flex flex-col gap-5 min-w-0">
+            {/* Auto-fill */}
+            <div className="bg-white border border-indigo-200 rounded-2xl p-4 md:p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <span className="size-10 shrink-0 rounded-xl bg-primary text-white flex items-center justify-center">
+                  <Sparkles className="h-[18px] w-[18px]" />
+                </span>
+                <div>
+                  <h2 className="font-display text-[15.5px] font-bold text-ink">Fill it in automatically</h2>
+                  <p className="text-[12.5px] text-slate-500 mt-0.5">Upload the job description or paste a link, and we'll fill in the form for you to check.</p>
+                </div>
               </div>
+
+              {aiLoading ? (
+                <div className="rounded-xl bg-ink-wash p-4 flex flex-col gap-2.5" role="status">
+                  <div className="flex items-center gap-2.5">
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                    <span className="text-[13.5px] font-bold text-primary-hover">Reading the job details…</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-indigo-100 overflow-hidden">
+                    <div className="h-full w-2/5 rounded-full bg-primary animate-indeterminate" />
+                  </div>
+                  <span className="text-xs text-slate-600">This usually takes a few seconds. You can edit everything afterwards.</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr] gap-3 md:gap-4">
+                  <label className="flex items-center gap-3 rounded-xl border-[1.5px] border-dashed border-indigo-200 bg-ink-wash/60 hover:bg-ink-wash p-4 cursor-pointer transition-colors">
+                    <span className="size-10 shrink-0 rounded-full bg-white text-primary flex items-center justify-center">
+                      <Upload className="h-5 w-5" />
+                    </span>
+                    <span className="flex flex-col">
+                      <span className="text-[13px] font-bold text-ink">Upload a job PDF</span>
+                      <span className="text-[11.5px] text-slate-500">Click to choose a file</span>
+                    </span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="application/pdf"
+                      onChange={(e) => e.target.files?.[0] && handleAIAutoFill('pdf', e.target.files[0])}
+                      disabled={aiLoading}
+                    />
+                  </label>
+                  <div className="flex flex-col gap-2 justify-center">
+                    <div className="relative">
+                      <Link2 className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input
+                        type="url"
+                        aria-label="Job link"
+                        placeholder="Paste a job link (LinkedIn, company site…)"
+                        className={`${inputClass} pl-10`}
+                        value={referralLink}
+                        onChange={(e) => setReferralLink(e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => referralLink && handleAIAutoFill('link', referralLink)}
+                      disabled={aiLoading || !referralLink}
+                      className="h-10 rounded-xl bg-primary text-white text-[13px] font-bold hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Fill in from link
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {aiError && (
+                <div className="mt-4 flex gap-2.5 rounded-xl border border-red-200 bg-danger-tint p-3.5" role="alert">
+                  <AlertCircle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                  <div className="text-[12.5px]">
+                    <p className="font-bold text-red-600">Couldn't fill in the form</p>
+                    <p className="text-slate-600 mt-0.5">{aiError}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
-              {/* PDF Upload */}
-              <div className="relative">
-                <label className="flex flex-col items-center justify-center w-full h-32 md:h-40 border-2 border-dashed border-[#4353FF]/30 rounded-xl bg-white hover:bg-ink/10 transition-all cursor-pointer group">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <span className="material-symbols-outlined text-ink text-[32px] mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
-                    <p className="mb-1 text-sm text-slate-700 font-bold">Upload Job Description PDF</p>
-                  </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="application/pdf"
-                    onChange={(e) => e.target.files?.[0] && handleAIAutoFill('pdf', e.target.files[0])}
-                    disabled={aiLoading}
-                  />
-                </label>
+            {/* Form */}
+            <div className="bg-white border border-slate-200 rounded-2xl">
+              <div className="px-4 py-4 md:px-6 md:py-5 border-b border-slate-100">
+                <h2 className="font-display text-[17px] font-extrabold text-ink">Role details</h2>
+                <p className="text-[12.5px] text-slate-500 mt-0.5">Check everything before you post — people will see this on the Jobs page.</p>
               </div>
 
-              {/* Link Input */}
-              <div className="flex flex-col justify-center gap-4">
-                <div className="relative focus-within:ring-0">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">link</span>
-                  <input
-                    type="url"
-                    placeholder="Paste job board link (LinkedIn, etc.)"
-                    className="w-full h-12 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-sm focus:border-[#4353FF] focus:outline-none transition-all"
-                    value={referralLink}
-                    onChange={(e) => setReferralLink(e.target.value)}
-                  />
-                </div>
-                <button
-                  onClick={() => referralLink && handleAIAutoFill('link', referralLink)}
-                  className="h-12 bg-primary text-white font-bold rounded-lg hover:bg-primary-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
-                  disabled={aiLoading || !referralLink}
-                >
-                  {aiLoading ? (
-                    <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-[18px]">bolt</span>
-                      Extract from Link
-                    </>
+              <form onSubmit={handleSubmit}>
+                <div className="p-4 md:p-6 space-y-6">
+                  {submitMessage && (
+                    <div
+                      role="status"
+                      className={`flex gap-3 rounded-xl border p-3.5 ${submitKind === 'joined' ? 'bg-ink-wash border-indigo-200' : 'bg-success-tint border-emerald-200'}`}
+                    >
+                      {submitKind === 'joined'
+                        ? <Users className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        : <Check className="h-4 w-4 text-success shrink-0 mt-0.5" strokeWidth={3} />}
+                      <div className="text-[12.5px]">
+                        <p className={`font-bold ${submitKind === 'joined' ? 'text-primary-hover' : 'text-success-ink'}`}>
+                          {submitKind === 'joined' ? "You've joined an existing referral" : 'Referral posted'}
+                        </p>
+                        <p className={`mt-0.5 ${submitKind === 'joined' ? 'text-slate-600' : 'text-success-ink'}`}>{submitMessage}</p>
+                      </div>
+                    </div>
                   )}
-                </button>
-              </div>
-            </div>
 
-            {aiError && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-semibold animate-in shake duration-300">
-                ⚠️ {aiError}
-              </div>
-            )}
+                  {isMobile && (
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {['Basics', 'Role', 'Skills'].map((label, index) => {
+                        const step = index + 1;
+                        const isActive = mobileFormStep === step;
+                        const isDone = mobileFormStep > step;
+                        return (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => setMobileFormStep(step)}
+                            aria-current={isActive ? 'step' : undefined}
+                            className={`h-10 rounded-xl text-xs font-bold transition-colors ${isActive
+                              ? 'bg-primary text-white'
+                              : isDone
+                                ? 'bg-ink-wash text-primary-hover'
+                                : 'bg-white border border-slate-200 text-slate-500'
+                              }`}
+                          >
+                            {step}. {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
 
-            {aiLoading && (
-              <div className="mt-6 flex items-center justify-center gap-3 py-2">
-                <div className="flex gap-1">
-                  <span className="size-2 bg-ink rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                  <span className="size-2 bg-ink rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                  <span className="size-2 bg-ink rounded-full animate-bounce"></span>
-                </div>
-                <p className="text-sm font-bold text-ink">Llama 3.1 is analyzing your referral...</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          {/* Left Column - Create Form */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl border border-slate-100 shadow-card overflow-visible">
-              <div className="px-4 py-4 md:px-8 md:py-6 border-b border-stone-100 bg-white">
-                <h3 className="text-lg font-bold text-slate-900">Referral Details</h3>
-                <p className="text-sm text-slate-500 mt-0.5">Fill in the details for the position.</p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="p-4 md:p-8 space-y-4 md:space-y-8">
-                {submitMessage && (
-                  <div className="p-3 bg-sage-50 border border-sage-200 rounded-lg text-ink text-sm font-semibold">
-                    {submitMessage}
-                  </div>
-                )}
-                {isMobile && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {['Basics', 'Role', 'Skills'].map((label, index) => {
-                      const step = index + 1;
-                      const isActive = mobileFormStep === step;
-                      return (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => setMobileFormStep(step)}
-                          className={`h-9 rounded-lg text-xs font-bold tracking-wide transition-colors ${isActive ? 'bg-ink text-white' : 'bg-stone-100 text-slate-600'}`}
-                        >
-                          {step}. {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <section className="rounded-xl border border-slate-200/80 md:border-0 md:rounded-none overflow-visible">
-                  <button
-                    type="button"
-                    onClick={() => setMobileFormStep(1)}
-                    className="md:hidden w-full px-4 h-11 bg-stone-50 text-left text-sm font-bold text-slate-800 border-b border-slate-200/70"
-                  >
-                    Step 1: Basic Details
-                  </button>
-                  <div className={`${isMobile && mobileFormStep !== 1 ? 'hidden' : 'block'} p-4 md:p-0 space-y-6`}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 1. Basics */}
+                  <section className={`space-y-4 ${stepHidden(1)}`}>
+                    {sectionHeading(1, 'Basics', 'What the role is and where')}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <label>
-                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Job Title</span>
-                        <div className={fieldShellClass}>
-                          <input
-                            className="w-full h-10 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
-                            placeholder="e.g. Senior Product Designer"
-                            type="text"
-                            required
-                            value={formData.title}
-                            onChange={(e) => handleInputChange('title', e.target.value)}
-                          />
-                        </div>
+                        <span className={labelClass}>Job title</span>
+                        <input
+                          className={inputClass}
+                          placeholder="e.g. Senior Product Designer"
+                          type="text"
+                          required
+                          value={formData.title}
+                          onChange={(e) => handleInputChange('title', e.target.value)}
+                        />
                       </label>
-
                       <label>
-                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Company</span>
-                        <div className={fieldShellClass}>
-                          <input
-                            className="w-full h-10 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
-                            placeholder="e.g. Acme Corp"
-                            type="text"
-                            required
-                            value={formData.company}
-                            onChange={(e) => handleInputChange('company', e.target.value)}
-                          />
-                        </div>
+                        <span className={labelClass}>Company</span>
+                        <input
+                          className={inputClass}
+                          placeholder="e.g. Acme Corp"
+                          type="text"
+                          required
+                          value={formData.company}
+                          onChange={(e) => handleInputChange('company', e.target.value)}
+                        />
                       </label>
                     </div>
-
-                    <div className="grid grid-cols-1 gap-6">
-                      <label>
-                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Location</span>
-                        <div className={fieldShellClass}>
-                          <div className="relative">
-                            <input
-                              className="w-full h-10 pl-10 pr-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
-                              placeholder="City, State or Remote"
-                              type="text"
-                              required
-                              value={locationQuery}
-                              onChange={handleLocationInput}
-                            />
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px]">location_on</span>
-
-                            {locationSuggestions.length > 0 && (
-                              <ul className="absolute z-[70] bg-white border border-stone-200 rounded-lg mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
-                                {locationSuggestions.map((suggestion) => (
-                                  <li
-                                    key={suggestion.place_id || suggestion.display_name}
-                                    className="px-4 py-2 cursor-pointer hover:bg-parchment-sunken"
-                                    onMouseDown={() => handleLocationSelect(suggestion)}
-                                  >
-                                    {suggestion.label || suggestion.display_name}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        </div>
-                      </label>
-                    </div>
-
+                    <label className="block">
+                      <span className={labelClass}>Location</span>
+                      <div className="relative">
+                        <MapPin className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <input
+                          className={`${inputClass} pl-10`}
+                          placeholder="City, state or Remote"
+                          type="text"
+                          required
+                          value={locationQuery}
+                          onChange={handleLocationInput}
+                        />
+                        {locationSuggestions.length > 0 && (
+                          <ul className="absolute z-[70] bg-white border border-slate-200 rounded-xl mt-1 w-full max-h-56 overflow-y-auto shadow-lg">
+                            {locationSuggestions.map((suggestion) => (
+                              <li
+                                key={suggestion.place_id || suggestion.display_name}
+                                className="px-4 py-2.5 text-sm cursor-pointer hover:bg-ink-wash"
+                                onMouseDown={() => handleLocationSelect(suggestion)}
+                              >
+                                {suggestion.label || suggestion.display_name}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </label>
                     {isMobile && (
                       <button
                         type="button"
                         onClick={() => setMobileFormStep(2)}
-                        className="w-full h-10 rounded-lg border border-slate-200 text-slate-700 text-sm font-semibold"
+                        className="w-full h-11 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover transition-colors"
                       >
-                        Continue to Role Details
+                        Continue to role details
                       </button>
                     )}
-                  </div>
-                </section>
+                  </section>
 
-                <section className="rounded-xl border border-slate-200/80 md:border-0 md:rounded-none overflow-hidden">
-                  <div className={`${isMobile && mobileFormStep !== 2 ? 'hidden' : 'block'} p-4 md:p-0 space-y-6`}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 2. Role */}
+                  <section className={`space-y-4 md:border-t md:border-slate-100 md:pt-6 ${stepHidden(2)}`}>
+                    {sectionHeading(2, 'Role', 'Type, level and what the job involves')}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <label>
-                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Job Type</span>
-                        <div className={fieldShellClass}>
-                          <div className="relative">
-                            <select
-                              className="w-full h-10 px-4 bg-white border-0 rounded-lg text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
-                              required
-                              value={formData.job_type}
-                              onChange={(e) => handleInputChange('job_type', e.target.value)}
-                            >
-                              <option>Full-time</option>
-                              <option>Part-time</option>
-                              <option>Contract</option>
-                              <option>Freelance</option>
-                            </select>
-                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[18px]">expand_more</span>
-                          </div>
+                        <span className={labelClass}>Job type</span>
+                        <div className="relative">
+                          <select
+                            className={`${inputClass} appearance-none cursor-pointer pr-10`}
+                            required
+                            value={formData.job_type}
+                            onChange={(e) => handleInputChange('job_type', e.target.value)}
+                          >
+                            <option>Full-time</option>
+                            <option>Part-time</option>
+                            <option>Contract</option>
+                            <option>Freelance</option>
+                          </select>
+                          <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         </div>
                       </label>
-
                       <label>
-                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Experience Level</span>
-                        <div className={fieldShellClass}>
-                          <div className="relative">
-                            <select
-                              className="w-full h-10 px-4 bg-white border-0 rounded-lg text-slate-900 focus:outline-none transition-all text-sm appearance-none cursor-pointer"
-                              required
-                              value={formData.experience_level}
-                              onChange={(e) => handleInputChange('experience_level', e.target.value)}
-                            >
-                              <option>Internship</option>
-                              <option>Entry Level</option>
-                              <option>Mid Level (2-4 yrs)</option>
-                              <option>Senior (5+ yrs)</option>
-                              <option>Lead / Manager</option>
-                            </select>
-                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[18px]">expand_more</span>
-                          </div>
+                        <span className={labelClass}>Experience level</span>
+                        <div className="relative">
+                          <select
+                            className={`${inputClass} appearance-none cursor-pointer pr-10`}
+                            required
+                            value={formData.experience_level}
+                            onChange={(e) => handleInputChange('experience_level', e.target.value)}
+                          >
+                            <option>Internship</option>
+                            <option>Entry Level</option>
+                            <option>Mid Level (2-4 yrs)</option>
+                            <option>Senior (5+ yrs)</option>
+                            <option>Lead / Manager</option>
+                          </select>
+                          <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         </div>
                       </label>
                     </div>
-
                     <label className="block">
-                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Job Description</span>
-                      <div className={fieldShellClass}>
-                        <textarea
-                          className="w-full p-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm min-h-[120px] resize-y"
-                          placeholder="Briefly describe the role requirements and responsibilities..."
-                          required
-                          value={formData.description}
-                          onChange={(e) => handleInputChange('description', e.target.value)}
-                        ></textarea>
-                      </div>
+                      <span className={labelClass}>Description</span>
+                      <textarea
+                        className="w-full px-3.5 py-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none transition-colors min-h-[120px] resize-y"
+                        placeholder="Briefly describe the role requirements and responsibilities..."
+                        required
+                        value={formData.description}
+                        onChange={(e) => handleInputChange('description', e.target.value)}
+                      ></textarea>
                     </label>
-
                     {isMobile && (
                       <button
                         type="button"
                         onClick={() => setMobileFormStep(3)}
-                        className="w-full h-10 rounded-lg border border-slate-200 text-slate-700 text-sm font-semibold"
+                        className="w-full h-11 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover transition-colors"
                       >
-                        Continue to Skills & Publish
+                        Continue to skills &amp; publish
                       </button>
                     )}
-                  </div>
-                </section>
+                  </section>
 
-                <section className="rounded-xl border border-slate-200/80 md:border-0 md:rounded-none overflow-hidden">
-                  <div className={`${isMobile && mobileFormStep !== 3 ? 'hidden' : 'block'} p-4 md:p-0 space-y-6`}>
-                    <div className="space-y-3">
-                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Required Skills</span>
+                  {/* 3. Skills & publish */}
+                  <section className={`space-y-4 md:border-t md:border-slate-100 md:pt-6 ${stepHidden(3)}`}>
+                    {sectionHeading(3, 'Skills & publish', 'What candidates should bring')}
+                    <div>
+                      <span className={labelClass}>Skills</span>
                       <div className="flex items-center gap-2">
-                        <div className={`${fieldShellClass} flex-grow`}>
-                          <div className="relative">
-                            <input
-                              className="w-full h-10 px-4 bg-white border-0 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none transition-all text-sm"
-                              placeholder="Add a skill..."
-                              type="text"
-                              value={skillInput}
-                              onChange={(e) => setSkillInput(e.target.value)}
-                              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-                            />
-                          </div>
-                        </div>
+                        <input
+                          className={inputClass}
+                          placeholder="Add a skill and press Enter"
+                          type="text"
+                          aria-label="Add a skill"
+                          value={skillInput}
+                          onChange={(e) => setSkillInput(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                        />
                         <button
-                          className="size-11 flex-none flex items-center justify-center rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors"
+                          className="size-11 shrink-0 flex items-center justify-center rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors"
                           type="button"
                           onClick={addSkill}
+                          aria-label="Add skill"
                         >
-                          <span className="material-symbols-outlined">add</span>
+                          <Plus className="h-5 w-5" />
                         </button>
                       </div>
-
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {formData.skills?.map((skill, index) => (
-                          <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sage-50 text-ink border border-sage-200">
-                            {skill}
-                            <button
-                              className="hover:text-red-500 flex items-center"
-                              type="button"
-                              onClick={() => removeSkill(skill)}
-                            >
-                              <span className="material-symbols-outlined text-[14px]">close</span>
-                            </button>
-                          </span>
-                        ))}
-                      </div>
+                      {(formData.skills?.length ?? 0) > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-3">
+                          {formData.skills?.map((skill, index) => (
+                            <span key={index} className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 rounded-full text-xs font-semibold bg-ink-wash text-primary-hover">
+                              {skill}
+                              <button
+                                className="hover:text-red-600 flex items-center"
+                                type="button"
+                                onClick={() => removeSkill(skill)}
+                                aria-label={`Remove ${skill}`}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-
-                    <div className="flex flex-wrap gap-6 pt-2 border-t border-stone-100 mt-2">
-                      <label className="flex items-center gap-3 cursor-pointer group">
-                        <input
-                          className="w-4 h-4 rounded text-ink border-stone-300 focus:ring-[#4353FF] cursor-pointer"
-                          type="checkbox"
-                          checked={formData.remote_available}
-                          onChange={(e) => handleInputChange('remote_available', e.target.checked)}
-                        />
-                        <span className="text-sm font-medium text-slate-700 group-hover:text-ink transition-colors">Remote Friendly</span>
-                      </label>
-
-                      <label className="flex items-center gap-3 cursor-pointer group">
-                        <input
-                          className="w-4 h-4 rounded text-ink border-stone-300 focus:ring-[#4353FF] cursor-pointer"
-                          type="checkbox"
-                          checked={formData.urgent_hiring}
-                          onChange={(e) => handleInputChange('urgent_hiring', e.target.checked)}
-                        />
-                        <span className="text-sm font-medium text-slate-700 group-hover:text-ink transition-colors">Urgent Priority</span>
-                      </label>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      {toggleRow('remote_available', 'Remote friendly', 'Candidates can work remotely')}
+                      {toggleRow('urgent_hiring', 'Urgent', 'Shows an Urgent tag on the job')}
                     </div>
+                  </section>
+                </div>
 
-                    <div className="pt-2 md:pt-4">
-                      <button
-                        className="w-full h-12 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary-hover transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
-                        type="submit"
-                        disabled={loading}
-                      >
-                        {loading ? 'Creating...' : 'Create Referral'}
-                      </button>
-                    </div>
-                  </div>
-                </section>
+                <div className={`${isMobile && mobileFormStep !== 3 ? 'hidden' : 'flex'} flex-col-reverse md:flex-row md:items-center justify-between gap-3 px-4 py-4 md:px-6 border-t border-slate-100 bg-parchment rounded-b-2xl`}>
+                  <p className="text-xs text-slate-500 text-center md:text-left">If this role is already on Thessis, you'll be added as a referrer instead.</p>
+                  <button
+                    className="h-12 md:h-11 px-7 shrink-0 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading ? 'Posting…' : 'Post referral'}
+                  </button>
+                </div>
               </form>
             </div>
           </div>
 
-          {/* Right Column - My Referrals */}
-          <div className="lg:col-span-1 space-y-4 md:space-y-6">
-            <div className="flex items-center justify-between px-1">
-              <h3 className="text-xl font-bold text-slate-900">My Referrals</h3>
+          {/* Your referrals */}
+          <aside className="space-y-3.5">
+            <div className="flex items-center justify-between px-0.5">
+              <h2 className="font-display text-[17px] font-extrabold text-ink">Your referrals</h2>
               <button
-                className="text-sm font-semibold text-ink hover:text-[#3444DD] hover:underline"
+                type="button"
+                className="text-[12.5px] font-bold text-primary hover:underline"
                 onClick={() => navigate('/jobs')}
               >
-                View All
+                See all on Jobs
               </button>
             </div>
 
-            <div className="space-y-3 md:space-y-4">
-              {loadingReferrals ? (
-                <LoadingSpinner text="Loading referrals..." />
-              ) : myReferrals.length === 0 ? (
-                <div className="bg-white rounded-lg border border-slate-100 p-6 md:p-8 text-center">
-                  <span className="material-symbols-outlined text-4xl text-slate-300 mb-4 block">work</span>
-                  <p className="text-slate-500 text-sm">No referrals created yet</p>
-                </div>
-              ) : (
-                isMobile ? (
-                  <div className="bg-white rounded-lg border border-slate-100 divide-y divide-stone-100">
-                    {myReferrals.slice(0, 4).map((job) => (
-                      <div
-                        key={job.id}
-                        className="px-4 py-3 cursor-pointer"
-                        onClick={() => handleViewApplications(job.id)}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-slate-900 truncate">{job.title}</p>
-                            <p className="text-xs text-slate-500 truncate mt-0.5">{job.company} • {job.department || 'General'}</p>
-                          </div>
-                          {getStatusBadge(job.status)}
-                        </div>
-                        <div className="mt-2 flex items-center justify-between">
-                          <button
-                            className="flex items-center gap-1 text-xs text-slate-600 font-medium"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewApplications(job.id);
-                            }}
-                          >
-                            <span className="material-symbols-outlined text-[16px]">visibility</span>
-                            {job.applications_count || 0} Applicants
-                          </button>
-                          <button
-                            className="h-8 w-8 rounded-lg text-red-600 bg-red-50 border border-red-100 inline-flex items-center justify-center"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteReferral(job.id);
-                            }}
-                            aria-label="Delete referral"
-                            title="Delete referral"
-                          >
-                            <span className="material-symbols-outlined text-[17px]">delete</span>
-                          </button>
-                        </div>
+            {loadingReferrals ? (
+              <LoadingSpinner text="Loading referrals..." />
+            ) : myReferrals.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+                <span className="mx-auto mb-3 size-12 rounded-full bg-parchment-sunken text-slate-400 flex items-center justify-center">
+                  <Briefcase className="h-5 w-5" />
+                </span>
+                <p className="text-sm font-bold text-ink">No referrals yet</p>
+                <p className="text-xs text-slate-500 mt-1">Roles you post will show up here.</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {myReferrals.slice(0, isMobile ? 4 : 3).map((job) => (
+                  <div
+                    key={job.id}
+                    className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl p-4 cursor-pointer transition-colors"
+                    onClick={() => handleViewApplications(job.id)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-xl size-10 border border-slate-100 overflow-hidden shrink-0">
+                        <CompanyAvatar company={job.company} logoUrl={getCompanyLogoUrl(job.company)} size="sm" />
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  myReferrals.slice(0, 3).map((job) => (
-                    <div
-                      key={job.id}
-                      className="group bg-white rounded-lg border border-slate-100 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer"
-                      onClick={() => handleViewApplications(job.id)}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        {getStatusBadge(job.status)}
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            className="p-1.5 text-slate-500 hover:text-ink rounded-lg hover:bg-stone-50 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewApplications(job.id);
-                            }}
-                          >
-                            <span className="material-symbols-outlined text-[18px]">visibility</span>
-                          </button>
-                          <button
-                            className="p-1.5 text-slate-500 hover:text-red-500 rounded-lg hover:bg-stone-50 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteReferral(job.id);
-                            }}
-                          >
-                            <span className="material-symbols-outlined text-[18px]">delete</span>
-                          </button>
-                        </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-ink leading-snug truncate">{job.title}</p>
+                        <p className="text-xs text-slate-500 truncate mt-0.5">{job.company}</p>
                       </div>
-
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="rounded-full size-11 shadow-sm border border-slate-100 overflow-hidden shrink-0">
-                          <CompanyAvatar company={job.company} logoUrl={getCompanyLogoUrl(job.company)} size="sm" />
-                        </div>
-                        <h4 className="font-bold text-slate-900 text-lg leading-tight">{job.title}</h4>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-3 border-t border-stone-100">
-                        <div className="flex -space-x-2">
-                          {job.applications_count > 0 && (
-                            <>
-                              <div className="size-6 rounded-full ring-2 ring-white bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-700">
-                                {job.title.charAt(0)}
-                              </div>
-                              {job.applications_count > 1 && (
-                                <div className="size-6 rounded-full ring-2 ring-white bg-amber-100 flex items-center justify-center text-[9px] font-bold text-amber-700">
-                                  {job.company.charAt(0)}
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </div>
+                      {getStatusBadge(job.status)}
+                    </div>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                      <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-slate-600">
+                        <Users className="h-3.5 w-3.5" />
+                        {job.applications_count || 0} applicants
+                      </span>
+                      <div className="flex gap-1.5">
                         <button
-                          className="flex items-center gap-1.5 text-slate-500 text-xs font-medium hover:text-ink transition-colors cursor-pointer"
+                          type="button"
+                          className="h-8 px-3 rounded-lg border border-slate-200 bg-white text-xs font-bold text-ink hover:bg-parchment-sunken transition-colors flex items-center gap-1.5"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleViewApplications(job.id);
                           }}
                         >
-                          <span className="material-symbols-outlined text-[16px]">visibility</span>
-                          {job.applications_count || 0} Applicants
+                          <Eye className="h-3.5 w-3.5" />
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Delete ${job.title}`}
+                          title="Delete referral"
+                          className="h-8 w-8 rounded-lg border border-red-200 bg-danger-tint text-red-600 hover:bg-red-100 transition-colors flex items-center justify-center"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReferralToDelete(job);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
-                  ))
-                )
-              )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </aside>
+        </div>
+      </main>
+
+      {referralToDelete && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/45"
+          onClick={() => setReferralToDelete(null)}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-referral-title"
+            className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-7 pt-8 pb-6 flex flex-col items-center text-center gap-3">
+              <span className="size-14 rounded-full bg-danger-tint text-red-600 flex items-center justify-center">
+                <Trash2 className="h-6 w-6" />
+              </span>
+              <h2 id="delete-referral-title" className="font-display text-lg font-extrabold text-ink">Delete this referral?</h2>
+              <p className="text-[13.5px] text-slate-500 leading-relaxed">
+                <strong className="text-ink">{referralToDelete.title} at {referralToDelete.company}</strong> will be removed from Thessis. This can't be undone.
+              </p>
+            </div>
+            <div className="flex gap-2.5 px-5 py-4 border-t border-slate-100 bg-parchment">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setReferralToDelete(null)}
+                className="flex-1 h-11 rounded-xl border border-slate-200 bg-white text-sm font-bold text-ink hover:bg-parchment-sunken transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const jobId = referralToDelete.id;
+                  setReferralToDelete(null);
+                  deleteReferral(jobId);
+                }}
+                className="flex-1 h-11 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
-      </main>
+      )}
     </div>
   );
 };

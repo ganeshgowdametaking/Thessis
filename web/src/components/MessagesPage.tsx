@@ -822,7 +822,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                 <Search className="text-[20px]" />
               </div>
               <input
-                className="block w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder-slate-500 focus:border-sage focus:outline-none shadow-sm"
+                className="block w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder-slate-500 focus:border-sage focus:outline-none shadow-sm"
                 placeholder="Search messages..."
                 type="text"
                 value={searchQuery}

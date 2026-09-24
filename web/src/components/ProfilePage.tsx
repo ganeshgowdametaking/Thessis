@@ -709,7 +709,7 @@ const ProfilePage: React.FC = () => {
                       editForm.skills.map((skill) => (
                         <span
                           key={skill.id}
-                          className="px-2.5 py-1.5 rounded-lg bg-white text-slate-body cursor-default text-[13px] font-bold tracking-tight border border-stone-border"
+                          className="px-2.5 py-1.5 rounded-full bg-ink-wash text-primary cursor-default text-[13px] font-bold tracking-tight"
                         >
                           {skill.name}
                         </span>

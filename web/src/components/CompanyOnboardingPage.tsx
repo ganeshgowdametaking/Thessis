@@ -199,7 +199,7 @@ const CompanyOnboardingPage: React.FC = () => {
             <p className="text-sm font-medium text-slate-700 mb-1">Required Skills:</p>
             <div className="flex flex-wrap gap-1">
               {jobData.requiredSkills.map((skill, index) => (
-                <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                <span key={index} className="bg-ink-wash text-primary text-xs px-2 py-1 rounded">
                   {skill}
                 </span>
               ))}
@@ -229,7 +229,7 @@ const CompanyOnboardingPage: React.FC = () => {
           type="text"
           value={jobData.title}
           onChange={(e) => handleInputChange('title', e.target.value)}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
           placeholder="e.g., Senior Software Engineer"
         />
       </div>
@@ -242,7 +242,7 @@ const CompanyOnboardingPage: React.FC = () => {
           type="text"
           value={jobData.location}
           onChange={(e) => handleInputChange('location', e.target.value)}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
           placeholder="e.g., San Francisco, CA or Remote"
         />
       </div>
@@ -254,7 +254,7 @@ const CompanyOnboardingPage: React.FC = () => {
         <select
           value={jobData.employmentType}
           onChange={(e) => handleInputChange('employmentType', e.target.value)}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
         >
           <option value="full-time">Full-time</option>
           <option value="part-time">Part-time</option>
@@ -272,7 +272,7 @@ const CompanyOnboardingPage: React.FC = () => {
             type="number"
             value={jobData.salaryMin}
             onChange={(e) => handleInputChange('salaryMin', e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
             placeholder="50000"
           />
         </div>
@@ -284,7 +284,7 @@ const CompanyOnboardingPage: React.FC = () => {
             type="number"
             value={jobData.salaryMax}
             onChange={(e) => handleInputChange('salaryMax', e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
             placeholder="120000"
           />
         </div>
@@ -295,7 +295,7 @@ const CompanyOnboardingPage: React.FC = () => {
           <select
             value={jobData.currency}
             onChange={(e) => handleInputChange('currency', e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
           >
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
@@ -318,7 +318,7 @@ const CompanyOnboardingPage: React.FC = () => {
           value={jobData.description}
           onChange={(e) => handleInputChange('description', e.target.value)}
           rows={6}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
           placeholder="Describe the role, responsibilities, and requirements..."
         />
       </div>
@@ -332,7 +332,7 @@ const CompanyOnboardingPage: React.FC = () => {
             <input
               type="text"
               placeholder="Add a skill (e.g., React, Python)"
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   addSkill(e.currentTarget.value);
@@ -346,7 +346,7 @@ const CompanyOnboardingPage: React.FC = () => {
                 addSkill(input.value);
                 input.value = '';
               }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover"
             >
               Add
             </button>
@@ -354,11 +354,11 @@ const CompanyOnboardingPage: React.FC = () => {
           {jobData.requiredSkills.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {jobData.requiredSkills.map((skill, index) => (
-                <span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+                <span key={index} className="bg-ink-wash text-primary px-3 py-1 rounded-full text-sm flex items-center space-x-1">
                   <span>{skill}</span>
                   <button
                     onClick={() => removeSkill(skill)}
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-primary hover:text-primary-hover"
                   >
                     ×
                   </button>
@@ -378,7 +378,7 @@ const CompanyOnboardingPage: React.FC = () => {
             <input
               type="text"
               placeholder="Add a screening question"
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   addScreeningQuestion(e.currentTarget.value);
@@ -392,7 +392,7 @@ const CompanyOnboardingPage: React.FC = () => {
                 addScreeningQuestion(input.value);
                 input.value = '';
               }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover"
             >
               Add
             </button>
@@ -419,9 +419,9 @@ const CompanyOnboardingPage: React.FC = () => {
 
   const renderStep3 = () => (
     <div className="space-y-6">
-      <div className="bg-blue-50 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">Post for Free</h3>
-        <p className="text-blue-800 text-sm">
+      <div className="bg-ink-wash rounded-lg p-4">
+        <h3 className="font-semibold text-primary mb-2">Post for Free</h3>
+        <p className="text-primary text-sm">
           Free jobs run for 30 days and auto-renew if you share with 5 contacts.
         </p>
       </div>
@@ -432,7 +432,7 @@ const CompanyOnboardingPage: React.FC = () => {
             type="checkbox"
             checked={jobData.shareWithNetwork}
             onChange={(e) => handleInputChange('shareWithNetwork', e.target.checked)}
-            className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+            className="h-4 w-4 text-primary border-slate-300 rounded focus:ring-primary"
           />
           <span className="text-sm font-medium text-slate-700">Share with my network</span>
         </label>
@@ -448,7 +448,7 @@ const CompanyOnboardingPage: React.FC = () => {
                   <input
                     type="email"
                     placeholder="colleague@company.com"
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         addShareEmail(e.currentTarget.value);
@@ -462,7 +462,7 @@ const CompanyOnboardingPage: React.FC = () => {
                       addShareEmail(input.value);
                       input.value = '';
                     }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover"
                   >
                     Add
                   </button>
@@ -489,7 +489,7 @@ const CompanyOnboardingPage: React.FC = () => {
               <h4 className="font-medium text-slate-900 mb-2">Email Template</h4>
               <textarea
                 rows={4}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                 defaultValue={`Hi there!
 
 I'm hiring for a ${jobData.title} position at our company. I thought you might know someone who would be a great fit.
@@ -534,7 +534,7 @@ Best regards,
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-end">
             <div className="flex items-center space-x-2">
-              <Building className="h-8 w-8 text-blue-600" />
+              <Building className="h-8 w-8 text-primary" />
               <span className="text-xl font-bold font-display text-slate-900">Thessis</span>
             </div>
           </div>
@@ -550,7 +550,7 @@ Best regards,
           </div>
           <div className="w-full bg-parchment-sunken rounded-full h-2">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="bg-primary h-2 rounded-full transition-all duration-300"
               style={{ width: `${getProgressPercentage()}%` }}
             ></div>
           </div>
@@ -585,7 +585,7 @@ Best regards,
               {currentStep < 3 ? (
                 <button
                   onClick={nextStep}
-                  className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center space-x-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover"
                 >
                   <span>Next</span>
                   <ArrowRight className="h-4 w-4" />
@@ -594,7 +594,7 @@ Best regards,
                 <button
                   onClick={handlePublishJob}
                   disabled={loading}
-                  className="flex items-center space-x-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  className="flex items-center space-x-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover disabled:opacity-50"
                 >
                   {loading ? (
                     <>

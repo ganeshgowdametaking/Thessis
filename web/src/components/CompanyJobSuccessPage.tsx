@@ -83,8 +83,8 @@ Best regards,
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full text-center">
           {/* Success Icon */}
           <div className="flex justify-center mb-6">
-            <div className="bg-green-100 p-4 rounded-full">
-              <CheckCircle className="h-16 w-16 text-green-600" />
+            <div className="bg-success-tint p-4 rounded-full">
+              <CheckCircle className="h-16 w-16 text-success-ink" />
             </div>
           </div>
 
@@ -106,8 +106,8 @@ Best regards,
               {jobData.location || 'Remote'} • {jobData.employmentType?.replace('-', ' ') || 'Full-time'}
             </p>
             <div className="flex items-center justify-center space-x-2">
-              <Link className="h-4 w-4 text-blue-600" />
-              <span className="text-blue-600 font-medium">Direct link to job</span>
+              <Link className="h-4 w-4 text-primary" />
+              <span className="text-primary font-medium">Direct link to job</span>
             </div>
           </div>
 
@@ -115,7 +115,7 @@ Best regards,
           <div className="space-y-4 mb-8">
             <button
               onClick={handleViewJob}
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+              className="w-full bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-primary-hover transition-colors flex items-center justify-center space-x-2"
             >
               <span>View Your Job Posting</span>
               <ArrowRight className="h-5 w-5" />
@@ -139,7 +139,7 @@ Best regards,
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button
                 onClick={handleShareTwitter}
-                className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                className="flex items-center justify-center space-x-2 px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
               >
                 <Twitter className="h-5 w-5" />
                 <span>Tweet this</span>
@@ -155,7 +155,7 @@ Best regards,
 
               <button
                 onClick={handleCopyLink}
-                className="flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors group"
+                className="flex items-center justify-center space-x-2 px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors group"
               >
                 <img
                   src={shareIcon}
@@ -168,11 +168,11 @@ Best regards,
           </div>
 
           {/* Next Steps */}
-          <div className="mt-8 p-6 bg-blue-50 rounded-lg">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">
+          <div className="mt-8 p-6 bg-ink-wash rounded-lg">
+            <h3 className="text-lg font-semibold text-primary mb-2">
               What's Next?
             </h3>
-            <div className="space-y-2 text-sm text-blue-800">
+            <div className="space-y-2 text-sm text-primary">
               <p>• Your job will be visible to candidates for 30 days</p>
               <p>• You'll receive notifications when candidates apply</p>
               <p>• Share with 5+ contacts to auto-renew your posting</p>
@@ -183,7 +183,7 @@ Best regards,
           <div className="mt-8">
             <button
               onClick={handleGoToDashboard}
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              className="text-primary hover:text-primary-hover font-medium"
             >
               Go to Dashboard →
             </button>

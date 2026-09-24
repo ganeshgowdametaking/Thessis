@@ -104,7 +104,7 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({ value, onChange }) 
           value={value}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
           placeholder="e.g., San Francisco, CA"
         />
         <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -324,11 +324,11 @@ const CompanyNewJobPage: React.FC = () => {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
+          <div className="bg-ink-wash border border-indigo-100 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-2">AI Job Autofill</h2>
             <p className="text-sm text-slate-600 mb-4">Upload a job-description PDF or paste a job link to autofill this form.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="flex items-center justify-center h-24 border-2 border-dashed border-blue-300 rounded-lg bg-white cursor-pointer hover:bg-blue-50">
+              <label className="flex items-center justify-center h-24 border-2 border-dashed border-indigo-300 rounded-lg bg-white cursor-pointer hover:bg-ink-wash">
                 <input
                   type="file"
                   className="hidden"
@@ -336,7 +336,7 @@ const CompanyNewJobPage: React.FC = () => {
                   onChange={(e) => e.target.files?.[0] && handleAIAutoFill('pdf', e.target.files[0])}
                   disabled={aiLoading}
                 />
-                <span className="text-sm text-blue-700 font-medium">{aiLoading ? 'Processing...' : 'Upload PDF'}</span>
+                <span className="text-sm text-primary font-medium">{aiLoading ? 'Processing...' : 'Upload PDF'}</span>
               </label>
               <div className="flex gap-2">
                 <input
@@ -371,7 +371,7 @@ const CompanyNewJobPage: React.FC = () => {
                   value={formData.title}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="e.g., Senior Software Engineer"
                 />
               </div>
@@ -383,7 +383,7 @@ const CompanyNewJobPage: React.FC = () => {
                   name="company"
                   value={formData.company}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="Your company name"
                 />
               </div>
@@ -402,7 +402,7 @@ const CompanyNewJobPage: React.FC = () => {
                   name="job_type"
                   value={formData.job_type}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                 >
                   <option value="full-time">Full-time</option>
                   <option value="part-time">Part-time</option>
@@ -418,7 +418,7 @@ const CompanyNewJobPage: React.FC = () => {
                   name="salary_min"
                   value={formData.salary_min}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="e.g., 80000"
                 />
               </div>
@@ -430,7 +430,7 @@ const CompanyNewJobPage: React.FC = () => {
                   name="salary_max"
                   value={formData.salary_max}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="e.g., 120000"
                 />
               </div>
@@ -449,7 +449,7 @@ const CompanyNewJobPage: React.FC = () => {
                   onChange={handleInputChange}
                   required
                   rows={6}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="Describe the role, responsibilities, and what makes this position exciting..."
                 />
               </div>
@@ -461,7 +461,7 @@ const CompanyNewJobPage: React.FC = () => {
                   value={formData.requirements}
                   onChange={handleInputChange}
                   rows={4}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="List the key requirements and qualifications..."
                 />
               </div>
@@ -473,7 +473,7 @@ const CompanyNewJobPage: React.FC = () => {
                   value={formData.benefits}
                   onChange={handleInputChange}
                   rows={4}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="List the benefits and perks of working at your company..."
                 />
               </div>
@@ -493,7 +493,7 @@ const CompanyNewJobPage: React.FC = () => {
               type="button"
               onClick={handlePublish}
               disabled={loading}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors flex items-center space-x-2"
             >
               <Save className="h-4 w-4" />
               <span>{loading ? 'Publishing...' : 'Publish Job'}</span>

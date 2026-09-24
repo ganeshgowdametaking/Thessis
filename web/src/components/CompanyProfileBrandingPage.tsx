@@ -143,7 +143,7 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({ value, onChange }) 
           value={value}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 pr-10"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary pr-10"
           placeholder="Type to search or enter custom location"
         />
         <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -447,7 +447,7 @@ const CompanyProfileBrandingPage: React.FC = () => {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-hover transition-colors flex items-center space-x-2"
             >
               <Save className="h-4 w-4" />
               <span>{saving ? 'Saving...' : 'Save Changes'}</span>
@@ -472,7 +472,7 @@ const CompanyProfileBrandingPage: React.FC = () => {
                 <h2 className="text-2xl font-bold text-slate-900">{formData.company_name || 'Your Company'}</h2>
                 <p className="text-slate-600">{formData.industry} • {formData.company_size} • {formData.location}</p>
                 {formData.website && (
-                  <a href={formData.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  <a href={formData.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                     {formData.website}
                   </a>
                 )}
@@ -513,7 +513,7 @@ const CompanyProfileBrandingPage: React.FC = () => {
                   value={formData.company_name}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="Your company name"
                 />
               </div>
@@ -525,7 +525,7 @@ const CompanyProfileBrandingPage: React.FC = () => {
                   name="website"
                   value={formData.website}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="https://yourcompany.com"
                 />
               </div>
@@ -537,7 +537,7 @@ const CompanyProfileBrandingPage: React.FC = () => {
                   name="industry"
                   value={formData.industry}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="e.g., Technology, Healthcare"
                 />
               </div>
@@ -548,7 +548,7 @@ const CompanyProfileBrandingPage: React.FC = () => {
                   name="company_size"
                   value={formData.company_size}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                 >
                   <option value="">Select size</option>
                   <option value="1-10">1-10 employees</option>
@@ -567,7 +567,7 @@ const CompanyProfileBrandingPage: React.FC = () => {
                   name="founded_year"
                   value={formData.founded_year}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="e.g., 2020"
                 />
               </div>
@@ -664,7 +664,7 @@ const CompanyProfileBrandingPage: React.FC = () => {
                 value={formData.about_us}
                 onChange={handleInputChange}
                 rows={6}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                 placeholder="Tell potential candidates about your company, culture, mission, and what makes you unique..."
               />
             </div>

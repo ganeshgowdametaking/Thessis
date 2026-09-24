@@ -36,8 +36,9 @@ export const ConversationItem: React.FC<ConversationItemProps> = memo(({
     return (
         <button
             onClick={() => onClick(conversation.id)}
-            className={`w-full p-4 flex items-center gap-3 transition-all border-b border-stone-100 last:border-0 hover:bg-white/80 ${isSelected ? 'bg-white shadow-sm' : 'text-slate-600'
+            className={`w-full p-3 mx-2 my-0.5 rounded-xl flex items-center gap-3 transition-all ${isSelected ? 'bg-ink-wash' : 'text-slate-600 hover:bg-white/80'
                 }`}
+            style={{ width: 'calc(100% - 1rem)' }}
         >
             <div className="relative">
                 <MessageAvatar profile={profile} size="md" />

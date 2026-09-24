@@ -13,7 +13,10 @@ interface AuthPageProps {
   initialMode: 'signin' | 'signup'
 }
 
-const inputClass = 'w-full rounded-lg border border-slate-300 py-3 px-4 text-sm focus:border-primary focus:outline-none'
+const inputClass = 'w-full rounded-xl border border-slate-300 py-3 px-4 text-sm focus:border-primary focus:outline-none'
+const labelClass = 'block text-[12.5px] font-semibold text-slate-600 mb-1.5'
+
+const REMEMBERED_EMAIL_KEY = 'thessis_remembered_email'
 
 const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
   const navigate = useNavigate()
@@ -24,8 +27,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
   const [success, setSuccess] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(() => Boolean(localStorage.getItem(REMEMBERED_EMAIL_KEY)))
   const [formData, setFormData] = useState({
-    email: '',
+    email: localStorage.getItem(REMEMBERED_EMAIL_KEY) || '',
     password: '',
     confirmPassword: '',
     fullName: '',
@@ -47,6 +51,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
       if (mode === 'signin') {
         const { error } = await signIn(formData.email, formData.password)
         if (error) throw error
+        if (rememberMe) {
+          localStorage.setItem(REMEMBERED_EMAIL_KEY, formData.email)
+        } else {
+          localStorage.removeItem(REMEMBERED_EMAIL_KEY)
+        }
         navigate('/jobs')
       } else if (mode === 'signup') {
         if (formData.password !== formData.confirmPassword) {
@@ -135,23 +144,20 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left: auth section */}
-      <div className="relative w-full lg:w-1/2 flex items-center justify-center px-6 py-16 sm:py-20">
+      <div className="relative w-full lg:w-1/2 flex items-center justify-center px-6 py-16 sm:py-20 bg-parchment">
         <Link to="/" className="absolute top-6 left-6 sm:top-8 sm:left-8">
           <img src="/logo2.png?v=2" alt="Thessis Logo" className="h-8 w-8 object-contain" />
         </Link>
 
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-sm p-8 md:p-10">
           {(mode === 'signin' || mode === 'signup') && (
-            <div className="text-left mb-4">
-              <h1 className="font-bold text-ink">
-                {mode === 'signin' ? (
-                  <>
-                    <span className="text-[24px]">Welcome to</span> <span className="text-3xl">Thessis!</span>
-                  </>
-                ) : (
-                  <span className="text-[24px]">Create your account</span>
-                )}
+            <div className="text-left mb-6">
+              <h1 className="font-display font-extrabold text-ink text-[22px]">
+                {mode === 'signin' ? 'Welcome back' : 'Create your account'}
               </h1>
+              <p className="text-[13px] text-slate-500 mt-1">
+                {mode === 'signin' ? 'Log in to keep track of your applications' : 'Takes about a minute — no credit card needed'}
+              </p>
             </div>
           )}
           {mode === 'verify-email' && <div className="text-center mb-6"><h1 className="text-2xl font-bold text-ink">Verify Email</h1><p className="text-sm text-slate-500 mt-1">Enter the code sent to {formData.email}</p></div>}
@@ -204,8 +210,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
             </form>
           ) : (
             <>
-              <GoogleSignInButton className="w-full py-2.5 border border-slate-300 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors" />
-              <LinkedInSignInButton className="w-full mt-3 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2" />
+              <GoogleSignInButton className="w-full py-2.5 border border-slate-300 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors" />
+              <LinkedInSignInButton className="w-full mt-3 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2" />
 
               <div className="relative flex items-center py-6">
                 <div className="flex-grow border-t border-slate-200"></div>
@@ -216,7 +222,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
               <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                 {mode === 'signup' && (
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name</label>
+                    <label className={labelClass}>Full Name</label>
                     <div className="relative">
                       <input className={inputClass} placeholder="Full Name" type="text" value={formData.fullName} onChange={(e) => handleInputChange('fullName', e.target.value)} required />
                       <User className="absolute right-3 top-3 text-slate-400" size={20} />
@@ -224,14 +230,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                  <label className={labelClass}>Email</label>
                   <div className="relative">
                     <input className={inputClass} placeholder="Enter your email" type="email" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} required />
                     <Mail className="absolute right-3 top-3 text-slate-400" size={20} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+                  <label className={labelClass}>Password</label>
                   <div className="relative">
                     <input className={inputClass} placeholder="Enter your password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => handleInputChange('password', e.target.value)} required minLength={8} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-slate-400">{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button>
@@ -239,7 +245,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
                 </div>
                 {mode === 'signup' && (
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Confirm Password</label>
+                    <label className={labelClass}>Confirm Password</label>
                     <div className="relative">
                       <input className={inputClass} placeholder="Confirm Password" type={showConfirmPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={(e) => handleInputChange('confirmPassword', e.target.value)} required />
                       <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-3 text-slate-400">{showConfirmPassword ? <EyeOff size={20} /> : <Lock size={20} />}</button>
@@ -247,16 +253,27 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
                   </div>
                 )}
 
-                <button type="submit" disabled={loading || (mode === 'signup' && (formData.password !== formData.confirmPassword || formData.password.length < 8))} className="w-full rounded-lg bg-primary py-3.5 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                <button type="submit" disabled={loading || (mode === 'signup' && (formData.password !== formData.confirmPassword || formData.password.length < 8))} className="w-full rounded-xl bg-primary py-3.5 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-50 transition-all flex items-center justify-center gap-2">
                   {loading && <Loader className="animate-spin" size={18} />}
                   {mode === 'signin' ? 'Sign In' : 'Create Account'}
                 </button>
               </form>
 
               {mode === 'signin' && (
-                <button type="button" onClick={() => setMode('forgot-password')} className="block mx-auto mt-6 text-sm font-bold text-primary hover:underline">
-                  Forgot Password?
-                </button>
+                <div className="flex items-center justify-between mt-4">
+                  <label className="flex items-center gap-1.5 text-[12.5px] text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="h-3.5 w-3.5 accent-primary"
+                    />
+                    Remember me
+                  </label>
+                  <button type="button" onClick={() => setMode('forgot-password')} className="text-[12.5px] font-bold text-primary hover:underline">
+                    Forgot Password?
+                  </button>
+                </div>
               )}
 
               <p className="text-center text-sm text-slate-500 mt-6">
@@ -277,8 +294,43 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
         </div>
       </div>
 
-      {/* Right: blank canvas, ready for content */}
-      <div className="hidden lg:block lg:w-1/2 bg-ink" />
+      {/* Right: brand panel */}
+      <div className="hidden lg:flex lg:w-1/2 bg-ink flex-col justify-between p-16 text-white">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+            <span className="font-display font-extrabold text-sm">T</span>
+          </div>
+          <span className="font-display font-extrabold text-lg">Thessis</span>
+        </div>
+
+        <div className="flex flex-col gap-5 max-w-md">
+          <span className="text-[13px] font-bold uppercase tracking-wider text-indigo-200">
+            {mode === 'signup' ? 'Free for job seekers' : 'Built for job seekers'}
+          </span>
+          <h2 className="font-display font-extrabold text-[34px] leading-tight">
+            {mode === 'signup'
+              ? 'Skip the resume black hole. Get referred instead.'
+              : 'Every referral starts with someone who already believes in you.'}
+          </h2>
+          <p className="text-[15px] leading-relaxed text-slate-300">
+            {mode === 'signup'
+              ? 'Create your profile, get scored against real roles in seconds, and connect with employees who can vouch for you.'
+              : 'Create a free profile, get scored against real roles, and get connected to employees who can vouch for you.'}
+          </p>
+        </div>
+
+        <div className="flex gap-7">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-display font-extrabold text-[22px]">500+</span>
+            <span className="text-xs text-slate-400">warm intros made</span>
+          </div>
+          <div className="w-px bg-slate-700" />
+          <div className="flex flex-col gap-0.5">
+            <span className="font-display font-extrabold text-[22px]">4.9/5</span>
+            <span className="text-xs text-slate-400">from job seekers</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

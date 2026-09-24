@@ -148,7 +148,7 @@ const PasswordResetPage: React.FC = () => {
     if (password.length < 6) return { strength: 1, text: 'Too short', color: 'text-red-500', width: '25%' }
     if (password.length < 8) return { strength: 2, text: 'Weak', color: 'text-orange-500', width: '50%' }
     if (password.length < 12) return { strength: 3, text: 'Good', color: 'text-btn-sage', width: '75%' }
-    return { strength: 4, text: 'Strong', color: 'text-green-600', width: '100%' }
+    return { strength: 4, text: 'Strong', color: 'text-success-ink', width: '100%' }
   }
 
   const passwordStrength = getPasswordStrength(formData.password)
@@ -156,7 +156,8 @@ const PasswordResetPage: React.FC = () => {
   const actionAreaClass = 'sticky sm:static bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:pb-0 bg-white/95 sm:bg-transparent backdrop-blur supports-[backdrop-filter]:bg-white/75 border-t border-slate-100 sm:border-0'
 
   return (
-    <div className="bg-page min-h-[100dvh] sm:min-h-screen flex items-stretch sm:items-center justify-center p-0 sm:p-4 font-display">
+    <div className="min-h-screen flex flex-col lg:flex-row font-display">
+    <div className="bg-page min-h-[100dvh] sm:min-h-screen lg:min-h-0 lg:w-1/2 flex items-stretch sm:items-center justify-center p-0 sm:p-4 lg:py-16">
       <div className="w-full max-w-[480px] flex flex-col gap-3 sm:gap-6 min-h-[100dvh] sm:min-h-0">
         {/* Logo */}
         <div className="flex justify-center mb-2 sm:mb-6 pt-[max(16px,env(safe-area-inset-top))] sm:pt-0">
@@ -168,7 +169,7 @@ const PasswordResetPage: React.FC = () => {
         </div>
 
         {/* Main Card */}
-        <div className="bg-card border-x-0 sm:border border-card-border rounded-none sm:rounded-xl shadow-none sm:shadow-subtle overflow-hidden p-4 sm:p-8 flex flex-col gap-5 sm:gap-6 flex-1">
+        <div className="bg-card border-x-0 sm:border border-card-border rounded-none sm:rounded-2xl shadow-none sm:shadow-subtle overflow-hidden p-4 sm:p-8 flex flex-col gap-5 sm:gap-6 flex-1">
           {/* Header */}
           <div className="text-center space-y-1.5 sm:space-y-2">
             <h1 className="text-title-slate text-xl sm:text-2xl font-bold leading-tight">Reset Password</h1>
@@ -179,7 +180,7 @@ const PasswordResetPage: React.FC = () => {
 
           {/* Diagnostic Check */}
           {!sessionReady && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm flex items-center justify-between">
+            <div className="p-3 bg-ink-wash border border-indigo-200 rounded-lg text-primary text-sm flex items-center justify-between">
               <span>Verifying link...</span>
               <Loader className="animate-spin text-[16px]" />
             </div>
@@ -204,8 +205,8 @@ const PasswordResetPage: React.FC = () => {
           )}
 
           {success && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm flex items-center gap-2">
-              <CheckCircle className="text-[16px] text-green-600" />
+            <div className="p-3 bg-success-tint border border-success-tint rounded-lg text-success-ink text-sm flex items-center gap-2">
+              <CheckCircle className="text-[16px] text-success-ink" />
               <span>{success}</span>
             </div>
           )}
@@ -216,7 +217,7 @@ const PasswordResetPage: React.FC = () => {
               <p className="text-label-slate text-sm font-medium leading-normal pb-2">New Password</p>
               <div className="flex w-full items-stretch rounded-lg transition-colors shadow-sm">
                 <input
-                  className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-lg text-title-slate focus:outline-0 focus:ring-0 border border-input-border bg-white focus:border-btn-sage h-12 placeholder:text-slate-400 p-4 text-base font-normal leading-normal"
+                  className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-xl text-title-slate focus:outline-0 focus:ring-0 border border-input-border bg-white focus:border-btn-sage h-12 placeholder:text-slate-400 p-4 text-base font-normal leading-normal"
                   placeholder="Enter at least 8 characters..."
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
@@ -225,7 +226,7 @@ const PasswordResetPage: React.FC = () => {
                   minLength={8}
                 />
                 <div
-                  className="text-slate-400 flex border border-l-0 border-input-border bg-white items-center justify-center px-4 rounded-r-lg cursor-pointer hover:text-btn-sage transition-colors group-focus-within:border-btn-sage group-focus-within:text-btn-sage"
+                  className="text-slate-400 flex border border-l-0 border-input-border bg-white items-center justify-center px-4 rounded-r-xl cursor-pointer hover:text-btn-sage transition-colors group-focus-within:border-btn-sage group-focus-within:text-btn-sage"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff className="text-[24px]" /> : <Eye className="text-[24px]" />}
@@ -260,7 +261,7 @@ const PasswordResetPage: React.FC = () => {
               <p className="text-label-slate text-sm font-medium leading-normal pb-2">Confirm New Password</p>
               <div className="flex w-full items-stretch rounded-lg transition-colors shadow-sm">
                 <input
-                  className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-lg text-title-slate focus:outline-0 focus:ring-0 border border-input-border bg-white focus:border-btn-sage h-12 placeholder:text-slate-400 p-4 text-base font-normal leading-normal"
+                  className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-xl text-title-slate focus:outline-0 focus:ring-0 border border-input-border bg-white focus:border-btn-sage h-12 placeholder:text-slate-400 p-4 text-base font-normal leading-normal"
                   placeholder="Re-enter new password"
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={formData.confirmPassword}
@@ -268,7 +269,7 @@ const PasswordResetPage: React.FC = () => {
                   required
                 />
                 <div
-                  className="text-slate-400 flex border border-l-0 border-input-border bg-white items-center justify-center px-4 rounded-r-lg cursor-pointer hover:text-btn-sage transition-colors group-focus-within:border-btn-sage group-focus-within:text-btn-sage"
+                  className="text-slate-400 flex border border-l-0 border-input-border bg-white items-center justify-center px-4 rounded-r-xl cursor-pointer hover:text-btn-sage transition-colors group-focus-within:border-btn-sage group-focus-within:text-btn-sage"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? <EyeOff className="text-[24px]" /> : <Eye className="text-[24px]" />}
@@ -278,7 +279,7 @@ const PasswordResetPage: React.FC = () => {
                 <p className="text-red-500 text-xs mt-1">Passwords do not match</p>
               )}
               {formData.confirmPassword && formData.password === formData.confirmPassword && formData.confirmPassword.length > 0 && (
-                <p className="text-green-600 text-xs mt-1">Passwords match ✓</p>
+                <p className="text-success-ink text-xs mt-1">Passwords match ✓</p>
               )}
             </label>
 
@@ -287,7 +288,7 @@ const PasswordResetPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading || formData.password !== formData.confirmPassword || !hasMinLength}
-                className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-btn-sage hover:bg-btn-sage-hover text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 bg-btn-sage hover:bg-btn-sage-hover text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Updating Password...' : 'Update Password'}
               </button>
@@ -300,6 +301,36 @@ const PasswordResetPage: React.FC = () => {
         <p className="text-center text-copyright-slate text-xs pb-[calc(env(safe-area-inset-bottom)+8px)] sm:pb-0">
           © 2026 Thessis. All rights reserved.
         </p>
+      </div>
+    </div>
+
+      {/* Right: brand panel */}
+      <div className="hidden lg:flex lg:w-1/2 bg-ink flex-col justify-between p-16 text-white">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+            <span className="font-display font-extrabold text-sm">T</span>
+          </div>
+          <span className="font-display font-extrabold text-lg">Thessis</span>
+        </div>
+
+        <div className="flex flex-col gap-5 max-w-md">
+          <span className="text-[13px] font-bold uppercase tracking-wider text-indigo-200">Account recovery</span>
+          <h2 className="font-display font-extrabold text-[34px] leading-tight">Let's get you back in.</h2>
+          <p className="text-[15px] leading-relaxed text-slate-300">Set a new password and you'll be right back to tracking your applications and referrals.</p>
+        </div>
+
+        <div className="flex flex-col gap-3.5 p-5 bg-[#1B1B33] rounded-2xl max-w-md">
+          <p className="text-[14.5px] leading-relaxed text-slate-200 italic">
+            "I almost gave up on my job search until a friend referred me here. Ten minutes to set up, and I had a warm intro within a week."
+          </p>
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-full bg-ink-wash text-primary flex items-center justify-center font-display font-bold text-xs">CV</div>
+            <div className="flex flex-col">
+              <span className="text-[12.5px] font-bold">Clara Vale</span>
+              <span className="text-[11.5px] text-slate-400">Product Manager, hired via referral</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

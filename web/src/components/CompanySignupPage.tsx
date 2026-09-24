@@ -133,8 +133,8 @@ const CompanySignupPage: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Building className="h-8 w-8 text-blue-600" />
+              <div className="bg-ink-wash p-3 rounded-full">
+                <Building className="h-8 w-8 text-primary" />
               </div>
             </div>
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Create Your Company Account</h1>
@@ -160,7 +160,7 @@ const CompanySignupPage: React.FC = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="your@company.com"
                   required
                 />
@@ -178,7 +178,7 @@ const CompanySignupPage: React.FC = () => {
                   name="companyName"
                   value={formData.companyName}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="Your Company Inc."
                   required
                 />
@@ -196,7 +196,7 @@ const CompanySignupPage: React.FC = () => {
                   name="website"
                   value={formData.website}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="https://yourcompany.com"
                 />
               </div>
@@ -212,7 +212,7 @@ const CompanySignupPage: React.FC = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full pl-3 pr-10 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full pl-3 pr-10 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-primary"
                   placeholder="Create a strong password"
                   required
                 />
@@ -233,17 +233,17 @@ const CompanySignupPage: React.FC = () => {
                 name="agreeToTerms"
                 checked={formData.agreeToTerms}
                 onChange={handleInputChange}
-                className="mt-1 h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                className="mt-1 h-4 w-4 text-primary border-slate-300 rounded focus:ring-primary"
                 required
               />
               <div className="text-sm">
                 <label className="text-slate-700">
                   I agree to the{' '}
-                  <a href="/terms" className="text-blue-600 hover:text-blue-800 underline">
+                  <a href="/terms" className="text-primary hover:text-primary-hover underline">
                     Terms of Service
                   </a>{' '}
                   and{' '}
-                  <a href="/privacy-policy" className="text-blue-600 hover:text-blue-800 underline">
+                  <a href="/privacy-policy" className="text-primary hover:text-primary-hover underline">
                     Privacy Policy
                   </a>
                 </label>
@@ -254,7 +254,7 @@ const CompanySignupPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {loading ? (
                 <>
@@ -271,7 +271,7 @@ const CompanySignupPage: React.FC = () => {
               Already have an account?{' '}
               <button
                 onClick={() => navigate('/company-login')}
-                className="text-blue-600 hover:text-blue-800 font-medium"
+                className="text-primary hover:text-primary-hover font-medium"
               >
                 Sign in here
               </button>

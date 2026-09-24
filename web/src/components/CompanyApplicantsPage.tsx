@@ -108,10 +108,10 @@ const CompanyApplicantsPage: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'shortlisted': return 'bg-blue-100 text-blue-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'hired': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-amber-tint text-amber-ink';
+      case 'shortlisted': return 'bg-ink-wash text-primary';
+      case 'rejected': return 'bg-danger-tint text-red-prof';
+      case 'hired': return 'bg-success-tint text-success-ink';
       default: return 'bg-slate-100 text-slate-800';
     }
   };
@@ -130,7 +130,7 @@ const CompanyApplicantsPage: React.FC = () => {
           </div>
           <button
             onClick={() => {/* Export functionality */}}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            className="bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary-hover transition-colors flex items-center space-x-2 text-sm font-bold"
           >
             <Download className="h-4 w-4" />
             <span>Export</span>
@@ -139,7 +139,7 @@ const CompanyApplicantsPage: React.FC = () => {
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg">
+          <div className="flex space-x-1 bg-slate-100 p-1 rounded-xl">
             {[
               { key: 'all', label: 'All', count: applicants.length },
               { key: 'pending', label: 'Pending', count: applicants.filter(a => a.status === 'pending').length },
@@ -150,9 +150,9 @@ const CompanyApplicantsPage: React.FC = () => {
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key as any)}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
                   filter === tab.key
-                    ? 'bg-white text-blue-600 shadow-sm'
+                    ? 'bg-primary text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -164,7 +164,7 @@ const CompanyApplicantsPage: React.FC = () => {
           <select
             value={selectedJob}
             onChange={(e) => setSelectedJob(e.target.value)}
-            className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+            className="px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-primary"
           >
             <option value="all">All Jobs</option>
             {jobs.map((job) => (
@@ -190,7 +190,7 @@ const CompanyApplicantsPage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {filteredApplicants.map((applicant) => (
-            <div key={applicant.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+            <div key={applicant.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
@@ -221,31 +221,31 @@ const CompanyApplicantsPage: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => handleViewProfile(applicant.user_id)}
-                    className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
+                    className="p-2 text-slate-400 hover:text-primary transition-colors"
                     title="View Profile"
                   >
                     <Eye className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleMessage(applicant.id)}
-                    className="p-2 text-slate-400 hover:text-green-600 transition-colors"
+                    className="p-2 text-slate-400 hover:text-primary transition-colors"
                     title="Message"
                   >
                     <MessageSquare className="h-4 w-4" />
                   </button>
-                  
+
                   {/* Status Actions */}
                   <div className="flex items-center space-x-1">
                     <button
                       onClick={() => handleStatusChange(applicant.id, 'shortlisted')}
-                      className={`p-1 rounded ${applicant.status === 'shortlisted' ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:text-blue-600'}`}
+                      className={`p-1.5 rounded-lg ${applicant.status === 'shortlisted' ? 'bg-ink-wash text-primary' : 'text-slate-400 hover:text-primary'}`}
                       title="Shortlist"
                     >
                       <CheckCircle className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleStatusChange(applicant.id, 'rejected')}
-                      className={`p-1 rounded ${applicant.status === 'rejected' ? 'bg-red-100 text-red-600' : 'text-slate-400 hover:text-red-600'}`}
+                      className={`p-1.5 rounded-lg ${applicant.status === 'rejected' ? 'bg-danger-tint text-red-prof' : 'text-slate-400 hover:text-red-prof'}`}
                       title="Reject"
                     >
                       <XCircle className="h-4 w-4" />

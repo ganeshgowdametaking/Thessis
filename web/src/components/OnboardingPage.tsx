@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Check, Pencil } from 'lucide-react';
 import debounce from 'lodash.debounce';
 import { useAuthContext } from '../contexts/AuthContext';
 import { jobTitles } from '../data/jobTitles';
@@ -49,8 +49,15 @@ const emptySkill = (): Skill => ({
   category: '',
 });
 
-const inputClass = 'w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-primary';
-const labelClass = 'block text-xs font-medium text-slate-700 mb-1';
+const inputClass = 'w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-primary';
+const labelClass = 'block text-[12.5px] font-semibold text-slate-600 mb-1.5';
+const entryCardClass = 'border border-slate-200 rounded-xl p-4 mb-4 relative';
+
+const STEP_COPY = [
+  { title: 'Tell us about your experience', subtitle: "Add the roles you've held — the more specific, the better." },
+  { title: 'Where did you study?', subtitle: 'Add your degrees and the schools you attended.' },
+  { title: 'What are you great at?', subtitle: 'List the skills that best describe you.' },
+] as const;
 
 const ExperienceStep: React.FC<{
   experiences: Experience[];
@@ -127,7 +134,7 @@ const ExperienceStep: React.FC<{
         <p className="text-sm text-slate-400 mb-4">No experience added yet.</p>
       )}
       {experiences.map((exp) => (
-        <div key={exp.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
+        <div key={exp.id} className={entryCardClass}>
           <button
             type="button"
             onClick={() => remove(exp.id)}
@@ -146,11 +153,11 @@ const ExperienceStep: React.FC<{
                 autoComplete="off"
               />
               {activeTitleId === exp.id && filteredJobTitles.length > 0 && (
-                <ul className="absolute z-10 bg-white border border-slate-200 rounded-lg mt-1 w-full max-h-40 overflow-y-auto shadow-lg">
+                <ul className="absolute z-10 bg-white border border-slate-200 rounded-xl mt-1 w-full max-h-40 overflow-y-auto shadow-lg">
                   {filteredJobTitles.map((title, idx) => (
                     <li
                       key={idx}
-                      className="px-3 py-1.5 text-xs cursor-pointer hover:bg-blue-100"
+                      className="px-3 py-1.5 text-xs cursor-pointer hover:bg-ink-wash"
                       onMouseDown={() => handleTitleSelect(exp.id, title)}
                     >
                       {title}
@@ -173,11 +180,11 @@ const ExperienceStep: React.FC<{
                 autoComplete="off"
               />
               {activeLocationId === exp.id && locationSuggestions.length > 0 && (
-                <ul className="absolute z-10 bg-white border border-slate-200 rounded-lg mt-1 w-full max-h-40 overflow-y-auto shadow-lg">
+                <ul className="absolute z-10 bg-white border border-slate-200 rounded-xl mt-1 w-full max-h-40 overflow-y-auto shadow-lg">
                   {locationSuggestions.map((suggestion) => (
                     <li
                       key={suggestion.place_id}
-                      className="px-3 py-1.5 text-xs cursor-pointer hover:bg-blue-100"
+                      className="px-3 py-1.5 text-xs cursor-pointer hover:bg-ink-wash"
                       onMouseDown={() => handleLocationSelect(exp.id, suggestion)}
                     >
                       {suggestion.label}
@@ -207,9 +214,9 @@ const ExperienceStep: React.FC<{
                 id={`current-${exp.id}`}
                 checked={exp.current}
                 onChange={(e) => update(exp.id, { current: e.target.checked, endDate: e.target.checked ? '' : exp.endDate })}
-                className="mr-2"
+                className="mr-2 accent-primary"
               />
-              <label htmlFor={`current-${exp.id}`} className="text-xs font-medium text-slate-700">I currently work here</label>
+              <label htmlFor={`current-${exp.id}`} className="text-[12.5px] font-medium text-slate-600">I currently work here</label>
             </div>
             <div className="md:col-span-2">
               <label className={labelClass}>Description</label>
@@ -248,7 +255,7 @@ const EducationStep: React.FC<{
         <p className="text-sm text-slate-400 mb-4">No education added yet.</p>
       )}
       {education.map((edu) => (
-        <div key={edu.id} className="border border-slate-200 rounded-lg p-4 mb-4 relative">
+        <div key={edu.id} className={entryCardClass}>
           <button
             type="button"
             onClick={() => remove(edu.id)}
@@ -315,7 +322,7 @@ const SkillsStep: React.FC<{
         <p className="text-sm text-slate-400 mb-4">No skills added yet.</p>
       )}
       {skills.map((skill) => (
-        <div key={skill.id} className="border border-slate-200 rounded-lg p-3 mb-3 flex items-center gap-3">
+        <div key={skill.id} className="border border-slate-200 rounded-xl p-3 mb-3 flex items-center gap-3">
           <input
             className={`${inputClass} flex-1`}
             placeholder="e.g. React, SQL, Project Management"
@@ -397,29 +404,80 @@ const OnboardingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl font-bold text-[#1A1A2E]">Build your profile</h1>
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Left: brand panel with live step checklist */}
+      <aside className="hidden lg:flex lg:w-[43%] shrink-0 bg-ink text-white flex-col justify-between p-16">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+            <span className="font-display font-extrabold text-sm">T</span>
+          </div>
+          <span className="font-display font-extrabold text-lg">Thessis</span>
+        </div>
+
+        <div className="flex flex-col gap-5 max-w-md">
+          <span className="text-[13px] font-bold uppercase tracking-wider text-indigo-200">Getting started</span>
+          <h2 className="font-display font-extrabold text-[34px] leading-tight">A few details, then you're in.</h2>
+          <p className="text-[15px] leading-relaxed text-slate-300">
+            The more complete your profile, the better we can match you to roles and referrers.
+          </p>
+        </div>
+
+        <ol className="flex flex-col gap-3.5">
+          {STEPS.map((label, i) => {
+            const done = i < step;
+            const current = i === step;
+            return (
+              <li key={label} className="flex items-center gap-3">
+                <span
+                  className={`h-[26px] w-[26px] shrink-0 rounded-full flex items-center justify-center font-display font-bold text-[11.5px] ${done
+                    ? 'bg-success text-white'
+                    : current
+                      ? 'bg-primary text-white'
+                      : 'border-[1.5px] border-slate-600 text-slate-400'
+                    }`}
+                >
+                  {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : i + 1}
+                </span>
+                <span className={`text-sm font-semibold ${done || current ? 'text-white' : 'text-slate-400'}`}>{label}</span>
+              </li>
+            );
+          })}
+        </ol>
+
+        <p className="flex items-center gap-2.5 text-[13px] text-slate-400">
+          <Pencil className="h-4 w-4" />
+          You can edit all of this later from your profile.
+        </p>
+      </aside>
+
+      {/* Right: form card */}
+      <div className="flex-1 bg-parchment flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-xl bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-10">
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-[12.5px] font-bold text-slate-500">Step {step + 1} of {STEPS.length}</span>
           <button
             type="button"
             onClick={() => save('/jobs')}
             disabled={saving}
-            className="text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors disabled:opacity-50"
+            className="text-[12.5px] font-bold text-slate-500 hover:text-slate-700 transition-colors disabled:opacity-50"
           >
             Skip &amp; finish later
           </button>
         </div>
-        <p className="text-sm text-slate-500 mb-6">Step {step + 1} of {STEPS.length} — {STEPS[step]}</p>
 
-        <div className="flex gap-2 mb-8">
+        <div className="flex gap-1.5 mb-7">
           {STEPS.map((label, i) => (
             <div key={label} className={`h-1.5 flex-1 rounded-full ${i <= step ? 'bg-primary' : 'bg-slate-200'}`} />
           ))}
         </div>
 
+        <div className="mb-6">
+          <h1 className="font-display font-extrabold text-2xl text-ink">{STEP_COPY[step].title}</h1>
+          <p className="text-[13px] text-slate-500 mt-1">{STEP_COPY[step].subtitle}</p>
+        </div>
+
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">{error}</div>
+          <div className="mb-4 rounded-xl bg-danger-tint border border-red-100 px-4 py-3 text-sm text-red-600">{error}</div>
         )}
 
         {step === 0 && <ExperienceStep experiences={experiences} setExperiences={setExperiences} />}
@@ -431,7 +489,7 @@ const OnboardingPage: React.FC = () => {
             type="button"
             onClick={() => setStep((s) => Math.max(0, s - 1))}
             disabled={step === 0 || saving}
-            className="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-colors"
+            className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-colors"
           >
             Back
           </button>
@@ -440,7 +498,7 @@ const OnboardingPage: React.FC = () => {
               type="button"
               onClick={handleSaveFinish}
               disabled={saving}
-              className="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary-hover disabled:opacity-50 transition-all"
+              className="px-7 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover disabled:opacity-50 transition-all"
             >
               {saving ? 'Saving...' : 'Save & Finish'}
             </button>
@@ -449,12 +507,13 @@ const OnboardingPage: React.FC = () => {
               type="button"
               onClick={handleNext}
               disabled={saving}
-              className="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary-hover disabled:opacity-50 transition-all"
+              className="px-7 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover disabled:opacity-50 transition-all"
             >
-              Next
+              Continue
             </button>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

@@ -77,7 +77,7 @@ const CompanyConfirmationPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-700 to-blue-400 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-primary to-indigo-400 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-6">
         <div className="flex items-center space-x-2 text-white">
@@ -91,8 +91,8 @@ const CompanyConfirmationPage: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
           {/* Success Icon */}
           <div className="flex justify-center mb-6">
-            <div className="bg-green-100 p-4 rounded-full">
-              <CheckCircle className="h-12 w-12 text-green-600" />
+            <div className="bg-success-tint p-4 rounded-full">
+              <CheckCircle className="h-12 w-12 text-success-ink" />
             </div>
           </div>
 
@@ -112,9 +112,9 @@ const CompanyConfirmationPage: React.FC = () => {
           )}
 
           {/* Email Verification Section */}
-          <div className="bg-blue-50 rounded-lg p-6 mb-6">
+          <div className="bg-ink-wash rounded-lg p-6 mb-6">
             <div className="flex items-center justify-center mb-4">
-              <Mail className="h-8 w-8 text-blue-600" />
+              <Mail className="h-8 w-8 text-primary" />
             </div>
             
             <h3 className="text-lg font-semibold text-slate-900 mb-2">
@@ -125,7 +125,7 @@ const CompanyConfirmationPage: React.FC = () => {
               We've sent a 6-digit verification code to:
             </p>
             
-            <p className="font-semibold text-blue-600 mb-4">
+            <p className="font-semibold text-primary mb-4">
               {email}
             </p>
 
@@ -134,18 +134,18 @@ const CompanyConfirmationPage: React.FC = () => {
                 type="text"
                 value={otp}
                 onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-500 text-center text-2xl font-mono tracking-widest"
+                className="w-full px-4 py-3 border border-indigo-300 rounded-lg focus:outline-none focus:border-primary text-center text-2xl font-mono tracking-widest"
                 placeholder="000000"
                 maxLength={6}
                 required
                 disabled={otpLoading}
               />
               {otpError && <div className="text-red-600 text-sm">{otpError}</div>}
-              {otpSuccess && <div className="text-green-600 text-sm">{otpSuccess}</div>}
+              {otpSuccess && <div className="text-success-ink text-sm">{otpSuccess}</div>}
               <button
                 type="submit"
                 disabled={otpLoading || otp.length !== 6}
-                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                className="w-full bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-primary-hover transition-colors flex items-center justify-center space-x-2"
               >
                 {otpLoading ? 'Verifying...' : 'Verify Code'}
               </button>
@@ -153,20 +153,20 @@ const CompanyConfirmationPage: React.FC = () => {
             <button
               onClick={handleResendVerification}
               disabled={resendLoading}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium disabled:opacity-50 mt-4"
+              className="text-primary hover:text-primary-hover text-sm font-medium disabled:opacity-50 mt-4"
             >
               {resendLoading ? 'Sending...' : 'Resend verification code'}
             </button>
             {resendSuccess && (
-              <p className="text-green-600 text-sm mt-2">
+              <p className="text-success-ink text-sm mt-2">
                 Verification code sent!
               </p>
             )}
           </div>
 
           {/* Trust Message */}
-          <div className="bg-green-50 rounded-lg p-4 mb-6">
-            <p className="text-green-800 text-sm font-medium">
+          <div className="bg-success-tint rounded-lg p-4 mb-6">
+            <p className="text-success-ink text-sm font-medium">
               💡 Verified companies get 2× more referral reach
             </p>
           </div>
@@ -174,7 +174,7 @@ const CompanyConfirmationPage: React.FC = () => {
           {/* Verify Account Button */}
           <button
             onClick={handleVerifyAccount}
-            className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 mb-4"
+            className="w-full bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-primary-hover transition-colors flex items-center justify-center space-x-2 mb-4"
           >
             <span>Verify Your Account</span>
             <ArrowRight className="h-5 w-5" />
@@ -193,8 +193,8 @@ const CompanyConfirmationPage: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-blue-600">
-        <div className="max-w-4xl mx-auto px-4 py-8 text-center text-blue-100">
+      <div className="border-t border-indigo-400/40">
+        <div className="max-w-4xl mx-auto px-4 py-8 text-center text-indigo-100">
           <p className="text-sm">
             © 2026 Thessis. All rights reserved.
           </p>

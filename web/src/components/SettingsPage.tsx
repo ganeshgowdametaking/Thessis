@@ -365,19 +365,19 @@ const SettingsPage: React.FC = () => {
               <nav className="space-y-1">
                 <button
                   onClick={() => setActiveTab('account')}
-                  className={`w-full group flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg border transition-all ${activeTab === 'account'
-                    ? 'bg-stone-off text-slate-900 border-transparent shadow-sm'
-                    : 'text-slate-500 border-transparent hover:bg-stone-off/50'
+                  className={`w-full group flex items-center gap-3 px-3 py-3 text-sm font-bold rounded-xl border transition-all ${activeTab === 'account'
+                    ? 'bg-ink-wash text-primary border-transparent'
+                    : 'text-slate-500 font-medium border-transparent hover:bg-stone-off/50'
                     }`}
                 >
-                  <span className={`material-symbols-outlined transition-colors ${activeTab === 'account' ? 'text-sage' : 'text-slate-400 group-hover:text-slate-600'}`}>person</span>
+                  <span className={`material-symbols-outlined transition-colors ${activeTab === 'account' ? 'text-primary' : 'text-slate-400 group-hover:text-slate-600'}`}>person</span>
                   Account
                 </button>
                 <button
                   onClick={() => setActiveTab('feedback')}
-                  className={`w-full group flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg border transition-all ${activeTab === 'feedback'
-                    ? 'bg-stone-off text-slate-900 border-transparent shadow-sm'
-                    : 'text-slate-500 border-transparent hover:bg-stone-off/50'
+                  className={`w-full group flex items-center gap-3 px-3 py-3 text-sm font-bold rounded-xl border transition-all ${activeTab === 'feedback'
+                    ? 'bg-ink-wash text-primary border-transparent'
+                    : 'text-slate-500 font-medium border-transparent hover:bg-stone-off/50'
                     }`}
                 >
                   <span className={`material-symbols-outlined transition-colors ${activeTab === 'feedback' ? 'text-sage' : 'text-slate-400 group-hover:text-slate-600'}`}>rate_review</span>
@@ -411,7 +411,7 @@ const SettingsPage: React.FC = () => {
                 <button
                   onClick={() => setActiveTab('account')}
                   className={`h-11 rounded-xl text-sm font-semibold transition-colors ${activeTab === 'account'
-                    ? 'bg-slate-900 text-white'
+                    ? 'bg-primary text-white'
                     : 'bg-slate-100 text-slate-600'
                     }`}
                 >
@@ -420,7 +420,7 @@ const SettingsPage: React.FC = () => {
                 <button
                   onClick={() => setActiveTab('feedback')}
                   className={`h-11 rounded-xl text-sm font-semibold transition-colors ${activeTab === 'feedback'
-                    ? 'bg-slate-900 text-white'
+                    ? 'bg-primary text-white'
                     : 'bg-slate-100 text-slate-600'
                     }`}
                 >

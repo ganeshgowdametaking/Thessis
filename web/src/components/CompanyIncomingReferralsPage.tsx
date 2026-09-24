@@ -93,9 +93,9 @@ const CompanyIncomingReferralsPage: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-amber-tint text-amber-ink';
+      case 'accepted': return 'bg-success-tint text-success-ink';
+      case 'rejected': return 'bg-danger-tint text-red-prof';
       default: return 'bg-slate-100 text-slate-800';
     }
   };
@@ -115,7 +115,7 @@ const CompanyIncomingReferralsPage: React.FC = () => {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg">
+        <div className="flex space-x-1 bg-slate-100 p-1 rounded-xl">
           {[
             { key: 'all', label: 'All', count: referrals.length },
             { key: 'pending', label: 'Pending', count: referrals.filter(r => r.status === 'pending').length },
@@ -125,8 +125,8 @@ const CompanyIncomingReferralsPage: React.FC = () => {
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key as any)}
-              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === tab.key
-                  ? 'bg-white text-blue-600 shadow-sm'
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-colors ${filter === tab.key
+                  ? 'bg-primary text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
@@ -156,7 +156,7 @@ const CompanyIncomingReferralsPage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {filteredReferrals.map((referral) => (
-            <div key={referral.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+            <div key={referral.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
@@ -166,8 +166,8 @@ const CompanyIncomingReferralsPage: React.FC = () => {
                         alt={referral.referrer.full_name}
                         className="h-12 w-12 rounded-full object-cover"
                       />
-                      <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-green-100 rounded-full flex items-center justify-center">
-                        <Users className="h-3 w-3 text-green-600" />
+                      <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-success-tint rounded-full flex items-center justify-center">
+                        <Users className="h-3 w-3 text-success-ink" />
                       </div>
                     </div>
                   </div>
@@ -193,14 +193,14 @@ const CompanyIncomingReferralsPage: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => handleViewProfile(referral.candidate_id)}
-                    className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
+                    className="p-2 text-slate-400 hover:text-primary transition-colors"
                     title="View Candidate Profile"
                   >
                     <Eye className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleMessage(referral.id)}
-                    className="p-2 text-slate-400 hover:text-green-600 transition-colors"
+                    className="p-2 text-slate-400 hover:text-primary transition-colors"
                     title="Message"
                   >
                     <MessageSquare className="h-4 w-4" />
@@ -210,14 +210,14 @@ const CompanyIncomingReferralsPage: React.FC = () => {
                   <div className="flex items-center space-x-1">
                     <button
                       onClick={() => handleStatusChange(referral.id, 'accepted')}
-                      className={`p-1 rounded ${referral.status === 'accepted' ? 'bg-green-100 text-green-600' : 'text-slate-400 hover:text-green-600'}`}
+                      className={`p-1.5 rounded-lg ${referral.status === 'accepted' ? 'bg-success-tint text-success-ink' : 'text-slate-400 hover:text-success-ink'}`}
                       title="Accept Referral"
                     >
                       <CheckCircle className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleStatusChange(referral.id, 'rejected')}
-                      className={`p-1 rounded ${referral.status === 'rejected' ? 'bg-red-100 text-red-600' : 'text-slate-400 hover:text-red-600'}`}
+                      className={`p-1.5 rounded-lg ${referral.status === 'rejected' ? 'bg-danger-tint text-red-prof' : 'text-slate-400 hover:text-red-prof'}`}
                       title="Reject Referral"
                     >
                       <XCircle className="h-4 w-4" />
