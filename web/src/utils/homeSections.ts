@@ -11,7 +11,7 @@ export const scrollToSection = (id: string) => {
   target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
 };
 
-// Shared marketing copy (homepage + sign-up page). Keep every line literally true.
+// Shared marketing copy for the homepage. Keep every line literally true.
 
 // Companies that currently have open roles on Thessis — update this list when their roles close.
 export const OPEN_ROLE_COMPANIES = ['Deel', 'Zomato', 'NielsenIQ', 'Capgemini', 'Charles Hudson Technology Solutions'];
@@ -20,6 +20,3 @@ export const OPEN_ROLE_COMPANIES = ['Deel', 'Zomato', 'NielsenIQ', 'Capgemini', 
 // or a Thessis member who currently works there. Only add a company when that's true.
 // Thessis itself qualifies too (its intern roles are posted under the old name "TankTide").
 export const REFERRER_COMPANIES = [...OPEN_ROLE_COMPANIES, 'Thessis', 'Wipro', 'Google', 'Marketstar', 'Microgenesis Techsoft'];
-
-// Mirrors the referral routing: each application is assigned to a referrer with a 48-hour window.
-export const REFERRER_RESPONSE_LINE = 'When you apply, a referrer gets your application and has 48 hours to respond.';

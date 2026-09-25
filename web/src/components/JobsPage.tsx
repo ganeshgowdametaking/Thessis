@@ -1147,10 +1147,7 @@ const JobsPage: React.FC = () => {
             </div>
 
             <label className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 px-4 py-3.5 cursor-pointer">
-              <span className="flex flex-col gap-0.5">
-                <span className="text-[13.5px] font-bold text-ink">Remote only</span>
-                <span className="text-xs text-slate-500">Hide roles that need you in an office</span>
-              </span>
+              <span className="text-[13.5px] font-bold text-ink">Remote only</span>
               <input
                 type="checkbox"
                 role="switch"

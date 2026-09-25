@@ -755,7 +755,7 @@ const ProfilePage: React.FC = () => {
   const renderEmptySection = (title: string, hint: string, actionLabel: string, onAction: () => void) => (
     <div className="rounded-xl border-[1.5px] border-dashed border-slate-200 px-4 py-5 flex flex-col items-center gap-1.5 text-center">
       <p className="text-sm font-bold text-ink">{title}</p>
-      <p className="text-[12.5px] text-slate-500 max-w-sm">{hint}</p>
+      {hint && <p className="text-[12.5px] text-slate-500 max-w-sm">{hint}</p>}
       <button
         type="button"
         onClick={onAction}
@@ -950,7 +950,7 @@ const ProfilePage: React.FC = () => {
                   )}
                 </div>
               ) : (
-                renderEmptySection('No education yet', 'Add your degree or course so referrers can see your background.', 'Add education', () => openEditor('education', { add: true }))
+                renderEmptySection('No education yet', '', 'Add education', () => openEditor('education', { add: true }))
               ),
               { onAdd: () => openEditor('education', { add: true }), onEdit: () => openEditor('education'), addLabel: 'Add education', editLabel: 'Edit education' }
             )}
@@ -996,7 +996,6 @@ const ProfilePage: React.FC = () => {
                   Your profile is complete.
                 </p>
               )}
-              <p className="text-[11.5px] text-slate-500">Same score used when you apply to roles.</p>
             </section>
 
             {renderSectionCard(
@@ -1008,7 +1007,7 @@ const ProfilePage: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                renderEmptySection('No skills yet', 'Add the skills you want referrers to notice.', 'Add skills', () => openEditor('skills'))
+                renderEmptySection('No skills yet', '', 'Add skills', () => openEditor('skills'))
               ),
               { onEdit: () => openEditor('skills'), addLabel: 'Add skills', editLabel: 'Edit skills' }
             )}
@@ -1153,11 +1152,7 @@ const ProfilePage: React.FC = () => {
                           ))}
                         </ul>
                       )}
-                      {locationError ? (
-                        <p className="text-red-600 text-xs mt-1">{locationError}</p>
-                      ) : (
-                        <p className="text-slate-500 text-[11.5px] mt-1">Pick a place from the list.</p>
-                      )}
+                      {locationError && <p className="text-red-600 text-xs mt-1">{locationError}</p>}
                     </div>
                     <label className="block">
                       <span className={labelClass}>Country</span>
@@ -1279,10 +1274,7 @@ const ProfilePage: React.FC = () => {
                             </label>
                           </div>
                           <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 cursor-pointer">
-                            <span className="flex flex-col gap-0.5">
-                              <span className="text-[13.5px] font-bold text-ink">I currently work here</span>
-                              <span className="text-xs text-slate-500">This becomes the role shown under your name</span>
-                            </span>
+                            <span className="text-[13.5px] font-bold text-ink">I currently work here</span>
                             <input
                               type="checkbox"
                               role="switch"
@@ -1396,7 +1388,6 @@ const ProfilePage: React.FC = () => {
                       Add
                     </button>
                   </div>
-                  <p className="text-[11.5px] text-slate-500">Press Enter to add. Each skill adds 7 to your profile strength, up to 20.</p>
                 </div>
               )}
 
@@ -1441,7 +1432,7 @@ const ProfilePage: React.FC = () => {
               </div>
             )}
             <div className="flex items-center gap-2.5 px-4 md:px-6 pt-3 pb-5 md:py-3.5 border-t border-slate-200 bg-parchment">
-              <span className="hidden sm:block flex-1 text-xs text-slate-500">{isSaving ? 'Saving changes…' : 'Changes save together when you press Save.'}</span>
+              <span className="hidden sm:block flex-1 text-xs text-slate-500">{isSaving ? 'Saving changes…' : ''}</span>
               <button
                 type="button"
                 onClick={handleCancel}

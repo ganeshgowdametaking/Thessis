@@ -131,10 +131,7 @@ const HeroProductPreview: React.FC = () => (
                   Posted by <strong className="text-ink">Maya Chen</strong> · can refer you
                 </span>
               </div>
-              <p className="max-w-[360px] text-[13px] leading-relaxed text-slate-600">
-                Design end-to-end flows for our hiring product, working closely with engineering and research.
-              </p>
-              <span className="mt-auto flex h-10 items-center self-start rounded-[11px] bg-primary px-[18px] text-[13px] font-bold text-white">
+              <span className="flex h-10 items-center self-start rounded-[11px] bg-primary px-[18px] text-[13px] font-bold text-white">
                 Apply now
               </span>
             </div>

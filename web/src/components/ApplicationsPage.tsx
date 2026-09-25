@@ -4,7 +4,7 @@ import LoadingSpinner from './LoadingSpinner';
 import { applicationService } from '../services/applicationService';
 import { useMediaQuery } from 'react-responsive';
 import { useAuthContext } from '../contexts/AuthContext';
-import { AlertCircle, ArrowLeft, ArrowUpDown, ArrowUpRight, Check, Clock, Download, FileText, Hourglass, Inbox, Link2, Loader2, Mail, MapPin, MessageSquare, Phone, Search, Sparkles, Trash2, Users, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowUpDown, Check, Clock, Download, FileText, Hourglass, Inbox, Link2, Loader2, Mail, MapPin, MessageSquare, Phone, Search, Sparkles, Trash2, Users, X } from 'lucide-react';
 
 interface Application {
   id: string;
@@ -800,7 +800,7 @@ export default function ApplicationsPage({
       ? `${firstName} will get an email saying you referred them.`
       : isReferred
         ? `You've referred ${firstName}.`
-        : `${firstName} will get an email saying they've been shortlisted.`;
+        : '';
 
     return (
       <div className="flex flex-col gap-2">
@@ -824,7 +824,7 @@ export default function ApplicationsPage({
           <Check className="h-4 w-4" strokeWidth={2.5} />
           {label}
         </button>
-        <p className="text-[11.5px] text-slate-500">{helper}</p>
+        {helper && <p className="text-[11.5px] text-slate-500">{helper}</p>}
       </div>
     );
   };
@@ -895,7 +895,6 @@ export default function ApplicationsPage({
         ) : app.ai_rationale ? (
           <p className="rounded-xl bg-parchment px-3.5 py-3 text-[12.5px] leading-relaxed text-slate-600">{app.ai_rationale}</p>
         ) : null}
-        <p className="text-[11.5px] text-slate-500">Scores are a guide — always read the resume before you decide.</p>
       </div>
     );
   };
@@ -952,7 +951,15 @@ export default function ApplicationsPage({
         <ApplicantAvatar name={app.user_profile?.full_name || 'Unknown'} url={app.user_profile?.avatar_url} size={avatarSize} />
         <div className="flex-1 min-w-0 flex flex-col gap-1">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h2 className="font-display text-lg md:text-xl font-extrabold text-ink">{app.user_profile?.full_name || 'Unknown applicant'}</h2>
+            <h2 className="font-display text-lg md:text-xl font-extrabold text-ink">
+              {app.user_id ? (
+                <button type="button" className="text-left hover:text-primary hover:underline" onClick={() => app.user_id && onViewProfile(app.user_id)}>
+                  {app.user_profile?.full_name || 'Unknown applicant'}
+                </button>
+              ) : (
+                app.user_profile?.full_name || 'Unknown applicant'
+              )}
+            </h2>
             {renderStatusBadge(app.status)}
           </div>
           {role && <p className="text-[13.5px] text-slate-600">{role}</p>}
@@ -966,16 +973,6 @@ export default function ApplicationsPage({
             )}
           </div>
         </div>
-        {app.user_id && (
-          <button
-            type="button"
-            className="hidden sm:flex shrink-0 items-center gap-1 text-[12.5px] font-bold text-primary hover:underline"
-            onClick={() => app.user_id && onViewProfile(app.user_id)}
-          >
-            View full profile
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </button>
-        )}
       </div>
     );
   };
@@ -987,20 +984,35 @@ export default function ApplicationsPage({
 
     return (
       <div key={application.id} className="flex flex-col gap-2">
-        <button
-          type="button"
-          aria-current={isSelected ? 'true' : undefined}
-          onClick={() => setSelectedApplication(application)}
-          className={`w-full text-left rounded-2xl p-3.5 md:p-4 border transition-colors ${isSelected
+        {/* The whole card selects the applicant; the name on top of it opens their profile. */}
+        <div
+          className={`relative rounded-2xl p-3.5 md:p-4 border transition-colors ${isSelected
             ? 'bg-ink-wash border-primary ring-1 ring-primary'
             : 'bg-white border-slate-200 hover:border-slate-300'
             }`}
         >
-          <div className="flex items-start gap-3">
+          <button
+            type="button"
+            aria-current={isSelected ? 'true' : undefined}
+            aria-label={`Open ${application.user_profile?.full_name || 'applicant'}'s application`}
+            onClick={() => setSelectedApplication(application)}
+            className="absolute inset-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          />
+          <div className="relative pointer-events-none flex items-start gap-3">
             <ApplicantAvatar name={application.user_profile?.full_name || 'Unknown'} url={application.user_profile?.avatar_url} size={42} />
             <div className="flex-1 min-w-0 flex flex-col gap-0.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[14.5px] font-bold text-ink truncate">{application.user_profile?.full_name || 'Unknown applicant'}</span>
+                {application.user_id ? (
+                  <button
+                    type="button"
+                    className="pointer-events-auto min-w-0 truncate text-left text-[14.5px] font-bold text-ink hover:text-primary hover:underline"
+                    onClick={() => application.user_id && onViewProfile(application.user_id)}
+                  >
+                    {application.user_profile?.full_name || 'Unknown applicant'}
+                  </button>
+                ) : (
+                  <span className="text-[14.5px] font-bold text-ink truncate">{application.user_profile?.full_name || 'Unknown applicant'}</span>
+                )}
                 {renderStatusBadge(application.status)}
               </div>
               {role && <span className="text-[12.5px] text-slate-600 truncate">{role}</span>}
@@ -1016,12 +1028,12 @@ export default function ApplicationsPage({
             </div>
           </div>
           {assigned && application.assignment_expires_at && (
-            <div className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-amber-tint px-2.5 py-1.5 text-xs font-bold text-amber-ink">
+            <div className="relative pointer-events-none mt-2.5 flex items-center gap-1.5 rounded-lg bg-amber-tint px-2.5 py-1.5 text-xs font-bold text-amber-ink">
               <Hourglass className="h-3.5 w-3.5 shrink-0" />
               Assigned to you · respond by {formatShortDate(application.assignment_expires_at)}
             </div>
           )}
-        </button>
+        </div>
         {assigned && !isDesktop && (
           <div className="flex gap-2">
             <button
@@ -1088,7 +1100,6 @@ export default function ApplicationsPage({
         </button>
 
         <header className="flex flex-col gap-1">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Applicants</span>
           <h1 className="font-display text-2xl md:text-[28px] font-extrabold text-ink">{referralTitle}</h1>
           <p className="text-sm text-slate-500">
             <strong className="text-ink">{applications.length} {applications.length === 1 ? 'person' : 'people'}</strong> {applications.length === 1 ? 'has' : 'have'} applied
@@ -1324,16 +1335,6 @@ export default function ApplicationsPage({
                   Message
                 </button>
               </div>
-              {selected.user_id && (
-                <button
-                  type="button"
-                  className="sm:hidden self-start flex items-center gap-1 text-[12.5px] font-bold text-primary"
-                  onClick={() => selected.user_id && onViewProfile(selected.user_id)}
-                >
-                  View full profile
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </button>
-              )}
               {renderMatch(selected, 68)}
               {renderExtras(selected)}
               <div className="self-start">{renderRemoveButton(selected)}</div>

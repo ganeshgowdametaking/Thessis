@@ -6,7 +6,6 @@ import GoogleSignInButton from './GoogleSignInButton'
 import LinkedInSignInButton from './LinkedInSignInButton'
 import { supabase } from '../lib/supabase'
 import { getUTMForSignup, clearUTMData } from '../utils/utmHandler'
-import { OPEN_ROLE_COMPANIES, REFERRER_RESPONSE_LINE } from '../utils/homeSections'
 
 type AuthMode = 'signin' | 'signup' | 'verify-email' | 'forgot-password' | 'verify-reset-otp' | 'update-password'
 
@@ -17,8 +16,6 @@ interface AuthPageProps {
 const inputClass = 'w-full rounded-xl border border-slate-300 py-3 px-4 text-sm focus:border-primary focus:outline-none'
 const labelClass = 'block text-[12.5px] font-semibold text-slate-600 mb-1.5'
 
-const REMEMBERED_EMAIL_KEY = 'thessis_remembered_email'
-
 const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
   const navigate = useNavigate()
   const { signIn, signUp, verifyOTP, resendOTP, resetPassword } = useAuthContext()
@@ -28,9 +25,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
   const [success, setSuccess] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(() => Boolean(localStorage.getItem(REMEMBERED_EMAIL_KEY)))
   const [formData, setFormData] = useState({
-    email: localStorage.getItem(REMEMBERED_EMAIL_KEY) || '',
+    email: '',
     password: '',
     confirmPassword: '',
     fullName: '',
@@ -52,11 +48,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
       if (mode === 'signin') {
         const { error } = await signIn(formData.email, formData.password)
         if (error) throw error
-        if (rememberMe) {
-          localStorage.setItem(REMEMBERED_EMAIL_KEY, formData.email)
-        } else {
-          localStorage.removeItem(REMEMBERED_EMAIL_KEY)
-        }
         navigate('/jobs')
       } else if (mode === 'signup') {
         if (formData.password.length < 8) {
@@ -153,9 +144,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
               <h1 className="font-display font-extrabold text-ink text-[22px]">
                 {mode === 'signin' ? 'Welcome back' : 'Create your account'}
               </h1>
-              <p className="text-[13px] text-slate-500 mt-1">
-                {mode === 'signin' ? 'Log in to keep track of your applications' : 'Free — no credit card needed'}
-              </p>
             </div>
           )}
           {mode === 'verify-email' && <div className="text-center mb-6"><h1 className="text-2xl font-bold text-ink">Verify Email</h1><p className="text-sm text-slate-500 mt-1">Enter the code sent to {formData.email}</p></div>}
@@ -249,26 +237,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
               </form>
 
               {mode === 'signin' && (
-                <div className="flex items-center justify-between mt-4">
-                  <label className="flex items-center gap-1.5 text-[12.5px] text-slate-600">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="h-3.5 w-3.5 accent-primary"
-                    />
-                    Remember me
-                  </label>
+                <div className="flex items-center justify-end mt-4">
                   <button type="button" onClick={() => setMode('forgot-password')} className="text-[12.5px] font-bold text-primary hover:underline">
                     Forgot Password?
                   </button>
                 </div>
-              )}
-
-              {mode === 'signup' && (
-                <p className="mt-5 rounded-xl bg-ink-wash px-3.5 py-3 text-[12.5px] leading-snug text-primary-hover lg:hidden">
-                  {REFERRER_RESPONSE_LINE}
-                </p>
               )}
 
               <p className="text-center text-sm text-slate-500 mt-6">
@@ -289,29 +262,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
         </div>
       </div>
 
-      {/* Right: brand panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-ink flex-col justify-between p-16 text-white">
+      {/* Right: brand panel. The photo is a CSS background so phones (panel hidden) never download it; bg-ink shows while it loads. */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col bg-ink bg-[url('/images/auth-panel.webp')] bg-cover bg-center p-16 text-white">
         <img src="/brand/thessis-logo-white.svg" alt="Thessis" className="h-8 w-auto self-start" />
 
-        <div className="flex flex-col gap-5 max-w-md">
-          <span className="text-[13px] font-bold uppercase tracking-wider text-indigo-200">
-            {mode === 'signup' ? 'Free for job seekers' : 'Built for job seekers'}
-          </span>
+        <div className="my-auto flex flex-col gap-5 max-w-md">
           <h2 className="font-display font-extrabold text-[34px] leading-tight">
             {mode === 'signup'
               ? 'Skip the resume black hole. Get referred instead.'
               : 'Every referral starts with someone who already believes in you.'}
           </h2>
-          <p className="text-[15px] leading-relaxed text-slate-300">
-            {mode === 'signup'
-              ? REFERRER_RESPONSE_LINE
-              : 'Create a free profile and get connected to employees who can vouch for you.'}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-1.5 border-t border-white/10 pt-6">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Open roles at</span>
-          <span className="font-display font-extrabold text-lg">{OPEN_ROLE_COMPANIES.join(' · ')}</span>
         </div>
       </div>
     </div>

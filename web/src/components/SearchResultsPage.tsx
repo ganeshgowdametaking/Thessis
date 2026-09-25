@@ -432,18 +432,8 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
           </div>
         </form>
 
-        <button
-          type="button"
-          onClick={onBack}
-          className="hidden md:flex self-start items-center gap-1.5 text-[13px] font-bold text-slate-600 hover:text-ink transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </button>
-
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3 md:gap-4">
           <header className="flex flex-col gap-1 min-w-0">
-            <span className="hidden md:block text-xs font-bold uppercase tracking-wider text-slate-500">People</span>
             <h1 className="font-display text-xl md:text-[28px] font-extrabold text-ink break-words">Results for “{searchQuery}”</h1>
             <p className="text-[13px] md:text-sm text-slate-500">
               {loading ? (
@@ -528,13 +518,6 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
             <div className="grid gap-3 md:gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {visiblePeople.map(renderPerson)}
             </div>
-            {/* The search returns at most 20 profiles (one may be your own, which is hidden). */}
-            {people.length >= 19 && (
-              <div className="flex items-center gap-2.5 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-3 text-[12.5px] text-slate-500">
-                <Search className="h-4 w-4 shrink-0 text-primary" />
-                Showing up to 20 people. For fewer, closer matches, try a full name, a job title or a company.
-              </div>
-            )}
           </>
         )}
       </main>

@@ -564,11 +564,11 @@ const NotificationsPage: React.FC = () => {
         <div className="flex items-end justify-between gap-3">
           <div className="flex flex-col gap-1 min-w-0">
             <h1 className="font-display text-2xl md:text-[30px] font-extrabold text-ink">Notifications</h1>
-            <p className="text-[12.5px] md:text-sm text-slate-500">
-              {unreadCount > 0
-                ? <><strong className="text-ink">{unreadCount} new</strong> since your last visit</>
-                : "You're all caught up"}
-            </p>
+            {unreadCount > 0 && (
+              <p className="text-[12.5px] md:text-sm text-slate-500">
+                <strong className="text-ink">{unreadCount} new</strong> since your last visit
+              </p>
+            )}
           </div>
           {unreadCount > 0 && (
             <button
@@ -649,13 +649,13 @@ const NotificationsPage: React.FC = () => {
             <p className="font-display text-lg font-extrabold text-ink">
               {filter === 'all' ? "You're all caught up" : filter === 'unread' ? 'No unread notifications' : 'No referral or connection updates yet'}
             </p>
-            <p className="text-[13.5px] leading-relaxed text-slate-500 max-w-sm">
-              {filter === 'all'
-                ? "We'll let you know when someone applies to your referrals, wants to connect or refers you."
-                : filter === 'unread'
-                  ? 'Everything here has been seen.'
+            {filter !== 'unread' && (
+              <p className="text-[13.5px] leading-relaxed text-slate-500 max-w-sm">
+                {filter === 'all'
+                  ? "We'll let you know when someone applies to your referrals, wants to connect or refers you."
                   : 'Applications, referrals and connection requests will show up here.'}
-            </p>
+              </p>
+            )}
             {filter !== 'all' && (
               <button type="button" onClick={() => setFilter('all')} className="mt-1 text-[13px] font-bold text-primary hover:underline">
                 Show all

@@ -7,8 +7,14 @@ interface HomeCtaProps {
   onJoinNow?: () => void;
 }
 
-const SectionHeading: React.FC<{ title: string }> = ({ title }) => (
-  <h2 className="text-center font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink sm:text-[42px]">{title}</h2>
+const SectionHeading: React.FC<{ title: string; compact?: boolean }> = ({ title, compact = false }) => (
+  <h2
+    className={`text-center font-display font-extrabold tracking-[-0.02em] text-ink ${
+      compact ? 'text-[24px] sm:text-[36px]' : 'text-[28px] sm:text-[42px]'
+    }`}
+  >
+    {title}
+  </h2>
 );
 
 // ---------- Company strip ----------
@@ -39,7 +45,7 @@ export const HomeCompanyStrip: React.FC = () => {
   const half = [...REFERRER_COMPANIES, ...REFERRER_COMPANIES];
   return (
     <section aria-label="Companies where you can get referred" className="bg-parchment py-9 sm:py-11">
-      <p className="px-4 text-center text-[26px] font-semibold leading-tight text-slate-500">Get referred by trusted employees at</p>
+      <p className="px-4 text-center text-[26px] font-semibold leading-tight text-ink">Get referred by trusted employees at</p>
       <p className="sr-only">{REFERRER_COMPANIES.join(', ')}</p>
 
       <div
@@ -89,17 +95,17 @@ const StepRow: React.FC<{ number: number; title: string; highlighted: boolean }>
   <li className="flex items-center">
     <span
       aria-hidden="true"
-      className={`flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-2xl shadow-[0_6px_18px_rgba(20,20,43,0.06)] sm:h-20 sm:w-20 ${
+      className={`flex h-[65px] w-[65px] shrink-0 items-center justify-center rounded-[14px] shadow-[0_6px_18px_rgba(20,20,43,0.06)] sm:h-[72px] sm:w-[72px] ${
         highlighted ? 'bg-primary' : 'border border-hairline bg-white'
       }`}
     >
-      <span className={`flex h-11 w-11 items-center justify-center rounded-full font-display text-base font-extrabold text-ink sm:h-12 sm:w-12 sm:text-lg ${highlighted ? 'bg-white' : 'bg-parchment-sunken'}`}>
+      <span className={`flex h-10 w-10 items-center justify-center rounded-full font-display text-sm font-extrabold text-ink sm:h-[43px] sm:w-[43px] sm:text-base ${highlighted ? 'bg-white' : 'bg-parchment-sunken'}`}>
         {String(number).padStart(2, '0')}
       </span>
     </span>
-    <span aria-hidden="true" className={`w-5 shrink-0 border-t-2 border-dashed sm:w-8 ${highlighted ? 'border-primary' : 'border-slate-200'}`} />
+    <span aria-hidden="true" className={`w-[18px] shrink-0 border-t-2 border-dashed sm:w-[29px] ${highlighted ? 'border-primary' : 'border-slate-200'}`} />
     <span
-      className={`flex min-h-[72px] flex-1 items-center rounded-2xl px-5 py-4 font-display text-[17px] font-extrabold shadow-[0_6px_18px_rgba(20,20,43,0.06)] sm:min-h-20 sm:px-6 sm:text-lg ${
+      className={`flex min-h-[65px] flex-1 items-center rounded-[14px] px-[18px] py-3.5 font-display text-[15px] font-extrabold shadow-[0_6px_18px_rgba(20,20,43,0.06)] sm:min-h-[72px] sm:px-[22px] sm:text-base ${
         highlighted ? 'bg-primary text-white' : 'border border-hairline bg-white text-ink'
       }`}
     >
@@ -113,7 +119,7 @@ export const HomeHowItWorks: React.FC = () => {
 
   return (
     <section id="how-it-works" className="scroll-mt-24 bg-parchment px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-      <SectionHeading title="Two sides of every referral" />
+      <SectionHeading title="Two sides of every referral" compact />
 
       {/* Phones show one side at a time */}
       <div className="mx-auto mt-6 flex max-w-sm rounded-full bg-parchment-sunken p-1 md:hidden">
@@ -132,16 +138,16 @@ export const HomeHowItWorks: React.FC = () => {
         ))}
       </div>
 
-      <div className="mx-auto mt-6 grid max-w-[1120px] gap-12 md:mt-12 md:grid-cols-2 md:gap-10">
+      <div className="mx-auto mt-6 grid max-w-[1008px] gap-12 md:mt-12 md:grid-cols-2 md:gap-9">
         {(Object.keys(TRACKS) as Track[]).map((key) => {
           const item = TRACKS[key];
           return (
-            <div key={key} className={`${track === key ? 'flex' : 'hidden md:flex'} flex-col gap-6`}>
-              <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-bold uppercase tracking-[0.06em] text-primary">{item.tag}</span>
-                <h3 className="font-display text-xl font-extrabold text-ink sm:text-2xl">{item.title}</h3>
+            <div key={key} className={`${track === key ? 'flex' : 'hidden md:flex'} flex-col gap-[22px]`}>
+              <div className="flex flex-col gap-[5px]">
+                <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-primary">{item.tag}</span>
+                <h3 className="font-display text-lg font-extrabold text-ink sm:text-[22px]">{item.title}</h3>
               </div>
-              <ol className="flex flex-col gap-4">
+              <ol className="flex flex-col gap-3.5">
                 {item.steps.map((step, index) => (
                   <StepRow key={step} number={index + 1} title={step} highlighted={index === item.steps.length - 1} />
                 ))}

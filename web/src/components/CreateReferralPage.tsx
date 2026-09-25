@@ -522,15 +522,12 @@ const CreateReferralPage: React.FC = () => {
   const labelClass = 'block text-[12.5px] font-semibold text-slate-600 mb-1.5';
   const stepHidden = (step: number) => (isMobile && mobileFormStep !== step ? 'hidden' : '');
 
-  const sectionHeading = (step: number, title: string, subtitle: string) => (
+  const sectionHeading = (step: number, title: string) => (
     <div className="hidden md:flex items-center gap-3">
       <span className="size-7 shrink-0 rounded-full bg-ink-wash text-primary-hover font-display font-extrabold text-[12.5px] flex items-center justify-center">
         {step}
       </span>
-      <div>
-        <h3 className="font-display text-[15px] font-bold text-ink">{title}</h3>
-        <p className="text-xs text-slate-500">{subtitle}</p>
-      </div>
+      <h3 className="font-display text-[15px] font-bold text-ink">{title}</h3>
     </div>
   );
 
@@ -565,7 +562,6 @@ const CreateReferralPage: React.FC = () => {
       <main className="flex-grow w-full px-4 md:px-10 lg:px-12 py-6 md:py-10 max-w-6xl mx-auto">
         <div className="mb-5 md:mb-8">
           <h1 className="font-display text-2xl md:text-[28px] font-extrabold text-ink">Post a referral</h1>
-          <p className="text-sm text-slate-500 mt-1">Share a role at your company that you can refer people into.</p>
         </div>
 
         {/* Stats */}
@@ -585,14 +581,11 @@ const CreateReferralPage: React.FC = () => {
           <div className="flex flex-col gap-5 min-w-0">
             {/* Auto-fill */}
             <div className="bg-white border border-indigo-200 rounded-2xl p-4 md:p-6">
-              <div className="flex items-start gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-4">
                 <span className="size-10 shrink-0 rounded-xl bg-primary text-white flex items-center justify-center">
                   <Sparkles className="h-[18px] w-[18px]" />
                 </span>
-                <div>
-                  <h2 className="font-display text-[15.5px] font-bold text-ink">Fill it in automatically</h2>
-                  <p className="text-[12.5px] text-slate-500 mt-0.5">Upload the job description or paste a link, and we'll fill in the form for you to check.</p>
-                </div>
+                <h2 className="font-display text-[15.5px] font-bold text-ink">Fill it in automatically</h2>
               </div>
 
               {aiLoading ? (
@@ -664,7 +657,6 @@ const CreateReferralPage: React.FC = () => {
             <div className="bg-white border border-slate-200 rounded-2xl">
               <div className="px-4 py-4 md:px-6 md:py-5 border-b border-slate-100">
                 <h2 className="font-display text-[17px] font-extrabold text-ink">Role details</h2>
-                <p className="text-[12.5px] text-slate-500 mt-0.5">Check everything before you post — people will see this on the Jobs page.</p>
               </div>
 
               <form onSubmit={handleSubmit}>
@@ -714,7 +706,7 @@ const CreateReferralPage: React.FC = () => {
 
                   {/* 1. Basics */}
                   <section className={`space-y-4 ${stepHidden(1)}`}>
-                    {sectionHeading(1, 'Basics', 'What the role is and where')}
+                    {sectionHeading(1, 'Basics')}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <label>
                         <span className={labelClass}>Job title</span>
@@ -779,7 +771,7 @@ const CreateReferralPage: React.FC = () => {
 
                   {/* 2. Role */}
                   <section className={`space-y-4 md:border-t md:border-slate-100 md:pt-6 ${stepHidden(2)}`}>
-                    {sectionHeading(2, 'Role', 'Type, level and what the job involves')}
+                    {sectionHeading(2, 'Role')}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <label>
                         <span className={labelClass}>Job type</span>
@@ -840,7 +832,7 @@ const CreateReferralPage: React.FC = () => {
 
                   {/* 3. Skills & publish */}
                   <section className={`space-y-4 md:border-t md:border-slate-100 md:pt-6 ${stepHidden(3)}`}>
-                    {sectionHeading(3, 'Skills & publish', 'What candidates should bring')}
+                    {sectionHeading(3, 'Skills & publish')}
                     <div>
                       <span className={labelClass}>Skills</span>
                       <div className="flex items-center gap-2">
@@ -887,8 +879,7 @@ const CreateReferralPage: React.FC = () => {
                   </section>
                 </div>
 
-                <div className={`${isMobile && mobileFormStep !== 3 ? 'hidden' : 'flex'} flex-col-reverse md:flex-row md:items-center justify-between gap-3 px-4 py-4 md:px-6 border-t border-slate-100 bg-parchment rounded-b-2xl`}>
-                  <p className="text-xs text-slate-500 text-center md:text-left">If this role is already on Thessis, you'll be added as a referrer instead.</p>
+                <div className={`${isMobile && mobileFormStep !== 3 ? 'hidden' : 'flex'} flex-col md:flex-row md:justify-end px-4 py-4 md:px-6 border-t border-slate-100 bg-parchment rounded-b-2xl`}>
                   <button
                     className="h-12 md:h-11 px-7 shrink-0 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     type="submit"
@@ -901,8 +892,8 @@ const CreateReferralPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Your referrals */}
-          <aside className="space-y-3.5">
+          {/* Your referrals: all of them. From lg the column stays in view and the list scrolls inside it. */}
+          <aside className="flex flex-col gap-3.5 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7.5rem)]">
             <div className="flex items-center justify-between px-0.5">
               <h2 className="font-display text-[17px] font-extrabold text-ink">Your referrals</h2>
               <button
@@ -925,8 +916,8 @@ const CreateReferralPage: React.FC = () => {
                 <p className="text-xs text-slate-500 mt-1">Roles you post will show up here.</p>
               </div>
             ) : (
-              <div className="space-y-2.5">
-                {myReferrals.slice(0, isMobile ? 4 : 3).map((job) => (
+              <div className="space-y-2.5 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+                {myReferrals.map((job) => (
                   <div
                     key={job.id}
                     className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl p-4 cursor-pointer transition-colors"
