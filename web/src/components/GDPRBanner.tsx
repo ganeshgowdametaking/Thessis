@@ -48,27 +48,38 @@ const GDPRBanner: React.FC = () => {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 w-full bg-olive text-white px-4 py-3 z-50 shadow-lg">
-      <div className="mx-auto max-w-7xl flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <span className="text-sm leading-snug md:leading-normal">
-          We use cookies and similar technologies to enhance your experience. See our{' '}
-          <a href="/privacy-policy" className="underline hover:text-primary transition-colors">Privacy Policy</a>
-          {' '}and{' '}
-          <a href="/cookie-policy" className="underline hover:text-primary transition-colors">Cookie Policy</a>
-          {' '}for details.
+    <div className="fixed inset-x-2 bottom-2 z-50 rounded-2xl bg-olive px-3 py-2.5 text-white shadow-lg md:inset-x-0 md:bottom-0 md:rounded-none md:px-4 md:py-3">
+      <div className="mx-auto flex max-w-7xl items-center gap-3 md:justify-between">
+        <span className="flex-1 text-xs leading-snug md:text-sm md:leading-normal">
+          {/* Phones: one compact line so the banner doesn't cover the first screen */}
+          <span className="md:hidden">
+            We use cookies.{' '}
+            <a href="/cookie-policy" className="underline hover:text-primary transition-colors">Details</a>
+          </span>
+          <span className="hidden md:inline">
+            We use cookies and similar technologies to enhance your experience. See our{' '}
+            <a href="/privacy-policy" className="underline hover:text-primary transition-colors">Privacy Policy</a>
+            {' '}and{' '}
+            <a href="/cookie-policy" className="underline hover:text-primary transition-colors">Cookie Policy</a>
+            {' '}for details.
+          </span>
         </span>
-        <div className="flex gap-2 w-full md:w-auto shrink-0">
+        <div className="flex shrink-0 gap-2">
           <button
             onClick={() => handleChoice(false)}
-            className="flex-1 md:flex-none bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-lg font-bold transition-all active:scale-[0.98]"
+            aria-label="Reject non-essential cookies"
+            className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-white/20 active:scale-[0.98] md:px-5 md:py-2.5 md:text-base"
           >
-            Reject Non-Essential
+            <span className="md:hidden">Reject</span>
+            <span className="hidden md:inline">Reject Non-Essential</span>
           </button>
           <button
             onClick={() => handleChoice(true)}
-            className="flex-1 md:flex-none bg-primary hover:bg-primary-hover text-white px-6 py-2.5 rounded-lg font-bold transition-all active:scale-[0.98]"
+            aria-label="Accept all cookies"
+            className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-primary-hover active:scale-[0.98] md:px-6 md:py-2.5 md:text-base"
           >
-            Accept All
+            <span className="md:hidden">Accept</span>
+            <span className="hidden md:inline">Accept All</span>
           </button>
         </div>
       </div>

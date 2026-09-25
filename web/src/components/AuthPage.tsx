@@ -6,6 +6,7 @@ import GoogleSignInButton from './GoogleSignInButton'
 import LinkedInSignInButton from './LinkedInSignInButton'
 import { supabase } from '../lib/supabase'
 import { getUTMForSignup, clearUTMData } from '../utils/utmHandler'
+import { OPEN_ROLE_COMPANIES, REFERRER_RESPONSE_LINE } from '../utils/homeSections'
 
 type AuthMode = 'signin' | 'signup' | 'verify-email' | 'forgot-password' | 'verify-reset-otp' | 'update-password'
 
@@ -58,9 +59,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
         }
         navigate('/jobs')
       } else if (mode === 'signup') {
-        if (formData.password !== formData.confirmPassword) {
-          throw new Error('Passwords do not match')
-        }
         if (formData.password.length < 8) {
           throw new Error('Password must be at least 8 characters long')
         }
@@ -156,7 +154,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
                 {mode === 'signin' ? 'Welcome back' : 'Create your account'}
               </h1>
               <p className="text-[13px] text-slate-500 mt-1">
-                {mode === 'signin' ? 'Log in to keep track of your applications' : 'Takes about a minute — no credit card needed'}
+                {mode === 'signin' ? 'Log in to keep track of your applications' : 'Free — no credit card needed'}
               </p>
             </div>
           )}
@@ -239,21 +237,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
                 <div>
                   <label className={labelClass}>Password</label>
                   <div className="relative">
-                    <input className={inputClass} placeholder="Enter your password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => handleInputChange('password', e.target.value)} required minLength={8} />
+                    <input className={inputClass} placeholder={mode === 'signup' ? 'Password (8+ characters)' : 'Enter your password'} type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => handleInputChange('password', e.target.value)} required minLength={8} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-slate-400">{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button>
                   </div>
                 </div>
-                {mode === 'signup' && (
-                  <div>
-                    <label className={labelClass}>Confirm Password</label>
-                    <div className="relative">
-                      <input className={inputClass} placeholder="Confirm Password" type={showConfirmPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={(e) => handleInputChange('confirmPassword', e.target.value)} required />
-                      <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-3 text-slate-400">{showConfirmPassword ? <EyeOff size={20} /> : <Lock size={20} />}</button>
-                    </div>
-                  </div>
-                )}
 
-                <button type="submit" disabled={loading || (mode === 'signup' && (formData.password !== formData.confirmPassword || formData.password.length < 8))} className="w-full rounded-xl bg-primary py-3.5 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                <button type="submit" disabled={loading || (mode === 'signup' && formData.password.length < 8)} className="w-full rounded-xl bg-primary py-3.5 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-50 transition-all flex items-center justify-center gap-2">
                   {loading && <Loader className="animate-spin" size={18} />}
                   {mode === 'signin' ? 'Sign In' : 'Create Account'}
                 </button>
@@ -274,6 +263,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
                     Forgot Password?
                   </button>
                 </div>
+              )}
+
+              {mode === 'signup' && (
+                <p className="mt-5 rounded-xl bg-ink-wash px-3.5 py-3 text-[12.5px] leading-snug text-primary-hover lg:hidden">
+                  {REFERRER_RESPONSE_LINE}
+                </p>
               )}
 
               <p className="text-center text-sm text-slate-500 mt-6">
@@ -309,21 +304,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
           </h2>
           <p className="text-[15px] leading-relaxed text-slate-300">
             {mode === 'signup'
-              ? 'Create your profile, get scored against real roles in seconds, and connect with employees who can vouch for you.'
-              : 'Create a free profile, get scored against real roles, and get connected to employees who can vouch for you.'}
+              ? REFERRER_RESPONSE_LINE
+              : 'Create a free profile and get connected to employees who can vouch for you.'}
           </p>
         </div>
 
-        <div className="flex gap-7">
-          <div className="flex flex-col gap-0.5">
-            <span className="font-display font-extrabold text-[22px]">500+</span>
-            <span className="text-xs text-slate-400">warm intros made</span>
-          </div>
-          <div className="w-px bg-slate-700" />
-          <div className="flex flex-col gap-0.5">
-            <span className="font-display font-extrabold text-[22px]">4.9/5</span>
-            <span className="text-xs text-slate-400">from job seekers</span>
-          </div>
+        <div className="flex flex-col gap-1.5 border-t border-white/10 pt-6">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Open roles at</span>
+          <span className="font-display font-extrabold text-lg">{OPEN_ROLE_COMPANIES.join(' · ')}</span>
         </div>
       </div>
     </div>

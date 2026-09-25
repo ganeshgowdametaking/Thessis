@@ -100,7 +100,6 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
                 className="h-8 w-auto"
               />
             </div>
-            <p className="text-slate-500 text-sm">Find jobs through people, not portals.</p>
             <p className="text-slate-400 text-sm">© 2026 Thessis. All rights reserved.</p>
           </div>
 

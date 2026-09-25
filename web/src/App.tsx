@@ -7,7 +7,7 @@ import { useMediaQuery } from 'react-responsive';
 import LoadingSpinner from './components/LoadingSpinner';
 import GDPRBanner from './components/GDPRBanner';
 import Hero from './components/Hero';
-import { HomeHowItWorks, HomeFeatures, HomeWhyThessis, HomeFinalCta } from './components/HomeSections';
+import { HomeHowItWorks, HomeFeatures, HomeFinalCta, HomeStickyCta } from './components/HomeSections';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiePolicy from './components/CookiePolicy';
 import TermsOfService from './components/TermsOfService';
@@ -230,7 +230,6 @@ function DataRequestFormWrapper() {
 function HomePageWrapper({ onJoinNow }: { onJoinNow?: () => void }) {
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  const navigate = useNavigate();
   const isResetFlow = searchParams.get('reset') === 'true' || location.hash.includes('type=recovery');
 
   if (isResetFlow) {
@@ -240,10 +239,10 @@ function HomePageWrapper({ onJoinNow }: { onJoinNow?: () => void }) {
   return (
     <>
       <Hero onJoinNow={onJoinNow} />
-      <HomeHowItWorks onJoinNow={onJoinNow} />
+      <HomeHowItWorks />
       <HomeFeatures />
-      <HomeWhyThessis />
-      <HomeFinalCta onJoinNow={onJoinNow} onSignIn={() => navigate('/login')} />
+      <HomeFinalCta onJoinNow={onJoinNow} />
+      <HomeStickyCta onJoinNow={onJoinNow} />
     </>
   );
 }

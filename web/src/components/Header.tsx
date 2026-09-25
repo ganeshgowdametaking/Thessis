@@ -240,7 +240,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
               : 'bg-white/70 border-hairline/70'
           }`}
         >
-          <div className="flex h-16 items-center justify-between pl-4 pr-2.5 sm:pl-6">
+          <div className="flex h-16 items-center justify-between pl-3.5 pr-2 sm:pl-6 sm:pr-2.5">
             <Link to="/" className="block shrink-0">
               <img
                 src="/brand/thessis-logo-primary.svg"
@@ -270,8 +270,11 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
               </nav>
             )}
             <div className="flex items-center gap-1 sm:gap-1.5">
-              <button onClick={onSignIn} className="flex h-10 items-center justify-center rounded-full px-3 sm:px-4 text-sm font-bold text-ink hover:bg-black/5 transition-colors">
+              <button onClick={onSignIn} className="flex h-10 items-center justify-center rounded-full px-2.5 sm:px-4 text-sm font-bold text-ink hover:bg-black/5 transition-colors">
                 Log in
+              </button>
+              <button onClick={onJoinNow} className="md:hidden flex h-9 items-center justify-center rounded-full bg-primary px-3.5 text-[13px] font-bold text-white hover:bg-primary-hover transition-colors">
+                Sign up
               </button>
               <button onClick={onJoinNow} className="hidden md:flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-primary-hover transition-colors">
                 Sign up free
