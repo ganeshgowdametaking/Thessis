@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import Header from './components/Header';
+import MobileNavigation from './components/MobileNavigation';
 import { supabase } from './lib/supabase';
 import { useMediaQuery } from 'react-responsive';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -143,6 +144,7 @@ function UserProfilePageWrapper() {
 
 // Wrapper component for SearchResultsPage to handle React Router integration
 function SearchResultsPageWrapper() {
+  const isPhone = useMediaQuery({ maxWidth: 767 });
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -156,7 +158,7 @@ function SearchResultsPageWrapper() {
     navigate(`/user/${userId}`);
   };
 
-  if (!searchQuery) {
+  if (!searchQuery && !isPhone) {
     return <Navigate to="/jobs" />;
   }
 
@@ -368,6 +370,7 @@ function AppContent() {
   const isOnboardingPage = location.pathname === '/onboarding';
   // Legal pages keep the header on phones so visitors always have a way back.
   const isLegalPage = ['/privacy-policy', '/terms', '/cookie-policy'].includes(location.pathname);
+  const showMobileNavigation = isMobile && Boolean(user) && !isOnboardingPage && !isLegalPage;
 
   if (isAuthPage) {
     return (
@@ -385,15 +388,16 @@ function AppContent() {
 
   return (
     // <TrackingProvider>
-    <div className={`flex min-h-screen flex-col relative ${isHeroPage || isLegalPage ? 'bg-parchment' : 'bg-parchment-sunken'}`}>
+    <div className={`${showMobileNavigation ? 'mobile-app ' : ''}flex min-h-screen flex-col relative ${isHeroPage || isLegalPage ? 'bg-parchment' : 'bg-parchment-sunken'}`}>
       <GDPRBanner />
-      {!isOnboardingPage && (!isMobile || location.pathname === '/jobs' || isHeroPage || isLegalPage) && (
+      {!isOnboardingPage && (!isMobile || isHeroPage || isLegalPage) && (
         <Header
           onSignIn={() => navigate('/login')}
           onJoinNow={() => navigate('/signup')}
         />
       )}
-      <main className="flex-grow">
+      {showMobileNavigation && <MobileNavigation />}
+      <main className={showMobileNavigation ? "mobile-app-main flex-grow" : "flex-grow"}>
         <React.Suspense fallback={
           <div className="min-h-screen w-full flex items-center justify-center">
             <LoadingSpinner text="Loading page..." />
@@ -402,7 +406,7 @@ function AppContent() {
           {routes}
         </React.Suspense>
       </main>
-      {!(isMobile && location.pathname === '/messages') && (
+      {!showMobileNavigation && !(isMobile && location.pathname === '/messages') && (
         <Footer compact={isMobile} slim={Boolean(user)} />
       )}
 

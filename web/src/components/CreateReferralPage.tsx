@@ -28,6 +28,7 @@ const CreateReferralPage: React.FC = () => {
   const [loadingReferrals, setLoadingReferrals] = useState(true);
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [mobileFormStep, setMobileFormStep] = useState(1);
+  const [mobileImportMode, setMobileImportMode] = useState<'manual' | 'link' | 'pdf'>('manual');
 
   // Form state
   const [formData, setFormData] = useState<JobInsert>({
@@ -176,6 +177,16 @@ const CreateReferralPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isMobile) {
+      const form = e.currentTarget as HTMLFormElement;
+      const invalid = Array.from(form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input, textarea, select')).find(field => !field.checkValidity());
+      if (invalid) {
+        const step = Number(invalid.closest('[data-referral-step]')?.getAttribute('data-referral-step'));
+        if (step) setMobileFormStep(step);
+        requestAnimationFrame(() => { invalid.focus(); invalid.reportValidity(); });
+        return;
+      }
+    }
     if (!user?.id) return;
 
     setLoading(true);
@@ -518,6 +529,13 @@ const CreateReferralPage: React.FC = () => {
 
   const inputClass = 'w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none transition-colors';
   const labelClass = 'block text-[12.5px] font-semibold text-slate-600 mb-1.5';
+  const advanceMobileStep = (event: React.MouseEvent<HTMLButtonElement>, step: number) => {
+    const fields = event.currentTarget.closest('section')?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input, textarea, select');
+    const invalid = Array.from(fields || []).find(field => !field.checkValidity());
+    if (invalid) { invalid.reportValidity(); return; }
+    setMobileFormStep(step);
+  };
+
   const stepHidden = (step: number) => (isMobile && mobileFormStep !== step ? 'hidden' : '');
 
   const sectionHeading = (step: number, title: string) => (
@@ -556,14 +574,14 @@ const CreateReferralPage: React.FC = () => {
   ];
 
   return (
-    <div className="bg-parchment font-display text-slate-700 antialiased min-h-screen flex flex-col">
+    <div className="mobile-page referral-page bg-parchment font-display text-slate-700 antialiased min-h-screen flex flex-col">
       <main className="flex-grow w-full px-4 md:px-10 lg:px-12 py-6 md:py-10 max-w-6xl mx-auto">
-        <div className="mb-5 md:mb-8">
+        <div className="mobile-page-title mb-5 md:mb-8">
           <h1 className="font-display text-2xl md:text-[28px] font-extrabold text-ink">Post a referral</h1>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-2.5 md:gap-4 mb-6 md:mb-8">
+        <div className="referral-stats grid grid-cols-3 gap-2.5 md:gap-4 mb-6 md:mb-8">
           {stats.map((stat) => (
             <div key={stat.label} className="bg-white border border-slate-200 rounded-2xl p-3.5 md:p-5 flex items-center justify-between gap-2">
               <div className="min-w-0">
@@ -578,14 +596,19 @@ const CreateReferralPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 lg:gap-7 items-start">
           <div className="flex flex-col gap-5 min-w-0">
             {/* Auto-fill */}
-            <div className="bg-white border border-indigo-200 rounded-2xl p-4 md:p-6">
-              <div className="flex items-center gap-3 mb-4">
+            <div className="referral-import bg-white border border-indigo-200 rounded-2xl p-4 md:p-6" data-mode={mobileImportMode}>
+              <div className="referral-import-heading flex items-center gap-3 mb-4">
                 <span className="size-10 shrink-0 rounded-xl bg-primary text-white flex items-center justify-center">
                   <Sparkles className="h-[18px] w-[18px]" />
                 </span>
                 <h2 className="font-display text-[15.5px] font-bold text-ink">Fill it in automatically</h2>
               </div>
 
+              {isMobile && <div className="mobile-import-choices" aria-label="How to enter job details">
+                {([['manual', 'Enter manually'], ['link', 'Import link'], ['pdf', 'Upload PDF']] as const).map(([mode, label]) => (
+                  <button key={mode} type="button" aria-pressed={mobileImportMode === mode} onClick={() => setMobileImportMode(mode)}>{label}</button>
+                ))}
+              </div>}
               {aiLoading ? (
                 <div className="rounded-xl bg-ink-wash p-4 flex flex-col gap-2.5" role="status">
                   <div className="flex items-center gap-2.5">
@@ -598,14 +621,14 @@ const CreateReferralPage: React.FC = () => {
                   <span className="text-xs text-slate-600">This usually takes a few seconds. You can edit everything afterwards.</span>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr] gap-3 md:gap-4">
-                  <label className="flex items-center gap-3 rounded-xl border-[1.5px] border-dashed border-indigo-200 bg-ink-wash/60 hover:bg-ink-wash p-4 cursor-pointer transition-colors">
+                <div className="referral-import-options grid grid-cols-1 md:grid-cols-[1fr_1.2fr] gap-3 md:gap-4">
+                  <label className="referral-pdf flex items-center gap-3 rounded-xl border-[1.5px] border-dashed border-indigo-200 bg-ink-wash/60 hover:bg-ink-wash p-4 cursor-pointer transition-colors">
                     <span className="size-10 shrink-0 rounded-full bg-white text-primary flex items-center justify-center">
                       <Upload className="h-5 w-5" />
                     </span>
                     <span className="flex flex-col">
                       <span className="text-[13px] font-bold text-ink">Upload a job PDF</span>
-                      <span className="text-[11.5px] text-slate-500">Click to choose a file</span>
+                      <span className="text-[11.5px] text-slate-500">{isMobile ? 'Tap to choose a file' : 'Click to choose a file'}</span>
                     </span>
                     <input
                       type="file"
@@ -615,7 +638,7 @@ const CreateReferralPage: React.FC = () => {
                       disabled={aiLoading}
                     />
                   </label>
-                  <div className="flex flex-col gap-2 justify-center">
+                  <div className="referral-url flex flex-col gap-2 justify-center">
                     <div className="relative">
                       <Link2 className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <input
@@ -653,11 +676,11 @@ const CreateReferralPage: React.FC = () => {
 
             {/* Form */}
             <div className="bg-white border border-slate-200 rounded-2xl">
-              <div className="px-4 py-4 md:px-6 md:py-5 border-b border-slate-100">
+              <div className="referral-form-title px-4 py-4 md:px-6 md:py-5 border-b border-slate-100">
                 <h2 className="font-display text-[17px] font-extrabold text-ink">Role details</h2>
               </div>
 
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} noValidate={isMobile}>
                 <div className="p-4 md:p-6 space-y-6">
                   {submitMessage && (
                     <div
@@ -703,7 +726,7 @@ const CreateReferralPage: React.FC = () => {
                   )}
 
                   {/* 1. Basics */}
-                  <section className={`space-y-4 ${stepHidden(1)}`}>
+                  <section data-referral-step="1" className={`space-y-4 ${stepHidden(1)}`}>
                     {sectionHeading(1, 'Basics')}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <label>
@@ -759,8 +782,8 @@ const CreateReferralPage: React.FC = () => {
                     {isMobile && (
                       <button
                         type="button"
-                        onClick={() => setMobileFormStep(2)}
-                        className="w-full h-11 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover transition-colors"
+                        onClick={(event) => advanceMobileStep(event, 2)}
+                        className="referral-step-action w-full h-11 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover transition-colors"
                       >
                         Continue to role details
                       </button>
@@ -768,7 +791,7 @@ const CreateReferralPage: React.FC = () => {
                   </section>
 
                   {/* 2. Role */}
-                  <section className={`space-y-4 md:border-t md:border-slate-100 md:pt-6 ${stepHidden(2)}`}>
+                  <section data-referral-step="2" className={`space-y-4 md:border-t md:border-slate-100 md:pt-6 ${stepHidden(2)}`}>
                     {sectionHeading(2, 'Role')}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <label>
@@ -820,8 +843,8 @@ const CreateReferralPage: React.FC = () => {
                     {isMobile && (
                       <button
                         type="button"
-                        onClick={() => setMobileFormStep(3)}
-                        className="w-full h-11 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover transition-colors"
+                        onClick={(event) => advanceMobileStep(event, 3)}
+                        className="referral-step-action w-full h-11 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover transition-colors"
                       >
                         Continue to skills &amp; publish
                       </button>
@@ -829,8 +852,13 @@ const CreateReferralPage: React.FC = () => {
                   </section>
 
                   {/* 3. Skills & publish */}
-                  <section className={`space-y-4 md:border-t md:border-slate-100 md:pt-6 ${stepHidden(3)}`}>
+                  <section data-referral-step="3" className={`space-y-4 md:border-t md:border-slate-100 md:pt-6 ${stepHidden(3)}`}>
                     {sectionHeading(3, 'Skills & publish')}
+                    {isMobile && <div className="rounded-xl bg-parchment-sunken p-4 text-sm">
+                      <p className="font-bold text-ink">{formData.title || 'Your role'}</p>
+                      <p className="mt-1 text-slate-500">{[formData.company, locationQuery].filter(Boolean).join(' · ')}</p>
+                      <button type="button" className="mt-2 py-2 font-bold text-primary" onClick={() => setMobileFormStep(1)}>Review details</button>
+                    </div>}
                     <div>
                       <span className={labelClass}>Skills</span>
                       <div className="flex items-center gap-2">
@@ -877,7 +905,7 @@ const CreateReferralPage: React.FC = () => {
                   </section>
                 </div>
 
-                <div className={`${isMobile && mobileFormStep !== 3 ? 'hidden' : 'flex'} flex-col md:flex-row md:justify-end px-4 py-4 md:px-6 border-t border-slate-100 bg-parchment rounded-b-2xl`}>
+                <div className={`referral-publish ${isMobile && mobileFormStep !== 3 ? 'hidden' : 'flex'} flex-col md:flex-row md:justify-end px-4 py-4 md:px-6 border-t border-slate-100 bg-parchment rounded-b-2xl`}>
                   <button
                     className="h-12 md:h-11 px-7 shrink-0 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     type="submit"
@@ -903,6 +931,9 @@ const CreateReferralPage: React.FC = () => {
               </button>
             </div>
 
+            {isMobile && <dl className="mobile-referral-stats">
+              {stats.map(stat => <div key={stat.label}><dd>{stat.value}</dd><dt>{stat.label}</dt></div>)}
+            </dl>}
             {loadingReferrals ? (
               <LoadingSpinner size="small" text="Loading referrals..." />
             ) : myReferrals.length === 0 ? (

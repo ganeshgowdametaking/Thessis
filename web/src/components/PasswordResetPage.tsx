@@ -156,9 +156,9 @@ const PasswordResetPage: React.FC = () => {
   const actionAreaClass = 'sticky sm:static bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:pb-0 bg-white/95 sm:bg-transparent backdrop-blur supports-[backdrop-filter]:bg-white/75 border-t border-slate-100 sm:border-0'
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row font-display">
+    <div className="password-reset-page min-h-screen flex flex-col lg:flex-row font-display">
     <div className="bg-page min-h-[100dvh] sm:min-h-screen lg:min-h-0 lg:w-1/2 flex items-stretch sm:items-center justify-center p-0 sm:p-4 lg:py-16">
-      <div className="w-full max-w-[480px] flex flex-col gap-3 sm:gap-6 min-h-[100dvh] sm:min-h-0">
+      <div className="reset-card w-full max-w-[480px] flex flex-col gap-3 sm:gap-6 min-h-[100dvh] sm:min-h-0">
         {/* Logo */}
         <div className="flex justify-center mb-2 sm:mb-6 pt-[max(16px,env(safe-area-inset-top))] sm:pt-0">
           <img

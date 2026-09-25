@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, MessageSquare, Trash2 } from 'lucide-react';
+import { ArrowLeft, Search, MessageSquare, Trash2 } from 'lucide-react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { messageService } from '../services/messageService';
@@ -9,6 +9,7 @@ import { connectionService } from '../services/connectionService';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useMediaQuery } from 'react-responsive';
 import LoadingSpinner from './LoadingSpinner';
+import { usePhoneViewport } from '../hooks/usePhoneViewport';
 
 import { MessageInput } from './MessageInput';
 import { ConversationItem } from './ConversationItem';
@@ -57,6 +58,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showConversationsList, setShowConversationsList] = useState(true);
+  const phoneViewport = usePhoneViewport(isMobile && !showConversationsList);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [firstUnreadMessageId, setFirstUnreadMessageId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
@@ -76,9 +78,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Mobile no longer renders the global header on this route, so the chat
-  // view can use the full viewport height.
-  const viewportHeight = isMobile ? '100dvh' : 'calc(100vh - 5rem)';
+  // The inbox shares app navigation; conversations use the full phone viewport.
+  const viewportHeight = isMobile ? (showConversationsList ? 'calc(100dvh - var(--mobile-header-height) - var(--mobile-nav-height))' : '100dvh') : 'calc(100vh - 5rem)';
 
   // Pending User Info (for header when chat is pending)
   const [pendingUserInfo, setPendingUserInfo] = useState<any>(null);
@@ -755,16 +756,10 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
     }
   };
 
-  // Mobile has no in-app back button in the conversation header anymore —
-  // the device's own back gesture is meant to close it. Opening a
-  // conversation is just local state (no route/URL change), so without
-  // this the OS back button would leave the Messages page entirely instead
-  // of returning to the conversation list. This pushes a history entry
-  // when a conversation opens on mobile, and pops back to the list on the
-  // native back gesture — same pattern used for the mobile job details view.
+  // Both native Back and the conversation header return to the inbox.
   useEffect(() => {
     if (!(isMobile && !showConversationsList)) return;
-    window.history.pushState({ conversationOpen: true }, '');
+    window.history.pushState({ ...window.history.state, conversationOpen: true }, '');
     const handlePopState = () => {
       setShowConversationsList(true);
       setSelectedChat(null);
@@ -805,14 +800,14 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
   if (loading) {
     return (
-      <div className="bg-stone-bg text-slate-900 font-display w-full flex items-center justify-center overflow-hidden" style={{ height: viewportHeight }}>
+      <div className="bg-stone-bg text-slate-900 font-display w-full flex items-center justify-center overflow-hidden" style={{ height: viewportHeight, ...phoneViewport }}>
         <LoadingSpinner text="Loading messages..." />
       </div>
     );
   }
 
   return (
-    <div className="bg-stone-bg text-slate-900 font-display w-full flex flex-col overflow-hidden" style={{ height: viewportHeight }}>
+    <div className={`messages-page ${isMobile && !showConversationsList ? 'mobile-conversation' : ''} bg-stone-bg text-slate-900 font-display w-full flex flex-col overflow-hidden`} style={{ height: viewportHeight, ...phoneViewport }}>
       <div className="flex flex-1 min-h-0 w-full relative">{/* Sidebar */}
         <div className={`${showConversationsList ? 'flex' : 'hidden'} md:flex w-full md:w-96 flex-shrink-0 flex-col bg-stone-off border-r border-stone-border z-10`}>
           {/* Sidebar Header */}
@@ -876,13 +871,14 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
               );
             })
           ) : (
-            <div className="flex-1 flex items-center justify-center p-8">
+            <div className="mobile-inbox-empty flex-1 flex items-center justify-center p-8">
               <div className="text-center">
                 <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">No conversations yet</h3>
                 <p className="text-slate-600 text-sm">
                   Start networking and connecting with professionals to begin conversations.
                 </p>
+                {isMobile && <button type="button" onClick={() => navigate('/search-results')} className="mobile-find-people">Find people</button>}
               </div>
             </div>
           )}
@@ -896,6 +892,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
               {/* Chat Header */}
               <header className="h-16 md:h-20 shrink-0 border-b border-stone-border flex items-center justify-between px-4 md:px-6 bg-white z-10">
                 <div className="flex items-center gap-4">
+                  {isMobile && <button className="mobile-icon-button" onClick={() => window.history.back()} aria-label="Back to messages"><ArrowLeft size={21} /></button>}
 
                   <div className="relative">
                     <div

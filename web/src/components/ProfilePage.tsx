@@ -1,3 +1,5 @@
+import { useMediaQuery } from 'react-responsive';
+import { usePhoneViewport } from '../hooks/usePhoneViewport';
 import React, { useState, useEffect, useCallback } from 'react';
 import { AlertCircle, BadgeCheck, Camera, Check, ChevronDown, Loader2, MapPin, Pencil, Plus, Share2, Trash2, Trophy, Users, X } from 'lucide-react';
 import { jobTitles } from '../data/jobTitles';
@@ -59,6 +61,8 @@ const BLANK_EDUCATION: Omit<Education, 'id'> = { degree: '', school: '', startDa
 const BLANK_ACHIEVEMENT: Omit<Achievement, 'id'> = { title: '', organization: '', date: '', type: '', description: '' };
 
 const ProfilePage: React.FC = () => {
+  const isPhone = useMediaQuery({ maxWidth: 767 });
+  const phoneViewport = usePhoneViewport(isPhone);
   const createClientItemId = () => Date.now() + Math.floor(Math.random() * 1000000);
 
   const { user, profile, updateProfile } = useAuthContext();
@@ -732,10 +736,10 @@ const ProfilePage: React.FC = () => {
     body: React.ReactNode,
     actions: { onAdd?: () => void; onEdit?: () => void; addLabel: string; editLabel: string }
   ) => (
-    <section className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 flex flex-col gap-4">
+    <section className="profile-section bg-white border border-slate-200 rounded-2xl p-5 md:p-6 flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-display text-[17px] font-extrabold text-ink">{title}</h2>
-        <div className="flex gap-1.5">
+        <div className="profile-section-actions flex gap-1.5">
           {actions.onAdd && (
             <button type="button" className={iconButtonClass} onClick={actions.onAdd} aria-label={actions.addLabel} title={actions.addLabel}>
               <Plus className="h-4 w-4" />
@@ -753,7 +757,7 @@ const ProfilePage: React.FC = () => {
   );
 
   const renderEmptySection = (title: string, hint: string, actionLabel: string, onAction: () => void) => (
-    <div className="rounded-xl border-[1.5px] border-dashed border-slate-200 px-4 py-5 flex flex-col items-center gap-1.5 text-center">
+    <div className="profile-empty rounded-xl border-[1.5px] border-dashed border-slate-200 px-4 py-5 flex flex-col items-center gap-1.5 text-center">
       <p className="text-sm font-bold text-ink">{title}</p>
       {hint && <p className="text-[12.5px] text-slate-500 max-w-sm">{hint}</p>}
       <button
@@ -841,11 +845,11 @@ const ProfilePage: React.FC = () => {
   const footerError = saveError || (locationError ? `${locationError} — add it on the Basics tab.` : null);
 
   return (
-    <div className="bg-parchment font-display min-h-screen flex flex-col overflow-x-hidden antialiased">
+    <div className="mobile-page profile-page bg-parchment font-display min-h-screen flex flex-col overflow-x-hidden antialiased">
       <main className="flex-1 w-full max-w-[1120px] mx-auto px-4 md:px-6 py-4 md:py-9 flex flex-col gap-4 md:gap-5">
         {/* Header card */}
         <section className="bg-white border border-slate-200 rounded-2xl md:rounded-[22px] overflow-hidden">
-          <div className="h-28 md:h-44 bg-center bg-cover bg-no-repeat" style={coverStyle} />
+          <div className="mobile-profile-cover h-28 md:h-44 bg-center bg-cover bg-no-repeat" style={coverStyle} />
           <div className="px-4 pb-5 md:px-8 md:pb-7 flex flex-col gap-3">
             <div className="flex items-end justify-between gap-3 -mt-11 md:-mt-14">
               <div className="relative z-[1] shrink-0 rounded-full ring-4 md:ring-[5px] ring-white bg-white">
@@ -868,7 +872,7 @@ const ProfilePage: React.FC = () => {
                   className="h-10 px-4 rounded-xl bg-primary text-white text-[13px] font-bold hover:bg-primary-hover transition-colors flex items-center gap-2"
                 >
                   <Pencil className="h-3.5 w-3.5" />
-                  <span className="md:hidden">Edit</span>
+                  <span className="md:hidden">Edit profile</span>
                   <span className="hidden md:inline">Edit profile</span>
                 </button>
               </div>
@@ -907,6 +911,12 @@ const ProfilePage: React.FC = () => {
           </div>
         </section>
 
+        <div className="md:hidden">
+          <div className="profile-completion-mobile">
+            <div><strong>{strengthScore === 100 ? 'Your profile is complete' : `Profile strength · ${strengthScore}%`}</strong><p>{strengthTodo[0]?.label || 'You’re ready to make connections.'}</p></div>
+            {strengthTodo[0] && <button type="button" onClick={() => openEditor(strengthTodo[0].section, { add: strengthTodo[0].add })}>Complete</button>}
+          </div>
+        </div>
         <div className="flex flex-col lg:flex-row gap-4 md:gap-5 items-start">
           <div className="w-full flex-1 min-w-0 flex flex-col gap-4 md:gap-5">
             {renderSectionCard(
@@ -958,7 +968,7 @@ const ProfilePage: React.FC = () => {
 
           <aside className="w-full lg:w-[360px] shrink-0 flex flex-col gap-4 md:gap-5">
             {/* Profile strength */}
-            <section className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-3">
+            <section className="profile-strength-desktop bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-3">
               <div className="flex items-baseline justify-between">
                 <h2 className="font-display text-base font-extrabold text-ink">Profile strength</h2>
                 <span className="font-display text-xl font-extrabold text-ink">
@@ -1050,10 +1060,11 @@ const ProfilePage: React.FC = () => {
               if (!locationQuery.trim()) setEditSection('basics');
               handleEditSubmit(e);
             }}
+            style={phoneViewport}
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-profile-title"
-            className="w-full md:max-w-[560px] h-[100dvh] bg-white flex flex-col shadow-2xl"
+            className="profile-editor-panel w-full md:max-w-[560px] h-[100dvh] bg-white flex flex-col shadow-2xl"
           >
             <div className="flex items-center justify-between px-4 md:px-6 pt-4 md:pt-5 pb-2">
               <h2 id="edit-profile-title" className="font-display text-lg md:text-[19px] font-extrabold text-ink">Edit profile</h2>
@@ -1068,7 +1079,13 @@ const ProfilePage: React.FC = () => {
               </button>
             </div>
 
-            <div className="flex gap-5 px-4 md:px-6 border-b border-slate-200 overflow-x-auto no-scrollbar" role="tablist">
+            <label className="mobile-editor-select md:hidden">
+              <span className="sr-only">Profile section</span>
+              <select value={editSection} onChange={e => setEditSection(e.target.value as EditSection)}>
+                {editTabs.map(tab => <option key={tab.id} value={tab.id}>{tab.label}</option>)}
+              </select>
+            </label>
+            <div className="profile-editor-tabs flex gap-5 px-4 md:px-6 border-b border-slate-200 overflow-x-auto no-scrollbar" role="tablist">
               {editTabs.map((tab) => (
                 <button
                   key={tab.id}

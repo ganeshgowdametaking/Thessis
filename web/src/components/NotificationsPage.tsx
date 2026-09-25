@@ -365,7 +365,7 @@ const NotificationsPage: React.FC = () => {
   ];
 
   const renderToast = () => toast && (
-    <div className="fixed inset-x-4 bottom-5 z-[110] flex justify-center pointer-events-none">
+    <div className="notification-toast fixed inset-x-4 bottom-5 z-[110] flex justify-center pointer-events-none">
       <div role="status" className="pointer-events-auto flex items-center gap-2.5 max-w-md w-full rounded-xl bg-ink px-4 py-3 text-[13px] text-white shadow-xl">
         {toast.tone === 'success' && <Check className="h-4 w-4 shrink-0 text-emerald-300" strokeWidth={3} />}
         {toast.tone === 'neutral' && <X className="h-4 w-4 shrink-0 text-slate-300" />}
@@ -393,7 +393,7 @@ const NotificationsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-parchment font-display min-h-screen">
+      <div className="mobile-page notifications-page bg-parchment font-display min-h-screen">
         <main className="w-full max-w-[800px] mx-auto px-4 py-5 md:py-10 flex flex-col gap-5">
           <div className="h-8 w-48 rounded-lg bg-parchment-sunken animate-pulse" />
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden" role="status" aria-label="Loading notifications">
@@ -492,7 +492,7 @@ const NotificationsPage: React.FC = () => {
       <div
         key={notification.id}
         onClick={() => handleNotificationClick(notification)}
-        className={`relative flex gap-3 md:gap-3.5 pl-6 pr-4 py-3.5 md:pl-[26px] md:pr-5 md:py-4 cursor-pointer transition-colors ${isUnread ? 'bg-[#F7F8FF] hover:bg-ink-wash' : 'bg-white hover:bg-parchment'
+        className={`notification-row relative flex gap-3 md:gap-3.5 pl-6 pr-4 py-3.5 md:pl-[26px] md:pr-5 md:py-4 cursor-pointer transition-colors ${isUnread ? 'bg-[#F7F8FF] hover:bg-ink-wash' : 'bg-white hover:bg-parchment'
           } ${isLast ? '' : 'border-b border-slate-100'}`}
       >
         {isUnread && (
@@ -503,7 +503,7 @@ const NotificationsPage: React.FC = () => {
         {renderLead(notification)}
         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
           <p className="text-[13.5px] md:text-sm leading-snug text-ink">{renderHeadline(notification)}</p>
-          {detail && <p className="text-[12.5px] md:text-[13px] leading-relaxed text-slate-500 line-clamp-2">{detail}</p>}
+          {detail && <p className="notification-detail text-[12.5px] md:text-[13px] leading-relaxed text-slate-500 line-clamp-2">{detail}</p>}
           <div className="md:hidden flex items-center gap-2 mt-1.5">{tag}{time}</div>
           {(isRequest || actionLabel) && (
             <div className="flex flex-wrap items-center gap-2 mt-2.5" onClick={(e) => e.stopPropagation()}>
@@ -558,12 +558,12 @@ const NotificationsPage: React.FC = () => {
   const showActionRequired = verifications.length > 0 && filter === 'all';
 
   return (
-    <div className="bg-parchment font-display min-h-screen flex flex-col">
+    <div className="mobile-page notifications-page bg-parchment font-display min-h-screen flex flex-col">
       <main className="flex-1 w-full max-w-[800px] mx-auto px-4 py-5 md:py-10 flex flex-col gap-5 md:gap-6">
         {/* Header */}
-        <div className="flex items-end justify-between gap-3">
+        <div className={`${unreadCount === 0 ? 'mobile-page-title ' : ''}flex items-end justify-between gap-3`}>
           <div className="flex flex-col gap-1 min-w-0">
-            <h1 className="font-display text-2xl md:text-[30px] font-extrabold text-ink">Notifications</h1>
+            <h1 className="mobile-page-title font-display text-2xl md:text-[30px] font-extrabold text-ink">Notifications</h1>
             {unreadCount > 0 && (
               <p className="text-[12.5px] md:text-sm text-slate-500">
                 <strong className="text-ink">{unreadCount} new</strong> since your last visit

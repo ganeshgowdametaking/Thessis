@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useMediaQuery } from 'react-responsive';
 import { useAuthContext } from '../contexts/AuthContext';
 import { trustService } from '../services/TrustService';
 import { supabase } from '../lib/supabase';
@@ -10,6 +11,7 @@ type SettingsTab = 'account' | 'security' | 'work-email' | 'feedback' | 'admin';
 const SettingsPage: React.FC = () => {
   const { signOut, updatePassword, refreshProfile, user, profile } = useAuthContext();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery({ maxWidth: 767 });
   const [activeTab, setActiveTab] = useState<SettingsTab>('account');
   const [passwordFormOpen, setPasswordFormOpen] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -436,6 +438,21 @@ const SettingsPage: React.FC = () => {
     );
   };
 
+  const renderAccountManagement = () => (renderSection('Danger zone', '', (
+        <>
+          {renderRow(
+            'Delete account',
+            '',
+            <button type="button" onClick={() => setShowDeleteConfirmModal(true)} disabled={deleteLoading} className={dangerOutlineClass}>
+              {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {deleteLoading ? 'Deleting…' : 'Delete account'}
+            </button>,
+            !deleteMessage
+          )}
+          {deleteMessage && <div className="px-4 pb-4 md:px-[22px]">{renderNotice(deleteMessage)}</div>}
+        </>
+      ), true));
+
   const renderAccount = () => (
     <>
       {renderSection('Account', '', (
@@ -478,20 +495,10 @@ const SettingsPage: React.FC = () => {
         </>
       ))}
 
-      {renderSection('Danger zone', '', (
-        <>
-          {renderRow(
-            'Delete account',
-            '',
-            <button type="button" onClick={() => setShowDeleteConfirmModal(true)} disabled={deleteLoading} className={dangerOutlineClass}>
-              {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              {deleteLoading ? 'Deleting…' : 'Delete account'}
-            </button>,
-            !deleteMessage
-          )}
-          {deleteMessage && <div className="px-4 pb-4 md:px-[22px]">{renderNotice(deleteMessage)}</div>}
-        </>
-      ), true)}
+      {isMobile ? <details className="settings-account-management">
+        <summary>Account management</summary>
+        {renderAccountManagement()}
+      </details> : renderAccountManagement()}
 
       <button
         type="button"
@@ -817,14 +824,17 @@ const SettingsPage: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-parchment font-display flex flex-col">
+    <div className="mobile-page settings-page min-h-screen bg-parchment font-display flex flex-col">
       <main className="flex-grow w-full max-w-[1080px] mx-auto px-4 md:px-6 py-5 md:py-9 flex flex-col gap-4 md:gap-6">
-        <header>
+        <header className="mobile-page-title">
           <h1 className="font-display text-2xl md:text-[30px] font-extrabold text-ink">Settings</h1>
         </header>
 
-        {/* Section chips on smaller screens */}
-        <div className="lg:hidden flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4" role="tablist" aria-label="Settings sections">
+        {isMobile && <nav className="settings-mobile-sections" aria-label="Settings sections">
+          {tabs.map(tab => <button key={tab.id} type="button" aria-pressed={activeTab === tab.id} onClick={() => selectTab(tab.id)}>{tab.icon}{tab.shortLabel}</button>)}
+        </nav>}
+        {/* Section chips on tablets */}
+        <div className="hidden md:flex lg:hidden gap-2 overflow-x-auto no-scrollbar -mx-4 px-4" role="tablist" aria-label="Settings sections">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -869,6 +879,11 @@ const SettingsPage: React.FC = () => {
             {activeTab === 'admin' && canManageAdmins && renderAdmins()}
           </div>
         </div>
+        {isMobile && <nav aria-label="Legal information" className="flex flex-wrap justify-center gap-5 py-3 text-xs text-slate-500">
+          <Link to="/privacy-policy" className="py-2">Privacy</Link>
+          <Link to="/cookie-policy" className="py-2">Cookies</Link>
+          <Link to="/terms" className="py-2">Terms</Link>
+        </nav>}
       </main>
 
       {showInviteModal && renderModal(

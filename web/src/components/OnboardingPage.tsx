@@ -404,7 +404,7 @@ const OnboardingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="onboarding-page min-h-screen flex flex-col lg:flex-row">
       {/* Left: brand panel with live step checklist */}
       <aside className="hidden lg:flex lg:w-[43%] shrink-0 bg-ink text-white flex-col justify-between p-16">
         <img src="/brand/thessis-logo-white.svg" alt="Thessis" className="h-8 w-auto self-start" />
@@ -447,7 +447,7 @@ const OnboardingPage: React.FC = () => {
 
       {/* Right: form card */}
       <div className="flex-1 bg-parchment flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-10">
+      <div className="onboarding-card w-full max-w-xl bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-10">
         <div className="flex items-center justify-between mb-2.5">
           <span className="text-[12.5px] font-bold text-slate-500">Step {step + 1} of {STEPS.length}</span>
           <button

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion, MotionConfig } from 'framer-motion';
 import HeroProductPreview from './HeroProductPreview';
 
@@ -47,6 +48,7 @@ const Hero: React.FC = () => {
               ,<br className="hidden sm:block" /> not portals.
             </motion.h1>
           </div>
+          <div className="mobile-hero-cta md:hidden"><Link to="/signup">Find your next opportunity</Link></div>
 
           <motion.div
             initial={{ opacity: 0, y: 28 }}

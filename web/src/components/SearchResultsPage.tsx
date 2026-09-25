@@ -44,6 +44,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
   useEffect(() => {
     let isMounted = true;
 
+    if (!searchQuery) setLoading(false);
     if (searchQuery && isMounted) {
       performSearch();
       // Use global refresh instead of local load
@@ -396,15 +397,15 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
   );
 
   return (
-    <div className="bg-parchment font-display antialiased min-h-screen flex flex-col">
+    <div className="mobile-page mobile-search-page bg-parchment font-display antialiased min-h-screen flex flex-col">
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 pt-4 md:pt-8 pb-10 md:pb-12 flex flex-col gap-4 md:gap-5">
-        {/* Phones don't get the site header here, so search and Back live on the page */}
+        {/* Mobile search; the shared header provides Back. */}
         <form onSubmit={handleSearchSubmit} className="md:hidden flex items-center gap-2" role="search">
           <button
             type="button"
             onClick={onBack}
             aria-label="Back"
-            className="size-10 shrink-0 rounded-xl border border-slate-200 bg-white text-ink flex items-center justify-center"
+            className="mobile-search-back size-10 shrink-0 rounded-xl border border-slate-200 bg-white text-ink flex items-center justify-center"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
@@ -434,9 +435,9 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
 
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3 md:gap-4">
           <header className="flex flex-col gap-1 min-w-0">
-            <h1 className="font-display text-xl md:text-[28px] font-extrabold text-ink break-words">Results for “{searchQuery}”</h1>
+            <h1 className="font-display text-xl md:text-[28px] font-extrabold text-ink break-words">{searchQuery ? `Results for “${searchQuery}”` : 'Find your next connection'}</h1>
             <p className="text-[13px] md:text-sm text-slate-500">
-              {loading ? (
+              {!searchQuery ? 'Search by name, job title or company.' : loading ? (
                 'Searching…'
               ) : (
                 <><strong className="text-ink">{people.length} {people.length === 1 ? 'person' : 'people'}</strong> {people.length === 1 ? 'matches' : 'match'} by name, job title or company</>
@@ -497,9 +498,9 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
         ) : people.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-2xl px-6 py-12 flex flex-col items-center gap-2.5 text-center">
             <span className="size-14 rounded-full bg-parchment-sunken text-slate-400 flex items-center justify-center mb-1"><Search className="h-6 w-6" /></span>
-            <p className="font-display text-lg font-extrabold text-ink break-words">No one matches “{searchQuery}”</p>
+            <p className="font-display text-lg font-extrabold text-ink break-words">{searchQuery ? `No one matches “${searchQuery}”` : 'Who would you like to meet?'}</p>
             <ul className="flex flex-col gap-1 text-[13.5px] text-slate-500">
-              <li>Check the spelling</li>
+              {searchQuery && <li>Check the spelling</li>}
               <li>Search by a full name, a job title or a company</li>
             </ul>
             <button type="button" onClick={() => navigate('/jobs')} className="mt-1.5 text-[13px] font-bold text-primary hover:underline">

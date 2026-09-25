@@ -9,6 +9,7 @@ import { jobService } from '../services/jobService';
 import { Database } from '../lib/database.types';
 import { useMediaQuery } from 'react-responsive';
 import './JobsPage.css';
+import MobileDialog from './MobileDialog';
 import debounce from 'lodash.debounce';
 import SecondaryEmailVerificationModal from './SecondaryEmailVerificationModal';
 import CompanyAvatar from './CompanyAvatar';
@@ -66,7 +67,7 @@ const pillClass = (active: boolean) =>
     : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
   }`;
 
-const tagClass = 'text-[11px] font-semibold text-slate-600 bg-parchment-sunken px-2.5 py-0.5 rounded-full';
+const tagClass = 'job-tag text-[11px] font-semibold text-slate-600 bg-parchment-sunken px-2.5 py-0.5 rounded-full';
 
 const JobsPage: React.FC = () => {
   const { user, profile } = useAuthContext();
@@ -104,57 +105,36 @@ const JobsPage: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const isMobile = useMediaQuery({ maxWidth: 767 });
 
-  // Mobile has no in-app header/back-button on the job detail view anymore —
-  // the device's own back gesture is meant to close it. Since opening it is
-  // just local state (no route change), the OS back button wouldn't
-  // otherwise know to do anything but leave the page entirely. This pushes a
-  // history entry when the sheet opens so back closes it instead, and pops
-  // that entry itself if the sheet is dismissed some other way (backdrop
-  // tap, swipe-down) via dismissJobSheet below, so the history stack never
-  // has an orphaned entry regardless of how the user closes it.
-  const [isJobSheetExpanded, setIsJobSheetExpanded] = useState(false);
+  // Give native Back the same behavior as the visible mobile Back buttons.
   useEffect(() => {
     if (!(isMobile && selectedJob)) return;
-    setIsJobSheetExpanded(false);
-    window.history.pushState({ jobDetailSheet: true }, '');
-    const handlePopState = () => setSelectedJob(null);
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
+    const dialogId = crypto.randomUUID();
+    window.history.pushState({ ...window.history.state, jobDetailSheet: dialogId }, '');
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state?.jobDetailSheet === dialogId) return;
+      setSelectedJob(null);
+      setShowApplicationModal(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, [isMobile, selectedJob?.id]);
 
-  const dismissJobSheet = () => {
-    // Pop the history entry pushed above rather than clearing selectedJob
-    // directly — that triggers the popstate handler above, keeping every
-    // dismissal path (backdrop tap, swipe-down, native back) consistent.
-    window.history.back();
-  };
+  useEffect(() => {
+    if (!(isMobile && showApplicationModal)) return;
+    window.history.pushState({ ...window.history.state, applicationForm: true }, '');
+    const handlePopState = () => setShowApplicationModal(false);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMobile, showApplicationModal]);
 
-  const jobSheetDragStartY = React.useRef<number | null>(null);
-  const handleJobSheetDragStart = (e: React.TouchEvent) => {
-    jobSheetDragStartY.current = e.touches[0].clientY;
+  const dismissJobSheet = () => {
+    setSelectedJob(null);
+    if (window.history.state?.jobDetailSheet) window.history.back();
   };
-  const handleJobSheetDragEnd = (e: React.TouchEvent) => {
-    if (jobSheetDragStartY.current === null) return;
-    const deltaY = e.changedTouches[0].clientY - jobSheetDragStartY.current;
-    jobSheetDragStartY.current = null;
-    const DRAG_THRESHOLD = 50;
-    if (deltaY < -DRAG_THRESHOLD) {
-      setIsJobSheetExpanded(true);
-    } else if (deltaY > DRAG_THRESHOLD) {
-      if (isJobSheetExpanded) {
-        setIsJobSheetExpanded(false);
-      } else {
-        dismissJobSheet();
-      }
-    }
-  };
-  const handleJobSheetContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (!isJobSheetExpanded && e.currentTarget.scrollTop > 0) {
-      setIsJobSheetExpanded(true);
-    }
+  const closeApplication = () => {
+    if (isSubmittingApplication) return;
+    setShowApplicationModal(false);
+    if (isMobile && window.history.state?.applicationForm) window.history.back();
   };
   const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
   const [locationQuery, setLocationQuery] = useState(filters.location);
@@ -548,7 +528,8 @@ const JobsPage: React.FC = () => {
       loadUserApplications();
       loadJobs();
       setTimeout(() => {
-        setShowApplicationModal(false);
+        if (isMobile && window.history.state?.applicationForm) window.history.back();
+        else setShowApplicationModal(false);
         setApplicationStep(1);
         setApplicationForm({
           resume: null,
@@ -676,7 +657,7 @@ const JobsPage: React.FC = () => {
     return (
       <div className="w-full min-h-full flex flex-col">
         {/* Job Header */}
-        <div className="px-6 pt-6 pb-6 md:px-12 md:pt-10 border-b border-slate-100 flex flex-col gap-4">
+        <div className="job-detail-header px-6 pt-6 pb-6 md:px-12 md:pt-10 border-b border-slate-100 flex flex-col gap-4">
           <div className="flex items-start justify-between gap-5">
             <div className="flex items-center gap-3.5 min-w-0">
               <div className="rounded-2xl size-14 border border-slate-100 overflow-hidden shrink-0">
@@ -713,7 +694,7 @@ const JobsPage: React.FC = () => {
         </div>
 
         {/* Job Content */}
-        <div className="flex-1 px-6 py-7 md:px-12 md:py-8 space-y-8">
+        <div className="job-detail-content flex-1 px-6 py-7 md:px-12 md:py-8 space-y-8">
           <section>
             <h3 className="font-display text-[17px] font-bold text-ink mb-2.5">About the role</h3>
             {selectedJob.description ? (
@@ -764,9 +745,111 @@ const JobsPage: React.FC = () => {
 
 
 
+  const renderApplicationFields = () => (
+    <>
+      {applicationError && (
+        <div role="alert" className="bg-danger-tint text-red-600 p-3.5 rounded-xl border border-red-200 text-sm font-medium flex items-center gap-2">
+          <X className="w-4 h-4 shrink-0" />
+          {applicationError}
+        </div>
+      )}
+
+      {completenessScore !== null && completenessScore < 70 && (isMobile ? (
+        <p className="mobile-profile-tip">
+          Your profile is {completenessScore}% complete. <Link to="/profile">Complete your profile</Link> to help referrers get to know you.
+        </p>
+      ) : (
+        <div className="bg-amber-tint text-amber-ink p-4 rounded-xl border border-amber-200 text-sm">
+          <p className="font-bold">Your profile is {completenessScore}% complete</p>
+          <div className="mt-2 h-1.5 rounded-full bg-amber-100 overflow-hidden">
+            <div className="h-full rounded-full bg-amber-500" style={{ width: `${completenessScore}%` }} />
+          </div>
+          <p className="mt-2 text-[12.5px] leading-relaxed">
+            Referrers respond better to complete profiles. Add your work experience, education, or skills to stand out.{' '}
+            <Link to="/onboarding" className="font-bold underline hover:text-amber-900">
+              Finish your profile
+            </Link>
+          </p>
+        </div>
+      ))}
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-[12.5px] font-semibold text-slate-600 mb-1.5" htmlFor="application-name">Full name</label>
+          <input
+            id="application-name"
+            disabled
+            value={user?.user_metadata?.full_name || ''}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-parchment-sunken text-slate-500 cursor-not-allowed"
+          />
+        </div>
+        <div>
+          <label className="block text-[12.5px] font-semibold text-slate-600 mb-1.5" htmlFor="application-email">Email *</label>
+          <input
+            id="application-email"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            value={applicationForm.email}
+            onChange={(e) => handleApplicationInputChange('email', e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:border-primary focus:outline-none transition-colors"
+            placeholder="your@email.com"
+          />
+        </div>
+        <div>
+          <label className="block text-[12.5px] font-semibold text-slate-600 mb-1.5">Resume *</label>
+          <div className="border-[1.5px] border-dashed border-indigo-200 bg-ink-wash/60 rounded-xl p-5 hover:bg-ink-wash transition-colors text-center cursor-pointer relative">
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={(e) => handleApplicationInputChange('resume', e.target.files?.[0] || null)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              aria-label="Upload resume"
+            />
+            <div className="flex flex-col items-center gap-1.5">
+              {applicationForm.resume ? (
+                <>
+                  <CheckCircle2 className="w-8 h-8 text-success" />
+                  <span className="resume-name text-sm font-bold text-ink">{applicationForm.resume.name}</span>
+                  <span className="text-xs text-slate-500">{isMobile ? 'Tap to change' : 'Click to change'}</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                    <Upload className="w-[18px] h-[18px] text-primary" />
+                  </div>
+                  <span className="text-sm font-bold text-ink">{isMobile ? 'Choose resume' : <>Drop your resume here, or <span className="text-primary">browse</span></>}</span>
+                  <span className="text-xs text-slate-500">PDF, DOC or DOCX · up to 5MB</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderApplicationSubmit = () => (
+    <button
+      onClick={handleApplicationSubmit}
+      disabled={isSubmittingApplication}
+      className="w-full h-12 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+    >
+      {isSubmittingApplication ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Submitting...
+        </>
+      ) : (
+        'Submit Application'
+      )}
+    </button>
+  );
+
+
   if (loading) {
     return (
-      <div className="bg-parchment text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
+      <div className="jobs-page bg-parchment text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
         <main className="flex flex-1 min-h-0 overflow-hidden">
           <aside className="w-full md:max-w-[510px] border-r border-hairline bg-parchment p-3 space-y-2">
             <div className="p-2 pb-4 space-y-3">
@@ -801,7 +884,7 @@ const JobsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-parchment text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
+      <div className="jobs-page bg-parchment text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
         <div className="flex items-center justify-center h-full">
           <div className="max-w-md mx-auto text-center p-8">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -822,13 +905,17 @@ const JobsPage: React.FC = () => {
   }
 
   return (
-    <div className="bg-parchment text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
+    <div className="jobs-page bg-parchment text-slate-700 font-display overflow-hidden min-h-[calc(100dvh-4rem)] md:h-screen flex flex-col selection:bg-primary selection:text-white">
       <main className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar */}
         <aside className="w-full md:max-w-[510px] flex flex-col border-r border-hairline bg-parchment relative z-10">
           {/* Sidebar Header */}
           <div className="flex flex-col gap-3.5 px-4 pt-5 pb-3 md:px-5 bg-parchment">
-            {/* Mobile: search + filters merged into one bar, Post referral full-width below. */}
+            <div className="mobile-jobs-heading md:hidden">
+              <div><h1>Jobs</h1><p>Your next move starts with a referral.</p></div>
+              <button onClick={handleCreateReferralClick} className="mobile-post-button" aria-label="Post referral"><Plus size={16} /> Post</button>
+            </div>
+            {/* Mobile search and filters */}
             <div className="flex flex-col gap-2.5 md:hidden">
               <div className="flex items-center rounded-xl bg-white border border-slate-200 focus-within:border-primary transition-colors">
                 <Search className="h-4 w-4 text-slate-400 ml-3.5 shrink-0" />
@@ -849,13 +936,7 @@ const JobsPage: React.FC = () => {
                   {activeFilterChips.length > 0 ? activeFilterChips.length : 'Filters'}
                 </button>
               </div>
-              <button
-                onClick={handleCreateReferralClick}
-                className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white text-sm font-bold h-11 rounded-xl transition-colors w-full"
-              >
-                <Plus className="h-4 w-4" />
-                Post referral
-              </button>
+
             </div>
 
             {/* Desktop */}
@@ -898,7 +979,7 @@ const JobsPage: React.FC = () => {
                     key={chip.key}
                     onClick={() => handleRemoveFilter(chip.key)}
                     aria-label={`Remove filter: ${chip.label}`}
-                    className="flex items-center gap-1.5 bg-white border border-slate-200 hover:border-slate-300 rounded-full pl-3 pr-2.5 py-1 text-xs font-semibold text-slate-600 transition-colors"
+                    className="active-job-filter flex items-center gap-1.5 bg-white border border-slate-200 hover:border-slate-300 rounded-full pl-3 pr-2.5 py-1 text-xs font-semibold text-slate-600 transition-colors"
                   >
                     {chip.label}
                     <X className="h-3 w-3 text-slate-400" />
@@ -916,7 +997,7 @@ const JobsPage: React.FC = () => {
             </p>
           </div>
           {/* Jobs List */}
-          <div className="flex-1 overflow-y-auto px-3 pb-3 md:px-3.5 space-y-2.5">
+          <div className="jobs-list flex-1 overflow-y-auto px-3 pb-3 md:px-3.5 space-y-2.5">
             {filteredJobs.length > 0 ? (
               filteredJobs.map((job) => {
                 const isSelected = selectedJob?.id === job.id;
@@ -926,8 +1007,17 @@ const JobsPage: React.FC = () => {
                 return (
                   <div
                     key={job.id}
+                    role={isMobile ? 'button' : undefined}
+                    tabIndex={isMobile ? 0 : undefined}
+                    aria-label={isMobile ? `View ${job.title} at ${job.company}` : undefined}
+                    onKeyDown={isMobile ? event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        handleSelectJob(job);
+                      }
+                    } : undefined}
                     onClick={() => handleSelectJob(job)}
-                    className={`group relative flex gap-3.5 p-4 rounded-2xl cursor-pointer transition-colors border ${isSelected
+                    className={`job-card group relative flex gap-3.5 p-4 rounded-2xl cursor-pointer transition-colors border ${isSelected
                       ? 'bg-ink-wash border-primary'
                       : 'bg-white border-slate-200 hover:border-slate-300'
                       }`}
@@ -942,7 +1032,7 @@ const JobsPage: React.FC = () => {
                         <h3 className="text-[14.5px] font-bold text-ink leading-snug line-clamp-2">
                           {job.title}
                         </h3>
-                        <div className="flex gap-1 shrink-0">
+                        <div className="job-flags flex gap-1 shrink-0">
                           {job.urgent_hiring && isRecentPosting(job.created_at) && (
                             <span className="text-[10px] font-bold uppercase tracking-wider bg-danger-tint text-red-600 border border-red-200 px-2 py-0.5 rounded-full">
                               Urgent
@@ -960,7 +1050,7 @@ const JobsPage: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      <p className="text-[12.5px] text-slate-500 truncate">
+                      <p className="job-company text-[12.5px] text-slate-500 truncate">
                         {job.company}
                         {' · '}
                         {job.location.includes(',') ? job.location.split(',')[0] : job.location}
@@ -970,7 +1060,7 @@ const JobsPage: React.FC = () => {
                         <span className={tagClass}>{job.remote_available ? 'Remote' : 'Onsite'}</span>
                         {job.experience_level && <span className={tagClass}>{job.experience_level}</span>}
                       </div>
-                      <span className="flex items-center gap-1 mt-0.5 text-[11.5px] text-slate-400">
+                      <span className="job-age flex items-center gap-1 mt-0.5 text-[11.5px] text-slate-400">
                         <Clock className="h-3 w-3" />
                         {formatTimeAgo(job.created_at)}
                       </span>
@@ -1014,31 +1104,10 @@ const JobsPage: React.FC = () => {
         </section>
       </main>
 
-      {/* Mobile Job Details Bottom Sheet */}
-      {isMobile && selectedJob && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-slate-900/40 md:hidden transition-opacity"
-            onClick={dismissJobSheet}
-            aria-hidden="true"
-          />
-          <div
-            className={`fixed inset-x-0 bottom-0 z-50 bg-white md:hidden slide-up-drawer rounded-t-2xl overflow-hidden flex flex-col transition-[height] duration-300 ease-in-out ${isJobSheetExpanded ? 'h-[100dvh] rounded-t-none' : 'h-[75dvh]'
-              }`}
-          >
-            <div
-              className="flex justify-center pt-2.5 pb-1.5 shrink-0 touch-none"
-              onTouchStart={handleJobSheetDragStart}
-              onTouchEnd={handleJobSheetDragEnd}
-              aria-hidden="true"
-            >
-              <div className="w-10 h-1.5 rounded-full bg-slate-300" />
-            </div>
-            <div className="flex-1 overflow-y-auto bg-white" onScroll={handleJobSheetContentScroll}>
-              {renderSelectedJobDetails()}
-            </div>
-          </div>
-        </>
+      {isMobile && selectedJob && !showApplicationModal && !showShareModal && (
+        <MobileDialog title="Job details" onClose={dismissJobSheet} className="job-details-mobile">
+          {renderSelectedJobDetails()}
+        </MobileDialog>
       )}
 
       {/* Filter Modal */}
@@ -1195,9 +1264,28 @@ const JobsPage: React.FC = () => {
         )
       }
 
+      {isMobile && showApplicationModal && (
+        <MobileDialog title={applicationStep === 1 ? 'Apply for this role' : 'Application sent'} onClose={closeApplication}
+          footer={applicationStep === 1 ? renderApplicationSubmit() : undefined}>
+          <div className="mobile-application-content">
+            {applicationStep === 1 ? <>
+              {selectedJob && <div className="mobile-application-job">
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl"><CompanyAvatar company={selectedJob.company} logoUrl={getCompanyLogoUrl(selectedJob.company)} size="sm" /></div>
+                <div><h3>{selectedJob.title}</h3><p>{selectedJob.company}</p></div>
+              </div>}
+              {renderApplicationFields()}
+            </> : <div className="py-12 text-center" role="status">
+              <CheckCircle2 className="mx-auto mb-5 h-14 w-14 text-success" />
+              <h3 className="text-2xl font-extrabold mb-3">Application sent!</h3>
+              <p className="text-sm text-slate-500">Your application for {selectedJob?.title} is on its way to a referrer.</p>
+            </div>}
+          </div>
+        </MobileDialog>
+      )}
+
       {/* Application Modal */}
       {
-        showApplicationModal && (
+        showApplicationModal && !isMobile && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-4" onClick={() => setShowApplicationModal(false)}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
               {applicationStep === 1 ? (
@@ -1210,7 +1298,7 @@ const JobsPage: React.FC = () => {
                         </div>
                         <div className="flex flex-col min-w-0">
                           <h2 className="font-display text-[17px] font-extrabold text-ink leading-snug">Apply for {selectedJob.title}</h2>
-                          <span className="text-[12.5px] text-slate-500 truncate">{selectedJob.company}</span>
+                          <span className="job-company text-[12.5px] text-slate-500 truncate">{selectedJob.company}</span>
                         </div>
                       </div>
                     ) : <span />}
@@ -1223,93 +1311,10 @@ const JobsPage: React.FC = () => {
                     </button>
                   </div>
                   <div className="p-6 space-y-5">
-                    {applicationError && (
-                      <div className="bg-danger-tint text-red-600 p-3.5 rounded-xl border border-red-200 text-sm font-medium flex items-center gap-2">
-                        <X className="w-4 h-4 shrink-0" />
-                        {applicationError}
-                      </div>
-                    )}
-
-                    {completenessScore !== null && completenessScore < 70 && (
-                      <div className="bg-amber-tint text-amber-ink p-4 rounded-xl border border-amber-200 text-sm">
-                        <p className="font-bold">Your profile is {completenessScore}% complete</p>
-                        <div className="mt-2 h-1.5 rounded-full bg-amber-100 overflow-hidden">
-                          <div className="h-full rounded-full bg-amber-500" style={{ width: `${completenessScore}%` }} />
-                        </div>
-                        <p className="mt-2 text-[12.5px] leading-relaxed">
-                          Referrers respond better to complete profiles. Add your work experience, education, or skills to stand out.{' '}
-                          <Link to="/onboarding" className="font-bold underline hover:text-amber-900">
-                            Finish your profile
-                          </Link>
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-[12.5px] font-semibold text-slate-600 mb-1.5">Full name</label>
-                        <input
-                          disabled
-                          value={user?.user_metadata?.full_name || ''}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-parchment-sunken text-slate-500 cursor-not-allowed"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[12.5px] font-semibold text-slate-600 mb-1.5">Email *</label>
-                        <input
-                          type="email"
-                          value={applicationForm.email}
-                          onChange={(e) => handleApplicationInputChange('email', e.target.value)}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:border-primary focus:outline-none transition-colors"
-                          placeholder="your@email.com"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[12.5px] font-semibold text-slate-600 mb-1.5">Resume *</label>
-                        <div className="border-[1.5px] border-dashed border-indigo-200 bg-ink-wash/60 rounded-xl p-5 hover:bg-ink-wash transition-colors text-center cursor-pointer relative">
-                          <input
-                            type="file"
-                            accept=".pdf,.doc,.docx"
-                            onChange={(e) => handleApplicationInputChange('resume', e.target.files?.[0] || null)}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            aria-label="Upload resume"
-                          />
-                          <div className="flex flex-col items-center gap-1.5">
-                            {applicationForm.resume ? (
-                              <>
-                                <CheckCircle2 className="w-8 h-8 text-success" />
-                                <span className="text-sm font-bold text-ink">{applicationForm.resume.name}</span>
-                                <span className="text-xs text-slate-500">Click to change</span>
-                              </>
-                            ) : (
-                              <>
-                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                                  <Upload className="w-[18px] h-[18px] text-primary" />
-                                </div>
-                                <span className="text-sm font-bold text-ink">Drop your resume here, or <span className="text-primary">browse</span></span>
-                                <span className="text-xs text-slate-500">PDF, DOC or DOCX · up to 5MB</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    {renderApplicationFields()}
 
                     <div className="pt-1">
-                      <button
-                        onClick={handleApplicationSubmit}
-                        disabled={isSubmittingApplication}
-                        className="w-full h-12 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                      >
-                        {isSubmittingApplication ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Submitting...
-                          </>
-                        ) : (
-                          'Submit Application'
-                        )}
-                      </button>
+                      {renderApplicationSubmit()}
                     </div>
                   </div>
                 </>

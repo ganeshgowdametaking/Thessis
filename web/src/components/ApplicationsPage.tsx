@@ -188,6 +188,7 @@ export default function ApplicationsPage({
   const [isDeleting, setIsDeleting] = useState(false);
   const [removalMode, setRemovalMode] = useState<'delete' | 'unshortlist'>('delete');
   const isDesktop = useMediaQuery({ minWidth: 1024 });
+  const isPhone = useMediaQuery({ maxWidth: 767 });
 
   // Default targets the Vercel Python function at api/rank-application.py —
   // deployed alongside the rest of the site, no separate service/billing.
@@ -1063,7 +1064,7 @@ export default function ApplicationsPage({
   };
 
   return (
-    <div className="min-h-screen bg-parchment">
+    <div className="mobile-page applicants-page min-h-screen bg-parchment">
       <div className="max-w-7xl mx-auto w-full px-4 md:px-8 py-5 md:py-8 flex flex-col gap-4 md:gap-5">
         <button
           type="button"
@@ -1279,7 +1280,7 @@ export default function ApplicationsPage({
             role="dialog"
             aria-modal="true"
             aria-label={selected.user_profile?.full_name || 'Applicant'}
-            className="bg-white w-full h-[100dvh] md:h-auto md:max-h-[90vh] md:max-w-2xl md:rounded-2xl flex flex-col overflow-hidden"
+            className="mobile-applicant-dialog bg-white w-full h-[100dvh] md:h-auto md:max-h-[90vh] md:max-w-2xl md:rounded-2xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 shrink-0">
@@ -1310,7 +1311,10 @@ export default function ApplicationsPage({
                   Message
                 </button>
               </div>
-              {renderMatch(selected, 68)}
+              {isPhone ? <details className="rounded-xl border border-slate-200 p-4">
+                <summary className="font-bold text-sm text-ink cursor-pointer">Resume match &amp; explanation</summary>
+                <div className="mt-4">{renderMatch(selected, 68)}</div>
+              </details> : renderMatch(selected, 68)}
               {renderExtras(selected)}
               <div className="self-start">{renderRemoveButton(selected)}</div>
             </div>
