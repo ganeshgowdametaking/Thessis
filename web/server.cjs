@@ -4,7 +4,6 @@ const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/clien
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const cors = require('cors');
 const cheerio = require('cheerio');
-const Groq = require('groq-sdk');
 const axios = require('axios');
 
 const app = express();
@@ -51,7 +50,7 @@ const emitSecurityEvent = async (event) => {
 const groqApiKey = process.env.GROQ_API_KEY;
 console.log('🔑 Groq API Key found:', groqApiKey ? 'Yes' : 'No');
 
-const groq = groqApiKey ? new Groq({ apiKey: groqApiKey }) : null;
+const groq = groqApiKey ? new (require('groq-sdk'))({ apiKey: groqApiKey }) : null;
 
 if (!groq) {
   console.warn('⚠️  WARNING: GROQ_API_KEY is not set in web/.env. AI extraction will not work.');
@@ -432,19 +431,20 @@ const forwardRankingResponse = async (upstreamRes, res) => {
   res.send(text);
 };
 
-// Scores one real applications.id against its job. Synchronous — the
-// ranking service parses the resume, scores it, and writes the result
-// straight onto applications.ai_* columns before responding. The referrer's
-// own Supabase session JWT is forwarded as-is so the ranking service can
-// verify it (auth.py); this proxy does not itself check permissions.
-app.post('/ranking/applications/:applicationId/rank', async (req, res) => {
+// Local Vite development proxies /api/rank-application here. The deployed
+// Vercel function implements that same route without this Express server.
+// The legacy /ranking/applications route remains for direct integrations.
+const forwardRankingRequest = async (applicationId, req, res) => {
   try {
+    if (typeof applicationId !== 'string' || !applicationId) {
+      return res.status(400).json({ error: 'Missing applicationId' });
+    }
     const authHeader = req.headers.authorization;
     if (!authHeader) {
       return res.status(401).json({ error: 'Missing Authorization header' });
     }
 
-    const upstreamRes = await fetch(`${rankingApiBase}/applications/${req.params.applicationId}/rank`, {
+    const upstreamRes = await fetch(`${rankingApiBase}/applications/${encodeURIComponent(applicationId)}/rank`, {
       method: 'POST',
       headers: { Authorization: authHeader },
     });
@@ -453,6 +453,14 @@ app.post('/ranking/applications/:applicationId/rank', async (req, res) => {
   } catch (error) {
     res.status(502).json({ error: `Ranking service unreachable at ${rankingApiBase}` });
   }
+};
+
+app.post('/rank-application', (req, res) => {
+  void forwardRankingRequest(req.query.applicationId, req, res);
+});
+
+app.post('/ranking/applications/:applicationId/rank', (req, res) => {
+  void forwardRankingRequest(req.params.applicationId, req, res);
 });
 
 app.listen(port, () => {

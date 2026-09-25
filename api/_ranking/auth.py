@@ -1,6 +1,7 @@
 import os
 
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError
 
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
 JWT_AUDIENCE = os.getenv("SUPABASE_JWT_AUDIENCE", "authenticated")
@@ -39,7 +40,7 @@ def get_current_user_id(authorization_header: str) -> str:
             algorithms=["HS256"],
             audience=JWT_AUDIENCE,
         )
-    except JWTError:
+    except InvalidTokenError:
         raise AuthError(401, "Invalid or expired token")
 
     user_id = payload.get("sub")

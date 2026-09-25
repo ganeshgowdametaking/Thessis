@@ -310,10 +310,19 @@ export const jobService = {
   // Keep the private Storage object path in the application. Authorized
   // viewers receive a short-lived signed URL when they open the resume.
   uploadResume: async (file: File, userId: string): Promise<string> => {
-    const path = `${userId}/${crypto.randomUUID()}.pdf`;
+    const extension = file.name.match(/\.(pdf|doc|docx)$/i)?.[1]?.toLowerCase();
+    if (!extension) {
+      throw new Error('Please upload a PDF or Word document.');
+    }
+    const contentTypes: Record<string, string> = {
+      pdf: 'application/pdf',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    };
+    const path = `${userId}/${crypto.randomUUID()}.${extension}`;
     const { error: uploadError } = await supabase.storage
       .from('resumes')
-      .upload(path, file, { upsert: false, contentType: 'application/pdf' });
+      .upload(path, file, { upsert: false, contentType: contentTypes[extension] });
 
     if (uploadError) {
       throw new Error(`Failed to upload resume: ${uploadError.message}`);

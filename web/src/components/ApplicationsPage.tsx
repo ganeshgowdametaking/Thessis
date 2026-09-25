@@ -451,10 +451,10 @@ export default function ApplicationsPage({
     }
   };
 
-  const resumeDownloadName = (application: Application) =>
-    `${application.user_profile?.full_name?.replace(/[^a-zA-Z0-9_-]+/g, '_') || 'Resume'}_${new Date().getFullYear()}.pdf`;
+  const resumeDownloadName = (application: Application, extension: string) =>
+    `${application.user_profile?.full_name?.replace(/[^a-zA-Z0-9_-]+/g, '_') || 'Resume'}_${new Date().getFullYear()}.${extension}`;
 
-  const getResumeViewUrl = async (application: Application): Promise<{ url: string; local: boolean }> => {
+  const getResumeViewUrl = async (application: Application): Promise<{ url: string; local: boolean; extension: string }> => {
     // Older applications stored the PDF directly in the database. Convert that
     // data URL to a browser Blob so it is never interpolated into document HTML.
     if (application.resume_url?.startsWith('data:')) {
@@ -463,7 +463,7 @@ export default function ApplicationsPage({
       }
       const response = await fetch(application.resume_url);
       if (!response.ok) throw new Error('Unable to read the stored resume.');
-      return { url: URL.createObjectURL(await response.blob()), local: true };
+      return { url: URL.createObjectURL(await response.blob()), local: true, extension: 'pdf' };
     }
 
     // The Edge Function checks the current user against the application before
@@ -474,7 +474,10 @@ export default function ApplicationsPage({
     if (error || typeof data?.signedUrl !== 'string') {
       throw new Error('The resume is unavailable or you do not have access.');
     }
-    return { url: data.signedUrl, local: false };
+    const extension = typeof data.extension === 'string' && /^(pdf|doc|docx)$/.test(data.extension)
+      ? data.extension
+      : 'pdf';
+    return { url: data.signedUrl, local: false, extension };
   };
 
   const handleViewResume = async (application: Application) => {
@@ -507,7 +510,7 @@ export default function ApplicationsPage({
         }
         const link = document.createElement('a');
         link.href = downloadUrl;
-        link.download = resumeDownloadName(application);
+        link.download = resumeDownloadName(application, resume.extension);
         document.body.appendChild(link);
         link.click();
         link.remove();

@@ -70,7 +70,7 @@ serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceRoleKey);
   const { data: application, error: applicationError } = await admin
     .from('applications')
-    .select('applicant_id, job_id, assigned_referrer_id, assignment_expires_at, resume_url')
+    .select('applicant_id, job_id, resume_url')
     .eq('id', applicationId)
     .maybeSingle();
   if (applicationError) return json(500, { error: 'Could not load application' });
@@ -83,11 +83,7 @@ serve(async (req) => {
     .maybeSingle();
   if (jobError || !job) return json(500, { error: 'Could not load job' });
 
-  const allowed = user.id === application.applicant_id ||
-    user.id === job.created_by ||
-    (user.id === application.assigned_referrer_id &&
-      !!application.assignment_expires_at &&
-      new Date(application.assignment_expires_at).getTime() > Date.now());
+  const allowed = user.id === application.applicant_id || user.id === job.created_by;
   if (!allowed) return json(403, { error: 'You cannot view this resume' });
 
   const path = objectPath(application.resume_url || '', supabaseUrl);
@@ -97,5 +93,6 @@ serve(async (req) => {
 
   const { data, error } = await admin.storage.from('resumes').createSignedUrl(path, 60);
   if (error || !data?.signedUrl) return json(404, { error: 'Resume file is unavailable' });
-  return json(200, { signedUrl: data.signedUrl });
+  const extension = path.match(/\.(pdf|doc|docx)$/i)?.[1]?.toLowerCase() || 'pdf';
+  return json(200, { signedUrl: data.signedUrl, extension });
 });

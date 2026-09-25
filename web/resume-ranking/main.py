@@ -104,8 +104,8 @@ def rank_application(application_id: str, caller_id: str = Depends(get_current_u
     so there's no long-running work to background — and a fire-and-forget
     background task would be unreliable on a scale-to-zero host anyway (the
     instance can be recycled between the response and the task finishing).
-    The service-role RPCs check the verified caller's job ownership or live
-    referrer assignment both before reading private inputs and before saving.
+    The service-role RPCs check the verified caller's job ownership both
+    before reading private inputs and before saving.
     """
     try:
         record = supabase_client.get_application_for_ranking(application_id, caller_id)

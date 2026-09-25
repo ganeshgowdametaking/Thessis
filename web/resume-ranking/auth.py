@@ -1,7 +1,8 @@
 import os
 
 from fastapi import Header, HTTPException
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError
 
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
 JWT_AUDIENCE = os.getenv("SUPABASE_JWT_AUDIENCE", "authenticated")
@@ -28,7 +29,7 @@ async def get_current_user_id(authorization: str = Header(default="")) -> str:
             algorithms=["HS256"],
             audience=JWT_AUDIENCE,
         )
-    except JWTError:
+    except InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     user_id = payload.get("sub")

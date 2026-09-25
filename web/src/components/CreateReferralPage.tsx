@@ -184,10 +184,8 @@ const CreateReferralPage: React.FC = () => {
       const title = formData.title.trim();
       const company = formData.company.trim();
 
-      // If this role already exists as a posting (same company + title),
-      // join its referrer pool instead of creating a competing duplicate —
-      // the platform routes candidates to one canonical job per role, not
-      // one per person who refers for it.
+      // Reuse this user's own active posting for the same company and title.
+      // Another user's posting cannot establish that this user works there.
       const { data: existingJobId, error: matchError } = await supabase
         .rpc('find_canonical_job', { p_company: company, p_title: title } as any);
 
@@ -204,7 +202,7 @@ const CreateReferralPage: React.FC = () => {
         }
 
         setSubmitKind('joined');
-        setSubmitMessage(`${title} at ${company} already has an active referral — you've joined as a referrer for it instead of creating a duplicate.`);
+        setSubmitMessage(`${title} at ${company} is already one of your active referrals, so we reused that posting.`);
       } else {
         const jobData = {
           title,
@@ -671,7 +669,7 @@ const CreateReferralPage: React.FC = () => {
                         : <Check className="h-4 w-4 text-success shrink-0 mt-0.5" strokeWidth={3} />}
                       <div className="text-[12.5px]">
                         <p className={`font-bold ${submitKind === 'joined' ? 'text-primary-hover' : 'text-success-ink'}`}>
-                          {submitKind === 'joined' ? "You've joined an existing referral" : 'Referral posted'}
+                          {submitKind === 'joined' ? 'Existing referral reused' : 'Referral posted'}
                         </p>
                         <p className={`mt-0.5 ${submitKind === 'joined' ? 'text-slate-600' : 'text-success-ink'}`}>{submitMessage}</p>
                       </div>

@@ -167,7 +167,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
     if (suggestion.type === 'profile') {
       const profileId = suggestion.userId || suggestion.id;
       if (profileId) {
-        navigate(`/profile/${profileId}`);
+        navigate(`/user/${profileId}`);
       }
     } else if (suggestion.type === 'company') {
       navigate(`/search-results?q=${encodeURIComponent(suggestion.company)}`);
@@ -203,7 +203,7 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
         if (suggestion.type === 'profile') {
           const profileId = suggestion.userId || suggestion.id;
           if (profileId) {
-            navigate(`/profile/${profileId}`);
+            navigate(`/user/${profileId}`);
           }
         } else if (suggestion.type === 'company') {
           navigate(`/search-results?q=${encodeURIComponent(suggestion.company)}`);

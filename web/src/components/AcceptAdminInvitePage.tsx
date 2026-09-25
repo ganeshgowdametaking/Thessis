@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AlertCircle, BarChart3, Check, Loader2, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const AcceptAdminInvitePage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState<'pending'|'signin'|'success'|'error'>('pending');
+  const [status, setStatus] = useState<'pending'|'signin'|'ready'|'success'|'error'>('pending');
   const [message, setMessage] = useState('');
+  const acceptingRef = useRef(false);
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const navigate = useNavigate();
   const token = searchParams.get('token');
 
@@ -17,37 +19,13 @@ const AcceptAdminInvitePage: React.FC = () => {
       return;
     }
     let active = true;
-    let redirectTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const acceptInvite = async () => {
+    const checkSession = async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (!active) return;
         if (sessionError) throw sessionError;
-        if (!session) {
-          setStatus('signin');
-          return;
-        }
-
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/accept-admin-invite`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ token }),
-        });
-        const data = await response.json();
-        if (!active) return;
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || 'Failed to accept invitation.');
-        }
-        sessionStorage.removeItem('adminInviteReturnTo');
-        setStatus('success');
-        setMessage('You have been promoted to admin! You can now access the analytics dashboard. Redirecting...');
-        // Reload so the auth context picks up the new administrator role.
-        redirectTimer = setTimeout(() => window.location.assign('/settings'), 3000);
+        setStatus(session ? 'ready' : 'signin');
       } catch (error) {
         if (!active) return;
         setStatus('error');
@@ -55,12 +33,50 @@ const AcceptAdminInvitePage: React.FC = () => {
       }
     };
 
-    void acceptInvite();
+    void checkSession();
     return () => {
       active = false;
-      if (redirectTimer) clearTimeout(redirectTimer);
+      if (redirectTimer.current) clearTimeout(redirectTimer.current);
     };
-  }, [token, navigate]);
+  }, [token]);
+
+  const handleAcceptInvite = async () => {
+    if (!token || acceptingRef.current) return;
+    acceptingRef.current = true;
+    setStatus('pending');
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) {
+        setStatus('signin');
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/accept-admin-invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ token }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to accept invitation.');
+      }
+      sessionStorage.removeItem('adminInviteReturnTo');
+      setStatus('success');
+      setMessage('You have been promoted to admin! You can now access the analytics dashboard. Redirecting...');
+      // Reload so the auth context picks up the new administrator role.
+      redirectTimer.current = setTimeout(() => window.location.assign('/settings'), 3000);
+    } catch (error) {
+      setStatus('error');
+      setMessage(error instanceof Error ? error.message : 'Failed to accept invitation.');
+    } finally {
+      acceptingRef.current = false;
+    }
+  };
 
   const handleSignIn = () => {
     if (!token) return;
@@ -118,7 +134,7 @@ const AcceptAdminInvitePage: React.FC = () => {
                 <Loader2 className="h-8 w-8 text-primary animate-spin" />
               </span>
               <div className="flex flex-col gap-1.5">
-                <h1 className="font-display font-extrabold text-[22px] text-ink">Accepting your invitation…</h1>
+                <h1 className="font-display font-extrabold text-[22px] text-ink">Checking your invitation…</h1>
                 <p className="text-[13.5px] leading-relaxed text-slate-500">Hang tight — this only takes a moment.</p>
               </div>
               <div className="w-full h-1.5 rounded-full bg-ink-wash overflow-hidden mt-1.5">
@@ -142,6 +158,25 @@ const AcceptAdminInvitePage: React.FC = () => {
                 className="w-full mt-1 rounded-xl bg-primary py-3 text-sm font-bold text-white hover:bg-primary-hover transition-colors"
               >
                 Sign in
+              </button>
+            </>
+          )}
+
+          {status === 'ready' && (
+            <>
+              <span className="h-[72px] w-[72px] rounded-full bg-ink-wash flex items-center justify-center">
+                <UserPlus className="h-8 w-8 text-primary" />
+              </span>
+              <div className="flex flex-col gap-1.5">
+                <h1 className="font-display font-extrabold text-[22px] text-ink">Accept your admin invitation</h1>
+                <p className="text-[13.5px] leading-relaxed text-slate-500">Continue with the account that received this invitation.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleAcceptInvite()}
+                className="w-full mt-1 rounded-xl bg-primary py-3 text-sm font-bold text-white hover:bg-primary-hover transition-colors"
+              >
+                Accept invitation
               </button>
             </>
           )}

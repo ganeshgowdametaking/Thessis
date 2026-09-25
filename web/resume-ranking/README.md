@@ -8,7 +8,7 @@ AI calls, so it can't hallucinate a skill that isn't in the resume.
 It has no database of its own. It reads/writes the real Thessis Supabase
 `applications`/`jobs`/`profiles` tables directly via two service-role-only
 Postgres RPCs (`get_application_for_ranking`, `save_application_ranking` —
-see `supabase/migrations/20260910090000_applicant_ranking_columns_and_rpcs.sql`).
+see `supabase/migrations/20260925110000_authorize_resume_ranking.sql`).
 
 ### Local setup
 
@@ -30,20 +30,22 @@ see `supabase/migrations/20260910090000_applicant_ranking_columns_and_rpcs.sql`)
 ### API
 
 One endpoint: `POST /applications/{application_id}/rank`, `Authorization: Bearer <supabase session JWT>` required.
-Synchronously downloads the applicant's resume from the public `resumes` Storage bucket, scores it against the
-job description, writes `ai_score`/`ai_semantic_score`/`ai_skill_score`/`ai_rationale`/`ai_ranked_at` onto that
+After the RPC confirms that the caller owns the job, the service
+downloads the applicant's resume from the private `resumes` Storage bucket. The scoring parser currently reads
+PDF files. It scores the resume against the job description, writes `ai_score`/`ai_semantic_score`/`ai_skill_score`/`ai_rationale`/`ai_ranked_at` onto that
 `applications` row, and returns the same result in the response. No job-creation step, no leaderboard polling —
 each application is scored independently and the result is read back by re-querying `applications` as usual.
 
 ### Thessis integration
 
-- Frontend (`ApplicationsPage.tsx`) calls `VITE_RESUME_RANKING_API` (default `/api/ranking`) per applicant.
-- Vite proxies `/api/*` to `web/server.cjs` in local dev.
-- `web/server.cjs`'s `/ranking/applications/:applicationId/rank` route forwards to `RANKING_API_URL`
-  (default `http://127.0.0.1:8000`), passing the caller's `Authorization` header through unchanged.
-- In production this service is meant to run on a free scale-to-zero host (e.g. Cloud Run — the `Dockerfile`
-  here builds directly for it and respects the `PORT` env var it injects); point `RANKING_API_URL`
-  (or `VITE_RESUME_RANKING_API`, if calling it directly without going through `server.cjs`) at that deployed URL.
+- Frontend (`ApplicationsPage.tsx`) calls `/api/rank-application?applicationId=...` by default. The repository-root
+  `api/rank-application.py` Vercel function serves this route in production.
+- In local development, Vite proxies `/api/*` to `web/server.cjs`. Its `/rank-application` route forwards the
+  request to this FastAPI service at `RANKING_API_URL` (default `http://127.0.0.1:8000`), preserving the caller's
+  `Authorization` header.
+- A separate deployment of this FastAPI service can be used by setting `VITE_RESUME_RANKING_API` to its API base
+  only if a compatible `/rank-application?applicationId=...` adapter is also provided. The FastAPI service itself
+  exposes `/applications/{application_id}/rank`.
 
 ### Security baseline
 
