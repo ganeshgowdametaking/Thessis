@@ -8,92 +8,133 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function generateToken(length = 48) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+function generateToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function hashToken(token: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+  if (req.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed' }, 405);
+  }
 
   try {
+    const authorization = req.headers.get('Authorization');
+    const accessToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+    if (!accessToken) {
+      return jsonResponse({ error: 'Sign in as an administrator to send invitations' }, 401);
+    }
+
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    // @ts-expect-error: Deno.env is available in Supabase Edge Functions
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    // @ts-expect-error: Deno.env is available in Supabase Edge Functions
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+      return jsonResponse({ error: 'Server configuration missing' }, 500);
+    }
+
+    const authClient = createClient(supabaseUrl, anonKey);
+    const { data: { user }, error: authError } = await authClient.auth.getUser(accessToken);
+    if (authError || !user?.email || !user.email_confirmed_at) {
+      return jsonResponse({ error: 'A confirmed sign-in is required' }, 401);
+    }
+
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      supabaseUrl,
+      serviceRoleKey
     );
 
-    const { email } = await req.json();
-    if (!email) {
-      return new Response(
-        JSON.stringify({ error: 'Email is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const { data: caller, error: callerError } = await supabaseClient
+      .from('profiles')
+      .select('id, email, role')
+      .eq('id', user.id)
+      .maybeSingle();
+    const isSuperUser = user.email.toLowerCase() === 'ganeshgowdaapplication@gmail.com';
+    if (callerError || !caller || caller.email?.toLowerCase() !== user.email.toLowerCase() ||
+        (caller.role !== 'admin' && !isSuperUser)) {
+      return jsonResponse({ error: 'Administrator access required' }, 403);
+    }
+
+    const body = await req.json();
+    const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
+    if (!/^[^\s@%_]+@[^\s@%_]+\.[^\s@%_]+$/.test(email) || email.length > 254) {
+      return jsonResponse({ error: 'A valid email is required' }, 400);
     }
 
     // Check if user exists
     const { data: userProfile, error: userError } = await supabaseClient
       .from('profiles')
       .select('id, email, role')
-      .eq('email', email)
+      .ilike('email', email)
       .maybeSingle();
     if (userError || !userProfile) {
-      return new Response(
-        JSON.stringify({ error: 'User not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'User not found' }, 404);
     }
     if (userProfile.role === 'admin') {
-      return new Response(
-        JSON.stringify({ error: 'User is already an admin' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'User is already an admin' }, 400);
+    }
+    const { data: targetAuth, error: targetAuthError } = await supabaseClient.auth.admin.getUserById(userProfile.id);
+    if (targetAuthError || !targetAuth?.user?.email_confirmed_at ||
+        targetAuth.user.email?.toLowerCase() !== email) {
+      return jsonResponse({ error: 'A confirmed user with this email was not found' }, 404);
     }
 
-    // Generate token and expiration
-    const token = generateToken();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
-
-    // Store in admin_invites table
-    const { error: inviteError } = await supabaseClient
-      .from('admin_invites')
-      .upsert({
-        email,
-        token,
-        expires_at: expiresAt,
-        accepted: false,
-        created_at: new Date().toISOString(),
-      });
-    if (inviteError) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to store invitation' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Send email via Mailgun
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
     const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY');
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
     const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN');
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
     const mailgunFromEmail = Deno.env.get('MAILGUN_FROM_EMAIL');
-    
     if (!mailgunApiKey || !mailgunDomain) {
-      return new Response(
-        JSON.stringify({ error: 'Mailgun configuration missing' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Mailgun configuration missing' }, 500);
     }
 
+    // Generate token and expiration
+    const token = generateToken();
+    const tokenHash = await hashToken(token);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+
+    // Only a hash is stored; the emailed link contains the random token.
+    const { error: expireError } = await supabaseClient
+      .from('admin_invites')
+      .update({ expires_at: new Date().toISOString() })
+      .eq('email', email)
+      .eq('accepted', false);
+    if (expireError) {
+      return jsonResponse({ error: 'Failed to prepare invitation' }, 500);
+    }
+    const { error: inviteError } = await supabaseClient
+      .from('admin_invites')
+      .insert({
+        email,
+        token: tokenHash,
+        expires_at: expiresAt,
+      });
+    if (inviteError) {
+      return jsonResponse({ error: 'Failed to store invitation' }, 500);
+    }
+
+    // Send email via Mailgun
     // @ts-expect-error: Deno.env is available in Supabase Edge Functions
-    const inviteLink = `${Deno.env.get('FRONTEND_URL') || 'https://tanktide.com'}/accept-admin-invite?token=${token}`;
+    const frontendUrl = (Deno.env.get('FRONTEND_URL') || 'https://tanktide.com').replace(/\/$/, '');
+    const inviteLink = `${frontendUrl}/accept-admin-invite?token=${token}`;
     const emailBody = `
 <!DOCTYPE html>
 <html lang="en">
@@ -161,21 +202,15 @@ serve(async (req) => {
     });
 
     if (!mailgunRes.ok) {
-      const errorData = await mailgunRes.text();
-      return new Response(
-        JSON.stringify({ error: 'Failed to send invitation email', details: errorData }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      await supabaseClient.from('admin_invites')
+        .update({ expires_at: new Date().toISOString() })
+        .eq('token', tokenHash);
+      return jsonResponse({ error: 'Failed to send invitation email' }, 500);
     }
 
-    return new Response(
-      JSON.stringify({ success: true, message: 'Invitation sent successfully' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return jsonResponse({ success: true, message: 'Invitation sent successfully' });
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error?.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error('Send admin invite error:', error);
+    return jsonResponse({ error: 'Internal server error' }, 500);
   }
-}); 
+});

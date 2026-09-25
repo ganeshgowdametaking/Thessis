@@ -30,22 +30,9 @@ const OnboardingPage = React.lazy(() => import('./components/OnboardingPage'));
 const UserProfilePage = React.lazy(() => import('./components/UserProfilePage'));
 const SettingsPage = React.lazy(() => import('./components/SettingsPage'));
 const AnalyticsDashboard = React.lazy(() => import('./components/AnalyticsDashboard'));
-const CompanyDashboardPage = React.lazy(() => import('./components/CompanyDashboardPage'));
-const CompanyJobsPage = React.lazy(() => import('./components/CompanyJobsPage'));
-const CompanyNewJobPage = React.lazy(() => import('./components/CompanyNewJobPage'));
-const CompanyApplicantsPage = React.lazy(() => import('./components/CompanyApplicantsPage'));
-const CompanyIncomingReferralsPage = React.lazy(() => import('./components/CompanyIncomingReferralsPage'));
-const CompanyProfileBrandingPage = React.lazy(() => import('./components/CompanyProfileBrandingPage'));
-const CompanyOnboardingPage = React.lazy(() => import('./components/CompanyOnboardingPage'));
-const CompanyJobSuccessPage = React.lazy(() => import('./components/CompanyJobSuccessPage'));
-const CompanySignupPage = React.lazy(() => import('./components/CompanySignupPage'));
-const CompanyLoginPage = React.lazy(() => import('./components/CompanyLoginPage'));
-const CompanyConfirmationPage = React.lazy(() => import('./components/CompanyConfirmationPage'));
-const CompanyLandingPage = React.lazy(() => import('./components/CompanyLandingPage'));
 const AcceptAdminInvitePage = React.lazy(() => import('./components/AcceptAdminInvitePage'));
 import AuthCallback from './components/AuthCallback';
 import ScrollToTop from './components/ScrollToTop';
-import CompanyLayout from './components/CompanyLayout';
 import { analyticsService } from './services/analyticsService';
 import { captureUTMParams } from './utils/utmHandler';
 
@@ -296,9 +283,6 @@ function AppContent() {
   }, [location.pathname]);
 
 
-  // Helper to check if user is a company user
-  const isCompanyUser = user && (user.user_metadata?.user_type === 'company' || user.user_metadata?.user_type === 'employer');
-
   // Ref to track if we've already handled the initial redirect
   const hasRedirected = useRef(false);
 
@@ -326,31 +310,9 @@ function AppContent() {
       <Route path="/cookie-policy" element={<CookiePolicyWrapper />} />
       <Route path="/terms" element={<TermsOfServiceWrapper />} />
       <Route path="/data-request" element={<DataRequestFormWrapper />} />
+      <Route path="/accept-admin-invite" element={<AcceptAdminInvitePage />} />
 
-      {/* Company routes - only for company users with separate layout */}
-      {isCompanyUser ? (
-        <>
-          <Route path="/company-dashboard" element={<CompanyLayout><CompanyDashboardPage /></CompanyLayout>} />
-          <Route path="/company-hiring/jobs" element={<CompanyLayout><CompanyJobsPage /></CompanyLayout>} />
-          <Route path="/company-hiring/new" element={<CompanyLayout><CompanyNewJobPage /></CompanyLayout>} />
-          <Route path="/company-hiring/applicants" element={<CompanyLayout><CompanyApplicantsPage /></CompanyLayout>} />
-          <Route path="/company-referrals/incoming" element={<CompanyLayout><CompanyIncomingReferralsPage /></CompanyLayout>} />
-          <Route path="/company-referrals/outgoing" element={<CompanyLayout><div>Outgoing Invites</div></CompanyLayout>} />
-          <Route path="/company-referrals/partners" element={<CompanyLayout><div>My Partners</div></CompanyLayout>} />
-          <Route path="/company-referrals/invite" element={<CompanyLayout><div>Invite Partner</div></CompanyLayout>} />
-          <Route path="/company-profile/branding" element={<CompanyLayout><CompanyProfileBrandingPage /></CompanyLayout>} />
-          <Route path="/company-profile/careers" element={<CompanyLayout><div>Careers Page Preview</div></CompanyLayout>} />
-          <Route path="/company-profile/team" element={<CompanyLayout><div>Team & Access</div></CompanyLayout>} />
-          <Route path="/company-profile/integrations" element={<CompanyLayout><div>Integrations & API Keys</div></CompanyLayout>} />
-          <Route path="/company-settings/account" element={<CompanyLayout><div>Account (Email, Password, 2FA)</div></CompanyLayout>} />
-          <Route path="/company-settings/notifications" element={<CompanyLayout><div>Notifications & Digests</div></CompanyLayout>} />
-          <Route path="/company-settings/help" element={<CompanyLayout><div>Help & Support (Docs, Chat)</div></CompanyLayout>} />
-          <Route path="/company-dashboard/activity" element={<CompanyLayout><div>Recent Activity Feed</div></CompanyLayout>} />
-          <Route path="/company-dashboard/actions" element={<CompanyLayout><div>Quick Actions (Post Job, Invite Partner)</div></CompanyLayout>} />
-        </>
-      ) : null}
-
-      {/* Regular user routes - for all authenticated users (including company users) */}
+      {/* Signed-in user routes */}
       {user ? (
         <>
           <Route path="/analytics" element={<AnalyticsDashboard />} />
@@ -364,7 +326,6 @@ function AppContent() {
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/user/:userId" element={<UserProfilePageWrapper />} />
           <Route path="/settings" element={<SettingsPageWrapper />} />
-          <Route path="/accept-admin-invite" element={<AcceptAdminInvitePage />} />
           <Route path="*" element={<Navigate to="/jobs" replace />} />
         </>
       ) : null}
@@ -372,12 +333,6 @@ function AppContent() {
       {/* Public routes - for non-authenticated users */}
       {!user && (
         <>
-          <Route path="/companies" element={<CompanyLandingPage />} />
-          <Route path="/company-signup" element={<CompanySignupPage />} />
-          <Route path="/company-login" element={<CompanyLoginPage />} />
-          <Route path="/company-confirmation" element={<CompanyConfirmationPage />} />
-          <Route path="/company-onboarding" element={<CompanyOnboardingPage />} />
-          <Route path="/company-job-success" element={<CompanyJobSuccessPage />} />
           {/* Temporary route for testing Password Reset page */}
           <Route path="/reset-password" element={<PasswordResetPage />} />
           <Route path="/login" element={<AuthPage key="signin" initialMode="signin" />} />
@@ -387,7 +342,7 @@ function AppContent() {
         </>
       )}
     </Routes>
-  ), [user?.id, isAdmin, isCompanyUser]);
+  ), [user?.id, isAdmin]);
 
   // If this is a password reset flow, show the password reset page regardless of authentication status
   if (isResetFlow) {

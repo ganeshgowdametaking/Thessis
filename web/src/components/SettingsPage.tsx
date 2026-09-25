@@ -8,7 +8,7 @@ import { AlertCircle, Briefcase, Check, Loader2, Lock, LogOut, Mail, MessageSqua
 type SettingsTab = 'account' | 'security' | 'work-email' | 'feedback' | 'admin';
 
 const SettingsPage: React.FC = () => {
-  const { signOut, updatePassword, updateProfile, user, profile } = useAuthContext();
+  const { signOut, updatePassword, refreshProfile, user, profile } = useAuthContext();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<SettingsTab>('account');
   const [passwordFormOpen, setPasswordFormOpen] = useState(false);
@@ -252,12 +252,7 @@ const SettingsPage: React.FC = () => {
         setMessage({ type: 'error', text: error || 'Invalid verification code.' });
         return;
       }
-      await updateProfile({
-        secondary_email: normalizedEmail,
-        secondary_email_verified: true,
-        work_email: normalizedEmail,
-        work_email_verified: true
-      });
+      await refreshProfile();
       setVerificationStep('verified');
       setMessage({ type: 'success', text: 'Email verified successfully!' });
     } catch (err: any) {

@@ -1,5 +1,8 @@
+import base64
+import binascii
 import os
 from typing import Optional
+from urllib.parse import quote, unquote, urlsplit
 
 import httpx
 
@@ -22,19 +25,16 @@ def _auth_headers() -> dict:
     }
 
 
-def get_application_for_ranking(application_id: str) -> Optional[dict]:
-    """Calls the get_application_for_ranking() Postgres RPC (service-role
-    only, see supabase/migrations/20260910090000_applicant_ranking_columns_and_rpcs.sql)
-    for the job description, resume URL, and profile text needed to score
-    one real Thessis application. Returns None if the application doesn't
-    exist."""
+def get_application_for_ranking(application_id: str, caller_id: str) -> Optional[dict]:
+    """Fetch only an application the verified caller can rank. The SQL RPC
+    enforces ownership or a live referrer assignment."""
     _require_configured()
 
     with httpx.Client(timeout=15) as client:
         res = client.post(
             f"{SUPABASE_URL}/rest/v1/rpc/get_application_for_ranking",
             headers=_auth_headers(),
-            json={"p_application_id": application_id},
+            json={"p_application_id": application_id, "p_actor_id": caller_id},
         )
         if res.status_code != 200:
             raise RuntimeError(f"get_application_for_ranking failed ({res.status_code}): {res.text}")
@@ -45,13 +45,13 @@ def get_application_for_ranking(application_id: str) -> Optional[dict]:
 
 def save_application_ranking(
     application_id: str,
+    caller_id: str,
     score: float,
     semantic_score: float,
     skill_score: float,
     rationale: str,
-) -> None:
-    """Calls the save_application_ranking() Postgres RPC to persist one
-    application's score directly onto the real applications table."""
+) -> bool:
+    """Persist only if the caller still has access after scoring."""
     _require_configured()
 
     with httpx.Client(timeout=15) as client:
@@ -60,22 +60,74 @@ def save_application_ranking(
             headers=_auth_headers(),
             json={
                 "p_application_id": application_id,
+                "p_actor_id": caller_id,
                 "p_score": score,
                 "p_semantic_score": semantic_score,
                 "p_skill_score": skill_score,
                 "p_rationale": rationale,
             },
         )
-        if res.status_code != 204 and res.status_code != 200:
-            raise RuntimeError(f"save_application_ranking failed ({res.status_code}): {res.text}")
-
-
-def download_resume(resume_url: str) -> bytes:
-    """Resumes live in the public `resumes` Storage bucket, so this is a
-    plain GET — no service-role auth needed to read them back."""
-    with httpx.Client(timeout=30, follow_redirects=True) as client:
-        res = client.get(resume_url)
         if res.status_code != 200:
-            raise RuntimeError(f"Resume download failed ({res.status_code}): {res.text}")
+            raise RuntimeError(f"save_application_ranking failed ({res.status_code}): {res.text}")
+        return res.json()
 
+
+class ResumeUnavailableError(Exception):
+    def __init__(self, public_message: str, status_code: int = 422):
+        super().__init__(public_message)
+        self.public_message = public_message
+        self.status_code = status_code
+
+
+def _resume_object_path(resume_url: str) -> str:
+    """Accept new bucket-relative paths and legacy public URLs from our
+    Supabase project; reject arbitrary URLs and malformed object paths."""
+    source = urlsplit(resume_url)
+    if source.scheme or source.netloc:
+        project = urlsplit(SUPABASE_URL)
+        prefix = f"{project.path.rstrip('/')}/storage/v1/object/public/resumes/"
+        if (
+            source.scheme != project.scheme
+            or source.netloc != project.netloc
+            or not source.path.startswith(prefix)
+        ):
+            raise ResumeUnavailableError("Resume link is invalid — it is not in Thessis storage.")
+        path = unquote(source.path[len(prefix):])
+    else:
+        path = resume_url
+
+    if (
+        not path
+        or path.startswith("/")
+        or "\\" in path
+        or "?" in path
+        or "#" in path
+        or any(part in ("", ".", "..") for part in path.split("/"))
+        or any(ord(char) < 32 for char in path)
+    ):
+        raise ResumeUnavailableError("Resume link is invalid — it is not in Thessis storage.")
+    return path
+
+
+def download_resume(resume_url: str, expected_owner_id: str) -> bytes:
+    """Read a private Storage object with service-role auth, after the SQL
+    authorization check. Historical PDF data URIs remain readable."""
+    if resume_url.startswith("data:application/pdf;base64,"):
+        try:
+            return base64.b64decode(resume_url.split(",", 1)[1], validate=True)
+        except binascii.Error as exc:
+            raise ResumeUnavailableError("Resume data is invalid.") from exc
+
+    _require_configured()
+    path = _resume_object_path(resume_url)
+    if path.split("/", 1)[0] != expected_owner_id:
+        raise ResumeUnavailableError("Resume link does not belong to this applicant.")
+    url = f"{SUPABASE_URL}/storage/v1/object/authenticated/resumes/{quote(path, safe='/')}"
+    with httpx.Client(timeout=30, follow_redirects=False) as client:
+        res = client.get(url, headers=_auth_headers())
+        if res.status_code != 200:
+            raise ResumeUnavailableError(
+                "Resume file could not be found or retrieved.",
+                status_code=502 if res.status_code >= 500 else 422,
+            )
     return res.content

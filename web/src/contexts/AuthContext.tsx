@@ -24,6 +24,7 @@ interface AuthContextType {
   resendOTP: (email: string) => Promise<any>
   resetPassword: (email: string) => Promise<any>
   updateProfile: (updates: any) => Promise<void>
+  refreshProfile: () => Promise<void>
   updatePassword: (password: string, options?: { logoutOthers?: boolean }) => Promise<any>
 }
 
@@ -186,6 +187,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const refreshProfile = async () => {
+    if (!user) throw new Error('Not authenticated')
+    const refreshedProfile = await profileService.getCurrentProfile()
+    if (!refreshedProfile) throw new Error('Profile not found')
+    setProfile(refreshedProfile)
+  }
+
   // Combine auth error and profile error
   const combinedError = authError || error
 
@@ -207,6 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resendOTP,
     resetPassword,
     updateProfile,
+    refreshProfile,
     updatePassword
   }
 

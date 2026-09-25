@@ -26,8 +26,14 @@ const AuthCallback: React.FC = () => {
 
         if (data.session) {
           console.log('✅ Authentication successful');
-          // Redirect to jobs page or dashboard
-          navigate('/jobs', { replace: true });
+          const pendingInvite = sessionStorage.getItem('adminInviteReturnTo');
+          sessionStorage.removeItem('adminInviteReturnTo');
+          const inviteUrl = pendingInvite ? new URL(pendingInvite, window.location.origin) : null;
+          const returnToInvite = inviteUrl?.origin === window.location.origin &&
+            inviteUrl.pathname === '/accept-admin-invite' && inviteUrl.searchParams.has('token')
+            ? `${inviteUrl.pathname}${inviteUrl.search}`
+            : null;
+          navigate(returnToInvite || '/jobs', { replace: true });
         } else {
           console.log('❌ No session found');
           setError('Authentication failed. Please try again.');
@@ -77,4 +83,4 @@ const AuthCallback: React.FC = () => {
   return null;
 };
 
-export default AuthCallback; 
+export default AuthCallback;

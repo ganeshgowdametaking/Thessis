@@ -1,8 +1,11 @@
+import base64
+import binascii
 import json
 import os
 import urllib.error
 import urllib.request
 from typing import Optional
+from urllib.parse import quote, unquote, urlsplit
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
@@ -40,17 +43,14 @@ def _post_json(url: str, body: dict, timeout: int = 15) -> tuple:
         return exc.code, exc.read()
 
 
-def get_application_for_ranking(application_id: str) -> Optional[dict]:
-    """Calls the get_application_for_ranking() Postgres RPC (service-role
-    only, see supabase/migrations/20260910090000_applicant_ranking_columns_and_rpcs.sql)
-    for the job description, resume URL, and profile text needed to score
-    one real Thessis application. Returns None if the application doesn't
-    exist."""
+def get_application_for_ranking(application_id: str, caller_id: str) -> Optional[dict]:
+    """Read ranking inputs only when the verified caller owns the job or is
+    its currently assigned referrer. The service-role RPC enforces this."""
     _require_configured()
 
     status, body = _post_json(
         f"{SUPABASE_URL}/rest/v1/rpc/get_application_for_ranking",
-        {"p_application_id": application_id},
+        {"p_application_id": application_id, "p_actor_id": caller_id},
     )
     if status != 200:
         raise RuntimeError(f"get_application_for_ranking failed ({status}): {body.decode(errors='replace')}")
@@ -61,27 +61,30 @@ def get_application_for_ranking(application_id: str) -> Optional[dict]:
 
 def save_application_ranking(
     application_id: str,
+    caller_id: str,
     score: float,
     semantic_score: float,
     skill_score: float,
     rationale: str,
-) -> None:
-    """Calls the save_application_ranking() Postgres RPC to persist one
-    application's score directly onto the real applications table."""
+) -> bool:
+    """Persist a score only if the caller still has access. A referral may
+    be reassigned while the resume is being parsed and scored."""
     _require_configured()
 
     status, body = _post_json(
         f"{SUPABASE_URL}/rest/v1/rpc/save_application_ranking",
         {
             "p_application_id": application_id,
+            "p_actor_id": caller_id,
             "p_score": score,
             "p_semantic_score": semantic_score,
             "p_skill_score": skill_score,
             "p_rationale": rationale,
         },
     )
-    if status not in (200, 204):
+    if status != 200:
         raise RuntimeError(f"save_application_ranking failed ({status}): {body.decode(errors='replace')}")
+    return json.loads(body)
 
 
 class ResumeUnavailableError(Exception):
@@ -99,29 +102,60 @@ class ResumeUnavailableError(Exception):
             print(f"[resume_unavailable_detail] {detail}")
 
 
-def _is_valid_resume_source(resume_url: str) -> bool:
-    # Two legitimate formats coexist in this column: newer applications point
-    # at the real `resumes` Storage bucket, but applications from before that
-    # bucket existed still store the resume as an inline base64 data URI
-    # directly in resume_url — urllib.request handles `data:` natively, so
-    # this only needs to let it through, not decode it specially.
-    if resume_url.startswith("data:application/pdf"):
-        return True
-    return bool(SUPABASE_URL) and resume_url.startswith(f"{SUPABASE_URL}/storage/")
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Do not forward the service-role Authorization header to a redirect."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 
-def download_resume(resume_url: str) -> bytes:
-    """Resumes live in the public `resumes` Storage bucket, so this is a
-    plain GET — no service-role auth needed to read them back."""
-    if not _is_valid_resume_source(resume_url):
-        raise ResumeUnavailableError(
-            "Resume link is invalid — it doesn't point to a file in Thessis storage.",
-            detail=f"resume_url did not match {SUPABASE_URL}/storage/*: {resume_url}",
-        )
+def _resume_object_path(resume_url: str) -> str:
+    """Accept new bucket-relative paths and old public URLs from this exact
+    Supabase project. Never fetch an arbitrary URL supplied by an applicant."""
+    source = urlsplit(resume_url)
+    if source.scheme or source.netloc:
+        project = urlsplit(SUPABASE_URL)
+        prefix = f"{project.path.rstrip('/')}/storage/v1/object/public/resumes/"
+        if (
+            source.scheme != project.scheme
+            or source.netloc != project.netloc
+            or not source.path.startswith(prefix)
+        ):
+            raise ResumeUnavailableError("Resume link is invalid — it is not in Thessis storage.")
+        path = unquote(source.path[len(prefix):])
+    else:
+        path = resume_url
 
-    req = urllib.request.Request(resume_url, method="GET")
+    if (
+        not path
+        or path.startswith("/")
+        or "\\" in path
+        or "?" in path
+        or "#" in path
+        or any(part in ("", ".", "..") for part in path.split("/"))
+        or any(ord(char) < 32 for char in path)
+    ):
+        raise ResumeUnavailableError("Resume link is invalid — it is not in Thessis storage.")
+    return path
+
+
+def download_resume(resume_url: str, expected_owner_id: str) -> bytes:
+    """Download a private resume with service-role auth after the caller's
+    permission has been checked by get_application_for_ranking()."""
+    if resume_url.startswith("data:application/pdf;base64,"):
+        try:
+            return base64.b64decode(resume_url.split(",", 1)[1], validate=True)
+        except binascii.Error as exc:
+            raise ResumeUnavailableError("Resume data is invalid.") from exc
+
+    _require_configured()
+    path = _resume_object_path(resume_url)
+    if path.split("/", 1)[0] != expected_owner_id:
+        raise ResumeUnavailableError("Resume link does not belong to this applicant.")
+    url = f"{SUPABASE_URL}/storage/v1/object/authenticated/resumes/{quote(path, safe='/')}"
+    req = urllib.request.Request(url, headers=_auth_headers(), method="GET")
     try:
-        with urllib.request.urlopen(req, timeout=30) as res:
+        with urllib.request.build_opener(_NoRedirect()).open(req, timeout=30) as res:
             return res.read()
     except urllib.error.HTTPError as exc:
         raise ResumeUnavailableError(

@@ -96,7 +96,7 @@ class RankingResult(BaseModel):
 
 
 @app.post("/applications/{application_id}/rank", response_model=RankingResult)
-def rank_application(application_id: str, _caller_id: str = Depends(get_current_user_id)):
+def rank_application(application_id: str, caller_id: str = Depends(get_current_user_id)):
     """Scores one real Thessis application against its job description and
     writes the result straight onto applications.ai_* columns.
 
@@ -104,26 +104,24 @@ def rank_application(application_id: str, _caller_id: str = Depends(get_current_
     so there's no long-running work to background — and a fire-and-forget
     background task would be unreliable on a scale-to-zero host anyway (the
     instance can be recycled between the response and the task finishing).
-    Auth is enforced by get_current_user_id (Depends above), which verifies
-    the caller's real Supabase session JWT — this endpoint does not itself
-    check that the caller is the job's owning referrer; that authorization
-    is expected to happen client-side the same way the rest of the
-    Applications page already gates access, same as any other Supabase RPC
-    caller in this codebase.
+    The service-role RPCs check the verified caller's job ownership or live
+    referrer assignment both before reading private inputs and before saving.
     """
     try:
-        record = supabase_client.get_application_for_ranking(application_id)
+        record = supabase_client.get_application_for_ranking(application_id, caller_id)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Could not reach Supabase: {exc}")
 
     if not record:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=404, detail="Application not found or access denied")
 
     if not record.get("resume_url"):
         raise HTTPException(status_code=422, detail="Applicant has no resume on file")
 
     try:
-        resume_bytes = supabase_client.download_resume(record["resume_url"])
+        resume_bytes = supabase_client.download_resume(record["resume_url"], record["applicant_id"])
+    except supabase_client.ResumeUnavailableError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.public_message)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Could not download resume: {exc}")
 
@@ -152,8 +150,9 @@ def rank_application(application_id: str, _caller_id: str = Depends(get_current_
     )
 
     try:
-        supabase_client.save_application_ranking(
+        saved = supabase_client.save_application_ranking(
             application_id=application_id,
+            caller_id=caller_id,
             score=scoring["score"],
             semantic_score=scoring["semantic_score"],
             skill_score=scoring["keyword_score"],
@@ -161,6 +160,9 @@ def rank_application(application_id: str, _caller_id: str = Depends(get_current_
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Scored, but could not save result: {exc}")
+
+    if not saved:
+        raise HTTPException(status_code=403, detail="Ranking access expired or was revoked")
 
     return RankingResult(
         application_id=application_id,

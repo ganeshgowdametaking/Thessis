@@ -55,19 +55,19 @@ class handler(BaseHTTPRequestHandler):
             return
 
         try:
-            get_current_user_id(self.headers.get("Authorization", ""))
+            caller_id = get_current_user_id(self.headers.get("Authorization", ""))
         except AuthError as exc:
             self._send_json(exc.status_code, {"error": exc.message})
             return
 
         try:
-            record = supabase_client.get_application_for_ranking(application_id)
+            record = supabase_client.get_application_for_ranking(application_id, caller_id)
         except Exception as exc:
             self._send_json(502, {"error": f"Could not reach Supabase: {exc}"})
             return
 
         if not record:
-            self._send_json(404, {"error": "Application not found"})
+            self._send_json(404, {"error": "Application not found or access denied"})
             return
 
         if not record.get("resume_url"):
@@ -75,7 +75,7 @@ class handler(BaseHTTPRequestHandler):
             return
 
         try:
-            resume_bytes = supabase_client.download_resume(record["resume_url"])
+            resume_bytes = supabase_client.download_resume(record["resume_url"], record["applicant_id"])
         except supabase_client.ResumeUnavailableError as exc:
             self._send_json(exc.status_code, {"error": exc.public_message})
             return
@@ -110,8 +110,9 @@ class handler(BaseHTTPRequestHandler):
         )
 
         try:
-            supabase_client.save_application_ranking(
+            saved = supabase_client.save_application_ranking(
                 application_id=application_id,
+                caller_id=caller_id,
                 score=scoring["score"],
                 semantic_score=scoring["semantic_score"],
                 skill_score=scoring["keyword_score"],
@@ -119,6 +120,10 @@ class handler(BaseHTTPRequestHandler):
             )
         except Exception as exc:
             self._send_json(502, {"error": f"Scored, but could not save result: {exc}"})
+            return
+
+        if not saved:
+            self._send_json(403, {"error": "Ranking access expired or was revoked"})
             return
 
         self._send_json(

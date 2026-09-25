@@ -23,22 +23,18 @@ class StorageService {
         return publicUrl.absoluteString
     }
     
-    func uploadResume(data: Data, name: String) async throws -> String {
+    func uploadResume(data: Data, name _: String) async throws -> String {
         guard let userId = AuthManager.shared.currentUser?.id else { throw URLError(.userAuthenticationRequired) }
         
-        let fileName = "\(userId)/\(name)"
-        let fileOptions = FileOptions(cacheControl: "3600", upsert: true)
+        let fileName = "\(userId)/\(UUID().uuidString).pdf"
+        let fileOptions = FileOptions(cacheControl: "3600", upsert: false)
         
         try await client.storage
             .from("resumes")
             .upload(path: fileName, file: data, options: fileOptions)
             
-        // Resumes are private, so we might need a signed URL, but here's public for simplicity if bucket is public
-        // Or createSignedUrl logic
-         let publicUrl = try client.storage
-            .from("resumes")
-            .getPublicURL(path: fileName)
-            
-        return publicUrl.absoluteString
+        // Applications store the private object path. Access is signed only
+        // after the viewer is authorized for that application.
+        return fileName
     }
 }

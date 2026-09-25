@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Mail, Lock, User, Eye, EyeOff, Loader, CheckCircle } from 'lucide-react'
 import { useAuthContext } from '../contexts/AuthContext'
 import GoogleSignInButton from './GoogleSignInButton'
@@ -18,6 +18,7 @@ const labelClass = 'block text-[12.5px] font-semibold text-slate-600 mb-1.5'
 
 const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { signIn, signUp, verifyOTP, resendOTP, resetPassword } = useAuthContext()
   const [mode, setMode] = useState<AuthMode>(initialMode)
   const [loading, setLoading] = useState(false)
@@ -48,7 +49,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
       if (mode === 'signin') {
         const { error } = await signIn(formData.email, formData.password)
         if (error) throw error
-        navigate('/jobs')
+        const next = searchParams.get('next')
+        const inviteUrl = next ? new URL(next, window.location.origin) : null
+        const returnToInvite = inviteUrl?.origin === window.location.origin &&
+          inviteUrl.pathname === '/accept-admin-invite' && inviteUrl.searchParams.has('token')
+          ? `${inviteUrl.pathname}${inviteUrl.search}`
+          : null
+        if (returnToInvite) sessionStorage.removeItem('adminInviteReturnTo')
+        navigate(returnToInvite || '/jobs')
       } else if (mode === 'signup') {
         if (formData.password.length < 8) {
           throw new Error('Password must be at least 8 characters long')

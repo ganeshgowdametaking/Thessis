@@ -307,21 +307,19 @@ export const jobService = {
     if (error) throw error;
   },
 
-  // Upload a resume file to Storage and return its public URL. Replaces the
-  // old base64-in-the-database approach, which sent a multi-MB text payload
-  // on every application submit.
+  // Keep the private Storage object path in the application. Authorized
+  // viewers receive a short-lived signed URL when they open the resume.
   uploadResume: async (file: File, userId: string): Promise<string> => {
-    const path = `${userId}/${Date.now()}-${file.name}`;
+    const path = `${userId}/${crypto.randomUUID()}.pdf`;
     const { error: uploadError } = await supabase.storage
       .from('resumes')
-      .upload(path, file, { upsert: false });
+      .upload(path, file, { upsert: false, contentType: 'application/pdf' });
 
     if (uploadError) {
       throw new Error(`Failed to upload resume: ${uploadError.message}`);
     }
 
-    const { data } = supabase.storage.from('resumes').getPublicUrl(path);
-    return data.publicUrl;
+    return path;
   },
 
   // Create application
@@ -346,8 +344,7 @@ export const jobService = {
       console.log('🔍 DEBUG: User ID from auth:', user.id);
       console.log('🔍 DEBUG: Applicant ID from application:', application.applicant_id);
 
-      // Simulate resume upload (replace with actual storage logic)
-      const resumeUrl = application.resume; // S3 URL is now passed in
+      const resumeUrl = application.resume;
 
       const applicationData = {
         job_id: application.job_id,

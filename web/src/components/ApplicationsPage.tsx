@@ -451,100 +451,72 @@ export default function ApplicationsPage({
     }
   };
 
-  const handleViewResume = async (application: Application) => {
-    let resumeUrl = (application as any).resume_url;
+  const resumeDownloadName = (application: Application) =>
+    `${application.user_profile?.full_name?.replace(/[^a-zA-Z0-9_-]+/g, '_') || 'Resume'}_${new Date().getFullYear()}.pdf`;
 
-    if (!resumeUrl) {
-      try {
-        const { data, error } = await (supabase
-          .from('applications') as any)
-          .select('resume_url')
-          .eq('id', application.id)
-          .single();
-
-        if (error) throw error;
-        resumeUrl = data?.resume_url || undefined;
-      } catch (err) {
-        console.error('Error fetching resume URL:', err);
+  const getResumeViewUrl = async (application: Application): Promise<{ url: string; local: boolean }> => {
+    // Older applications stored the PDF directly in the database. Convert that
+    // data URL to a browser Blob so it is never interpolated into document HTML.
+    if (application.resume_url?.startsWith('data:')) {
+      if (!/^data:application\/pdf;base64,/i.test(application.resume_url)) {
+        throw new Error('The stored resume is not a PDF.');
       }
+      const response = await fetch(application.resume_url);
+      if (!response.ok) throw new Error('Unable to read the stored resume.');
+      return { url: URL.createObjectURL(await response.blob()), local: true };
     }
 
-    if (!resumeUrl) {
-      alert('No resume available for this application.');
+    // The Edge Function checks the current user against the application before
+    // signing a private Storage URL. Existing public URLs are handled there.
+    const { data, error } = await supabase.functions.invoke('get-application-resume-url', {
+      body: { applicationId: application.id },
+    });
+    if (error || typeof data?.signedUrl !== 'string') {
+      throw new Error('The resume is unavailable or you do not have access.');
+    }
+    return { url: data.signedUrl, local: false };
+  };
+
+  const handleViewResume = async (application: Application) => {
+    const tab = window.open('', '_blank');
+    if (!tab) {
+      alert('Allow pop-ups to view the resume, or use Download Resume.');
       return;
     }
-
+    tab.opener = null;
     try {
-      // If it's a base64 data URL, open it in a new tab
-      if (resumeUrl && resumeUrl.startsWith('data:')) {
-        const newWindow = window.open();
-        if (newWindow) {
-          newWindow.document.write(`
-            <html>
-              <head><title>Resume - ${application.user_profile?.full_name}</title></head>
-              <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f5f5f5;">
-                <embed src="${resumeUrl}" width="100%" height="100%" type="application/pdf" />
-              </body>
-            </html>
-          `);
-        }
-      } else if (resumeUrl) {
-        // If it's a URL, open it directly
-        window.open(resumeUrl, '_blank');
-      }
+      const resume = await getResumeViewUrl(application);
+      tab.location.href = resume.url;
+      if (resume.local) window.setTimeout(() => URL.revokeObjectURL(resume.url), 60_000);
     } catch (error) {
+      tab.close();
       console.error('Error viewing resume:', error);
-      alert('Unable to view resume. Please try downloading instead.');
+      alert(error instanceof Error ? error.message : 'Unable to view resume.');
     }
   };
 
   const handleDownloadResume = async (application: Application) => {
-    let resumeUrl = (application as any).resume_url;
-
-    if (!resumeUrl) {
-      try {
-        const { data, error } = await (supabase
-          .from('applications') as any)
-          .select('resume_url')
-          .eq('id', application.id)
-          .single();
-
-        if (error) throw error;
-        resumeUrl = data?.resume_url || undefined;
-      } catch (err) {
-        console.error('Error fetching resume URL:', err);
-      }
-    }
-
-    if (!resumeUrl) {
-      alert('No resume available for this application.');
-      return;
-    }
-
     try {
-      const fileName = `${application.user_profile?.full_name?.replace(/\s+/g, '_') || 'Resume'}_${new Date().getFullYear()}.pdf`;
-
-      if (resumeUrl && resumeUrl.startsWith('data:')) {
-        // Handle base64 data
+      const resume = await getResumeViewUrl(application);
+      let downloadUrl = resume.url;
+      try {
+        if (!resume.local) {
+          const response = await fetch(resume.url, { cache: 'no-store' });
+          if (!response.ok) throw new Error('Unable to download resume.');
+          downloadUrl = URL.createObjectURL(await response.blob());
+        }
         const link = document.createElement('a');
-        link.href = resumeUrl;
-        link.download = fileName;
+        link.href = downloadUrl;
+        link.download = resumeDownloadName(application);
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
-      } else if (resumeUrl) {
-        // Handle URL
-        const link = document.createElement('a');
-        link.href = resumeUrl;
-        link.download = fileName;
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        link.remove();
+      } finally {
+        window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
       }
     } catch (error) {
       console.error('Error downloading resume:', error);
-      alert('Unable to download resume. Please try again.');
+      alert(error instanceof Error ? error.message : 'Unable to download resume.');
     }
   };
 

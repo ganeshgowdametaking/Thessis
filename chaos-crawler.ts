@@ -1,14 +1,12 @@
 /**
  * chaos-crawler.ts
  *
- * Runs three crawl phases against the app, each with its own auth context,
+ * Runs two crawl phases against the app, each with its own auth context,
  * and writes one combined qa-report.md:
  *
  *   Phase A (Unauthenticated) — starts logged out; seeded with /login,
- *     /signup, /company-signup, /reset-password.
- *   Phase B (Employer) — logs in with QA_EMPLOYER_EMAIL/PASSWORD, seeded
- *     with /companies and the employer dashboard.
- *   Phase C (Job Seeker) — logs in with QA_EMAIL/PASSWORD, seeded with the
+ *     /signup, /reset-password.
+ *   Phase B (Signed in) — logs in with QA_EMAIL/PASSWORD, seeded with the
  *     app root.
  *
  * On every page in every phase it:
@@ -23,8 +21,7 @@
  *     the URL changes), it queues the new page and returns to keep going.
  *
  * Credentials: never hardcode real values in this file. Two ways in:
- *   1. Shell env vars: QA_EMAIL, QA_PASSWORD, QA_EMPLOYER_EMAIL,
- *      QA_EMPLOYER_PASSWORD, BASE_URL.
+ *   1. Shell env vars: QA_EMAIL, QA_PASSWORD, BASE_URL.
  *   2. A local, gitignored `.chaos-crawler.env` file (KEY=value per line)
  *      in this directory — safer than typing secrets into a shared
  *      terminal/chat, since this script is the only thing that reads it.
@@ -67,8 +64,6 @@ const MAX_CLICK_ATTEMPTS_PER_PAGE = 120;
 
 const QA_EMAIL = env('QA_EMAIL');
 const QA_PASSWORD = env('QA_PASSWORD');
-const QA_EMPLOYER_EMAIL = env('QA_EMPLOYER_EMAIL');
-const QA_EMPLOYER_PASSWORD = env('QA_EMPLOYER_PASSWORD');
 
 const DESTRUCTIVE_KEYWORDS = [
   'log out', 'logout', 'sign out',
@@ -465,44 +460,19 @@ async function main() {
 
   // Phase A — Unauthenticated
   console.log('\n=== Phase A: Unauthenticated ===');
-  const resultA = await crawlPhase(browser, 'A: Unauthenticated', ['/', '/login', '/signup', '/company-signup', '/reset-password', '/data-request'], undefined);
+  const resultA = await crawlPhase(browser, 'A: Unauthenticated', ['/', '/login', '/signup', '/reset-password', '/data-request'], undefined);
   phaseSummaries.push({ name: 'A: Unauthenticated', authenticated: false, pages: resultA.visitedCount });
 
-  // Phase B — Employer
-  console.log('\n=== Phase B: Employer ===');
-  if (QA_EMPLOYER_EMAIL && QA_EMPLOYER_PASSWORD) {
-    const employerState = await loginAs(browser, QA_EMPLOYER_EMAIL, QA_EMPLOYER_PASSWORD, 'employer');
-    if (employerState) {
-      const resultB = await crawlPhase(
-        browser,
-        'B: Employer',
-        ['/', '/companies', '/company-dashboard', '/company-hiring/jobs', '/company-hiring/new', '/company-hiring/applicants',
-          '/company-referrals/incoming', '/company-referrals/outgoing', '/company-referrals/partners', '/company-referrals/invite',
-          '/company-profile/branding', '/company-profile/careers', '/company-profile/team', '/company-profile/integrations',
-          '/company-settings/account', '/company-settings/notifications', '/company-settings/help'],
-        employerState
-      );
-      phaseSummaries.push({ name: 'B: Employer', authenticated: true, pages: resultB.visitedCount });
-    } else {
-      phaseNotes.push({ phase: 'B: Employer', note: 'Login failed — phase skipped. Check QA_EMPLOYER_EMAIL/QA_EMPLOYER_PASSWORD.' });
-      phaseSummaries.push({ name: 'B: Employer', authenticated: false, pages: 0 });
-    }
-  } else {
-    console.log('  No QA_EMPLOYER_EMAIL/QA_EMPLOYER_PASSWORD configured — skipping.');
-    phaseNotes.push({ phase: 'B: Employer', note: 'Skipped — no employer credentials were provided (set QA_EMPLOYER_EMAIL/QA_EMPLOYER_PASSWORD in .chaos-crawler.env or the environment).' });
-    phaseSummaries.push({ name: 'B: Employer', authenticated: false, pages: 0 });
-  }
-
-  // Phase C — Job Seeker
-  console.log('\n=== Phase C: Job Seeker ===');
+  // Phase B — Signed in
+  console.log('\n=== Phase B: Signed in ===');
   if (QA_EMAIL && QA_PASSWORD) {
     const seekerState = await loginAs(browser, QA_EMAIL, QA_PASSWORD, 'job-seeker');
-    const resultC = await crawlPhase(browser, 'C: Job Seeker', ['/', '/create-referral', '/search-results?q=engineer', '/analytics'], seekerState);
-    phaseSummaries.push({ name: 'C: Job Seeker', authenticated: Boolean(seekerState), pages: resultC.visitedCount });
+    const resultB = await crawlPhase(browser, 'B: Signed in', ['/', '/create-referral', '/search-results?q=engineer', '/analytics'], seekerState);
+    phaseSummaries.push({ name: 'B: Signed in', authenticated: Boolean(seekerState), pages: resultB.visitedCount });
   } else {
     console.log('  No QA_EMAIL/QA_PASSWORD configured — skipping.');
-    phaseNotes.push({ phase: 'C: Job Seeker', note: 'Skipped — no job-seeker credentials were provided (set QA_EMAIL/QA_PASSWORD in .chaos-crawler.env or the environment).' });
-    phaseSummaries.push({ name: 'C: Job Seeker', authenticated: false, pages: 0 });
+    phaseNotes.push({ phase: 'B: Signed in', note: 'Skipped — no credentials were provided (set QA_EMAIL/QA_PASSWORD in .chaos-crawler.env or the environment).' });
+    phaseSummaries.push({ name: 'B: Signed in', authenticated: false, pages: 0 });
   }
 
   await browser.close();

@@ -264,9 +264,6 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
                     {section.label}
                   </a>
                 ))}
-                <Link to="/companies" className="text-slate-600 hover:text-ink transition-colors">
-                  For companies
-                </Link>
               </nav>
             )}
             <div className="flex items-center gap-1 sm:gap-1.5">
@@ -333,14 +330,6 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
                   <span aria-hidden="true" className="text-slate-400">→</span>
                 </a>
               ))}
-              <Link
-                to="/companies"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex h-12 items-center justify-between border-b border-slate-100 px-1 text-[15px] font-bold text-ink"
-              >
-                For companies
-                <span aria-hidden="true" className="text-slate-400">→</span>
-              </Link>
               <button
                 type="button"
                 onClick={() => {
