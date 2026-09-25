@@ -1,4 +1,5 @@
 import React from 'react';
+import LegalPageLayout, { LegalHeading } from './LegalPageLayout';
 
 interface TermsOfServiceProps {
   onBack: () => void;
@@ -6,13 +7,7 @@ interface TermsOfServiceProps {
 
 const TermsOfService: React.FC<TermsOfServiceProps> = () => {
   return (
-    <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-slate-100 p-4 sm:p-6 md:p-12 lg:p-16">
-      <div className="mb-8 sm:mb-12 border-b border-slate-200 pb-5 sm:pb-8">
-        <h1 className="mb-3 text-3xl sm:text-4xl font-black tracking-tight text-slate-900 lg:text-5xl">Terms of Service</h1>
-        <p className="text-base font-medium text-slate-500">Last Updated: August 19, 2026</p>
-      </div>
-
-      <div className="space-y-8 sm:space-y-12">
+    <LegalPageLayout title="Terms of Service" updated="August 19, 2026">
         <div className="prose prose-slate max-w-none">
           <p className="text-base sm:text-lg leading-relaxed text-slate-700">
             Welcome to Thessis. Please read these Terms of Service ("Terms", "Terms of Service", or "Agreement") carefully before using the Thessis platform, website, and services (collectively, the "Services").
@@ -26,10 +21,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = () => {
         </div>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">1</span>
-            Introduction
-          </h2>
+          <LegalHeading id="introduction" number={1}>Introduction</LegalHeading>
           <div className="pl-0 sm:pl-[44px] space-y-4 leading-relaxed text-slate-700">
             <p>
               Thessis ("we", "us", or "our") provides a professional networking and job referral platform designed to connect professionals with career opportunities. These Terms constitute a legally binding agreement between you and Thessis.
@@ -41,10 +33,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = () => {
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">2</span>
-            Definitions
-          </h2>
+          <LegalHeading id="definitions" number={2}>Definitions</LegalHeading>
           <ul className="ml-0 sm:ml-[44px] list-disc space-y-2 pl-4 text-slate-700 marker:text-slate-400">
               <li><strong>"Platform"</strong> refers to the Thessis website, mobile applications, and all related technology and services.</li>
             <li><strong>"User"</strong> or <strong>"You"</strong> refers to any individual or entity that accesses or uses the Services.</li>
@@ -56,10 +45,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = () => {
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">3</span>
-            Eligibility and Account Registration
-          </h2>
+          <LegalHeading id="eligibility-and-account-registration" number={3}>Eligibility and Account Registration</LegalHeading>
           <div className="pl-0 sm:pl-[44px] space-y-4 leading-relaxed text-slate-700">
             <div>
               <h3 className="mb-2 font-bold text-slate-900">3.1 Age Requirement</h3>
@@ -73,50 +59,35 @@ const TermsOfService: React.FC<TermsOfServiceProps> = () => {
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">4</span>
-            User Conduct and Prohibited Activities
-          </h2>
+          <LegalHeading id="user-conduct-and-prohibited-activities" number={4}>User Conduct and Prohibited Activities</LegalHeading>
           <div className="pl-0 sm:pl-[44px] space-y-4 leading-relaxed text-slate-700">
             <p>You agree to use the Services only for lawful purposes. Prohibited activities include illegal activity, harmful conduct, content violations, and attempts to compromise platform integrity.</p>
           </div>
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">5</span>
-            Content Ownership, License, and Intellectual Property
-          </h2>
+          <LegalHeading id="content-ownership-license-and-intellectual-property" number={5}>Content Ownership, License, and Intellectual Property</LegalHeading>
           <div className="pl-0 sm:pl-[44px] space-y-4 leading-relaxed text-slate-700">
             <p>You retain ownership of your User Content but grant Thessis a non-exclusive, worldwide, royalty-free license to use, reproduce, and display it in connection with the Services.</p>
           </div>
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">6</span>
-            Jobs, Applications, and Professional Networking
-          </h2>
+          <LegalHeading id="jobs-applications-and-professional-networking" number={6}>Jobs, Applications, and Professional Networking</LegalHeading>
           <div className="pl-0 sm:pl-[44px] space-y-4 leading-relaxed text-slate-700">
             <p>Employers are responsible for the accuracy of job postings. Users understand that Thessis is not an employer and does not make hiring decisions.</p>
           </div>
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">7</span>
-            Fees, Payments, and Subscription Terms
-          </h2>
+          <LegalHeading id="fees-payments-and-subscription-terms" number={7}>Fees, Payments, and Subscription Terms</LegalHeading>
           <div className="pl-0 sm:pl-[44px] space-y-4 leading-relaxed text-slate-700">
             <p>The Services are currently provided free of charge. If we introduce paid features or subscription plans in the future, we will update these Terms to describe the applicable fees, billing cycle, and cancellation terms before any charges apply.</p>
           </div>
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">8</span>
-            Privacy and Data Protection
-          </h2>
+          <LegalHeading id="privacy-and-data-protection" number={8}>Privacy and Data Protection</LegalHeading>
           <div className="pl-0 sm:pl-[44px] leading-relaxed text-slate-700">
             <p>
               Your privacy is important to us. Our Privacy Policy is incorporated by reference and explains how we handle your data.
@@ -125,80 +96,56 @@ const TermsOfService: React.FC<TermsOfServiceProps> = () => {
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">9</span>
-            Third-Party Links, Services, and Integrations
-          </h2>
+          <LegalHeading id="third-party-links-services-and-integrations" number={9}>Third-Party Links, Services, and Integrations</LegalHeading>
           <div className="pl-0 sm:pl-[44px] leading-relaxed text-slate-700">
             <p>The Platform may contain links to third-party services. We are not responsible for the content or practices of these third parties.</p>
           </div>
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">10</span>
-            Disclaimers and Warranties
-          </h2>
+          <LegalHeading id="disclaimers-and-warranties" number={10}>Disclaimers and Warranties</LegalHeading>
           <p className="pl-0 sm:pl-[44px] leading-relaxed text-slate-700">
             THE SERVICES ARE PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT WARRANTIES OF ANY KIND.
           </p>
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">11</span>
-            Limitation of Liability
-          </h2>
+          <LegalHeading id="limitation-of-liability" number={11}>Limitation of Liability</LegalHeading>
           <p className="pl-0 sm:pl-[44px] leading-relaxed text-slate-700">
             TO THE MAXIMUM EXTENT PERMITTED BY LAW, Thessis SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES.
           </p>
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">12</span>
-            Indemnification
-          </h2>
+          <LegalHeading id="indemnification" number={12}>Indemnification</LegalHeading>
           <p className="pl-0 sm:pl-[44px] leading-relaxed text-slate-700">
             You agree to defend, indemnify, and hold harmless Thessis from and against any claims arising from your use of the Services or violation of these Terms.
           </p>
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">13</span>
-            Dispute Resolution and Governing Law
-          </h2>
+          <LegalHeading id="dispute-resolution-and-governing-law" number={13}>Dispute Resolution and Governing Law</LegalHeading>
           <p className="pl-0 sm:pl-[44px] leading-relaxed text-slate-700">
             These Terms are governed by the laws of the State of California. Any disputes will be brought exclusively in the courts of San Francisco County.
           </p>
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">14</span>
-            Termination and Suspension
-          </h2>
+          <LegalHeading id="termination-and-suspension" number={14}>Termination and Suspension</LegalHeading>
           <p className="pl-0 sm:pl-[44px] leading-relaxed text-slate-700">
             We reserve the right to suspend or terminate your account immediately for violations of these Terms or for other reasons at our sole discretion.
           </p>
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">15</span>
-            Modifications to Terms and Services
-          </h2>
+          <LegalHeading id="modifications-to-terms-and-services" number={15}>Modifications to Terms and Services</LegalHeading>
           <p className="pl-0 sm:pl-[44px] leading-relaxed text-slate-700">
             We reserve the right to modify these Terms at any time. We will provide notice of material changes at least 30 days before they take effect.
           </p>
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">16</span>
-            General Provisions
-          </h2>
+          <LegalHeading id="general-provisions" number={16}>General Provisions</LegalHeading>
           <div className="pl-0 sm:pl-[44px] space-y-4 leading-relaxed text-slate-700">
             <p>
               <strong>Entire Agreement:</strong> These Terms, along with our Privacy Policy, constitute the entire agreement between you and Thessis.
@@ -216,10 +163,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = () => {
         </section>
 
         <section>
-          <h2 className="mb-4 flex items-center text-lg sm:text-xl font-bold text-slate-900">
-            <span className="mr-3 flex size-8 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-600">17</span>
-            Contact Information
-          </h2>
+          <LegalHeading id="contact-information" number={17}>Contact Information</LegalHeading>
           <div className="mt-4 pl-0 sm:pl-[44px]">
             <div className="rounded-xl bg-slate-50 p-5 sm:p-8 shadow-sm border border-slate-200">
               <p className="font-bold text-slate-900">Thessis Team</p>
@@ -233,17 +177,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = () => {
             </div>
           </div>
         </section>
-      </div>
-
-      <div className="mt-12 sm:mt-20 border-t border-slate-200 pt-6 sm:pt-8 text-center">
-        <p className="text-sm text-slate-500">© {new Date().getFullYear()} Thessis, Inc. All rights reserved.</p>
-        <div className="mt-4 flex justify-center gap-6 text-sm font-medium text-sage">
-          <a className="hover:text-sage-dark" href="/privacy-policy">Privacy Policy</a>
-          <a className="hover:text-sage-dark" href="/cookie-policy">Cookie Policy</a>
-          <a className="hover:text-sage-dark" href="mailto:info@thessis.com">Support</a>
-        </div>
-      </div>
-    </div>
+    </LegalPageLayout>
   );
 };
 

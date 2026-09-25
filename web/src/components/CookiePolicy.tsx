@@ -1,4 +1,44 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Cookie } from 'lucide-react';
+import LegalPageLayout, { LegalHeading } from './LegalPageLayout';
+import { gdprService } from '../services/gdprService';
+import { COOKIE_CHOICE_CHANGED_EVENT, OPEN_COOKIE_SETTINGS_EVENT } from './GDPRBanner';
+
+// Lets visitors change their banner answer at any time (withdrawing consent must be as easy as giving it).
+const readChoice = () => {
+  const preferences = gdprService.getPreferences();
+  if (!preferences) return 'Not chosen yet';
+  return preferences.analytics ? 'All cookies accepted' : 'Only strictly necessary';
+};
+
+const CookieChoiceCard: React.FC = () => {
+  const [choice, setChoice] = useState(readChoice);
+
+  useEffect(() => {
+    const refresh = () => setChoice(readChoice());
+    window.addEventListener(COOKIE_CHOICE_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(COOKIE_CHOICE_CHANGED_EVENT, refresh);
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-2.5 rounded-[18px] border border-hairline bg-white p-5">
+      <p className="flex items-center gap-2 font-display text-[15px] font-extrabold text-ink">
+        <Cookie className="h-[18px] w-[18px] text-primary" aria-hidden="true" />
+        Your cookie choice
+      </p>
+      <p className="text-[13px] text-slate-500">
+        Currently: <strong className="text-ink">{choice}</strong>
+      </p>
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_SETTINGS_EVENT))}
+        className="mt-1 h-10 rounded-xl bg-primary text-[13.5px] font-bold text-white transition-colors hover:bg-primary-hover"
+      >
+        Change cookie choice
+      </button>
+    </div>
+  );
+};
 
 interface CookiePolicyProps {
   onBack: () => void;
@@ -6,15 +46,14 @@ interface CookiePolicyProps {
 
 const CookiePolicy: React.FC<CookiePolicyProps> = () => {
   return (
-    <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-slate-100 p-4 sm:p-6 md:p-12 lg:p-16">
-      <div className="flex flex-col gap-3 sm:gap-4 mb-8 sm:mb-10 border-b border-slate-200 pb-5 sm:pb-8">
-        <h1 className="text-slate-900 text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight tracking-[-0.033em]">Cookie Policy</h1>
-        <p className="text-slate-500 text-base font-medium">Last updated: August 19, 2026</p>
-      </div>
-
-      <div className="space-y-8 sm:space-y-10">
+    <LegalPageLayout
+      title="Cookie Policy"
+      updated="August 19, 2026"
+      aside={<CookieChoiceCard />}
+      contact={{ title: 'Have questions about this policy?', body: 'If you have any questions about our use of cookies or other technologies, please email us at' }}
+    >
         <section>
-          <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-3 sm:mb-4">1. What are Cookies?</h2>
+          <LegalHeading id="what-are-cookies" number={1}>What are Cookies?</LegalHeading>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed">
             Cookies are small text files that are placed on your computer or mobile device when you visit a website. 
             They are widely used to make websites work more efficiently, as well as to provide information to the owners of the site. 
@@ -23,7 +62,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = () => {
         </section>
 
         <section>
-          <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-3 sm:mb-4">2. How Thessis Uses Cookies</h2>
+          <LegalHeading id="how-thessis-uses-cookies" number={2}>How Thessis Uses Cookies</LegalHeading>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-4">
             We use both session cookies (which expire once you close your web browser) and persistent cookies 
             (which stay on your device for a set period of time or until you delete them). We use these technologies for the following purposes:
@@ -36,7 +75,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = () => {
         </section>
 
         <section>
-          <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-4 sm:mb-6">3. Cookie Categories</h2>
+          <LegalHeading id="cookie-categories" number={3}>Cookie Categories</LegalHeading>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-6">
             The table below explains the cookies we use and why.
           </p>
@@ -81,7 +120,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = () => {
         </section>
 
         <section>
-          <h2 className="text-slate-900 text-xl sm:text-2xl font-bold leading-tight mb-3 sm:mb-4">4. Managing Your Preferences</h2>
+          <LegalHeading id="managing-your-preferences" number={4}>Managing Your Preferences</LegalHeading>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-4">
             On your first visit, our cookie consent banner lets you choose "Accept All" or "Reject Non-Essential" — rejecting disables Performance cookies (including Google Analytics) for your session, leaving only Strictly Necessary cookies active. You can also change your cookie preferences at any time by changing your browser settings.
             Please note that if you disable cookies, some features of the Thessis platform may not function correctly.
@@ -134,21 +173,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = () => {
           </div>
         </section>
 
-        <div className="mt-8 p-4 sm:p-6 bg-stone-off rounded-lg border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-900 mb-2">Have questions about this policy?</h3>
-          <p className="text-slate-600 text-sm mb-4">
-            If you have any questions about our use of cookies or other technologies, please email us at
-          </p>
-          <a 
-            className="inline-flex items-center text-sage font-bold hover:underline" 
-            href="mailto:info@thessis.com"
-          >
-            <span className="material-symbols-outlined text-lg mr-2">mail</span>
-            info@thessis.com
-          </a>
-        </div>
-      </div>
-    </div>
+    </LegalPageLayout>
   );
 };
 

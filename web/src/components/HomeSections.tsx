@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
-import { ONE_CLICK_SIGNUP_LINE } from '../utils/homeSections';
+import { getCompanyLogoUrl } from '../utils/companyLogo';
+import { REFERRER_COMPANIES } from '../utils/homeSections';
 
 interface HomeCtaProps {
   onJoinNow?: () => void;
@@ -10,32 +11,102 @@ const SectionHeading: React.FC<{ title: string }> = ({ title }) => (
   <h2 className="text-center font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink sm:text-[42px]">{title}</h2>
 );
 
+// ---------- Company strip ----------
+
+// Our own mark comes from the brand kit rather than the logo service.
+const LOCAL_LOGOS: Record<string, string> = { Thessis: '/brand/thessis-symbol-indigo.svg' };
+
+const CompanyMark: React.FC<{ name: string }> = ({ name }) => {
+  const [logoFailed, setLogoFailed] = useState(false);
+  const logoUrl = LOCAL_LOGOS[name] ?? getCompanyLogoUrl(name, 200);
+  // Logo only; the name shows as text just if the logo can't be loaded. Multiply blending hides the
+  // white box most logo images come with, so they sit directly on the cream background.
+  if (logoUrl && !logoFailed) {
+    return (
+      <img
+        src={logoUrl}
+        alt=""
+        onError={() => setLogoFailed(true)}
+        className="h-[70px] w-[70px] shrink-0 rounded-xl object-contain mix-blend-multiply"
+      />
+    );
+  }
+  return <span className="shrink-0 whitespace-nowrap font-display text-2xl font-bold text-slate-500">{name}</span>;
+};
+
+export const HomeCompanyStrip: React.FC = () => {
+  // Two copies of the list per half, so each half is wider than the screen and the loop never shows a gap.
+  const half = [...REFERRER_COMPANIES, ...REFERRER_COMPANIES];
+  return (
+    <section aria-label="Companies where you can get referred" className="bg-parchment py-9 sm:py-11">
+      <p className="px-4 text-center text-[26px] font-semibold leading-tight text-slate-500">Get referred by trusted employees at</p>
+      <p className="sr-only">{REFERRER_COMPANIES.join(', ')}</p>
+
+      <div
+        aria-hidden="true"
+        className="thessis-marquee mt-6 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]"
+      >
+        <div className="thessis-marquee-track w-max bg-parchment">
+          {[0, 1].map((copy) => (
+            <div key={copy} className="flex shrink-0 items-center gap-16 pr-16">
+              {half.map((name, index) => (
+                <CompanyMark key={`${copy}-${index}`} name={name} />
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="thessis-marquee-static flex-wrap items-center justify-center gap-x-12 gap-y-4 bg-parchment px-4">
+          {REFERRER_COMPANIES.map((name) => (
+            <CompanyMark key={name} name={name} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 // ---------- How it works ----------
 
 type Track = 'seekers' | 'employees';
 
-const TRACKS: Record<Track, { tab: string; tag: string; title: string; steps: { title: string; body?: string }[] }> = {
+const TRACKS: Record<Track, { tab: string; tag: string; title: string; steps: string[] }> = {
   seekers: {
     tab: 'Job seekers',
-    tag: 'For job seekers',
+    tag: 'Job seekers',
     title: 'Get referred, not ignored',
-    steps: [
-      { title: 'Build your profile', body: 'Add your experience, skills and a photo.' },
-      { title: 'Apply to referral roles' },
-      { title: 'Get referred', body: "We'll email you the moment you're referred." },
-    ],
+    steps: ['Build your profile', 'Apply to referral roles', 'Get referred'],
   },
   employees: {
     tab: 'Employees',
-    tag: 'For employees',
+    tag: 'Employees',
     title: 'Refer great people',
-    steps: [
-      { title: 'Post a role at your company', body: 'Paste a job link or upload the PDF — we fill in the details.' },
-      { title: 'Review applicants', body: 'Each resume gets an AI match score with the reasons behind it.' },
-      { title: 'Refer the best', body: "Shortlist, then mark them referred — they're emailed instantly." },
-    ],
+    steps: ['Post a role at your company', 'Review applicants', 'Refer the best'],
   },
 };
+
+// One step: numbered tile, dashed connector, title card. The final step (the outcome) is highlighted.
+const StepRow: React.FC<{ number: number; title: string; highlighted: boolean }> = ({ number, title, highlighted }) => (
+  <li className="flex items-center">
+    <span
+      aria-hidden="true"
+      className={`flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-2xl shadow-[0_6px_18px_rgba(20,20,43,0.06)] sm:h-20 sm:w-20 ${
+        highlighted ? 'bg-primary' : 'border border-hairline bg-white'
+      }`}
+    >
+      <span className={`flex h-11 w-11 items-center justify-center rounded-full font-display text-base font-extrabold text-ink sm:h-12 sm:w-12 sm:text-lg ${highlighted ? 'bg-white' : 'bg-parchment-sunken'}`}>
+        {String(number).padStart(2, '0')}
+      </span>
+    </span>
+    <span aria-hidden="true" className={`w-5 shrink-0 border-t-2 border-dashed sm:w-8 ${highlighted ? 'border-primary' : 'border-slate-200'}`} />
+    <span
+      className={`flex min-h-[72px] flex-1 items-center rounded-2xl px-5 py-4 font-display text-[17px] font-extrabold shadow-[0_6px_18px_rgba(20,20,43,0.06)] sm:min-h-20 sm:px-6 sm:text-lg ${
+        highlighted ? 'bg-primary text-white' : 'border border-hairline bg-white text-ink'
+      }`}
+    >
+      {title}
+    </span>
+  </li>
+);
 
 export const HomeHowItWorks: React.FC = () => {
   const [track, setTrack] = useState<Track>('seekers');
@@ -61,29 +132,18 @@ export const HomeHowItWorks: React.FC = () => {
         ))}
       </div>
 
-      <div className="mx-auto mt-5 grid max-w-[1120px] gap-5 md:mt-11 md:grid-cols-2">
+      <div className="mx-auto mt-6 grid max-w-[1120px] gap-12 md:mt-12 md:grid-cols-2 md:gap-10">
         {(Object.keys(TRACKS) as Track[]).map((key) => {
           const item = TRACKS[key];
           return (
-            <div
-              key={key}
-              className={`${track === key ? 'flex' : 'hidden md:flex'} flex-col gap-6 rounded-[22px] border border-hairline bg-white p-5 sm:p-[30px]`}
-            >
+            <div key={key} className={`${track === key ? 'flex' : 'hidden md:flex'} flex-col gap-6`}>
               <div className="flex flex-col gap-1.5">
                 <span className="text-xs font-bold uppercase tracking-[0.06em] text-primary">{item.tag}</span>
                 <h3 className="font-display text-xl font-extrabold text-ink sm:text-2xl">{item.title}</h3>
               </div>
-              <ol className="flex flex-col gap-5">
+              <ol className="flex flex-col gap-4">
                 {item.steps.map((step, index) => (
-                  <li key={step.title} className={`flex gap-3.5 ${step.body ? '' : 'items-center'}`}>
-                    <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-ink-wash font-display text-sm font-extrabold text-primary-hover">
-                      {index + 1}
-                    </span>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[15px] font-bold text-ink">{step.title}</span>
-                      {step.body && <span className="text-[13.5px] leading-relaxed text-slate-500">{step.body}</span>}
-                    </div>
-                  </li>
+                  <StepRow key={step} number={index + 1} title={step} highlighted={index === item.steps.length - 1} />
                 ))}
               </ol>
             </div>
@@ -96,15 +156,12 @@ export const HomeHowItWorks: React.FC = () => {
 
 // ---------- Features ----------
 
-const FeatureTile: React.FC<{ title: string; body: string; children: React.ReactNode }> = ({ title, body, children }) => (
+const FeatureTile: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div className="flex flex-col gap-4 rounded-[22px] border border-hairline bg-white p-5 sm:p-[26px]">
     <div aria-hidden="true" className="flex min-h-[130px] flex-1 items-center justify-center rounded-[14px] bg-parchment px-4">
       {children}
     </div>
-    <div className="flex flex-col gap-1">
-      <h3 className="font-display text-lg font-extrabold text-ink">{title}</h3>
-      <p className="text-[13.5px] leading-relaxed text-slate-500">{body}</p>
-    </div>
+    <h3 className="font-display text-lg font-extrabold text-ink">{title}</h3>
   </div>
 );
 
@@ -112,7 +169,7 @@ export const HomeFeatures: React.FC = () => (
   <section id="features" className="scroll-mt-24 bg-parchment px-4 pb-16 sm:px-6 sm:pb-24 lg:px-8">
     <SectionHeading title="What you get" />
     <div className="mx-auto mt-8 grid max-w-[1120px] gap-4 sm:mt-10 lg:grid-cols-3 lg:gap-[18px]">
-      <FeatureTile title="AI resume match" body="Referrers see how well each resume fits the role, and why.">
+      <FeatureTile title="AI resume match">
         <div className="flex items-center gap-2.5">
           <span className="relative flex h-16 w-16 items-center justify-center">
             <svg width="64" height="64" viewBox="0 0 84 84">
@@ -124,13 +181,13 @@ export const HomeFeatures: React.FC = () => (
           <span className="font-display text-[15px] font-extrabold leading-tight text-ink">Strong<br />match</span>
         </div>
       </FeatureTile>
-      <FeatureTile title="Verified work emails" body="Referrers confirm where they work, so you know who you're dealing with.">
+      <FeatureTile title="Verified work emails">
         <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-success-tint px-3.5 py-2.5 text-[13px] font-bold text-success-ink">
           <ShieldCheck className="h-4 w-4" />
           Work email verified
         </span>
       </FeatureTile>
-      <FeatureTile title="Messages" body="Talk to the person who can refer you.">
+      <FeatureTile title="Messages">
         <div className="flex w-full max-w-[220px] flex-col gap-1.5">
           <span className="self-start rounded-xl rounded-bl border border-hairline bg-white px-3 py-2 text-xs text-ink">Happy to refer you!</span>
           <span className="self-end rounded-xl rounded-br bg-primary px-3 py-2 text-xs text-white">Thank you 🙏</span>
@@ -154,17 +211,14 @@ export const HomeFinalCta: React.FC<HomeCtaProps> = ({ onJoinNow }) => (
       <h2 className="relative max-w-[560px] font-display text-[26px] font-extrabold leading-[1.12] text-white sm:text-[42px]">
         Your next job is one referral away.
       </h2>
-      <div className="relative flex shrink-0 flex-col items-stretch gap-2.5 sm:items-start lg:items-center">
-        <button
-          type="button"
-          onClick={onJoinNow}
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-[14px] bg-white px-6 text-[15px] font-bold text-primary-hover transition-colors hover:bg-ink-wash sm:h-[54px]"
-        >
-          Start getting referred
-          <ArrowRight className="h-4 w-4" />
-        </button>
-        <p className="text-center text-xs text-white/85 sm:text-[12.5px]">{ONE_CLICK_SIGNUP_LINE}</p>
-      </div>
+      <button
+        type="button"
+        onClick={onJoinNow}
+        className="relative inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-[14px] bg-white px-6 text-[15px] font-bold text-primary-hover transition-colors hover:bg-ink-wash sm:h-[54px] sm:self-start lg:self-auto"
+      >
+        Start getting referred
+        <ArrowRight className="h-4 w-4" />
+      </button>
     </div>
   </section>
 );
@@ -176,12 +230,12 @@ export const HomeStickyCta: React.FC<HomeCtaProps> = ({ onJoinNow }) => {
 
   useEffect(() => {
     const update = () => {
-      // Show once the hero's own button has scrolled away, hide again when the closing banner arrives.
-      const heroCta = document.getElementById('hero-cta');
+      // Show once the hero headline has scrolled away, hide again when the closing banner arrives.
+      const heroHeading = document.getElementById('hero-heading');
       const finalCta = document.getElementById('get-started');
-      const pastHeroCta = heroCta ? heroCta.getBoundingClientRect().bottom < 0 : false;
+      const pastHeading = heroHeading ? heroHeading.getBoundingClientRect().bottom < 0 : false;
       const beforeFinal = finalCta ? finalCta.getBoundingClientRect().top > window.innerHeight : true;
-      setShow(pastHeroCta && beforeFinal);
+      setShow(pastHeading && beforeFinal);
     };
     update();
     window.addEventListener('scroll', update, { passive: true });

@@ -104,20 +104,6 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-12 md:gap-24 w-full md:w-auto justify-center md:justify-end">
-            {/* Product Links */}
-            <div className="flex flex-col items-center md:items-start gap-3">
-              <span className="text-slate-900 font-bold text-sm uppercase tracking-wider mb-2">Product</span>
-              <a className="text-slate-500 hover:text-sage text-sm font-medium transition-colors" href="/companies">
-                For companies
-              </a>
-              <a className="text-slate-500 hover:text-sage text-sm font-medium transition-colors" href="/signup">
-                Sign up
-              </a>
-              <a className="text-slate-500 hover:text-sage text-sm font-medium transition-colors" href="/login">
-                Log in
-              </a>
-            </div>
-
             {/* Legal Links */}
             <div className="flex flex-col items-center md:items-start gap-3">
               <span className="text-slate-900 font-bold text-sm uppercase tracking-wider mb-2">Legal</span>

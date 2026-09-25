@@ -16,8 +16,18 @@ const applyConsentToGtag = (analytics: boolean, marketing: boolean) => {
   });
 };
 
+// The Cookie Policy's "Change cookie choice" button reopens the banner; the banner reports new choices back.
+export const OPEN_COOKIE_SETTINGS_EVENT = 'thessis:open-cookie-settings';
+export const COOKIE_CHOICE_CHANGED_EVENT = 'thessis:cookie-choice-changed';
+
 const GDPRBanner: React.FC = () => {
   const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const open = () => setVisible(true);
+    window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, open);
+    return () => window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, open);
+  }, []);
 
   useEffect(() => {
     const stored = gdprService.getPreferences();
@@ -43,6 +53,7 @@ const GDPRBanner: React.FC = () => {
     }
     applyConsentToGtag(preferences.analytics, preferences.marketing);
     setVisible(false);
+    window.dispatchEvent(new Event(COOKIE_CHOICE_CHANGED_EVENT));
   };
 
   if (!visible) return null;

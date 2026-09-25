@@ -11,9 +11,10 @@ const LOGO_DEV_TOKEN = import.meta.env.VITE_LOGO_DEV_PUBLISHABLE_KEY as string |
  * is configured yet — this is a safe no-op until VITE_LOGO_DEV_PUBLISHABLE_KEY
  * is set in .env.
  */
-export function getCompanyLogoUrl(name: string | undefined | null): string | undefined {
+export function getCompanyLogoUrl(name: string | undefined | null, size?: number): string | undefined {
   const trimmed = (name || '').trim();
   if (trimmed.length < 2 || !LOGO_DEV_TOKEN) return undefined;
 
-  return `https://img.logo.dev/name/${encodeURIComponent(trimmed)}?token=${LOGO_DEV_TOKEN}`;
+  const sizeParam = size ? `&size=${size}` : '';
+  return `https://img.logo.dev/name/${encodeURIComponent(trimmed)}?token=${LOGO_DEV_TOKEN}${sizeParam}`;
 }

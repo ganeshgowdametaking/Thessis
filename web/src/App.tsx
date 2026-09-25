@@ -7,7 +7,7 @@ import { useMediaQuery } from 'react-responsive';
 import LoadingSpinner from './components/LoadingSpinner';
 import GDPRBanner from './components/GDPRBanner';
 import Hero from './components/Hero';
-import { HomeHowItWorks, HomeFeatures, HomeFinalCta, HomeStickyCta } from './components/HomeSections';
+import { HomeCompanyStrip, HomeHowItWorks, HomeFeatures, HomeFinalCta, HomeStickyCta } from './components/HomeSections';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiePolicy from './components/CookiePolicy';
 import TermsOfService from './components/TermsOfService';
@@ -238,7 +238,8 @@ function HomePageWrapper({ onJoinNow }: { onJoinNow?: () => void }) {
 
   return (
     <>
-      <Hero onJoinNow={onJoinNow} />
+      <Hero />
+      <HomeCompanyStrip />
       <HomeHowItWorks />
       <HomeFeatures />
       <HomeFinalCta onJoinNow={onJoinNow} />
@@ -410,6 +411,8 @@ function AppContent() {
   const isHeroPage = !user && location.pathname === '/';
   const isAuthPage = !user && (location.pathname === '/login' || location.pathname === '/signup');
   const isOnboardingPage = location.pathname === '/onboarding';
+  // Legal pages keep the header on phones so visitors always have a way back.
+  const isLegalPage = ['/privacy-policy', '/terms', '/cookie-policy'].includes(location.pathname);
 
   if (isAuthPage) {
     return (
@@ -427,9 +430,9 @@ function AppContent() {
 
   return (
     // <TrackingProvider>
-    <div className={`flex min-h-screen flex-col relative ${isHeroPage ? 'bg-parchment' : 'bg-parchment-sunken'}`}>
+    <div className={`flex min-h-screen flex-col relative ${isHeroPage || isLegalPage ? 'bg-parchment' : 'bg-parchment-sunken'}`}>
       <GDPRBanner />
-      {!isOnboardingPage && (!isMobile || location.pathname === '/jobs' || isHeroPage) && (
+      {!isOnboardingPage && (!isMobile || location.pathname === '/jobs' || isHeroPage || isLegalPage) && (
         <Header
           onSignIn={() => navigate('/login')}
           onJoinNow={() => navigate('/signup')}
