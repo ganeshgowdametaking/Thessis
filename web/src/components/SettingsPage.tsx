@@ -401,7 +401,7 @@ const SettingsPage: React.FC = () => {
     <section className="flex flex-col gap-2.5">
       <div className="px-0.5">
         <h2 className={`font-display text-[17px] font-extrabold ${danger ? 'text-red-600' : 'text-ink'}`}>{title}</h2>
-        <p className="text-[12.5px] text-slate-500">{subtitle}</p>
+        {subtitle && <p className="text-[12.5px] text-slate-500">{subtitle}</p>}
       </div>
       <div className={`bg-white border rounded-2xl overflow-hidden ${danger ? 'border-red-200' : 'border-slate-200'}`}>{children}</div>
     </section>
@@ -411,7 +411,7 @@ const SettingsPage: React.FC = () => {
     <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-5 px-4 py-4 md:px-[22px] md:py-[18px] ${isLast ? '' : 'border-b border-slate-100'}`}>
       <div className="min-w-0">
         <p className="text-sm font-bold text-ink">{title}</p>
-        <div className="text-[12.5px] leading-snug text-slate-500 mt-0.5 break-words">{description}</div>
+        {description && <div className="text-[12.5px] leading-snug text-slate-500 mt-0.5 break-words">{description}</div>}
       </div>
       {action && <div className="shrink-0 flex flex-wrap items-center gap-2">{action}</div>}
     </div>
@@ -443,7 +443,7 @@ const SettingsPage: React.FC = () => {
 
   const renderAccount = () => (
     <>
-      {renderSection('Account', 'The basics of your Thessis account.', (
+      {renderSection('Account', '', (
         <>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-4 md:px-[22px] md:py-[18px] border-b border-slate-100">
             <div className="flex items-center gap-3.5 min-w-0">
@@ -454,7 +454,6 @@ const SettingsPage: React.FC = () => {
               )}
               <div className="min-w-0">
                 <p className="text-[15px] font-bold text-ink truncate">{displayName}</p>
-                <p className="text-[12.5px] text-slate-500">Your name, photo, experience and skills live on your profile.</p>
               </div>
             </div>
             <button type="button" onClick={() => navigate('/profile')} className={outlineButtonClass}>
@@ -465,7 +464,7 @@ const SettingsPage: React.FC = () => {
           {renderRow('Sign-in email', <>{user?.email} — the email you use to log in.</>)}
           {renderRow(
             'Work email',
-            'Confirms where you work.',
+            '',
             <>
               {isOrgVerified ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-success-tint px-2.5 py-1 text-[11.5px] font-bold text-success-ink max-w-[240px] truncate">
@@ -484,11 +483,11 @@ const SettingsPage: React.FC = () => {
         </>
       ))}
 
-      {renderSection('Danger zone', 'Permanent actions.', (
+      {renderSection('Danger zone', '', (
         <>
           {renderRow(
             'Delete account',
-            "Removes your account, profile, referrals and connections. This can't be undone.",
+            '',
             <button type="button" onClick={() => setShowDeleteConfirmModal(true)} disabled={deleteLoading} className={dangerOutlineClass}>
               {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               {deleteLoading ? 'Deleting…' : 'Delete account'}
@@ -511,7 +510,7 @@ const SettingsPage: React.FC = () => {
   );
 
   const renderSecurity = () =>
-    renderSection('Sign-in & security', 'Keep your account safe.', passwordFormOpen ? (
+    renderSection('Sign-in & security', '', passwordFormOpen ? (
       <form
         className="px-4 py-4 md:px-[22px] md:py-5 flex flex-col gap-4"
         onSubmit={(e) => {
@@ -559,7 +558,7 @@ const SettingsPage: React.FC = () => {
       <>
         {renderRow(
           'Password',
-          'Changing it signs you out on your other devices.',
+          '',
           <button type="button" onClick={() => { setPasswordFormOpen(true); setPasswordMessage(null); }} className={outlineButtonClass}>
             Change password
           </button>,
@@ -571,7 +570,7 @@ const SettingsPage: React.FC = () => {
 
   const renderWorkEmail = () => {
     const step = verificationStep === 'verified' && isOrgVerified ? 3 : verificationStep === 'otp' ? 2 : 1;
-    return renderSection('Work email', "Add the email you use at work to confirm where you work. It isn't shown on your profile.", (
+    return renderSection('Work email', '', (
       <div className="px-4 py-4 md:px-[22px] md:py-5 flex flex-col gap-4">
         {renderStepper(step)}
 
@@ -667,7 +666,7 @@ const SettingsPage: React.FC = () => {
   };
 
   const renderFeedback = () =>
-    renderSection('Feedback', 'Help us improve Thessis — your message goes straight to the team.', (
+    renderSection('Feedback', '', (
       <form
         className="px-4 py-4 md:px-[22px] md:py-5 flex flex-col gap-4"
         onSubmit={(e) => {
@@ -713,10 +712,10 @@ const SettingsPage: React.FC = () => {
 
   const renderAdmins = () => (
     <>
-      {renderSection('Admins', 'Admins can see the analytics dashboard and add other admins.', (
+      {renderSection('Admins', '', (
         renderRow(
           'Make someone an admin',
-          "They get admin access straight away — there's no invite for them to accept.",
+          '',
           <button type="button" onClick={() => setShowInviteModal(true)} className={outlineButtonClass}>
             <ShieldCheck className="h-4 w-4" />
             Make someone an admin
@@ -827,7 +826,6 @@ const SettingsPage: React.FC = () => {
       <main className="flex-grow w-full max-w-[1080px] mx-auto px-4 md:px-6 py-5 md:py-9 flex flex-col gap-4 md:gap-6">
         <header>
           <h1 className="font-display text-2xl md:text-[30px] font-extrabold text-ink">Settings</h1>
-          <p className="text-[13px] md:text-sm text-slate-500 mt-0.5">Manage your account, security and how you work with Thessis.</p>
         </header>
 
         {/* Section chips on smaller screens */}

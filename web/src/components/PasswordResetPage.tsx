@@ -173,9 +173,6 @@ const PasswordResetPage: React.FC = () => {
           {/* Header */}
           <div className="text-center space-y-1.5 sm:space-y-2">
             <h1 className="text-title-slate text-xl sm:text-2xl font-bold leading-tight">Reset Password</h1>
-            <p className="text-body-slate text-sm sm:text-base font-normal leading-normal">
-              Please choose a new password for your account.
-            </p>
           </div>
 
           {/* Diagnostic Check */}
@@ -304,27 +301,12 @@ const PasswordResetPage: React.FC = () => {
       </div>
     </div>
 
-      {/* Right: brand panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-ink flex-col justify-between p-16 text-white">
+      {/* Right: brand panel, same photo as login/sign-up. A CSS background, so phones (panel hidden) never download it. */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col bg-ink bg-[url('/images/auth-panel.webp')] bg-cover bg-center p-16 text-white">
         <img src="/brand/thessis-logo-white.svg" alt="Thessis" className="h-8 w-auto self-start" />
 
-        <div className="flex flex-col gap-5 max-w-md">
-          <span className="text-[13px] font-bold uppercase tracking-wider text-indigo-200">Account recovery</span>
+        <div className="my-auto flex flex-col gap-5 max-w-md">
           <h2 className="font-display font-extrabold text-[34px] leading-tight">Let's get you back in.</h2>
-          <p className="text-[15px] leading-relaxed text-slate-300">Set a new password and you'll be right back to tracking your applications and referrals.</p>
-        </div>
-
-        <div className="flex flex-col gap-3.5 p-5 bg-[#1B1B33] rounded-2xl max-w-md">
-          <p className="text-[14.5px] leading-relaxed text-slate-200 italic">
-            "I almost gave up on my job search until a friend referred me here. Ten minutes to set up, and I had a warm intro within a week."
-          </p>
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-full bg-ink-wash text-primary flex items-center justify-center font-display font-bold text-xs">CV</div>
-            <div className="flex flex-col">
-              <span className="text-[12.5px] font-bold">Clara Vale</span>
-              <span className="text-[11.5px] text-slate-400">Product Manager, hired via referral</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
