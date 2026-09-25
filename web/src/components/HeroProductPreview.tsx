@@ -43,12 +43,6 @@ const ScoreRing: React.FC<{ score: number; size: number }> = ({ score, size }) =
   );
 };
 
-const ExampleLabel: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <span className={`inline-flex h-6 items-center rounded-full bg-ink px-2.5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-white ${className}`}>
-    Example
-  </span>
-);
-
 const MatchCard: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div className={`flex flex-col gap-2.5 rounded-2xl border border-hairline bg-white p-3.5 shadow-[0_20px_50px_rgba(20,20,43,0.14)] ${className}`}>
     <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-slate-500">AI resume match</span>
@@ -91,7 +85,6 @@ const HeroProductPreview: React.FC = () => (
   <div role="img" aria-label="Example of Thessis: a job posted by an employee, an AI resume match, and an application that a referrer has 48 hours to respond to">
     {/* Desktop: the jobs page in a browser frame with cards floating around it */}
     <div aria-hidden="true" className="relative mx-auto hidden w-full max-w-[1040px] lg:block">
-      <ExampleLabel className="absolute -top-3 left-5 z-10" />
       <div className="rounded-[22px] border border-hairline bg-white/70 p-2.5 shadow-[0_30px_80px_rgba(20,20,43,0.14)]">
         <div className="overflow-hidden rounded-[14px] border border-hairline bg-parchment">
           <div className="flex h-[34px] items-center gap-1.5 border-b border-hairline bg-white px-3.5">
@@ -144,7 +137,6 @@ const HeroProductPreview: React.FC = () => (
 
     {/* Phones and tablets: the same story as a short stack of cards */}
     <div aria-hidden="true" className="mx-auto flex max-w-md flex-col gap-3 lg:hidden">
-      <ExampleLabel className="self-start" />
       <div className="flex flex-col gap-2.5 rounded-2xl border border-hairline bg-white p-3.5 text-left">
         <div className="flex items-center gap-2.5">
           <CompanyTile letter="N" tone="bg-ink-wash text-primary-hover" />
