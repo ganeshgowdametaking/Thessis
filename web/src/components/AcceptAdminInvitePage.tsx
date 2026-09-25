@@ -46,12 +46,7 @@ const AcceptAdminInvitePage: React.FC = () => {
     <div className="min-h-screen md:min-h-[calc(100vh-5rem)] flex flex-col lg:flex-row">
       {/* Left: what admin access includes */}
       <aside className="hidden lg:flex lg:w-[43%] shrink-0 bg-ink text-white flex-col justify-between p-16">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="font-display font-extrabold text-sm">T</span>
-          </div>
-          <span className="font-display font-extrabold text-lg">Thessis</span>
-        </div>
+        <img src="/brand/thessis-logo-white.svg" alt="Thessis" className="h-8 w-auto self-start" />
 
         <div className="flex flex-col gap-5 max-w-md">
           <span className="text-[13px] font-bold uppercase tracking-wider text-indigo-200">Admin access</span>

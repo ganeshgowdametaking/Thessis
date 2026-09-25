@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Users, Briefcase, FileText, UserCheck, RefreshCw, TrendingUp, TrendingDown, Shield, Activity, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, FunnelChart, Funnel, Cell, LabelList } from 'recharts';
+import { AlertCircle, Briefcase, FileText, Globe, Link2, RefreshCw, ShieldCheck, TrendingDown, TrendingUp, Users } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import {
     analyticsDataService,
@@ -9,29 +8,25 @@ import {
     RecentUser,
     RecentApplication,
     GrowthData,
-    AcquisitionChannel,
     FunnelStage,
     EUComplianceData,
     ConversionData,
 } from '../services/analyticsDataService';
 import LoadingSpinner from './LoadingSpinner';
 
-// Compliance audit log entries (static for now)
-const COMPLIANCE_ACTIONS = [
-    { date: '2026-02-08', action: 'Consent Check', status: 'Passed', details: 'All EU users have valid consent' },
-    { date: '2026-02-07', action: 'Data Retention Audit', status: 'Passed', details: 'No expired data found' },
-    { date: '2026-02-06', action: 'GDPR Data Export', status: 'Completed', details: 'User request fulfilled' },
-    { date: '2026-02-05', action: 'Cookie Compliance', status: 'Passed', details: 'Banner functioning correctly' },
-];
-
 // Tab definitions
 type TabId = 'overview' | 'growth' | 'funnel' | 'compliance';
-const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'growth', label: 'User Growth', icon: TrendingUp },
-    { id: 'funnel', label: 'Referral Flywheel', icon: Activity },
-    { id: 'compliance', label: 'EU Compliance', icon: Shield },
+const TABS: { id: TabId; label: string }[] = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'growth', label: 'Growth & acquisition' },
+    { id: 'funnel', label: 'Referral funnel' },
+    { id: 'compliance', label: 'EU members' },
 ];
+
+// Chart colours from the style guide, used in order for acquisition sources.
+const SOURCE_COLORS = ['#4353FF', '#2F39C7', '#7C86FF', '#C7CCFF', '#F59E0B', '#059669', '#14142B'];
+
+const sourceLabel = (source: string) => (source === 'Organic' ? 'Organic / unknown' : source);
 
 // Format time ago
 function formatTimeAgo(dateString: string): string {
@@ -79,7 +74,6 @@ export default function AnalyticsDashboard() {
 
     // Advanced data (loads on-demand)
     const [growthData, setGrowthData] = useState<GrowthData | null>(null);
-    const [acquisitionChannels, setAcquisitionChannels] = useState<AcquisitionChannel[]>([]);
     const [euData, setEUData] = useState<EUComplianceData | null>(null);
 
     // Acquisition sources data (loads with base data)
@@ -105,7 +99,7 @@ export default function AnalyticsDashboard() {
         return role === 'admin' || role === 'founder' || role === 'co_founder';
     }, [profile?.role]);
 
-    // Memoized funnel data to prevent Recharts re-renders
+    // Memoized funnel data
     const funnelData = useMemo<FunnelStage[]>(() => {
         if (!stats) return [];
         return analyticsDataService.buildFunnelData(stats);
@@ -158,7 +152,8 @@ export default function AnalyticsDashboard() {
         }
     }, [loading]);
 
-    // Load growth data (lazy, on tab click)
+    // Load growth data (lazy, on tab click). Where signups come from is already
+    // loaded with the base data, so only the week-over-week numbers load here.
     const loadGrowthData = useCallback(async () => {
         if (hasFetchedGrowth.current) return;
         hasFetchedGrowth.current = true;
@@ -166,14 +161,9 @@ export default function AnalyticsDashboard() {
         setGrowthError(false);
 
         try {
-            const [growth, channels] = await Promise.all([
-                withTimeout(analyticsDataService.getGrowthData(), 4000),
-                withTimeout(analyticsDataService.getAcquisitionChannels(), 4000),
-            ]);
-
+            const growth = await withTimeout(analyticsDataService.getGrowthData(), 4000);
             if (growth) setGrowthData(growth);
-            if (channels) setAcquisitionChannels(channels);
-            if (!growth && !channels) setGrowthError(true);
+            else setGrowthError(true);
         } catch {
             setGrowthError(true);
         } finally {
@@ -224,15 +214,17 @@ export default function AnalyticsDashboard() {
         hasFetchedGrowth.current = false;
         hasFetchedEU.current = false;
         setGrowthData(null);
-        setAcquisitionChannels([]);
         setEUData(null);
         loadBaseData();
+        // Reload whichever lazy tab is open, since its data was just cleared.
+        if (activeTab === 'growth') loadGrowthData();
+        if (activeTab === 'compliance') loadEUData();
     };
 
     // Show loading while auth is checking
     if (authLoading) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+            <div className="min-h-screen bg-parchment flex items-center justify-center">
                 <LoadingSpinner />
             </div>
         );
@@ -244,85 +236,121 @@ export default function AnalyticsDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 font-display">
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="min-h-screen bg-parchment text-slate-900 font-display">
+            <main className="max-w-[1180px] mx-auto px-4 md:px-6 py-5 md:py-9 flex flex-col gap-4 md:gap-5">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h1 className="text-3xl font-bold font-display text-slate-900">Dashboard</h1>
-                        <p className="text-slate-500 mt-1">Platform analytics and insights</p>
+                <div className="flex items-end justify-between gap-4">
+                    <div className="min-w-0">
+                        <span className="flex items-center gap-1.5 text-[11px] md:text-[11.5px] font-bold uppercase tracking-wider text-slate-500">
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            Admins only
+                        </span>
+                        <h1 className="font-display text-2xl md:text-[30px] font-extrabold text-ink mt-0.5">Analytics</h1>
+                        <p className="hidden sm:block text-sm text-slate-500 mt-0.5">How Thessis is growing and how referrals are flowing.</p>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 shrink-0">
                         {lastUpdated && (
-                            <span className="text-sm text-slate-500">
-                                Updated {formatTimeAgo(lastUpdated.toISOString())}
-                            </span>
+                            <span className="hidden sm:inline text-[12.5px] text-slate-500">Updated {formatTimeAgo(lastUpdated.toISOString())}</span>
                         )}
                         <button
+                            type="button"
                             onClick={handleRefresh}
                             disabled={loading}
-                            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+                            aria-label="Refresh"
+                            className="h-10 w-10 sm:w-auto sm:px-3.5 rounded-xl border border-slate-200 bg-white text-[13px] font-bold text-ink hover:bg-parchment-sunken transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                            Refresh
+                            <span className="hidden sm:inline">Refresh</span>
                         </button>
                     </div>
                 </div>
+                {lastUpdated && <p className="sm:hidden -mt-3 text-xs text-slate-500">Updated {formatTimeAgo(lastUpdated.toISOString())}</p>}
 
                 {/* Error State */}
                 {error && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-                        {error}
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-danger-tint px-4 py-3" role="alert">
+                        <div className="flex gap-2.5 min-w-0">
+                            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-600" />
+                            <div className="text-[12.5px]">
+                                <p className="font-bold text-red-600">Couldn't load analytics</p>
+                                <p className="text-slate-600">{error}</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleRefresh}
+                            className="shrink-0 h-9 px-3.5 rounded-lg border border-red-200 bg-white text-red-600 text-[12.5px] font-bold hover:bg-red-50 transition-colors"
+                        >
+                            Try again
+                        </button>
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <StatCard title="Total Users" value={stats?.totalUsers ?? 0} icon={Users} loading={loading} color="blue" />
-                    <StatCard title="Active Jobs" value={stats?.activeJobs ?? 0} icon={Briefcase} loading={loading} color="green" />
-                    <StatCard title="Applications" value={stats?.totalApplications ?? 0} icon={FileText} loading={loading} color="purple" />
-                    <StatCard title="Connections" value={stats?.totalConnections ?? 0} icon={UserCheck} loading={loading} color="orange" />
+                {/* Headline numbers */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3.5">
+                    <StatCard
+                        title="Members"
+                        value={stats?.totalUsers ?? 0}
+                        detail={<><strong className="text-ink">{(stats?.verifiedUsers ?? 0).toLocaleString()}</strong> with a verified work email</>}
+                        icon={Users}
+                        tone="bg-ink-wash text-primary"
+                        loading={loading}
+                    />
+                    <StatCard
+                        title="Jobs posted"
+                        value={stats?.activeJobs ?? 0}
+                        detail={<>By <strong className="text-ink">{(stats?.usersWithJobs ?? 0).toLocaleString()}</strong> different members · all time</>}
+                        icon={Briefcase}
+                        tone="bg-success-tint text-success-ink"
+                        loading={loading}
+                    />
+                    <StatCard
+                        title="Applications"
+                        value={stats?.totalApplications ?? 0}
+                        detail="All time, across every job"
+                        icon={FileText}
+                        tone="bg-amber-tint text-amber-ink"
+                        loading={loading}
+                    />
+                    <StatCard
+                        title="Connections"
+                        value={stats?.totalConnections ?? 0}
+                        detail="Accepted connection requests"
+                        icon={Link2}
+                        tone="bg-violet-50 text-violet-700"
+                        loading={loading}
+                    />
                 </div>
 
-                {/* Acquisition Sources Section */}
-                <AcquisitionSourcesSection
-                    data={acquisitionSources}
-                    conversionData={conversionData}
-                    loading={acquisitionLoading}
-                />
-
                 {/* Tabs */}
-                <div className="border-b border-slate-200 mb-6">
-                    <nav className="flex gap-8">
-                        {TABS.map((tab) => {
-                            const Icon = tab.icon;
-                            return (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 pb-3 px-1 border-b-2 transition-colors ${activeTab === tab.id
-                                        ? 'border-primary text-primary'
-                                        : 'border-transparent text-slate-500 hover:text-slate-700'
-                                        }`}
-                                >
-                                    <Icon className="h-4 w-4" />
-                                    <span className="font-medium">{tab.label}</span>
-                                </button>
-                            );
-                        })}
-                    </nav>
+                <div className="flex gap-5 md:gap-6 border-b border-slate-200 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0" role="tablist">
+                    {TABS.map((tab) => (
+                        <button
+                            key={tab.id}
+                            type="button"
+                            role="tab"
+                            aria-selected={activeTab === tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`shrink-0 py-3 text-[13px] md:text-[13.5px] font-bold border-b-2 transition-colors ${activeTab === tab.id ? 'border-primary text-ink' : 'border-transparent text-slate-500 hover:text-ink'}`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
 
                 {/* Tab Content */}
-                <div className="min-h-[400px]">
+                <div className="min-h-[360px]">
                     {activeTab === 'overview' && (
                         <OverviewTab recentUsers={recentUsers} recentApplications={recentApplications} loading={loading} />
                     )}
                     {activeTab === 'growth' && (
                         <GrowthTab
                             growthData={growthData}
-                            acquisitionChannels={acquisitionChannels}
-                            loading={growthLoading}
-                            error={growthError}
+                            growthLoading={growthLoading}
+                            growthError={growthError}
+                            sources={acquisitionSources}
+                            conversionData={conversionData}
+                            sourcesLoading={acquisitionLoading}
                         />
                     )}
                     {activeTab === 'funnel' && (
@@ -337,38 +365,58 @@ export default function AnalyticsDashboard() {
     );
 }
 
+// === SHARED PIECES ===
+function Card({ title, subtitle, children, className = '' }: { title: string; subtitle?: React.ReactNode; children: React.ReactNode; className?: string }) {
+    return (
+        <section className={`bg-white border border-slate-200 rounded-2xl p-4 md:p-5 flex flex-col gap-3.5 ${className}`}>
+            <div>
+                <h2 className="font-display text-[15.5px] font-extrabold text-ink">{title}</h2>
+                {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+            </div>
+            {children}
+        </section>
+    );
+}
+
+function Unavailable({ title, body }: { title: string; body: string }) {
+    return (
+        <div className="rounded-xl border border-amber-200 bg-amber-tint/60 px-4 py-6 text-center">
+            <p className="text-sm font-bold text-ink">{title}</p>
+            <p className="text-[12.5px] text-slate-600 mt-1">{body}</p>
+        </div>
+    );
+}
+
 // === STAT CARD COMPONENT ===
 interface StatCardProps {
     title: string;
     value: number;
+    detail: React.ReactNode;
     icon: React.ComponentType<{ className?: string }>;
+    tone: string;
     loading: boolean;
-    color: 'blue' | 'green' | 'purple' | 'orange';
 }
 
-const colorClasses = {
-    blue: 'bg-primary/10 text-primary',
-    green: 'bg-success-tint text-success-ink',
-    purple: 'bg-purple-50 text-purple-600',
-    orange: 'bg-amber-tint text-amber-ink',
-};
-
-function StatCard({ title, value, icon: Icon, loading, color }: StatCardProps) {
+function StatCard({ title, value, detail, icon: Icon, tone, loading }: StatCardProps) {
     return (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-            <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
-                    <Icon className="h-5 w-5" />
-                </div>
-                <div>
-                    <p className="text-sm font-medium text-slate-500">{title}</p>
-                    {loading ? (
-                        <div className="h-7 w-14 bg-parchment-sunken rounded animate-pulse mt-1"></div>
-                    ) : (
-                        <p className="text-2xl font-bold font-display text-slate-900">{value.toLocaleString()}</p>
-                    )}
-                </div>
+        <div className="bg-white border border-slate-200 rounded-2xl p-3.5 md:px-5 md:py-[18px] flex flex-col gap-2 md:gap-2.5">
+            <div className="flex items-center justify-between gap-2">
+                <span className="text-[11.5px] md:text-[12.5px] font-semibold text-slate-500">{title}</span>
+                <span className={`size-7 md:size-[34px] shrink-0 rounded-lg md:rounded-[10px] flex items-center justify-center ${tone}`}>
+                    <Icon className="h-3.5 w-3.5 md:h-[18px] md:w-[18px]" />
+                </span>
             </div>
+            {loading ? (
+                <>
+                    <div className="h-7 md:h-8 w-20 rounded bg-parchment-sunken animate-pulse" />
+                    <div className="h-3 w-4/5 rounded bg-parchment-sunken animate-pulse" />
+                </>
+            ) : (
+                <>
+                    <p className="font-display text-[22px] md:text-[30px] leading-none font-extrabold text-ink">{value.toLocaleString()}</p>
+                    <p className="text-[10.5px] md:text-xs leading-snug text-slate-500">{detail}</p>
+                </>
+            )}
         </div>
     );
 }
@@ -383,244 +431,255 @@ function OverviewTab({
     recentApplications: RecentApplication[];
     loading: boolean;
 }) {
-    return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Users */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100">
-                    <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <Users className="h-5 w-5 text-primary" />
-                        Recent Signups
-                    </h2>
-                </div>
-                <div className="divide-y divide-slate-100">
-                    {loading ? (
-                        [...Array(3)].map((_, i) => (
-                            <div key={i} className="px-6 py-4 animate-pulse">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 bg-parchment-sunken rounded-full"></div>
-                                    <div className="flex-1">
-                                        <div className="h-4 w-32 bg-parchment-sunken rounded mb-2"></div>
-                                        <div className="h-3 w-24 bg-slate-100 rounded"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))
-                    ) : recentUsers.length > 0 ? (
-                        recentUsers.map((user) => (
-                            <div key={user.id} className="px-6 py-4 hover:bg-slate-50 transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 bg-parchment-sunken rounded-full flex items-center justify-center overflow-hidden">
-                                        <img src={user.avatar_url || '/default-avatar.svg'} alt="" className="h-full w-full object-cover" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-slate-900 truncate">{user.full_name || 'Anonymous User'}</p>
-                                        <p className="text-sm text-slate-500 truncate">{user.email}</p>
-                                    </div>
-                                    <span className="text-xs text-slate-400">{formatTimeAgo(user.created_at)}</span>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="px-6 py-8 text-center text-slate-500">No recent signups</div>
-                    )}
-                </div>
+    const skeletonRows = [0, 1, 2].map((i) => (
+        <div key={i} className="flex items-center gap-3 py-2.5 animate-pulse">
+            <div className="size-9 rounded-full bg-parchment-sunken" />
+            <div className="flex-1 flex flex-col gap-1.5">
+                <div className="h-3 w-32 rounded bg-parchment-sunken" />
+                <div className="h-2.5 w-44 rounded bg-slate-100" />
             </div>
+        </div>
+    ));
 
-            {/* Recent Applications */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100">
-                    <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-success-ink" />
-                        Recent Applications
-                    </h2>
-                </div>
-                <div className="divide-y divide-slate-100">
-                    {loading ? (
-                        [...Array(3)].map((_, i) => (
-                            <div key={i} className="px-6 py-4 animate-pulse">
-                                <div className="h-4 w-48 bg-parchment-sunken rounded mb-2"></div>
-                                <div className="h-3 w-32 bg-slate-100 rounded"></div>
-                            </div>
-                        ))
-                    ) : recentApplications.length > 0 ? (
-                        recentApplications.map((app) => (
-                            <div key={app.id} className="px-6 py-4 hover:bg-slate-50 transition-colors">
-                                <div className="flex items-center justify-between">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="font-medium text-slate-900 truncate">
-                                            {app.applicant?.full_name || 'Someone'} applied
-                                        </p>
-                                        <p className="text-sm text-slate-500 truncate">
-                                            {app.job?.title} at {app.job?.company}
-                                        </p>
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5 items-start">
+            <Card title="Recent signups" subtitle="The 5 newest members">
+                <div className="flex flex-col divide-y divide-slate-100">
+                    {loading ? skeletonRows : recentUsers.length > 0 ? (
+                        recentUsers.map((member) => {
+                            const name = member.full_name || 'Unnamed member';
+                            const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+                            return (
+                                <div key={member.id} className="flex items-center gap-3 py-2.5">
+                                    {member.avatar_url ? (
+                                        <img src={member.avatar_url} alt="" className="size-9 rounded-full object-cover shrink-0" />
+                                    ) : (
+                                        <span className="size-9 shrink-0 rounded-full bg-ink-wash text-primary-hover text-xs font-extrabold flex items-center justify-center">{initials}</span>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[13.5px] font-bold text-ink truncate">{name}</p>
+                                        <p className="text-xs text-slate-500 truncate">{member.email}</p>
                                     </div>
-                                    <span className="text-xs text-slate-400 ml-4 shrink-0">{formatTimeAgo(app.applied_at)}</span>
+                                    <span className="text-[11.5px] text-slate-500 shrink-0">{formatTimeAgo(member.created_at)}</span>
                                 </div>
+                            );
+                        })
+                    ) : (
+                        <p className="py-8 text-center text-sm text-slate-500">No recent signups</p>
+                    )}
+                </div>
+            </Card>
+
+            <Card title="Recent applications" subtitle="The 5 newest applications">
+                <div className="flex flex-col divide-y divide-slate-100">
+                    {loading ? skeletonRows : recentApplications.length > 0 ? (
+                        recentApplications.map((app) => (
+                            <div key={app.id} className="flex items-center gap-3 py-2.5">
+                                <span className="size-9 shrink-0 rounded-[10px] bg-amber-tint text-amber-ink flex items-center justify-center">
+                                    <FileText className="h-4 w-4" />
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[13.5px] text-ink truncate"><strong>{app.applicant?.full_name || 'Someone'}</strong> applied</p>
+                                    <p className="text-xs text-slate-500 truncate">{app.job?.title} at {app.job?.company}</p>
+                                </div>
+                                <span className="text-[11.5px] text-slate-500 shrink-0">{formatTimeAgo(app.applied_at)}</span>
                             </div>
                         ))
                     ) : (
-                        <div className="px-6 py-8 text-center text-slate-500">No recent applications</div>
+                        <p className="py-8 text-center text-sm text-slate-500">No recent applications</p>
                     )}
                 </div>
+            </Card>
+        </div>
+    );
+}
+
+// === GROWTH & ACQUISITION TAB ===
+function SourcesDonut({ sources, total }: { sources: { source: string; count: number }[]; total: number }) {
+    const radius = 60;
+    const circumference = 2 * Math.PI * radius;
+    let offset = 0;
+    return (
+        <div className="relative size-[150px] md:size-[170px] shrink-0">
+            <svg viewBox="0 0 160 160" className="size-full" aria-hidden="true">
+                <circle cx="80" cy="80" r={radius} fill="none" stroke="#F3F4F6" strokeWidth="22" />
+                {sources.map((item, index) => {
+                    const length = total > 0 ? (circumference * item.count) / total : 0;
+                    const segment = (
+                        <circle
+                            key={item.source}
+                            cx="80"
+                            cy="80"
+                            r={radius}
+                            fill="none"
+                            stroke={SOURCE_COLORS[index % SOURCE_COLORS.length]}
+                            strokeWidth="22"
+                            strokeDasharray={`${Math.max(0, length - (sources.length > 1 ? 2 : 0))} ${circumference}`}
+                            strokeDashoffset={-offset}
+                            transform="rotate(-90 80 80)"
+                        />
+                    );
+                    offset += length;
+                    return segment;
+                })}
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="font-display text-2xl font-extrabold text-ink">{total.toLocaleString()}</span>
+                <span className="text-[11px] text-slate-500">signups</span>
             </div>
         </div>
     );
 }
 
-// === GROWTH TAB ===
 function GrowthTab({
     growthData,
-    acquisitionChannels,
-    loading,
-    error,
+    growthLoading,
+    growthError,
+    sources,
+    conversionData,
+    sourcesLoading,
 }: {
     growthData: GrowthData | null;
-    acquisitionChannels: AcquisitionChannel[];
-    loading: boolean;
-    error: boolean;
+    growthLoading: boolean;
+    growthError: boolean;
+    sources: { source: string; count: number; percentage: number; color: string }[];
+    conversionData: ConversionData[];
+    sourcesLoading: boolean;
 }) {
-    // Memoize chart data to prevent re-renders
-    const chartData = useMemo(() => acquisitionChannels, [acquisitionChannels]);
+    const totalSignups = useMemo(() => sources.reduce((sum, item) => sum + item.count, 0), [sources]);
+    const perSignupRows = useMemo(
+        () => conversionData.map((row) => ({ ...row, perSignup: row.totalSignups > 0 ? row.applications / row.totalSignups : 0 })),
+        [conversionData]
+    );
+    const maxPerSignup = Math.max(1, ...perSignupRows.map((row) => row.perSignup));
 
-    if (error) {
-        return (
-            <div className="bg-amber-tint border border-amber-200 rounded-xl p-8 text-center">
-                <p className="text-amber-ink font-medium">Data temporarily unavailable</p>
-                <p className="text-amber-ink text-sm mt-1">Growth metrics could not be loaded. Please try refreshing.</p>
-            </div>
-        );
-    }
+    // Dev-only debug button for UTM localStorage
+    const handleDebugUTM = () => {
+        const utmData = localStorage.getItem('platform_attribution_data');
+        console.log('[UTM Debug] Current localStorage data:', utmData ? JSON.parse(utmData) : 'No UTM data stored');
+    };
+    const isDev = import.meta.env.DEV;
+
+    const weekMax = growthData ? Math.max(1, growthData.currentWeekSignups, growthData.previousWeekSignups) : 1;
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* WoW Growth Card */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <h3 className="text-sm font-medium text-slate-500 mb-4">Week-over-Week Growth</h3>
-                {loading ? (
-                    <div className="animate-pulse">
-                        <div className="h-10 w-24 bg-parchment-sunken rounded mb-2"></div>
-                        <div className="h-4 w-32 bg-slate-100 rounded"></div>
-                    </div>
-                ) : growthData ? (
-                    <>
-                        <div className="flex items-center gap-2">
-                            {growthData.growthRate >= 0 ? (
-                                <TrendingUp className="h-8 w-8 text-success-ink" />
-                            ) : (
-                                <TrendingDown className="h-8 w-8 text-red-500" />
-                            )}
-                            <span
-                                className={`text-3xl font-bold font-display ${growthData.growthRate >= 0 ? 'text-success-ink' : 'text-red-prof'}`}
-                            >
-                                {growthData.growthRate >= 0 ? '+' : ''}
-                                {growthData.growthRate}%
-                            </span>
+        <div className="flex flex-col gap-4 md:gap-5">
+            <div className="flex flex-col lg:flex-row gap-4 md:gap-5 items-stretch">
+                <Card title="Signups this week" className="lg:w-[340px] shrink-0">
+                    {growthError ? (
+                        <Unavailable title="Growth numbers are taking too long" body="They didn't load within 4 seconds. Refresh to try again." />
+                    ) : growthLoading || !growthData ? (
+                        <div className="flex flex-col gap-3 animate-pulse">
+                            <div className="h-9 w-24 rounded bg-parchment-sunken" />
+                            <div className="h-2.5 w-full rounded bg-slate-100" />
+                            <div className="h-2.5 w-3/4 rounded bg-slate-100" />
                         </div>
-                        <p className="text-slate-500 text-sm mt-2">
-                            {growthData.currentWeekSignups} signups this week vs {growthData.previousWeekSignups} last week
-                        </p>
-                    </>
-                ) : (
-                    <p className="text-slate-400">No data available</p>
-                )}
-            </div>
-
-            {/* Acquisition Channels Chart */}
-            <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <h3 className="text-sm font-medium text-slate-500 mb-4">Acquisition Channels</h3>
-                {loading ? (
-                    <div className="h-64 bg-slate-100 rounded animate-pulse"></div>
-                ) : chartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={250}>
-                        <BarChart data={chartData} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                            <XAxis type="number" stroke="#9CA3AF" fontSize={12} />
-                            <YAxis dataKey="name" type="category" stroke="#9CA3AF" fontSize={12} width={80} />
-                            <Tooltip
-                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #E5E7EB', borderRadius: '8px' }}
-                            />
-                            <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                                {chartData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    ) : (
+                        <>
+                            <div className="flex items-baseline gap-2.5">
+                                <span className="font-display text-[34px] leading-none font-extrabold text-ink">{growthData.currentWeekSignups.toLocaleString()}</span>
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12.5px] font-bold ${growthData.growthRate >= 0 ? 'bg-success-tint text-success-ink' : 'bg-danger-tint text-red-600'}`}>
+                                    {growthData.growthRate >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                                    {growthData.growthRate >= 0 ? '+' : ''}{growthData.growthRate}%
+                                </span>
+                            </div>
+                            <div className="flex flex-col gap-2 text-xs">
+                                {[
+                                    { label: 'This week', value: growthData.currentWeekSignups, color: 'bg-primary' },
+                                    { label: 'Last week', value: growthData.previousWeekSignups, color: 'bg-indigo-200' },
+                                ].map((row) => (
+                                    <div key={row.label} className="flex items-center gap-2.5">
+                                        <span className="w-[70px] text-slate-500">{row.label}</span>
+                                        <div className="flex-1 h-2.5 rounded-full bg-parchment-sunken overflow-hidden">
+                                            <div className={`h-full rounded-full ${row.color}`} style={{ width: `${(row.value / weekMax) * 100}%` }} />
+                                        </div>
+                                        <span className="w-8 text-right font-bold text-ink">{row.value.toLocaleString()}</span>
+                                    </div>
                                 ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                ) : (
-                    <div className="h-64 flex items-center justify-center text-slate-400">No acquisition data available</div>
-                )}
+                            </div>
+                            <p className="text-[11.5px] text-slate-500">Last 7 days compared with the 7 days before.</p>
+                        </>
+                    )}
+                </Card>
+
+                <Card
+                    title="Where members come from"
+                    subtitle={<>From the sign-up link's UTM source · all time{isDev && (
+                        <button type="button" onClick={handleDebugUTM} className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-semibold text-slate-600 hover:bg-parchment-sunken">Debug UTM</button>
+                    )}</>}
+                    className="flex-1 min-w-0"
+                >
+                    {sourcesLoading ? (
+                        <div className="flex items-center gap-6 animate-pulse">
+                            <div className="size-[150px] rounded-full border-[22px] border-parchment-sunken" />
+                            <div className="flex-1 flex flex-col gap-3">
+                                {[0, 1, 2].map((i) => <div key={i} className="h-3 rounded bg-parchment-sunken" />)}
+                            </div>
+                        </div>
+                    ) : sources.length > 0 ? (
+                        <div className="flex flex-col sm:flex-row items-center gap-5 md:gap-7">
+                            <SourcesDonut sources={sources} total={totalSignups} />
+                            <ul className="w-full flex-1 flex flex-col gap-2.5">
+                                {sources.map((item, index) => (
+                                    <li key={item.source} className="flex items-center gap-2.5 text-[13px]">
+                                        <span className="size-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: SOURCE_COLORS[index % SOURCE_COLORS.length] }} />
+                                        <span className="flex-1 font-semibold text-ink truncate">{sourceLabel(item.source)}</span>
+                                        <span className="text-slate-500">{item.count.toLocaleString()}</span>
+                                        <span className="w-10 text-right font-bold text-ink">{item.percentage}%</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : (
+                        <p className="py-10 text-center text-sm text-slate-500">No acquisition data yet</p>
+                    )}
+                </Card>
             </div>
 
-            {/* Acquisition Breakdown Table */}
-            <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-                    <PieChartIcon className="h-5 w-5 text-purple-500" />
-                    <h3 className="text-lg font-semibold text-slate-900">Acquisition Breakdown</h3>
-                </div>
-                {loading ? (
-                    <div className="p-6">
-                        <div className="animate-pulse space-y-4">
-                            <div className="h-10 bg-parchment-sunken rounded"></div>
-                            <div className="h-10 bg-slate-100 rounded"></div>
-                            <div className="h-10 bg-parchment-sunken rounded"></div>
-                        </div>
-                    </div>
-                ) : chartData.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50">
-                                <tr>
-                                    <th className="text-left px-6 py-3 text-slate-500 font-medium">Source</th>
-                                    <th className="text-right px-6 py-3 text-slate-500 font-medium">Signups</th>
-                                    <th className="text-right px-6 py-3 text-slate-500 font-medium">Share</th>
-                                    <th className="text-left px-6 py-3 text-slate-500 font-medium">Distribution</th>
+            {!sourcesLoading && perSignupRows.length > 0 && (
+                <Card title="Applications per signup, by source" subtitle="Total applications from members of each source, divided by how many signed up">
+                    <div className="overflow-x-auto -mx-1 px-1">
+                        <table className="w-full min-w-[520px] text-[13px]">
+                            <thead>
+                                <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                    <th className="text-left font-bold pb-2">Source</th>
+                                    <th className="text-right font-bold pb-2">Signups</th>
+                                    <th className="text-right font-bold pb-2">Applications</th>
+                                    <th className="text-left font-bold pb-2 pl-6 w-[40%]">Per signup</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {chartData.map((channel, i) => {
-                                    const total = chartData.reduce((sum, c) => sum + c.count, 0);
-                                    const percentage = total > 0 ? Math.round((channel.count / total) * 100) : 0;
-                                    return (
-                                        <tr key={i} className="hover:bg-slate-50">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <div
-                                                        className="w-3 h-3 rounded-full"
-                                                        style={{ backgroundColor: channel.color }}
-                                                    ></div>
-                                                    <span className="font-medium text-slate-900">{channel.name}</span>
+                                {perSignupRows.map((row) => (
+                                    <tr key={row.source}>
+                                        <td className="py-2.5 font-bold text-ink">{sourceLabel(row.source)}</td>
+                                        <td className="py-2.5 text-right text-slate-600">{row.totalSignups.toLocaleString()}</td>
+                                        <td className="py-2.5 text-right text-slate-600">{row.applications.toLocaleString()}</td>
+                                        <td className="py-2.5 pl-6">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="flex-1 h-2 rounded-full bg-parchment-sunken overflow-hidden">
+                                                    <div className="h-full rounded-full bg-primary" style={{ width: `${(row.perSignup / maxPerSignup) * 100}%` }} />
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right font-semibold text-slate-900">
-                                                {channel.count.toLocaleString()}
-                                            </td>
-                                            <td className="px-6 py-4 text-right text-slate-600">
-                                                {percentage}%
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="w-full bg-slate-100 rounded-full h-2 max-w-[200px]">
-                                                    <div
-                                                        className="h-2 rounded-full transition-all"
-                                                        style={{ width: `${percentage}%`, backgroundColor: channel.color }}
-                                                    ></div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                                <strong className="w-9 text-ink">{row.perSignup.toFixed(1)}</strong>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>
-                ) : (
-                    <div className="p-8 text-center text-slate-400">No acquisition data available</div>
-                )}
-            </div>
+                </Card>
+            )}
         </div>
     );
 }
 
 // === FUNNEL TAB ===
+const FUNNEL_STEPS = [
+    { label: 'Signed up', note: 'Everyone with a Thessis account', color: 'bg-primary' },
+    { label: 'Verified a work email', note: 'Confirmed where they work', color: 'bg-primary-hover' },
+    { label: 'Posted a job', note: 'Different members who have posted at least one role', color: 'bg-success' },
+];
+
 function FunnelTab({
     funnelData,
     liquidityRatio,
@@ -632,58 +691,65 @@ function FunnelTab({
     stats: DashboardStats | null;
     loading: boolean;
 }) {
+    const base = funnelData[0]?.value ?? 0;
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Liquidity Ratio Card */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <h3 className="text-sm font-medium text-slate-500 mb-4">Liquidity Ratio</h3>
+        <div className="flex flex-col lg:flex-row gap-4 md:gap-5 items-start">
+            <Card title="Referral funnel" subtitle="How many members reach each step" className="w-full flex-1 min-w-0">
                 {loading ? (
-                    <div className="animate-pulse">
-                        <div className="h-10 w-20 bg-parchment-sunken rounded mb-2"></div>
-                        <div className="h-4 w-40 bg-slate-100 rounded"></div>
+                    <div className="flex flex-col gap-4 animate-pulse">
+                        {[0, 1, 2].map((i) => <div key={i} className="h-9 rounded-[10px] bg-parchment-sunken" />)}
+                    </div>
+                ) : funnelData.length > 0 ? (
+                    <div className="flex flex-col gap-4">
+                        {funnelData.map((stage, index) => {
+                            const step = FUNNEL_STEPS[index] ?? { label: stage.name, note: '', color: 'bg-primary' };
+                            const share = base > 0 ? (stage.value / base) * 100 : 0;
+                            return (
+                                <div key={stage.name} className="flex flex-col gap-1.5">
+                                    <div className="flex justify-between gap-3 text-[12.5px]">
+                                        <span className="font-bold text-ink">{step.label}</span>
+                                        {index > 0 && <span className="font-bold text-slate-500">{Math.round(share)}% of members</span>}
+                                    </div>
+                                    <div className="h-[34px] rounded-[10px] bg-parchment-sunken overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-[10px] ${step.color} flex items-center pl-3 font-display text-sm font-extrabold text-white`}
+                                            style={{ width: `${Math.max(share, stage.value > 0 ? 9 : 0)}%` }}
+                                        >
+                                            {stage.value.toLocaleString()}
+                                        </div>
+                                    </div>
+                                    {step.note && <span className="text-[11.5px] text-slate-500">{step.note}</span>}
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <p className="py-10 text-center text-sm text-slate-500">No funnel data yet</p>
+                )}
+            </Card>
+
+            <Card title="Jobs per verified member" className="w-full lg:w-[340px] shrink-0">
+                {loading ? (
+                    <div className="flex flex-col gap-2 animate-pulse">
+                        <div className="h-9 w-20 rounded bg-parchment-sunken" />
+                        <div className="h-10 rounded-xl bg-slate-100" />
                     </div>
                 ) : (
                     <>
-                        <p className="text-3xl font-bold font-display text-slate-900">{liquidityRatio}</p>
-                        <p className="text-slate-500 text-sm mt-2">Active Jobs per Verified User</p>
-                        <div className="mt-4 p-3 bg-slate-50 rounded-lg">
-                            <p className="text-xs text-slate-600">
-                                {stats?.activeJobs ?? 0} jobs / {stats?.verifiedUsers ?? 0} verified users
-                            </p>
-                        </div>
+                        <p className="font-display text-[34px] leading-none font-extrabold text-ink">{liquidityRatio}</p>
+                        <p className="rounded-xl bg-parchment px-3 py-2.5 text-[12.5px] text-slate-600">
+                            {(stats?.activeJobs ?? 0).toLocaleString()} jobs posted ÷ {(stats?.verifiedUsers ?? 0).toLocaleString()} members with a verified work email
+                        </p>
+                        <p className="text-[11.5px] text-slate-500">Counts every job ever posted, including closed ones.</p>
                     </>
                 )}
-            </div>
-
-            {/* Conversion Funnel Chart */}
-            <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <h3 className="text-sm font-medium text-slate-500 mb-4">Conversion Funnel</h3>
-                {loading ? (
-                    <div className="h-64 bg-slate-100 rounded animate-pulse"></div>
-                ) : funnelData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={250}>
-                        <FunnelChart>
-                            <Tooltip
-                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #E5E7EB', borderRadius: '8px' }}
-                            />
-                            <Funnel dataKey="value" data={funnelData} isAnimationActive={false}>
-                                <LabelList position="right" fill="#374151" stroke="none" dataKey="name" fontSize={12} />
-                                <LabelList position="center" fill="#fff" stroke="none" dataKey="value" fontSize={14} fontWeight="bold" />
-                                {funnelData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                                ))}
-                            </Funnel>
-                        </FunnelChart>
-                    </ResponsiveContainer>
-                ) : (
-                    <div className="h-64 flex items-center justify-center text-slate-400">No funnel data available</div>
-                )}
-            </div>
+            </Card>
         </div>
     );
 }
 
-// === COMPLIANCE TAB ===
+// === EU MEMBERS TAB ===
 function ComplianceTab({
     euData,
     loading,
@@ -693,269 +759,43 @@ function ComplianceTab({
     loading: boolean;
     error: boolean;
 }) {
-    if (error) {
-        return (
-            <div className="bg-amber-tint border border-amber-200 rounded-xl p-8 text-center">
-                <p className="text-amber-ink font-medium">Data temporarily unavailable</p>
-                <p className="text-amber-ink text-sm mt-1">EU compliance data could not be loaded. Please try refreshing.</p>
-            </div>
-        );
-    }
-
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* EU User Stats */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-ink-wash rounded-lg">
-                        <Shield className="h-5 w-5 text-primary" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5 items-start">
+            <Card title="EU members" subtitle="Members who appear to be in the EU">
+                {error ? (
+                    <Unavailable title="EU numbers are taking too long" body="They didn't load within 4 seconds. Refresh to try again." />
+                ) : loading || !euData ? (
+                    <div className="flex flex-col gap-3 animate-pulse">
+                        <div className="h-9 w-20 rounded bg-parchment-sunken" />
+                        <div className="h-2.5 w-full rounded-full bg-slate-100" />
                     </div>
-                    <h3 className="text-sm font-medium text-slate-500">EU User Base</h3>
-                </div>
-                {loading ? (
-                    <div className="animate-pulse">
-                        <div className="h-10 w-20 bg-parchment-sunken rounded mb-2"></div>
-                        <div className="h-4 w-32 bg-slate-100 rounded"></div>
-                    </div>
-                ) : euData ? (
+                ) : (
                     <>
-                        <p className="text-3xl font-bold font-display text-slate-900">{euData.euUserCount.toLocaleString()}</p>
-                        <p className="text-slate-500 text-sm mt-1">{euData.euPercentage}% of total users</p>
-                        <div className="mt-4 w-full bg-slate-100 rounded-full h-2">
-                            <div
-                                className="bg-ink-wash0 h-2 rounded-full transition-all"
-                                style={{ width: `${Math.min(euData.euPercentage, 100)}%` }}
-                            ></div>
+                        <div className="flex items-baseline gap-2.5">
+                            <span className="font-display text-[34px] leading-none font-extrabold text-ink">{euData.euUserCount.toLocaleString()}</span>
+                            <span className="text-[13px] text-slate-500">{euData.euPercentage}% of all members</span>
                         </div>
+                        <div className="h-2.5 rounded-full bg-parchment-sunken overflow-hidden">
+                            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(euData.euPercentage, 100)}%` }} />
+                        </div>
+                        <p className="text-[11.5px] leading-relaxed text-slate-500">
+                            Estimated from the location and country members typed on their profile, so it may miss some people.
+                        </p>
                     </>
-                ) : (
-                    <p className="text-slate-400">No data available</p>
                 )}
-            </div>
+            </Card>
 
-            {/* Compliance Audit Log */}
-            <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100">
-                    <h3 className="text-lg font-semibold text-slate-900">Compliance Audit Log</h3>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead className="bg-slate-50">
-                            <tr>
-                                <th className="text-left px-6 py-3 text-slate-500 font-medium">Date</th>
-                                <th className="text-left px-6 py-3 text-slate-500 font-medium">Action</th>
-                                <th className="text-left px-6 py-3 text-slate-500 font-medium">Status</th>
-                                <th className="text-left px-6 py-3 text-slate-500 font-medium">Details</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {COMPLIANCE_ACTIONS.map((action, i) => (
-                                <tr key={i} className="hover:bg-slate-50">
-                                    <td className="px-6 py-4 text-slate-600">{action.date}</td>
-                                    <td className="px-6 py-4 text-slate-900 font-medium">{action.action}</td>
-                                    <td className="px-6 py-4">
-                                        <span
-                                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${action.status === 'Passed'
-                                                ? 'bg-success-tint text-success-ink'
-                                                : 'bg-ink-wash text-primary'
-                                                }`}
-                                        >
-                                            {action.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-slate-500">{action.details}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-// === ACQUISITION SOURCES SECTION ===
-interface AcquisitionSourcesSectionProps {
-    data: { source: string; count: number; percentage: number; color: string }[];
-    conversionData: ConversionData[];
-    loading: boolean;
-}
-
-function AcquisitionSourcesSection({ data, conversionData, loading }: AcquisitionSourcesSectionProps) {
-    // Memoize chart data to prevent re-renders
-    const chartData = useMemo(() => data, [data]);
-    const conversionTableData = useMemo(() => conversionData, [conversionData]);
-    const totalSignups = useMemo(() => data.reduce((sum, item) => sum + item.count, 0), [data]);
-
-    // Dev-only debug button for UTM localStorage
-    const handleDebugUTM = () => {
-        const utmData = localStorage.getItem('platform_attribution_data');
-        console.log('[UTM Debug] Current localStorage data:', utmData ? JSON.parse(utmData) : 'No UTM data stored');
-    };
-
-    const isDev = import.meta.env.DEV;
-
-    return (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 overflow-hidden">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-emerald-500" />
-                    <h2 className="text-lg font-semibold text-slate-900">Acquisition Sources</h2>
-                </div>
-                <div className="flex items-center gap-3">
-                    {isDev && (
-                        <button
-                            onClick={handleDebugUTM}
-                            className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded hover:bg-parchment-sunken transition-colors"
-                        >
-                            Debug UTM
-                        </button>
-                    )}
-                    <span className="text-sm text-slate-500">
-                        {totalSignups.toLocaleString()} total signups
+            <Card title="Compliance audit log">
+                <div className="rounded-xl border-[1.5px] border-dashed border-slate-200 px-5 py-7 flex flex-col items-center gap-1.5 text-center">
+                    <span className="size-11 rounded-full bg-parchment-sunken text-slate-500 flex items-center justify-center mb-1">
+                        <Globe className="h-5 w-5" />
                     </span>
+                    <p className="text-sm font-bold text-ink">Not connected yet</p>
+                    <p className="text-[12.5px] leading-relaxed text-slate-500 max-w-xs">
+                        Consent checks, data-retention audits and export requests aren't recorded anywhere yet, so there's nothing to show.
+                    </p>
                 </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-6">
-                {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
-                    </div>
-                ) : chartData.length > 0 ? (
-                    <div className="space-y-8">
-                        {/* Top Row: Chart + Breakdown Table */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Chart */}
-                            <div>
-                                <h3 className="text-sm font-medium text-slate-500 mb-4">Distribution</h3>
-                                <ResponsiveContainer width="100%" height={200}>
-                                    <BarChart data={chartData} layout="vertical">
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                                        <XAxis type="number" stroke="#9CA3AF" fontSize={12} />
-                                        <YAxis
-                                            dataKey="source"
-                                            type="category"
-                                            stroke="#9CA3AF"
-                                            fontSize={12}
-                                            width={100}
-                                            tickFormatter={(value) => value === 'Organic' ? 'Organic/Unknown' : value}
-                                        />
-                                        <Tooltip
-                                            contentStyle={{
-                                                backgroundColor: '#fff',
-                                                border: '1px solid #E5E7EB',
-                                                borderRadius: '8px',
-                                                fontSize: '12px'
-                                            }}
-                                            formatter={(value) => [`${value ?? 0} signups`, 'Count']}
-                                        />
-                                        <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                                            {chartData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-
-                            {/* Breakdown Table */}
-                            <div>
-                                <h3 className="text-sm font-medium text-slate-500 mb-4">Source Breakdown</h3>
-                                <div className="overflow-hidden rounded-lg border border-slate-200">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-slate-50">
-                                            <tr>
-                                                <th className="text-left px-4 py-2 text-slate-600 font-medium">Source</th>
-                                                <th className="text-right px-4 py-2 text-slate-600 font-medium">Signups</th>
-                                                <th className="text-right px-4 py-2 text-slate-600 font-medium">%</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {chartData.map((item, i) => (
-                                                <tr key={i} className="hover:bg-slate-50">
-                                                    <td className="px-4 py-2.5">
-                                                        <div className="flex items-center gap-2">
-                                                            <div
-                                                                className="w-2.5 h-2.5 rounded-full"
-                                                                style={{ backgroundColor: item.color }}
-                                                            ></div>
-                                                            <span className="font-medium text-slate-800">
-                                                                {item.source === 'Organic' ? 'Organic/Unknown' : item.source}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-2.5 text-right text-slate-900 font-semibold">
-                                                        {item.count.toLocaleString()}
-                                                    </td>
-                                                    <td className="px-4 py-2.5 text-right text-slate-600">
-                                                        {item.percentage}%
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Conversion Tracking Table */}
-                        {conversionTableData.length > 0 && (
-                            <div>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <Activity className="h-4 w-4 text-primary" />
-                                    <h3 className="text-sm font-medium text-slate-500">Conversion Tracking</h3>
-                                </div>
-                                <div className="overflow-hidden rounded-lg border border-slate-200">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-slate-50">
-                                            <tr>
-                                                <th className="text-left px-4 py-3 text-slate-600 font-medium">Source</th>
-                                                <th className="text-right px-4 py-3 text-slate-600 font-medium">Total Signups</th>
-                                                <th className="text-right px-4 py-3 text-slate-600 font-medium">Applications</th>
-                                                <th className="text-right px-4 py-3 text-slate-600 font-medium">Conversion Rate</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {conversionTableData.map((row, i) => (
-                                                <tr key={i} className="hover:bg-slate-50">
-                                                    <td className="px-4 py-3">
-                                                        <span className="font-medium text-slate-800">
-                                                            {row.source === 'Organic' ? 'Organic/Unknown' : row.source}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right text-slate-900">
-                                                        {row.totalSignups.toLocaleString()}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right font-semibold text-primary">
-                                                        {row.applications.toLocaleString()}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${row.conversionRate > 50
-                                                                ? 'bg-success-tint text-success-ink'
-                                                                : row.conversionRate > 25
-                                                                    ? 'bg-ink-wash text-primary'
-                                                                    : 'bg-slate-100 text-slate-600'
-                                                            }`}>
-                                                            {row.conversionRate}%
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="py-12 text-center text-slate-400">
-                        No acquisition data available yet
-                    </div>
-                )}
-            </div>
+            </Card>
         </div>
     );
 }

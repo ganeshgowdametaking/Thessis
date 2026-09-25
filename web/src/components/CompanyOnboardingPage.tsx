@@ -598,7 +598,7 @@ Best regards,
                 >
                   {loading ? (
                     <>
-                      <LoadingSpinner text="Publishing..." />
+                      <LoadingSpinner inline text="Publishing..." />
                     </>
                   ) : (
                     <>

@@ -3,17 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
 import { trustService } from '../services/TrustService';
 import { supabase } from '../lib/supabase';
+import { AlertCircle, Briefcase, Check, Loader2, Lock, LogOut, Mail, MessageSquare, Pencil, RefreshCw, ShieldCheck, Trash2, UserMinus, UserRound } from 'lucide-react';
+
+type SettingsTab = 'account' | 'security' | 'work-email' | 'feedback' | 'admin';
 
 const SettingsPage: React.FC = () => {
   const { signOut, updatePassword, updateProfile, user, profile } = useAuthContext();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'account' | 'feedback' | 'admin'>('account');
-  const [emailVerificationOpen, setEmailVerificationOpen] = useState(false);
-  const [passwordOpen, setPasswordOpen] = useState(false);
-  const [adminInviteOpen, setAdminInviteOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('account');
+  const [passwordFormOpen, setPasswordFormOpen] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [verificationCooldownUntil, setVerificationCooldownUntil] = useState<number | null>(null);
   const [, forceCooldownTick] = useState(0);
-  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
 
   // Sync organization email and step when profile loads
   React.useEffect(() => {
@@ -45,7 +47,6 @@ const SettingsPage: React.FC = () => {
 
   // Account State
   const [organizationEmail, setOrganizationEmail] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [deleteReason, setDeleteReason] = useState('');
@@ -85,38 +86,37 @@ const SettingsPage: React.FC = () => {
 
   const handleUpdatePassword = async () => {
     if (!newPassword || !confirmPassword) {
-      setMessage({ type: 'error', text: 'Please fill in all password fields' });
+      setPasswordMessage({ type: 'error', text: 'Please fill in all password fields' });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setMessage({ type: 'error', text: 'New passwords do not match' });
+      setPasswordMessage({ type: 'error', text: 'New passwords do not match' });
       return;
     }
 
     if (newPassword.length < 6) {
-      setMessage({ type: 'error', text: 'Password must be at least 6 characters' });
+      setPasswordMessage({ type: 'error', text: 'Password must be at least 6 characters' });
       return;
     }
 
-    setLoading(true);
-    setMessage(null);
+    setPasswordLoading(true);
+    setPasswordMessage(null);
 
     try {
       const { error } = await updatePassword(newPassword, { logoutOthers: true });
       if (error) {
-        setMessage({ type: 'error', text: error.message });
+        setPasswordMessage({ type: 'error', text: error.message });
       } else {
-        setMessage({ type: 'success', text: 'Password updated successfully! Other devices have been logged out.' });
-        setCurrentPassword('');
+        setPasswordMessage({ type: 'success', text: 'Password updated successfully! Other devices have been logged out.' });
         setNewPassword('');
         setConfirmPassword('');
-        setTimeout(() => setMessage(null), 5000);
+        setTimeout(() => setPasswordMessage(null), 5000);
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: 'An unexpected error occurred' });
+      setPasswordMessage({ type: 'error', text: 'An unexpected error occurred' });
     } finally {
-      setLoading(false);
+      setPasswordLoading(false);
     }
   };
 
@@ -355,630 +355,599 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-stone flex flex-col">
-      <main className="flex-grow py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
-          <aside className="hidden lg:block lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sticky top-24">
-              <h1 className="text-2xl font-bold text-slate-900 mb-6">Settings</h1>
-              <nav className="space-y-1">
-                <button
-                  onClick={() => setActiveTab('account')}
-                  className={`w-full group flex items-center gap-3 px-3 py-3 text-sm font-bold rounded-xl border transition-all ${activeTab === 'account'
-                    ? 'bg-ink-wash text-primary border-transparent'
-                    : 'text-slate-500 font-medium border-transparent hover:bg-stone-off/50'
-                    }`}
-                >
-                  <span className={`material-symbols-outlined transition-colors ${activeTab === 'account' ? 'text-primary' : 'text-slate-400 group-hover:text-slate-600'}`}>person</span>
-                  Account
-                </button>
-                <button
-                  onClick={() => setActiveTab('feedback')}
-                  className={`w-full group flex items-center gap-3 px-3 py-3 text-sm font-bold rounded-xl border transition-all ${activeTab === 'feedback'
-                    ? 'bg-ink-wash text-primary border-transparent'
-                    : 'text-slate-500 font-medium border-transparent hover:bg-stone-off/50'
-                    }`}
-                >
-                  <span className={`material-symbols-outlined transition-colors ${activeTab === 'feedback' ? 'text-sage' : 'text-slate-400 group-hover:text-slate-600'}`}>rate_review</span>
-                  Feedback
-                </button>
-                {isSuperUser && (
-                  <button
-                    onClick={() => setActiveTab('admin')}
-                    className={`w-full group flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg border transition-all ${activeTab === 'admin'
-                      ? 'bg-slate-900 text-white border-transparent shadow-sm'
-                      : 'text-slate-500 border-transparent hover:bg-stone-off/50'
-                      }`}
-                  >
-                    <span className={`material-symbols-outlined transition-colors ${activeTab === 'admin' ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-600'}`}>security</span>
-                    Admin Management
-                  </button>
-                )}
-                <div className="pt-4 mt-4 border-t border-slate-100"></div>
-                <button onClick={handleLogout} className="w-full group flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg text-red-500 hover:bg-red-50 transition-colors">
-                  <span className="material-symbols-outlined text-red-500 group-hover:text-red-600">logout</span>
-                  Logout
-                </button>
-              </nav>
-            </div>
-          </aside>
+  const canManageAdmins = isSuperUser || profile?.role === 'admin';
+  const tabs: { id: SettingsTab; label: string; shortLabel: string; icon: React.ReactNode }[] = [
+    { id: 'account', label: 'Account', shortLabel: 'Account', icon: <UserRound className="h-[18px] w-[18px]" /> },
+    { id: 'security', label: 'Sign-in & security', shortLabel: 'Security', icon: <Lock className="h-[18px] w-[18px]" /> },
+    { id: 'work-email', label: 'Work email', shortLabel: 'Work email', icon: <Briefcase className="h-[18px] w-[18px]" /> },
+    { id: 'feedback', label: 'Feedback', shortLabel: 'Feedback', icon: <MessageSquare className="h-[18px] w-[18px]" /> },
+    ...(canManageAdmins ? [{ id: 'admin' as SettingsTab, label: 'Admins', shortLabel: 'Admins', icon: <ShieldCheck className="h-[18px] w-[18px]" /> }] : []),
+  ];
+  const feedbackTopics = [
+    { value: 'General Feedback', label: 'General feedback' },
+    { value: 'Bug Report', label: 'Bug report' },
+    { value: 'Feature Request', label: 'Feature request' },
+    { value: 'User Experience', label: 'User experience' },
+    { value: 'Other', label: 'Other' },
+  ];
 
-          <div className="lg:col-span-3 space-y-4 md:space-y-6">
-            <div className="lg:hidden bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-              <h1 className="text-lg font-bold text-slate-900 mb-3">Settings</h1>
-              <div className={`grid ${isSuperUser ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
-                <button
-                  onClick={() => setActiveTab('account')}
-                  className={`h-11 rounded-xl text-sm font-semibold transition-colors ${activeTab === 'account'
-                    ? 'bg-primary text-white'
-                    : 'bg-slate-100 text-slate-600'
-                    }`}
-                >
-                  Account
-                </button>
-                <button
-                  onClick={() => setActiveTab('feedback')}
-                  className={`h-11 rounded-xl text-sm font-semibold transition-colors ${activeTab === 'feedback'
-                    ? 'bg-primary text-white'
-                    : 'bg-slate-100 text-slate-600'
-                    }`}
-                >
-                  Feedback
-                </button>
-                {isSuperUser && (
-                  <button
-                    onClick={() => setActiveTab('admin')}
-                    className={`h-11 rounded-xl text-sm font-semibold transition-colors ${activeTab === 'admin'
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-slate-100 text-slate-600'
-                      }`}
-                  >
-                    Admin
-                  </button>
-                )}
+  const selectTab = (tab: SettingsTab) => {
+    setActiveTab(tab);
+    setMessage(null);
+  };
+
+  const cooldownSeconds = verificationCooldownUntil ? Math.max(0, Math.ceil((verificationCooldownUntil - Date.now()) / 1000)) : 0;
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Your account';
+  const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part: string) => part[0]).join('').toUpperCase();
+
+  const inputClass = 'w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none transition-colors disabled:bg-slate-50';
+  const labelClass = 'block text-[12.5px] font-semibold text-slate-600 mb-1.5';
+  const primaryButtonClass = 'h-10 px-4 rounded-xl bg-primary text-white text-[13px] font-bold hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2';
+  const outlineButtonClass = 'h-9 px-3.5 rounded-xl border border-slate-200 bg-white text-[12.5px] font-bold text-ink hover:bg-parchment-sunken transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5';
+  const dangerOutlineClass = 'h-9 px-3.5 rounded-xl border border-red-200 bg-white text-[12.5px] font-bold text-red-600 hover:bg-danger-tint transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5';
+
+  const renderNotice = (notice: { type: 'success' | 'error'; text: string } | null) =>
+    notice && (
+      <div
+        role={notice.type === 'error' ? 'alert' : 'status'}
+        className={`flex items-start gap-2 rounded-xl px-3.5 py-2.5 text-[12.5px] font-semibold leading-snug ${notice.type === 'success' ? 'bg-success-tint text-success-ink' : 'bg-danger-tint text-red-600'}`}
+      >
+        {notice.type === 'success' ? <Check className="h-4 w-4 shrink-0 mt-px" strokeWidth={3} /> : <AlertCircle className="h-4 w-4 shrink-0 mt-px" />}
+        {notice.text}
+      </div>
+    );
+
+  const renderSection = (title: string, subtitle: string, children: React.ReactNode, danger = false) => (
+    <section className="flex flex-col gap-2.5">
+      <div className="px-0.5">
+        <h2 className={`font-display text-[17px] font-extrabold ${danger ? 'text-red-600' : 'text-ink'}`}>{title}</h2>
+        <p className="text-[12.5px] text-slate-500">{subtitle}</p>
+      </div>
+      <div className={`bg-white border rounded-2xl overflow-hidden ${danger ? 'border-red-200' : 'border-slate-200'}`}>{children}</div>
+    </section>
+  );
+
+  const renderRow = (title: string, description: React.ReactNode, action?: React.ReactNode, isLast = false) => (
+    <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-5 px-4 py-4 md:px-[22px] md:py-[18px] ${isLast ? '' : 'border-b border-slate-100'}`}>
+      <div className="min-w-0">
+        <p className="text-sm font-bold text-ink">{title}</p>
+        <div className="text-[12.5px] leading-snug text-slate-500 mt-0.5 break-words">{description}</div>
+      </div>
+      {action && <div className="shrink-0 flex flex-wrap items-center gap-2">{action}</div>}
+    </div>
+  );
+
+  const renderStepper = (step: number) => {
+    const steps = ['Email', 'Code', 'Verified'];
+    return (
+      <ol className="flex items-center gap-2.5">
+        {steps.map((label, index) => {
+          const number = index + 1;
+          const done = number < step || (number === 3 && step === 3);
+          const current = number === step && !done;
+          return (
+            <li key={label} className="flex items-center gap-2.5">
+              {index > 0 && <span className="h-px w-5 sm:w-7 bg-slate-200" aria-hidden="true" />}
+              <span className={`flex items-center gap-2 text-[12.5px] ${current || done ? 'font-bold text-ink' : 'font-semibold text-slate-500'}`}>
+                <span className={`size-[22px] rounded-full flex items-center justify-center text-[11px] font-extrabold ${done ? 'bg-success text-white' : current ? 'bg-primary text-white' : 'bg-parchment-sunken text-slate-500'}`}>
+                  {done ? <Check className="h-3 w-3" strokeWidth={3.5} /> : number}
+                </span>
+                {label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    );
+  };
+
+  const renderAccount = () => (
+    <>
+      {renderSection('Account', 'The basics of your Thessis account.', (
+        <>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-4 md:px-[22px] md:py-[18px] border-b border-slate-100">
+            <div className="flex items-center gap-3.5 min-w-0">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="size-12 rounded-full object-cover shrink-0" />
+              ) : (
+                <span className="size-12 shrink-0 rounded-full bg-ink-wash text-primary-hover font-display font-extrabold text-base flex items-center justify-center">{initials || <UserRound className="h-5 w-5" />}</span>
+              )}
+              <div className="min-w-0">
+                <p className="text-[15px] font-bold text-ink truncate">{displayName}</p>
+                <p className="text-[12.5px] text-slate-500">Your name, photo, experience and skills live on your profile.</p>
               </div>
+            </div>
+            <button type="button" onClick={() => navigate('/profile')} className={outlineButtonClass}>
+              <Pencil className="h-3.5 w-3.5" />
+              Edit profile
+            </button>
+          </div>
+          {renderRow('Sign-in email', <>{user?.email} — the email you use to log in.</>)}
+          {renderRow(
+            'Work email',
+            'Confirms where you work.',
+            <>
+              {isOrgVerified ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-success-tint px-2.5 py-1 text-[11.5px] font-bold text-success-ink max-w-[240px] truncate">
+                  <Check className="h-3 w-3 shrink-0" strokeWidth={3.5} />
+                  Verified · {verifiedOrgEmail}
+                </span>
+              ) : (
+                <span className="rounded-full bg-parchment-sunken px-2.5 py-1 text-[11.5px] font-bold text-slate-600">Not verified</span>
+              )}
+              <button type="button" onClick={() => selectTab('work-email')} className={outlineButtonClass}>
+                {isOrgVerified ? 'Change' : 'Verify'}
+              </button>
+            </>,
+            true
+          )}
+        </>
+      ))}
+
+      {renderSection('Danger zone', 'Permanent actions.', (
+        <>
+          {renderRow(
+            'Delete account',
+            "Removes your account, profile, referrals and connections. This can't be undone.",
+            <button type="button" onClick={() => setShowDeleteConfirmModal(true)} disabled={deleteLoading} className={dangerOutlineClass}>
+              {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {deleteLoading ? 'Deleting…' : 'Delete account'}
+            </button>,
+            !deleteMessage
+          )}
+          {deleteMessage && <div className="px-4 pb-4 md:px-[22px]">{renderNotice(deleteMessage)}</div>}
+        </>
+      ), true)}
+
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="lg:hidden h-12 rounded-xl border border-slate-200 bg-white text-sm font-bold text-red-600 flex items-center justify-center gap-2"
+      >
+        <LogOut className="h-4 w-4" />
+        Log out
+      </button>
+    </>
+  );
+
+  const renderSecurity = () =>
+    renderSection('Sign-in & security', 'Keep your account safe.', passwordFormOpen ? (
+      <form
+        className="px-4 py-4 md:px-[22px] md:py-5 flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleUpdatePassword();
+        }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-ink">Change password</p>
+            <p className="text-[12.5px] text-slate-500 mt-0.5">At least 6 characters. You'll stay signed in here; other devices will be signed out.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setPasswordFormOpen(false);
+              setNewPassword('');
+              setConfirmPassword('');
+              setPasswordMessage(null);
+            }}
+            className="shrink-0 text-[12.5px] font-bold text-slate-500 hover:text-ink"
+          >
+            Cancel
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="block">
+            <span className={labelClass}>New password</span>
+            <input className={inputClass} type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+          </label>
+          <label className="block">
+            <span className={labelClass}>Confirm new password</span>
+            <input className={inputClass} type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+          </label>
+        </div>
+        {renderNotice(passwordMessage)}
+        <div>
+          <button type="submit" disabled={passwordLoading} className={primaryButtonClass}>
+            {passwordLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {passwordLoading ? 'Updating…' : 'Update password'}
+          </button>
+        </div>
+      </form>
+    ) : (
+      <>
+        {renderRow(
+          'Password',
+          'Changing it signs you out on your other devices.',
+          <button type="button" onClick={() => { setPasswordFormOpen(true); setPasswordMessage(null); }} className={outlineButtonClass}>
+            Change password
+          </button>,
+          !passwordMessage
+        )}
+        {passwordMessage && <div className="px-4 pb-4 md:px-[22px]">{renderNotice(passwordMessage)}</div>}
+      </>
+    ));
+
+  const renderWorkEmail = () => {
+    const step = verificationStep === 'verified' && isOrgVerified ? 3 : verificationStep === 'otp' ? 2 : 1;
+    return renderSection('Work email', "Add the email you use at work to confirm where you work. It isn't shown on your profile.", (
+      <div className="px-4 py-4 md:px-[22px] md:py-5 flex flex-col gap-4">
+        {renderStepper(step)}
+
+        {step === 3 && (
+          <div className="flex items-center justify-between gap-3 rounded-xl bg-success-tint px-4 py-3.5">
+            <div className="min-w-0 text-[13px] text-success-ink">
+              <p className="flex items-center gap-1.5 font-bold"><Check className="h-4 w-4" strokeWidth={3} />Verified</p>
+              <p className="truncate">{verifiedOrgEmail}</p>
+            </div>
+            <button type="button" onClick={handleResetVerification} className={outlineButtonClass}>Change</button>
+          </div>
+        )}
+
+        {step === 1 && (
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendVerificationCode();
+            }}
+          >
+            <label className="block">
+              <span className={labelClass}>Work email</span>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  className={`${inputClass} pl-10`}
+                  placeholder="name@company.com"
+                  type="email"
+                  autoComplete="email"
+                  value={organizationEmail}
+                  onChange={(e) => setOrganizationEmail(e.target.value)}
+                />
+              </div>
+            </label>
+            {renderNotice(message)}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
               <button
-                onClick={handleLogout}
-                className="mt-3 w-full h-11 rounded-xl bg-red-50 text-red-600 text-sm font-semibold"
+                type="submit"
+                disabled={loading || !organizationEmail || !organizationEmail.includes('@') || Boolean(verificationCooldownUntil)}
+                className={primaryButtonClass}
               >
-                Logout
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loading ? 'Sending…' : verificationCooldownUntil ? `Wait ${cooldownSeconds}s` : 'Send code'}
+              </button>
+              <span className="text-xs text-slate-500">We'll email you a 6-digit code.</span>
+            </div>
+          </form>
+        )}
+
+        {step === 2 && (
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleVerifyOTP();
+            }}
+          >
+            <p className="text-[13px] text-slate-600">We sent a 6-digit code to <strong className="text-ink">{organizationEmail}</strong>.</p>
+            <label className="block">
+              <span className="sr-only">6-digit code</span>
+              <input
+                className="w-full max-w-[260px] h-14 px-4 rounded-xl border-[1.5px] border-slate-300 bg-white text-center font-display text-2xl font-extrabold tracking-[0.5em] text-ink placeholder:text-slate-300 focus:border-primary focus:outline-none"
+                placeholder="000000"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={verificationOtp}
+                onChange={(e) => setVerificationOtp(e.target.value.replace(/\D/g, ''))}
+              />
+            </label>
+            {renderNotice(message)}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <button type="submit" disabled={isVerifying || verificationOtp.length !== 6} className={primaryButtonClass}>
+                {isVerifying && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isVerifying ? 'Verifying…' : 'Confirm'}
+              </button>
+              {verificationCooldownUntil ? (
+                <span className="text-[12.5px] text-slate-500">Resend code in {cooldownSeconds}s</span>
+              ) : (
+                <button type="button" onClick={handleSendVerificationCode} disabled={loading} className="text-[12.5px] font-bold text-primary hover:underline disabled:opacity-50">
+                  Resend code
+                </button>
+              )}
+              <button type="button" onClick={() => setVerificationStep('input')} className="text-[12.5px] font-bold text-primary hover:underline">
+                Use a different email
               </button>
             </div>
+          </form>
+        )}
+      </div>
+    ));
+  };
 
-            {activeTab === 'account' ? (
-              <>
-                <details className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" open={emailVerificationOpen}>
-                  <summary
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setEmailVerificationOpen((prev) => !prev);
-                    }}
-                    className="flex items-center justify-between p-4 md:p-6 cursor-pointer hover:bg-stone-off/50 transition-colors select-none"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500">
-                        <span className="material-symbols-outlined">mark_email_read</span>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-900">Email Verification</h3>
-                        <p className="text-sm text-slate-500">Manage your organization email address</p>
-                      </div>
-                    </div>
-                    <span className="material-symbols-outlined text-slate-500 group-open:rotate-90 transition-transform duration-200">chevron_right</span>
-                  </summary>
-                  <div className="px-4 md:px-6 pb-4 md:pb-6 pt-2 border-t border-slate-100">
-                    <div className="max-w-xl space-y-5 md:space-y-6 pt-4">
-                      {isOrgVerified && verificationStep === 'verified' && (
-                        <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 md:p-6 flex flex-col gap-4 animate-in fade-in duration-500">
-                          <div className="flex items-start gap-4">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-sage/10 flex items-center justify-center">
-                              <span className="material-symbols-outlined text-sage text-[24px]">verified</span>
-                            </div>
-                            <div className="flex-grow">
-                              <h4 className="text-base font-bold text-slate-900 leading-tight">Verified & Profile Completed</h4>
-                              <p className="text-sm text-slate-500 mt-1">Your professional identity is active with <span className="font-semibold text-slate-700">{verifiedOrgEmail}</span></p>
-                            </div>
-                            <button
-                              onClick={handleResetVerification}
-                              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg hover:shadow transition-all flex items-center gap-2 group"
-                            >
-                              <span className="material-symbols-outlined text-[18px] group-hover:rotate-12 transition-transform">edit</span>
-                              Change
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      {verificationStep !== 'verified' && (
-                        <div className="space-y-4 pt-4 border-t border-slate-50 mt-4">
-                          <label className="block text-sm font-medium text-slate-700">Organization Email <span className="text-red-500">*</span></label>
+  const renderFeedback = () =>
+    renderSection('Feedback', 'Help us improve Thessis — your message goes straight to the team.', (
+      <form
+        className="px-4 py-4 md:px-[22px] md:py-5 flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmitFeedback();
+        }}
+      >
+        <div className="flex flex-col gap-2">
+          <span className={labelClass}>What's it about?</span>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Feedback topic">
+            {feedbackTopics.map((topic) => (
+              <button
+                key={topic.value}
+                type="button"
+                role="radio"
+                aria-checked={feedbackSubject === topic.value}
+                onClick={() => setFeedbackSubject(topic.value)}
+                className={`h-9 px-3.5 rounded-full border text-[12.5px] font-bold transition-colors ${feedbackSubject === topic.value ? 'bg-ink border-ink text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
+              >
+                {topic.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <label className="block">
+          <span className={labelClass}>Message</span>
+          <textarea
+            className="w-full px-3.5 py-3 rounded-xl border border-slate-300 bg-white text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none min-h-[140px] resize-y"
+            placeholder="How can we make Thessis better for you?"
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+          />
+        </label>
+        {renderNotice(feedbackMessage)}
+        <div>
+          <button type="submit" disabled={feedbackLoading} className={primaryButtonClass}>
+            {feedbackLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {feedbackLoading ? 'Sending…' : 'Send feedback'}
+          </button>
+        </div>
+      </form>
+    ));
 
-                          {message && (
-                            <div className={`p-3 rounded-lg text-sm font-medium ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                              {message.text}
-                            </div>
-                          )}
+  const renderAdmins = () => (
+    <>
+      {renderSection('Admins', 'Admins can see the analytics dashboard and add other admins.', (
+        renderRow(
+          'Make someone an admin',
+          "They get admin access straight away — there's no invite for them to accept.",
+          <button type="button" onClick={() => setShowInviteModal(true)} className={outlineButtonClass}>
+            <ShieldCheck className="h-4 w-4" />
+            Make someone an admin
+          </button>,
+          true
+        )
+      ))}
 
-                          {verificationStep === 'input' && (
-                            <div className="flex flex-col sm:flex-row gap-3">
-                              <div className="relative flex-grow">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                  <span className="material-symbols-outlined text-slate-500 text-[20px]">mail</span>
-                                </div>
-                                <input
-                                  className="block w-full rounded-lg border border-slate-500 bg-white pl-10 py-2.5 text-slate-900 placeholder:text-slate-500 focus:border-sage focus:outline-none sm:text-sm shadow-sm transition-all"
-                                  placeholder="name@company.com"
-                                  type="email"
-                                  value={organizationEmail}
-                                  onChange={(e) => setOrganizationEmail(e.target.value)}
-                                />
-                              </div>
-                              <button
-                                onClick={handleSendVerificationCode}
-                                disabled={loading || !organizationEmail || !organizationEmail.includes('@') || Boolean(verificationCooldownUntil)}
-                                className="bg-sage text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-sage-dark transition-all whitespace-nowrap active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
-                              >
-                                {loading
-                                  ? 'Sending...'
-                                  : verificationCooldownUntil
-                                    ? `Wait ${Math.max(0, Math.ceil((verificationCooldownUntil - Date.now()) / 1000))}s`
-                                    : 'Send Code'}
-                              </button>
-                            </div>
-                          )}
-
-                          {verificationStep === 'otp' && (
-                            <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                              <p className="text-sm text-slate-500">We've sent a 6-digit code to {organizationEmail}. Please enter it below.</p>
-                              <div className="flex flex-wrap gap-3">
-                                <input
-                                  className="block w-full max-w-[200px] rounded-lg border border-slate-900 bg-white px-4 py-2.5 text-center text-xl font-bold tracking-widest text-slate-900 focus:border-sage focus:outline-none shadow-sm transition-all"
-                                  placeholder="000000"
-                                  maxLength={6}
-                                  value={verificationOtp}
-                                  onChange={(e) => setVerificationOtp(e.target.value.replace(/\D/g, ''))}
-                                />
-                                <button
-                                  onClick={handleVerifyOTP}
-                                  disabled={isVerifying || verificationOtp.length !== 6}
-                                  className="bg-slate-900 text-white px-8 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all disabled:opacity-50"
-                                >
-                                  {isVerifying ? 'Verifying...' : 'Confirm'}
-                                </button>
-                              </div>
-                              <button onClick={() => setVerificationStep('input')} className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider">Change Email</button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+      {isSuperUser && renderSection('People with admin access', administrators.length > 0 ? `${administrators.length} ${administrators.length === 1 ? 'admin' : 'admins'}` : 'Everyone who can manage Thessis.', (
+        <>
+          <div className="flex items-center justify-between gap-3 px-4 py-3 md:px-[22px] border-b border-slate-100">
+            <span className="text-xs font-semibold text-slate-500">Only you can remove access.</span>
+            <button type="button" onClick={fetchAdministrators} className="flex items-center gap-1.5 text-[12.5px] font-bold text-slate-600 hover:text-ink" title="Refresh list">
+              <RefreshCw className={`h-3.5 w-3.5 ${adminsLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+          {message && <div className="px-4 pt-3 md:px-[22px]">{renderNotice(message)}</div>}
+          {adminsLoading && administrators.length === 0 ? (
+            <div className="px-4 py-10 flex items-center justify-center gap-2 text-sm text-slate-500" role="status">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading admins…
+            </div>
+          ) : administrators.length === 0 ? (
+            <p className="px-4 py-10 text-center text-sm text-slate-500">No admins found.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {administrators.map((admin) => (
+                <li key={admin.id} className="flex flex-wrap sm:flex-nowrap items-center gap-3 px-4 py-3 md:px-[22px]">
+                  <span className="size-9 shrink-0 rounded-full bg-ink-wash text-primary-hover text-xs font-extrabold flex items-center justify-center">
+                    {(admin.full_name?.charAt(0) || admin.email?.charAt(0) || '?').toUpperCase()}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold text-ink truncate">{admin.full_name || 'Unnamed member'}</p>
+                    <p className="text-xs text-slate-500 truncate">{admin.email}</p>
                   </div>
-                </details>
-
-                <details className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" open={passwordOpen}>
-                  <summary
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setPasswordOpen((prev) => !prev);
-                    }}
-                    className="flex items-center justify-between p-4 md:p-6 cursor-pointer hover:bg-stone-off/50 transition-colors select-none"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500">
-                        <span className="material-symbols-outlined">lock_reset</span>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-900">Change Password</h3>
-                        <p className="text-sm text-slate-500">Update your account security credentials</p>
-                      </div>
-                    </div>
-                    <span className="material-symbols-outlined text-slate-500 group-open:rotate-90 transition-transform duration-200">chevron_right</span>
-                  </summary>
-                  <div className="px-4 md:px-6 pb-4 md:pb-6 pt-2 border-t border-slate-100">
-                    <div className="max-w-md space-y-5 pt-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Current Password</label>
-                        <input className="block w-full rounded-lg border border-stone-border bg-white py-2.5 text-slate-900 focus:border-sage focus:outline-none sm:text-sm" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-                        <div className="flex justify-end mt-1">
-                          <a className="text-xs font-medium text-sage hover:text-sage-dark" href="#">Forgot Password?</a>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
-                          <input className="block w-full rounded-lg border border-stone-border bg-white py-2.5 text-slate-900 focus:border-sage focus:outline-none sm:text-sm" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
-                          <input className="block w-full rounded-lg border border-stone-border bg-white py-2.5 text-slate-900 focus:border-sage focus:outline-none sm:text-sm" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-                        </div>
-                      </div>
-                      {message && (
-                        <div className={`p-3 rounded-lg text-sm font-medium ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                          {message.text}
-                        </div>
-                      )}
-                      <div className="pt-2">
-                        <button
-                          onClick={handleUpdatePassword}
-                          disabled={loading}
-                          className="bg-sage text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-sage-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                          {loading ? (
-                            <>
-                              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                              Updating...
-                            </>
-                          ) : 'Update Password'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </details>
-
-                {(isSuperUser || profile?.role === 'admin') && (
-                  <details className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" open={adminInviteOpen}>
-                    <summary
-                      onClick={(event) => {
-                        event.preventDefault();
-                        setAdminInviteOpen((prev) => !prev);
-                      }}
-                      className="flex items-center justify-between p-4 md:p-6 cursor-pointer hover:bg-stone-off/50 transition-colors select-none"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500">
-                          <span className="material-symbols-outlined">admin_panel_settings</span>
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-900">Admin Invite</h3>
-                          <p className="text-sm text-slate-500">Add administrators to your organization</p>
-                        </div>
-                      </div>
-                      <span className="material-symbols-outlined text-slate-500 group-open:rotate-90 transition-transform duration-200">chevron_right</span>
-                    </summary>
-                    <div className="px-4 md:px-6 pb-4 md:pb-6 pt-2 border-t border-slate-100">
-                      <div className="space-y-4 pt-4">
-                        <div className="bg-stone-off rounded-xl p-4 md:p-6 border border-slate-100">
-                          <h4 className="text-base font-semibold text-slate-900 mb-2">Invite Administrator</h4>
-                          <p className="text-sm text-slate-500 mb-6 leading-relaxed">Admins have full access to your organization's settings, billing, and user management. Only invite trusted team members.</p>
-                          <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-hover transition-colors shadow-sm">
-                            <span className="material-symbols-outlined text-[18px]">add</span>
-                            Promote New Admin
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </details>
-                )}
-
-                <details className="group bg-red-50/40 rounded-2xl shadow-sm border border-red-100 overflow-hidden" open={deleteAccountOpen}>
-                  <summary
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setDeleteAccountOpen((prev) => !prev);
-                    }}
-                    className="flex items-center justify-between p-4 md:p-6 cursor-pointer hover:bg-red-50/60 transition-colors select-none"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100 text-red-600">
-                        <span className="material-symbols-outlined">delete_forever</span>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-900">Delete Account</h3>
-                        <p className="text-sm text-slate-500">Permanently remove your account and data</p>
-                      </div>
-                    </div>
-                    <span className="material-symbols-outlined text-slate-500 group-open:rotate-90 transition-transform duration-200">chevron_right</span>
-                  </summary>
-                  <div className="px-4 md:px-6 pb-4 md:pb-6 pt-2 border-t border-red-100">
-                    <div className="space-y-4 pt-4">
-                      <p className="text-sm text-slate-600 italic">This action cannot be undone. All your data, referrals, and connections will be permanently deleted.</p>
-                      <textarea
-                        className="block w-full rounded-lg border-stone-border bg-white py-2 px-3 text-slate-900 placeholder:text-slate-400 focus:border-red-500 focus:outline-none sm:text-sm min-h-[100px]"
-                        placeholder="Please tell us why you are leaving..."
-                        value={deleteReason}
-                        onChange={(e) => setDeleteReason(e.target.value)}
-                      />
-                      {deleteMessage && (
-                        <div className={`p-3 rounded-lg text-sm font-medium ${deleteMessage.type === 'success'
-                          ? 'bg-green-50 text-green-700 border border-green-200'
-                          : 'bg-red-50 text-red-700 border border-red-200'
-                          }`}>
-                          {deleteMessage.text}
-                        </div>
-                      )}
-                      <button
-                        onClick={() => setShowDeleteConfirmModal(true)}
-                        disabled={deleteLoading}
-                        className="bg-red-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {deleteLoading ? 'Deleting...' : 'Delete My Account'}
-                      </button>
-                    </div>
-                  </div>
-                </details>
-              </>
-            ) : activeTab === 'admin' && isSuperUser ? (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div className="p-4 md:p-6">
-                  <div className="flex items-center justify-between mb-6 md:mb-8">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 text-blue-600">
-                        <span className="material-symbols-outlined text-[28px]">shield_person</span>
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-slate-900">Admin Management</h3>
-                        <p className="text-sm text-slate-500">Overview of all users with administrative privileges</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={fetchAdministrators}
-                      className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
-                      title="Refresh list"
-                    >
-                      <span className={`material-symbols-outlined ${adminsLoading ? 'animate-spin' : ''}`}>refresh</span>
-                    </button>
-                  </div>
-
-                  {adminsLoading ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                      <div className="flex gap-1 mb-4">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                      </div>
-                      <p className="text-sm font-medium text-slate-500">Loading administrator registry...</p>
-                    </div>
-                  ) : administrators.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="border-b border-slate-100">
-                            <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">User</th>
-                            <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Role</th>
-                            <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Joined</th>
-                            <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Verification</th>
-                            <th className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                          {administrators.map((admin) => (
-                            <tr key={admin.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="py-4 px-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold">
-                                    {admin.full_name?.charAt(0) || admin.email?.charAt(0).toUpperCase()}
-                                  </div>
-                                  <div>
-                                    <div className="text-sm font-bold text-slate-900">{admin.full_name || 'Anonymous User'}</div>
-                                    <div className="text-xs text-slate-500 font-medium">{admin.email}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 uppercase">
-                                  {admin.role}
-                                </span>
-                              </td>
-                              <td className="py-4 px-4">
-                                <span className="text-sm text-slate-500 font-medium">
-                                  {new Date(admin.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                                </span>
-                              </td>
-                              <td className="py-4 px-4">
-                                {admin.work_email_verified ? (
-                                  <div className="flex items-center gap-1.5 text-sage">
-                                    <span className="text-[10px] font-bold uppercase">Verified</span>
-                                    <span className="material-symbols-outlined text-[16px]">verified</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-[10px] font-bold text-slate-300 uppercase">Unverified</span>
-                                )}
-                              </td>
-                              <td className="py-4 px-4 text-right">
-                                {admin.email !== user?.email ? (
-                                  <button
-                                    onClick={() => {
-                                      setTargetAdmin({ id: admin.id, email: admin.email });
-                                      setShowDemoteConfirmModal(true);
-                                    }}
-                                    className="p-2 text-slate-300 hover:text-red-500 transition-colors flex items-center justify-center ml-auto group"
-                                    title="Remove Administrator Access"
-                                  >
-                                    <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">person_remove</span>
-                                  </button>
-                                ) : (
-                                  <span className="text-[10px] font-bold text-slate-300 uppercase px-2 italic">You</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  {admin.work_email_verified ? (
+                    <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-success-tint px-2.5 py-1 text-[11px] font-bold text-success-ink whitespace-nowrap">
+                      <Check className="h-3 w-3" strokeWidth={3.5} />
+                      Work email verified
+                    </span>
                   ) : (
-                    <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-100">
-                      <span className="material-symbols-outlined text-slate-300 text-[48px] mb-4">group_off</span>
-                      <p className="text-slate-500 font-medium">No administrators found</p>
-                    </div>
+                    <span className="hidden sm:inline-flex rounded-full bg-parchment-sunken px-2.5 py-1 text-[11px] font-bold text-slate-600 whitespace-nowrap">Not verified</span>
                   )}
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div className="p-4 md:p-6">
-                  <div className="flex items-center gap-4 mb-4 md:mb-6">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-sage-light text-sage">
-                      <span className="material-symbols-outlined text-[28px]">rate_review</span>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-900">Feedback</h3>
-                      <p className="text-sm text-slate-500">Help us improve Thessis by sharing your thoughts</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-bold text-slate-800 mb-2">Subject</label>
-                      <select
-                        value={feedbackSubject}
-                        onChange={(e) => setFeedbackSubject(e.target.value)}
-                        className="block w-full rounded-lg border border-stone-border bg-white py-2.5 px-3 text-slate-900 focus:border-sage focus:outline-none sm:text-sm shadow-sm transition-all cursor-pointer"
+                  <span className="hidden md:block w-24 text-right text-xs text-slate-500">
+                    {admin.created_at ? new Date(admin.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                  </span>
+                  <span className="w-full sm:w-[130px] flex sm:justify-end">
+                    {admin.email !== user?.email ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTargetAdmin({ id: admin.id, email: admin.email });
+                          setShowDemoteConfirmModal(true);
+                        }}
+                        className={`${dangerOutlineClass} h-8 whitespace-nowrap`}
                       >
-                        <option>General Feedback</option>
-                        <option>Bug Report</option>
-                        <option>Feature Request</option>
-                        <option>User Experience</option>
-                        <option>Other</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-bold text-slate-800 mb-2">Message</label>
-                      <textarea
-                        className="block w-full rounded-lg border border-slate-300 bg-white py-3 px-4 text-slate-900 placeholder:text-slate-400 focus:border-sage focus:outline-none sm:text-sm min-h-[200px] shadow-sm transition-all"
-                        placeholder="How can we make Thessis better for you?"
-                        value={feedback}
-                        onChange={(e) => setFeedback(e.target.value)}
-                      />
-                    </div>
-
-                    {feedbackMessage && (
-                      <div className={`p-4 rounded-xl text-sm font-medium ${feedbackMessage.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                        {feedbackMessage.text}
-                      </div>
+                        Remove access
+                      </button>
+                    ) : (
+                      <span className="text-[11.5px] font-bold text-slate-500">You</span>
                     )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ))}
+    </>
+  );
 
-                    <button
-                      onClick={handleSubmitFeedback}
-                      disabled={feedbackLoading}
-                      className="bg-sage text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-sage-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto"
-                    >
-                      {feedbackLoading ? (
-                        <>
-                          <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                          Sending...
-                        </>
-                      ) : 'Submit Feedback'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+  const renderModal = (
+    icon: React.ReactNode,
+    tone: string,
+    title: string,
+    body: React.ReactNode,
+    extra: React.ReactNode,
+    onCancel: () => void,
+    confirm: React.ReactNode
+  ) => (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 bg-ink/45" onClick={onCancel}>
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-label={title}
+        className="w-full sm:max-w-[400px] bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 pt-6 pb-4 flex flex-col gap-2.5">
+          <span className={`size-12 rounded-full flex items-center justify-center ${tone}`}>{icon}</span>
+          <h2 className="font-display text-lg font-extrabold text-ink">{title}</h2>
+          <div className="text-[13px] leading-relaxed text-slate-500">{body}</div>
+          {extra}
+        </div>
+        <div className="flex flex-col-reverse sm:flex-row gap-2.5 px-5 pt-2 pb-6 sm:py-4 sm:border-t sm:border-slate-100 sm:bg-parchment">
+          <button type="button" autoFocus onClick={onCancel} className="flex-1 h-11 rounded-xl border border-slate-200 bg-white text-sm font-bold text-ink hover:bg-parchment-sunken transition-colors">
+            Cancel
+          </button>
+          {confirm}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-parchment font-display flex flex-col">
+      <main className="flex-grow w-full max-w-[1080px] mx-auto px-4 md:px-6 py-5 md:py-9 flex flex-col gap-4 md:gap-6">
+        <header>
+          <h1 className="font-display text-2xl md:text-[30px] font-extrabold text-ink">Settings</h1>
+          <p className="text-[13px] md:text-sm text-slate-500 mt-0.5">Manage your account, security and how you work with Thessis.</p>
+        </header>
+
+        {/* Section chips on smaller screens */}
+        <div className="lg:hidden flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4" role="tablist" aria-label="Settings sections">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => selectTab(tab.id)}
+              className={`shrink-0 h-9 px-3.5 rounded-full border text-[12.5px] font-bold transition-colors ${activeTab === tab.id ? 'bg-ink border-ink text-white' : 'bg-white border-slate-200 text-slate-600'}`}
+            >
+              {tab.shortLabel}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-6 items-start">
+          <nav className="hidden lg:flex w-[250px] shrink-0 sticky top-24 flex-col gap-0.5 bg-white border border-slate-200 rounded-2xl p-2.5" aria-label="Settings sections">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                aria-current={activeTab === tab.id ? 'page' : undefined}
+                onClick={() => selectTab(tab.id)}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13.5px] transition-colors ${activeTab === tab.id ? 'bg-ink-wash text-primary-hover font-bold' : 'text-slate-600 font-semibold hover:bg-parchment-sunken'}`}
+              >
+                {tab.icon}
+                {tab.label}
+                {tab.id === 'admin' && <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-slate-400">Admin</span>}
+              </button>
+            ))}
+            <div className="h-px bg-slate-200 mx-1 my-2" />
+            <button type="button" onClick={handleLogout} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13.5px] font-semibold text-red-600 hover:bg-danger-tint transition-colors">
+              <LogOut className="h-[18px] w-[18px]" />
+              Log out
+            </button>
+          </nav>
+
+          <div className="flex-1 min-w-0 flex flex-col gap-6">
+            {activeTab === 'account' && renderAccount()}
+            {activeTab === 'security' && renderSecurity()}
+            {activeTab === 'work-email' && renderWorkEmail()}
+            {activeTab === 'feedback' && renderFeedback()}
+            {activeTab === 'admin' && canManageAdmins && renderAdmins()}
           </div>
         </div>
       </main>
 
-      {showInviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">Promote User to Administrator</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
-                <input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="admin@company.com"
-                  className="block w-full rounded-lg border border-stone-border bg-white py-2.5 px-3 text-slate-900 placeholder:text-slate-500 focus:border-sage focus:outline-none sm:text-sm"
-                />
-              </div>
-              {inviteMessage && (
-                <div className={`p-3 rounded-lg text-sm font-medium ${inviteMessage.type === 'success'
-                  ? 'bg-green-50 text-green-700 border border-green-200'
-                  : 'bg-red-50 text-red-700 border border-red-200'
-                  }`}>
-                  {inviteMessage.text}
-                </div>
-              )}
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={handleSendAdminInvite}
-                  disabled={inviteLoading || !inviteEmail.trim()}
-                  className="flex-1 bg-sage text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-sage-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {inviteLoading ? 'Sending...' : 'Send Invitation'}
-                </button>
-                <button
-                  onClick={() => { setShowInviteModal(false); setInviteEmail(''); setInviteMessage(null); }}
-                  className="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-parchment-sunken transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {showInviteModal && renderModal(
+        <ShieldCheck className="h-6 w-6" />,
+        'bg-ink-wash text-primary',
+        'Make someone an admin',
+        <>They get admin access straight away — there's no invite for them to accept. Admins can see the analytics dashboard and add other admins.</>,
+        <div className="flex flex-col gap-3 mt-1">
+          <label className="block">
+            <span className={labelClass}>Email of their Thessis account</span>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="name@example.com"
+              className={inputClass}
+            />
+          </label>
+          {renderNotice(inviteMessage)}
+        </div>,
+        () => { setShowInviteModal(false); setInviteEmail(''); setInviteMessage(null); },
+        <button
+          type="button"
+          onClick={handleSendAdminInvite}
+          disabled={inviteLoading || !inviteEmail.trim()}
+          className="flex-[1.3] h-11 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {inviteLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {inviteLoading ? 'Working…' : 'Make admin'}
+        </button>
       )}
 
-      {showDeleteConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 text-red-600">
-                <span className="material-symbols-outlined">warning</span>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900">Confirm Account Deletion</h3>
-            </div>
-            <p className="text-sm text-slate-600 leading-relaxed mb-6">
-              Are you sure you want to permanently delete your account? This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirmModal(false)}
-                disabled={deleteLoading}
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-parchment-sunken transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deleteLoading}
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {deleteLoading ? 'Deleting...' : 'Yes, Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {showDeleteConfirmModal && renderModal(
+        <Trash2 className="h-6 w-6" />,
+        'bg-danger-tint text-red-600',
+        'Delete your account?',
+        <>Your profile, referrals and connections will be permanently removed and you'll be signed out. This can't be undone.</>,
+        <label className="block mt-1">
+          <span className={labelClass}>Why are you leaving? (optional)</span>
+          <textarea
+            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-red-500 focus:outline-none min-h-[76px] resize-none"
+            placeholder="Tell us what we could do better…"
+            value={deleteReason}
+            onChange={(e) => setDeleteReason(e.target.value)}
+          />
+        </label>,
+        () => { if (!deleteLoading) setShowDeleteConfirmModal(false); },
+        <button
+          type="button"
+          onClick={handleDeleteAccount}
+          disabled={deleteLoading}
+          className="flex-[1.3] h-11 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+        >
+          {deleteLoading ? 'Deleting…' : 'Delete my account'}
+        </button>
       )}
 
-      {showDemoteConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 text-red-600">
-                <span className="material-symbols-outlined">person_remove</span>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900">Revoke Admin Access</h3>
-            </div>
-            <div className="p-4 bg-slate-50 rounded-xl mb-6 border border-slate-100">
-              <p className="text-sm text-slate-600 leading-relaxed">
-                Are you sure you want to remove administrative access for:
-              </p>
-              <p className="text-sm font-bold text-slate-900 mt-1 truncate">
-                {targetAdmin?.email}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setShowDemoteConfirmModal(false); setTargetAdmin(null); }}
-                disabled={adminsLoading}
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-parchment-sunken transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDemoteAdmin}
-                disabled={adminsLoading}
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
-              >
-                {adminsLoading ? 'Removing...' : 'Confirm Removal'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {showDemoteConfirmModal && renderModal(
+        <UserMinus className="h-6 w-6" />,
+        'bg-danger-tint text-red-600',
+        'Remove admin access?',
+        <><strong className="text-ink break-all">{targetAdmin?.email}</strong> will lose admin access straight away.</>,
+        null,
+        () => { setShowDemoteConfirmModal(false); setTargetAdmin(null); },
+        <button
+          type="button"
+          onClick={handleDemoteAdmin}
+          disabled={adminsLoading}
+          className="flex-[1.3] h-11 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+        >
+          {adminsLoading ? 'Removing…' : 'Remove access'}
+        </button>
       )}
     </div>
   );

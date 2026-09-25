@@ -249,6 +249,10 @@ export default function ApplicationsPage({
       );
 
       const result = await Promise.race([queryPromise, timeoutPromise]) as any;
+      // A cancelled request (page left, or React's dev double-mount) comes back
+      // from Supabase as a plain `{ error }` object rather than a thrown
+      // AbortError, so check the signal itself and drop the stale result.
+      if (fetchController.signal.aborted) return;
       const data = result?.data;
       const error = result?.error;
 
@@ -268,7 +272,7 @@ export default function ApplicationsPage({
       }));
       setApplications(mappedData as Application[]);
     } catch (err: any) {
-      if (err.name === 'AbortError') return;
+      if (fetchController.signal.aborted || err?.name === 'AbortError') return;
       console.error('Error fetching applications:', err);
       if (!silent) {
         setError(err instanceof Error ? err.message : 'Failed to load applications');

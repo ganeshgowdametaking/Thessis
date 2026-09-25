@@ -162,9 +162,9 @@ const PasswordResetPage: React.FC = () => {
         {/* Logo */}
         <div className="flex justify-center mb-2 sm:mb-6 pt-[max(16px,env(safe-area-inset-top))] sm:pt-0">
           <img
-            src="/logo2.png?v=2"
-            alt="Thessis Logo"
-            className="w-12 h-12 object-contain"
+            src="/brand/thessis-logo-primary.svg"
+            alt="Thessis"
+            className="h-9 w-auto"
           />
         </div>
 
@@ -306,12 +306,7 @@ const PasswordResetPage: React.FC = () => {
 
       {/* Right: brand panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-ink flex-col justify-between p-16 text-white">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="font-display font-extrabold text-sm">T</span>
-          </div>
-          <span className="font-display font-extrabold text-lg">Thessis</span>
-        </div>
+        <img src="/brand/thessis-logo-white.svg" alt="Thessis" className="h-8 w-auto self-start" />
 
         <div className="flex flex-col gap-5 max-w-md">
           <span className="text-[13px] font-bold uppercase tracking-wider text-indigo-200">Account recovery</span>

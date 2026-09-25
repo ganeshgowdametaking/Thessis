@@ -258,7 +258,7 @@ const CompanySignupPage: React.FC = () => {
             >
               {loading ? (
                 <>
-                  <LoadingSpinner text="Creating account..." />
+                  <LoadingSpinner inline text="Creating account..." />
                 </>
               ) : (
                 'Create Account'

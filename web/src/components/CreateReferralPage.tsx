@@ -915,7 +915,7 @@ const CreateReferralPage: React.FC = () => {
             </div>
 
             {loadingReferrals ? (
-              <LoadingSpinner text="Loading referrals..." />
+              <LoadingSpinner size="small" text="Loading referrals..." />
             ) : myReferrals.length === 0 ? (
               <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
                 <span className="mx-auto mb-3 size-12 rounded-full bg-parchment-sunken text-slate-400 flex items-center justify-center">

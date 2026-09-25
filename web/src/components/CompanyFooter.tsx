@@ -9,10 +9,7 @@ const CompanyFooter: React.FC = () => {
           {/* Company Info */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center mb-4">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
-                <span className="text-white font-bold text-sm">T</span>
-              </div>
-              <span className="text-xl font-bold font-display">Thessis</span>
+              <img src="/brand/thessis-logo-white.svg" alt="Thessis" className="h-7 w-auto" />
               <span className="ml-2 text-sm text-slate-400 bg-slate-800 px-2 py-1 rounded">Company Portal</span>
             </div>
             <p className="text-slate-300 mb-4 max-w-md">

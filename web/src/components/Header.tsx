@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Settings } from 'lucide-react';
+import { Menu, Settings, X } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { notificationService } from '../services/notificationService';
+import { HOME_SECTIONS, scrollToSection } from '../utils/homeSections';
 
 
 // Add global type for refreshUnreadCounts
@@ -31,12 +32,47 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const isHome = !user && location.pathname === '/';
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 8);
     handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Homepage: highlight the nav link for the section in the middle of the screen
+  useEffect(() => {
+    setActiveSection(null);
+    if (!isHome || typeof IntersectionObserver === 'undefined') return;
+    const sections = HOME_SECTIONS
+      .map((section) => document.getElementById(section.id))
+      .filter((element): element is HTMLElement => element !== null);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          } else {
+            setActiveSection((current) => (current === entry.target.id ? null : current));
+          }
+        });
+      },
+      { rootMargin: '-40% 0px -55% 0px' }
+    );
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [isHome]);
+
+  // Logged-out mobile menu closes on Escape
+  useEffect(() => {
+    if (user || !isMenuOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMenuOpen(false);
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [user, isMenuOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -190,34 +226,141 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
   );
 
   if (!user) {
+    const goToSection = (id: string) => {
+      setIsMenuOpen(false);
+      scrollToSection(id);
+    };
+
     return (
       <header className="sticky top-[-1px] z-50 w-full pt-3 sm:pt-4 px-3 sm:px-6 lg:px-10">
         <div
-          className={`mx-auto max-w-7xl rounded-full transition-colors duration-300 ${
-            isScrolled ? 'bg-[#F3F4F6]' : 'bg-parchment'
+          className={`mx-auto max-w-7xl rounded-full border transition-[background-color,box-shadow,border-color] duration-300 ${
+            isScrolled
+              ? 'bg-white/90 border-hairline shadow-[0_8px_30px_rgba(20,20,43,0.08)] backdrop-blur'
+              : 'bg-white/70 border-hairline/70'
           }`}
         >
-          <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center">
-              <Link to="/" className="block">
-                <img
-                  src="/logo2.png?v=2"
-                  alt="Thessis Logo"
-                  className="h-8 w-8 object-contain cursor-pointer hover:opacity-80 transition-opacity"
-                />
-              </Link>
-            </div>
-            <nav className="hidden md:flex items-center gap-8"></nav>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <button onClick={onSignIn} className="flex h-8 sm:h-9 items-center justify-center rounded-full px-3 sm:px-4 text-xs sm:text-sm font-bold text-slate-700 hover:bg-black/5 transition-colors">
-                Login
+          <div className="flex h-16 items-center justify-between pl-4 pr-2.5 sm:pl-6">
+            <Link to="/" className="block shrink-0">
+              <img
+                src="/brand/thessis-logo-primary.svg"
+                alt="Thessis"
+                className="h-7 w-auto cursor-pointer hover:opacity-80 transition-opacity"
+              />
+            </Link>
+            {isHome && (
+              <nav aria-label="Homepage" className="hidden md:flex items-center gap-8 text-sm font-semibold">
+                {HOME_SECTIONS.map((section) => (
+                  <a
+                    key={section.id}
+                    href={`#${section.id}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      goToSection(section.id);
+                    }}
+                    aria-current={activeSection === section.id ? 'location' : undefined}
+                    className={`transition-colors ${activeSection === section.id ? 'text-primary' : 'text-slate-600 hover:text-ink'}`}
+                  >
+                    {section.label}
+                  </a>
+                ))}
+                <Link to="/companies" className="text-slate-600 hover:text-ink transition-colors">
+                  For companies
+                </Link>
+              </nav>
+            )}
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              <button onClick={onSignIn} className="flex h-10 items-center justify-center rounded-full px-3 sm:px-4 text-sm font-bold text-ink hover:bg-black/5 transition-colors">
+                Log in
               </button>
-              <button onClick={onJoinNow} className="flex h-8 sm:h-9 items-center justify-center rounded-full bg-sage px-3 sm:px-4 text-xs sm:text-sm font-bold text-white hover:bg-sage-dark transition-all">
-                Signup
+              <button onClick={onJoinNow} className="hidden md:flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-primary-hover transition-colors">
+                Sign up free
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen((open) => !open)}
+                aria-expanded={isMenuOpen}
+                aria-controls="public-mobile-menu"
+                aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+                className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-hairline bg-white text-ink"
+              >
+                <Menu className="h-5 w-5" />
               </button>
             </div>
           </div>
         </div>
+
+        {isMenuOpen && (
+          <div className="fixed inset-0 z-50 md:hidden" id="public-mobile-menu">
+            <button
+              type="button"
+              aria-label="Close menu"
+              onClick={() => setIsMenuOpen(false)}
+              className="absolute inset-0 bg-ink/45"
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Menu"
+              className="relative flex flex-col gap-1.5 rounded-b-[22px] bg-white px-4 pb-5 pt-4 shadow-2xl"
+            >
+              <div className="flex items-center justify-between pb-2.5">
+                <img src="/brand/thessis-logo-primary.svg" alt="Thessis" className="h-6 w-auto" />
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen(false)}
+                  aria-label="Close menu"
+                  autoFocus
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-hairline text-ink"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              {isHome && HOME_SECTIONS.map((section) => (
+                <a
+                  key={section.id}
+                  href={`#${section.id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    goToSection(section.id);
+                  }}
+                  className="flex h-12 items-center justify-between border-b border-slate-100 px-1 text-[15px] font-bold text-ink"
+                >
+                  {section.label}
+                  <span aria-hidden="true" className="text-slate-400">→</span>
+                </a>
+              ))}
+              <Link
+                to="/companies"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex h-12 items-center justify-between border-b border-slate-100 px-1 text-[15px] font-bold text-ink"
+              >
+                For companies
+                <span aria-hidden="true" className="text-slate-400">→</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onJoinNow?.();
+                }}
+                className="mt-3 h-12 rounded-xl bg-primary text-[15px] font-bold text-white"
+              >
+                Sign up free
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onSignIn?.();
+                }}
+                className="h-12 rounded-xl border border-hairline text-[15px] font-bold text-ink"
+              >
+                Log in
+              </button>
+            </div>
+          </div>
+        )}
       </header>
     );
   }
@@ -251,9 +394,9 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
 
         <Link to="/jobs" className="flex items-center justify-self-center min-w-0">
           <img
-            src="/logo2.png?v=2"
-            alt="Thessis Logo"
-            className="h-8 w-8 object-contain"
+            src="/brand/thessis-symbol-indigo.svg"
+            alt="Thessis"
+            className="h-8 w-auto"
           />
         </Link>
 
@@ -273,9 +416,9 @@ const Header: React.FC<HeaderProps> = ({ onSignIn, onJoinNow }) => {
           <div className="flex items-center shrink-0">
             <Link to="/jobs" className="block">
               <img
-                src="/logo2.png?v=2"
-                alt="Thessis Logo"
-                className="h-8 w-8 object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                src="/brand/thessis-logo-primary.svg"
+                alt="Thessis"
+                className="h-7 w-auto cursor-pointer hover:opacity-80 transition-opacity"
               />
             </Link>
           </div>

@@ -149,7 +149,7 @@ const CompanyLoginPage: React.FC = () => {
             >
               {loading ? (
                 <>
-                  <LoadingSpinner text="Signing in..." />
+                  <LoadingSpinner inline text="Signing in..." />
                 </>
               ) : (
                 'Sign In'

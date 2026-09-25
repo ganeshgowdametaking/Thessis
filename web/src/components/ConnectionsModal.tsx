@@ -179,7 +179,7 @@ const ConnectionsModal: React.FC<ConnectionsModalProps> = ({ isOpen, onClose, on
         {/* Connections List */}
         <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-[max(16px,env(safe-area-inset-bottom))] md:p-6">
           {loading ? (
-            <LoadingSpinner text="Loading connections..." />
+            <LoadingSpinner size="small" text="Loading connections..." />
           ) : filteredConnections.length > 0 ? (
             <>
               <div className="md:hidden divide-y divide-slate-200">

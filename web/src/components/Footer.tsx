@@ -32,11 +32,10 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center text-slate-900 min-w-0">
               <img
-                src="/logo2.png?v=2"
-                alt="Thessis Logo"
-                className="h-8 w-8 object-contain shrink-0"
+                src="/brand/thessis-logo-primary.svg"
+                alt="Thessis"
+                className="h-6 w-auto shrink-0"
               />
-              <span className="ml-2 font-bold font-display text-sm text-slate-900 truncate">Thessis</span>
             </div>
 
             <div className="flex items-center gap-5 shrink-0">
@@ -96,16 +95,30 @@ const Footer: React.FC<FooterProps> = ({ compact = false, slim = false }) => {
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="flex items-center text-slate-900">
               <img
-                src="/logo2.png?v=2"
-                alt="Thessis Logo"
-                className="h-8 w-8 object-contain"
+                src="/brand/thessis-logo-primary.svg"
+                alt="Thessis"
+                className="h-8 w-auto"
               />
-              <span className="ml-3 font-bold font-display text-xl text-slate-900">Thessis</span>
             </div>
+            <p className="text-slate-500 text-sm">Find jobs through people, not portals.</p>
             <p className="text-slate-400 text-sm">© 2026 Thessis. All rights reserved.</p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-12 md:gap-24 w-full md:w-auto justify-center md:justify-end">
+            {/* Product Links */}
+            <div className="flex flex-col items-center md:items-start gap-3">
+              <span className="text-slate-900 font-bold text-sm uppercase tracking-wider mb-2">Product</span>
+              <a className="text-slate-500 hover:text-sage text-sm font-medium transition-colors" href="/companies">
+                For companies
+              </a>
+              <a className="text-slate-500 hover:text-sage text-sm font-medium transition-colors" href="/signup">
+                Sign up
+              </a>
+              <a className="text-slate-500 hover:text-sage text-sm font-medium transition-colors" href="/login">
+                Log in
+              </a>
+            </div>
+
             {/* Legal Links */}
             <div className="flex flex-col items-center md:items-start gap-3">
               <span className="text-slate-900 font-bold text-sm uppercase tracking-wider mb-2">Legal</span>

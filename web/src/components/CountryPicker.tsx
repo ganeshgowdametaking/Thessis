@@ -5,15 +5,16 @@ interface CountryPickerProps {
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
+  className?: string;
 }
 
-const CountryPicker: React.FC<CountryPickerProps> = ({ value, onChange, required }) => {
+const CountryPicker: React.FC<CountryPickerProps> = ({ value, onChange, required, className = 'border rounded px-3 py-2' }) => {
   return (
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
       name="country_code"
-      className="border rounded px-3 py-2"
+      className={className}
       required={required}
     >
       <option value="">Select country</option>

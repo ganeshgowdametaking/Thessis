@@ -100,7 +100,7 @@ const CompanyLandingPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-700 to-blue-400 flex items-center justify-center">
-        <LoadingSpinner />
+        <LoadingSpinner tone="light" />
       </div>
     );
   }
@@ -110,7 +110,7 @@ const CompanyLandingPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between p-6 relative z-10">
         <div className="flex items-center space-x-2">
-          <img src="/new-logo.png?v=2" alt="Thessis Logo" className="h-12 w-12 object-contain" />
+          <img src="/brand/thessis-logo-white.svg" alt="Thessis" className="h-9 w-auto" />
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2 text-white text-sm">

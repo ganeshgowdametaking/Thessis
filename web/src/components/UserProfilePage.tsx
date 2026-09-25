@@ -1,17 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BadgeCheck } from 'lucide-react';
+import { AlertCircle, ArrowLeft, BadgeCheck, Ban, Bell, Check, Eye, Loader2, MapPin, MessageSquare, MoreHorizontal, Trophy, UserMinus, UserPlus, Users, UserX, WifiOff, X } from 'lucide-react';
 import { profileService } from '../services/profileService';
 import { connectionService } from '../services/connectionService';
 import { messageService } from '../services/messageService';
 import { blockingService } from '../services/blockingService';
 import { useAuthContext } from '../contexts/AuthContext';
-import LoadingSpinner from './LoadingSpinner';
-import OfflineMessage from './OfflineMessage';
 import { isOnline, getCachedData, setCachedData, getOfflineMessage } from '../utils/offlineUtils';
-import { ProfileTabs } from './ProfileTabs';
-import { ProfileExperienceList } from './ProfileExperienceList';
-import { ProfileEducationList } from './ProfileEducationList';
+import { ProfileTimelineItem, formatProfileDate, formatProfileDateRange } from './ProfileTimelineItem';
 import type { Experience, Education, Skill, Achievement } from '../types/profileSections';
 
 interface UserProfilePageProps {
@@ -32,7 +28,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(!isOnline());
-  const [activeTab, setActiveTab] = useState('experience');
+  const [toast, setToast] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'block' | 'disconnect' | null>(null);
   const [connectionsCount, setConnectionsCount] = useState(0);
 
   // Use actual data from profile instead of hardcoded mock data
@@ -42,12 +39,11 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
-  // The wrapper in App.tsx doesn't key this component by userId, so navigating
-  // between two different people's profiles reuses this mounted instance —
-  // reset to the first tab whenever the viewed profile changes.
   useEffect(() => {
-    setActiveTab('experience');
-  }, [userId]);
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     if (userId) {
@@ -278,6 +274,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
 
   const handleConnect = async () => {
     if (!user || userId === user.id) return;
+    const theirName = (profile?.full_name?.trim() || 'them').split(' ')[0];
     try {
       setConnectionLoading(true);
 
@@ -286,23 +283,26 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
         await connectionService.sendConnectionRequest(userId);
         setConnectionStatus(userId, 'pending_sent'); // Instant UI update
         refreshUserConnections(); // Reconcile with server in the background
+        setToast({ tone: 'success', text: `Connection request sent to ${theirName}.` });
       } else if (connectionStatus === 'pending_sent') {
         // Cancel connection request
         await connectionService.cancelConnectionRequest(userId);
         setConnectionStatus(userId, 'none');
         refreshUserConnections();
+        setToast({ tone: 'success', text: 'Request cancelled.' });
       } else if (connectionStatus === 'connected') {
         // Disconnect from user
         await connectionService.cancelConnectionRequest(userId);
         setConnectionStatus(userId, 'none');
         refreshUserConnections();
+        setToast({ tone: 'success', text: `You're no longer connected with ${theirName}.` });
       } else if (connectionStatus === 'pending_received') {
-        // Redirect to notifications page to respond to the request
-        console.log('User should go to notifications page to respond to connection request');
+        // Respond to the request from the notifications page
+        navigate('/notifications');
       }
     } catch (error) {
       console.error('Error handling connection:', error);
-      console.log('Failed to update connection. Please try again.');
+      setToast({ tone: 'error', text: "Couldn't update the connection. Please try again." });
     } finally {
       setConnectionLoading(false);
     }
@@ -338,6 +338,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
         await blockingService.unblockUser(userId);
         setIsBlocked(false);
         console.log('User unblocked successfully');
+        setToast({ tone: 'success', text: 'Unblocked.' });
+        if (!profile) loadUserProfile();
       } else {
         // Block the user
         await blockingService.blockUser(userId);
@@ -346,50 +348,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
       }
     } catch (error) {
       console.error('Error handling block/unblock:', error);
-      console.log('Failed to update block status. Please try again.');
+      setToast({ tone: 'error', text: "Couldn't update the block. Please try again." });
     } finally {
       setBlockLoading(false);
     }
-  };
-
-  const getConnectionButtonText = () => {
-    if (connectionLoading) return 'Loading...';
-
-    switch (connectionStatus) {
-      case 'connected': return 'Disconnect';
-      case 'pending_sent': return 'Requested';
-      case 'pending_received': return 'Respond';
-      default: return 'Connect';
-    }
-  };
-
-  const getConnectionButtonStyle = () => {
-    switch (connectionStatus) {
-      case 'connected':
-        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-slate-500 hover:bg-slate-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
-      case 'pending_sent':
-        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-slate-500 hover:bg-slate-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
-      case 'pending_received':
-        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
-      default:
-        return 'flex-1 lg:flex-none lg:min-w-[160px] h-10 px-5 bg-sage hover:bg-sage-dark text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 group';
-    }
-  };
-
-  const getConnectionButtonIcon = () => {
-    switch (connectionStatus) {
-      case 'connected': return 'person_remove';
-      case 'pending_sent': return 'cancel';
-      case 'pending_received': return 'notifications';
-      default: return 'person_add';
-    }
-  };
-
-  const getProfilePicture = (user: any) => {
-    if (user?.avatar_url) {
-      return user.avatar_url;
-    }
-    return '/default-avatar.svg';
   };
 
   const formatConnectionsCount = (count?: number) => {
@@ -398,237 +360,423 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
     return `${(value / 1000).toFixed(2).replace(/\.?0+$/, '')}k`;
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-  };
+  const isSelf = userId === user?.id;
+  const firstName = (profile?.full_name?.trim() || profile?.username?.trim() || 'this person').split(' ')[0];
 
-  const timelineTextClass = 'text-slate-900 text-xs font-black uppercase tracking-wide whitespace-nowrap';
+  const renderStateCard = (icon: React.ReactNode, tone: string, title: string, body: string, buttons: React.ReactNode) => (
+    <div className="bg-parchment min-h-screen flex flex-col">
+      <main className="flex-1 w-full max-w-[1120px] mx-auto px-4 md:px-6 py-4 md:py-8 flex flex-col gap-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="self-start flex items-center gap-1.5 text-[13px] font-bold text-slate-600 hover:text-ink transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+        <div className="bg-white border border-slate-200 rounded-2xl px-6 py-14 flex flex-col items-center gap-2.5 text-center">
+          <span className={`size-14 rounded-full flex items-center justify-center mb-1 ${tone}`}>{icon}</span>
+          <h1 className="font-display text-lg font-extrabold text-ink">{title}</h1>
+          <p className="text-[13.5px] leading-relaxed text-slate-500 max-w-sm">{body}</p>
+          <div className="flex gap-2 mt-2">{buttons}</div>
+        </div>
+      </main>
+    </div>
+  );
 
-  console.log('UserProfilePage render - loading:', loading, 'profile:', profile);
+  const outlineButtonClass = 'h-10 px-4 rounded-xl border border-slate-200 bg-white text-[13px] font-bold text-ink hover:bg-parchment-sunken transition-colors flex items-center justify-center gap-2 disabled:opacity-60';
+  const primaryButtonClass = 'h-10 px-4 rounded-xl bg-primary text-white text-[13px] font-bold hover:bg-primary-hover transition-colors flex items-center justify-center gap-2 disabled:opacity-60';
 
   if (loading) {
-    console.log('Showing loading spinner');
     return (
-      <div className="bg-stone-bg text-slate-700 min-h-screen flex items-center justify-center">
-        <LoadingSpinner />
+      <div className="bg-parchment min-h-screen">
+        <main className="w-full max-w-[1120px] mx-auto px-4 md:px-6 py-4 md:py-8 flex flex-col gap-5 animate-pulse" role="status" aria-label="Loading profile">
+          <div className="h-4 w-14 rounded bg-parchment-sunken" />
+          <div className="bg-white border border-slate-200 rounded-[22px] overflow-hidden">
+            <div className="h-28 md:h-44 bg-parchment-sunken" />
+            <div className="px-4 md:px-8 pb-7 flex flex-col gap-3">
+              <div className="-mt-11 md:-mt-14 size-[84px] md:size-28 rounded-full bg-slate-200 ring-4 ring-white" />
+              <div className="h-6 w-48 rounded bg-parchment-sunken" />
+              <div className="h-3.5 w-64 rounded bg-parchment-sunken" />
+            </div>
+          </div>
+        </main>
       </div>
+    );
+  }
+
+  // Blocked people stay hidden, but you can always undo it from here.
+  if (isBlocked && !isSelf) {
+    return renderStateCard(
+      <Ban className="h-6 w-6" />,
+      'bg-danger-tint text-red-600',
+      "You've blocked this person",
+      "Their profile is hidden while they're blocked.",
+      <>
+        <button type="button" onClick={handleBlock} className={outlineButtonClass} disabled={blockLoading}>
+          {blockLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+          Unblock
+        </button>
+        <button type="button" onClick={onBack} className={outlineButtonClass}>Go back</button>
+      </>
     );
   }
 
   // Show offline message if offline and no profile data
   if (isOffline && !profile) {
-    return (
-      <div className="bg-stone-bg text-slate-700 min-h-screen flex flex-col">
-        <div className="flex-1 flex items-center justify-center">
-          <OfflineMessage
-            {...getOfflineMessage('profile')}
-            showRetry={true}
-            onRetry={loadUserProfile}
-          />
-        </div>
-      </div>
+    const offlineCopy = getOfflineMessage('profile');
+    return renderStateCard(
+      <WifiOff className="h-6 w-6" />,
+      'bg-amber-tint text-amber-ink',
+      offlineCopy.title,
+      offlineCopy.message,
+      <button type="button" onClick={loadUserProfile} className={primaryButtonClass}>Try again</button>
     );
   }
 
   // Show not found message if no profile data available
   if (!profile) {
-    return (
-      <div className="bg-stone-bg text-slate-700 min-h-screen flex flex-col">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center py-16">
-            <div className="w-20 h-20 rounded-full bg-stone-off flex items-center justify-center mx-auto mb-6">
-              <span className="material-symbols-outlined text-4xl text-slate-500">person_off</span>
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-3">Profile not found</h3>
-            <p className="text-slate-600">This user profile could not be loaded.</p>
-            <button
-              onClick={onBack}
-              className="mt-6 bg-sage hover:bg-sage-dark text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
-      </div>
+    return renderStateCard(
+      <UserX className="h-6 w-6" />,
+      'bg-parchment-sunken text-slate-500',
+      'Profile not found',
+      "This profile doesn't exist or isn't available.",
+      <button type="button" onClick={onBack} className={primaryButtonClass}>Go back</button>
     );
   }
 
   const displayName = profile.full_name?.trim() || profile.username?.trim() || 'User';
   const bio = profile.bio?.trim() || '';
+  const roleLine = [profile.title, profile.company].filter(Boolean).join(' at ');
+  const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part: string) => part[0]).join('').toUpperCase();
+  const visibleExperiences = experiences.filter((exp) => exp.title?.trim() || exp.company?.trim());
+  const visibleEducation = education.filter((edu) => edu.degree?.trim() || edu.school?.trim());
+  const visibleSkills = skills.filter((skill) => skill.name?.trim());
+  const visibleAchievements = achievements.filter((item) => item.title?.trim() || item.organization?.trim());
+  const hasMainSections = visibleExperiences.length > 0 || visibleEducation.length > 0;
+  const hasSideSections = visibleSkills.length > 0 || visibleAchievements.length > 0;
 
-  console.log('Rendering profile page for:', profile.full_name);
+  const statusChip =
+    connectionStatus === 'connected' ? (
+      <span className="inline-flex items-center gap-1 h-10 px-3 rounded-xl bg-success-tint text-success-ink text-[12.5px] font-bold whitespace-nowrap">
+        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+        Connected
+      </span>
+    ) : connectionStatus === 'pending_sent' ? (
+      <span className="inline-flex items-center h-10 px-3 rounded-xl bg-ink-wash text-primary-hover text-[12.5px] font-bold whitespace-nowrap">Request sent</span>
+    ) : connectionStatus === 'pending_received' ? (
+      <span className="inline-flex items-center h-10 px-3 rounded-xl bg-amber-tint text-amber-ink text-[12.5px] font-bold whitespace-nowrap">Wants to connect</span>
+    ) : null;
+
+  const messageButton = (primary: boolean) => (
+    <button type="button" className={`${primary ? primaryButtonClass : outlineButtonClass} flex-1 sm:flex-none`} onClick={handleMessage}>
+      <MessageSquare className="h-4 w-4" />
+      Message
+    </button>
+  );
+
+  const renderViewerActions = () => {
+    let connectControl: React.ReactNode = null;
+    if (connectionStatus === 'none') {
+      connectControl = (
+        <button type="button" className={`${primaryButtonClass} flex-1 sm:flex-none`} onClick={handleConnect} disabled={connectionLoading}>
+          {connectionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+          Connect
+        </button>
+      );
+    } else if (connectionStatus === 'pending_sent') {
+      connectControl = (
+        <button type="button" className={`${outlineButtonClass} flex-1 sm:flex-none`} onClick={handleConnect} disabled={connectionLoading}>
+          {connectionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+          Cancel request
+        </button>
+      );
+    } else if (connectionStatus === 'pending_received') {
+      connectControl = (
+        <button type="button" className={`${primaryButtonClass} flex-1 sm:flex-none`} onClick={handleConnect}>
+          <Bell className="h-4 w-4" />
+          Respond
+        </button>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-2 w-full sm:w-auto">
+        {statusChip && <span className="hidden sm:inline-flex">{statusChip}</span>}
+        {connectControl}
+        {messageButton(connectionStatus === 'connected')}
+        <div className="relative" ref={actionsMenuRef}>
+          <button
+            type="button"
+            aria-label="More actions"
+            aria-haspopup="menu"
+            aria-expanded={showActionsMenu}
+            className="size-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-parchment-sunken transition-colors flex items-center justify-center"
+            onClick={() => setShowActionsMenu(!showActionsMenu)}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+          {showActionsMenu && (
+            <>
+              <div className="fixed inset-0 z-40 bg-ink/45 md:hidden" onClick={() => setShowActionsMenu(false)} aria-hidden="true" />
+              <div
+                role="menu"
+                className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl bg-white px-3 pt-3 pb-6 md:absolute md:inset-auto md:right-0 md:top-full md:mt-2 md:w-60 md:rounded-2xl md:p-1.5 md:pb-1.5 md:border md:border-slate-200 md:shadow-xl"
+              >
+                <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 md:hidden" aria-hidden="true" />
+                {connectionStatus === 'connected' && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full flex items-center gap-2.5 px-3 py-3.5 md:py-2.5 rounded-xl text-sm md:text-[13px] font-semibold text-ink hover:bg-parchment-sunken"
+                    onClick={() => {
+                      setShowActionsMenu(false);
+                      setConfirmAction('disconnect');
+                    }}
+                  >
+                    <UserMinus className="h-4 w-4" />
+                    Disconnect
+                  </button>
+                )}
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="w-full flex items-center gap-2.5 px-3 py-3.5 md:py-2.5 rounded-xl text-sm md:text-[13px] font-semibold text-red-600 hover:bg-danger-tint"
+                  onClick={() => {
+                    setShowActionsMenu(false);
+                    setConfirmAction('block');
+                  }}
+                >
+                  <Ban className="h-4 w-4" />
+                  Block {firstName}
+                </button>
+                <button
+                  type="button"
+                  className="md:hidden w-full h-12 mt-2 rounded-xl border border-slate-200 text-sm font-bold text-ink"
+                  onClick={() => setShowActionsMenu(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderCard = (title: string, body: React.ReactNode) => (
+    <section className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 flex flex-col gap-4">
+      <h2 className="font-display text-[17px] font-extrabold text-ink">{title}</h2>
+      {body}
+    </section>
+  );
 
   return (
-    <div className="bg-stone-bg text-slate-700 min-h-screen flex flex-col">
-      <main className="flex-1 w-full max-w-[1380px] mx-auto px-4 md:px-6 py-5 md:py-12">
-        <div className="flex flex-col lg:grid lg:grid-cols-[1fr_1fr] gap-6 md:gap-8 items-start">
-          {/* Left column: profile details — 50% */}
-          <aside className="w-full bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden lg:sticky lg:top-8">
-            <div
-              className="relative w-full h-24 bg-center bg-cover bg-no-repeat"
-              style={{
-                backgroundImage: profile.cover_image_url
-                  ? `url("${profile.cover_image_url}")`
-                  : 'linear-gradient(135deg, #4353FF 0%, #7C86FF 50%, #C7CCFF 100%)',
-              }}
-            ></div>
+    <div className="bg-parchment min-h-screen flex flex-col">
+      <main className="flex-1 w-full max-w-[1120px] mx-auto px-4 md:px-6 py-4 md:py-8 flex flex-col gap-4 md:gap-5">
+        <button
+          type="button"
+          onClick={onBack}
+          className="self-start flex items-center gap-1.5 text-[13px] font-bold text-slate-600 hover:text-ink transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
 
-            <div className="px-5 pb-5">
-              <div className="flex items-end gap-2.5 -mt-10">
-                <div className="relative shrink-0">
-                  <div
-                    className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-20 w-20 ring-4 ring-white shadow-sm"
-                    style={{ backgroundImage: `url("${getProfilePicture(profile)}")` }}
-                  ></div>
-                </div>
-                <div className="pb-1">
-                  <span className="text-slate-900 text-lg font-extrabold">{formatConnectionsCount(connectionsCount)}</span>{' '}
-                  <span className="text-slate-500 text-sm font-medium">Connections</span>
-                </div>
-              </div>
-
-              <h1 className="text-slate-900 text-lg font-extrabold leading-tight tracking-tight mt-2 flex items-center gap-1.5">
-                {displayName}
-                {profile?.verified && (
-                  <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500 stroke-white shrink-0" />
-                )}
-              </h1>
-
-              {bio && (
-                <p className="text-slate-500 text-sm leading-snug mt-1">
-                  {bio}
-                </p>
-              )}
-
-              {userId !== user?.id && (
-                <div className="flex items-center gap-2 mt-4">
-                  <button
-                    className={getConnectionButtonStyle()}
-                    onClick={handleConnect}
-                    disabled={connectionLoading}
-                  >
-                    <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">{getConnectionButtonIcon()}</span>
-                    {getConnectionButtonText()}
-                  </button>
-
-                  <button
-                    className="h-10 px-5 bg-white border border-stone-border hover:bg-stone-off hover:border-sage text-slate-900 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
-                    onClick={handleMessage}
-                  >
-                    <span className="material-symbols-outlined text-xl">mail</span>
-                    Message
-                  </button>
-
-                  <div className="relative group/menu" ref={actionsMenuRef}>
-                    <button
-                      className="h-10 w-10 flex items-center justify-center bg-white border border-stone-border hover:bg-stone-off rounded-lg text-slate-500 transition-colors"
-                      onClick={() => setShowActionsMenu(!showActionsMenu)}
-                    >
-                      <span className="material-symbols-outlined">more_horiz</span>
-                    </button>
-
-                    {showActionsMenu && (
-                      <div className="absolute left-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-stone-border overflow-hidden z-20">
-                        <button
-                          className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isBlocked
-                            ? 'text-success-ink hover:bg-success-tint'
-                            : 'text-red-500 hover:bg-red-50'
-                            } ${blockLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          onClick={handleBlock}
-                          disabled={blockLoading}
-                        >
-                          <span className="material-symbols-outlined text-lg">
-                            {blockLoading ? 'hourglass_empty' : isBlocked ? 'check_circle' : 'block'}
-                          </span>
-                          {blockLoading ? 'Loading...' : isBlocked ? 'Unblock' : 'Block'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-6 mt-6 text-left">
-                {/* Skills Section */}
-                <section>
-                  <div className="flex items-center mb-3 pb-2 border-b border-slate-200/70">
-                    <h2 className="text-lg font-semibold text-slate-900">Skills</h2>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {Array.isArray(skills) && skills.length > 0 ? (
-                      skills.map((skill) => (
-                        <span
-                          key={skill.id}
-                          className="px-2.5 py-1.5 rounded-lg bg-white text-slate-body cursor-default text-[13px] font-bold tracking-tight border border-stone-border"
-                        >
-                          {skill.name}
-                        </span>
-                      ))
-                    ) : null}
-                  </div>
-                </section>
-
-                {/* Achievements Section */}
-                <section>
-                  <div className="flex items-center mb-3 pb-2 border-b border-slate-200/70">
-                    <h2 className="text-lg font-semibold text-slate-900">Achievements</h2>
-                  </div>
-                  <div className="flex flex-col gap-1 divide-y divide-slate-200/80">
-                    {Array.isArray(achievements) && achievements.length > 0 ? (
-                      achievements.map((achievement) => (
-                        <div key={achievement.id} className="py-3 flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <h4 className="text-text-main font-bold text-[1.05rem] leading-tight">{achievement.title}</h4>
-                            <p className="text-slate-meta text-[13px] mt-1 font-semibold">{achievement.organization}</p>
-                            {achievement.description && (
-                              <p className="text-text-secondary text-sm mt-1.5 leading-snug">{achievement.description}</p>
-                            )}
-                          </div>
-                          <span className={`${timelineTextClass} shrink-0 pt-0.5`}>{formatDate(achievement.date)}</span>
-                        </div>
-                      ))
-                    ) : null}
-                  </div>
-                </section>
-              </div>
+        <section className="bg-white border border-slate-200 rounded-2xl md:rounded-[22px] overflow-hidden">
+          {isSelf && (
+            <div className="flex items-center gap-2.5 px-4 md:px-6 py-3 bg-ink-wash text-primary-hover text-[13px] font-semibold">
+              <Eye className="h-4 w-4 shrink-0" />
+              <span className="flex-1">This is how other members see your profile.</span>
+              <button type="button" onClick={() => navigate('/profile')} className="shrink-0 font-bold hover:underline">
+                Edit profile
+              </button>
             </div>
-          </aside>
+          )}
+          <div
+            className="h-28 md:h-44 bg-center bg-cover bg-no-repeat"
+            style={{
+              backgroundImage: profile.cover_image_url
+                ? `url("${profile.cover_image_url}")`
+                : 'linear-gradient(135deg, #4353FF 0%, #7C86FF 55%, #C7CCFF 100%)',
+            }}
+          />
+          <div className="px-4 pb-5 md:px-8 md:pb-7 flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 -mt-11 md:-mt-14">
+              <div className="relative z-[1] self-start shrink-0 rounded-full ring-4 md:ring-[5px] ring-white bg-white">
+                {profile.avatar_url ? (
+                  <img src={profile.avatar_url} alt={displayName} className="size-[84px] md:size-28 rounded-full object-cover" />
+                ) : (
+                  <span className="size-[84px] md:size-28 rounded-full bg-ink-wash text-primary-hover font-display font-extrabold text-[26px] md:text-[34px] flex items-center justify-center">
+                    {initials || <UserX className="h-8 w-8" />}
+                  </span>
+                )}
+              </div>
+              {!isSelf && <div className="sm:pb-1 order-last sm:order-none">{renderViewerActions()}</div>}
+            </div>
 
-          {/* Right column: tabbed detail content — 50% */}
-          <div className="min-w-0 w-full bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-            <ProfileTabs
-              tabs={[
-                { id: 'experience', label: 'Experience' },
-                { id: 'education', label: 'Education' },
-              ]}
-              activeTab={activeTab}
-              onChange={setActiveTab}
-            />
+            <div className="flex flex-col gap-1.5">
+              <h1 className="font-display text-[22px] md:text-[28px] font-extrabold text-ink leading-tight flex items-center gap-2">
+                {displayName}
+                {profile?.verified && <BadgeCheck className="h-5 w-5 shrink-0 text-white fill-primary" aria-label="Verified" />}
+              </h1>
+              {roleLine && <p className="text-sm md:text-[15px] font-semibold text-slate-600">{roleLine}</p>}
+              <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-x-4 gap-y-1 text-[12.5px] md:text-[13px] text-slate-500">
+                {profile.location && (
+                  <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0" />{profile.location}</span>
+                )}
+                <span className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 shrink-0" />
+                  <strong className="text-ink">{formatConnectionsCount(connectionsCount)}</strong> {connectionsCount === 1 ? 'connection' : 'connections'}
+                </span>
+              </div>
+              {!isSelf && statusChip && <span className="sm:hidden mt-1">{statusChip}</span>}
+            </div>
 
-            <div className="mt-6 md:mt-10">
-              {activeTab === 'experience' && (
-                <section>
-                  <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
-                    <h2 className="text-2xl font-semibold text-slate-900">Experience</h2>
+            {bio && <p className="text-[13.5px] md:text-[14.5px] leading-relaxed text-slate-600 max-w-3xl whitespace-pre-line">{bio}</p>}
+          </div>
+        </section>
+
+        {!hasMainSections && !hasSideSections ? (
+          <div className="bg-white border border-slate-200 rounded-2xl px-6 py-12 flex flex-col items-center gap-2 text-center">
+            <span className="size-14 rounded-full bg-ink-wash text-primary flex items-center justify-center mb-1"><Users className="h-6 w-6" /></span>
+            <p className="font-display text-lg font-extrabold text-ink">{firstName} hasn't filled in their profile yet</p>
+            <p className="text-[13.5px] text-slate-500 max-w-sm">Experience, education and skills will show here once they add them.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col lg:flex-row gap-4 md:gap-5 items-start">
+            {hasMainSections && (
+              <div className="w-full flex-1 min-w-0 flex flex-col gap-4 md:gap-5">
+                {visibleExperiences.length > 0 && renderCard('Experience', (
+                  <div className="flex flex-col gap-5">
+                    {visibleExperiences.map((exp, index) => (
+                      <ProfileTimelineItem
+                        key={exp.id}
+                        logoName={exp.company}
+                        heading={exp.title || exp.company}
+                        subheading={exp.title ? exp.company : ''}
+                        meta={exp.location}
+                        dates={formatProfileDateRange(exp.startDate, exp.endDate, exp.current)}
+                        description={exp.description}
+                        isLast={index === visibleExperiences.length - 1}
+                      />
+                    ))}
                   </div>
-                  <ProfileExperienceList experiences={experiences} />
-                </section>
-              )}
-
-              {activeTab === 'education' && (
-                <section>
-                  <div className="flex items-center mb-3 md:mb-6 px-1 pb-2 border-b border-slate-200/70 md:border-b-0 md:pb-0">
-                    <h2 className="text-2xl font-semibold text-slate-900">Education</h2>
+                ))}
+                {visibleEducation.length > 0 && renderCard('Education', (
+                  <div className="flex flex-col gap-5">
+                    {visibleEducation.map((edu, index) => (
+                      <ProfileTimelineItem
+                        key={edu.id}
+                        logoName={edu.school}
+                        heading={edu.degree || edu.school}
+                        subheading={edu.degree ? edu.school : ''}
+                        meta={edu.gpa?.trim() ? `GPA ${edu.gpa}` : ''}
+                        dates={formatProfileDateRange(edu.startDate, edu.endDate, false)}
+                        description={edu.description}
+                        isLast={index === visibleEducation.length - 1}
+                      />
+                    ))}
                   </div>
-                  <ProfileEducationList education={education} />
-                </section>
-              )}
+                ))}
+              </div>
+            )}
+
+            {hasSideSections && (
+              <aside className={`w-full ${hasMainSections ? 'lg:w-[360px]' : ''} shrink-0 flex flex-col gap-4 md:gap-5`}>
+                {visibleSkills.length > 0 && renderCard('Skills', (
+                  <div className="flex flex-wrap gap-2">
+                    {visibleSkills.map((skill) => (
+                      <span key={skill.id} className="rounded-full bg-ink-wash px-3 py-1.5 text-[12.5px] font-bold text-primary-hover">{skill.name}</span>
+                    ))}
+                  </div>
+                ))}
+                {visibleAchievements.length > 0 && renderCard('Achievements', (
+                  <div className="flex flex-col gap-4">
+                    {visibleAchievements.map((achievement) => (
+                      <div key={achievement.id} className="flex gap-3">
+                        <span className="size-[38px] shrink-0 rounded-[11px] bg-amber-tint text-amber-ink flex items-center justify-center">
+                          <Trophy className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0 flex flex-col gap-0.5">
+                          <p className="text-sm font-bold text-ink">{achievement.title}</p>
+                          <p className="text-[12.5px] text-slate-600">
+                            {[achievement.organization, achievement.date ? formatProfileDate(achievement.date) : ''].filter(Boolean).join(' · ')}
+                          </p>
+                          {achievement.description?.trim() && (
+                            <p className="text-[12.5px] leading-snug text-slate-500 mt-0.5">{achievement.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </aside>
+            )}
+          </div>
+        )}
+      </main>
+
+      {confirmAction && (
+        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center md:p-4 bg-ink/45" onClick={() => setConfirmAction(null)}>
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="confirm-title"
+            className="w-full md:max-w-sm bg-white rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 pt-7 pb-5 flex flex-col items-center text-center gap-2.5">
+              <span className="size-14 rounded-full bg-danger-tint text-red-600 flex items-center justify-center">
+                {confirmAction === 'block' ? <Ban className="h-6 w-6" /> : <UserMinus className="h-6 w-6" />}
+              </span>
+              <h2 id="confirm-title" className="font-display text-lg font-extrabold text-ink">
+                {confirmAction === 'block' ? `Block ${displayName}?` : `Disconnect from ${firstName}?`}
+              </h2>
+              <p className="text-[13.5px] leading-relaxed text-slate-500">
+                {confirmAction === 'block'
+                  ? `${firstName}'s profile will be hidden from you. For now, blocking is only saved in this browser — ${firstName} can still find and message you.`
+                  : "You'll need to send a new request to connect again."}
+              </p>
+            </div>
+            <div className="flex flex-col-reverse md:flex-row gap-2.5 px-5 pt-1 pb-6 md:py-4 md:border-t md:border-slate-100 md:bg-parchment">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setConfirmAction(null)}
+                className="flex-1 h-11 rounded-xl border border-slate-200 bg-white text-sm font-bold text-ink hover:bg-parchment-sunken transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const action = confirmAction;
+                  setConfirmAction(null);
+                  if (action === 'block') handleBlock();
+                  else handleConnect();
+                }}
+                className="flex-1 h-11 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors"
+              >
+                {confirmAction === 'block' ? 'Block' : 'Disconnect'}
+              </button>
             </div>
           </div>
         </div>
-      </main>
+      )}
+
+      {toast && (
+        <div className="fixed inset-x-4 bottom-5 z-[110] flex justify-center pointer-events-none">
+          <div role="status" className="pointer-events-auto flex items-center gap-2.5 max-w-md w-full rounded-xl bg-ink px-4 py-3 text-[13px] text-white shadow-xl">
+            {toast.tone === 'success' ? <Check className="h-4 w-4 shrink-0 text-emerald-300" strokeWidth={3} /> : <AlertCircle className="h-4 w-4 shrink-0 text-red-300" />}
+            <span className="flex-1">{toast.text}</span>
+            <button type="button" aria-label="Dismiss" onClick={() => setToast(null)} className="shrink-0 text-slate-400 hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

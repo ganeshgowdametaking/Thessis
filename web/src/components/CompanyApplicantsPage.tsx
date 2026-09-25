@@ -175,7 +175,7 @@ const CompanyApplicantsPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <LoadingSpinner text="Loading applicants..." />
+        <LoadingSpinner size="small" text="Loading applicants..." />
       ) : filteredApplicants.length === 0 ? (
         <div className="text-center py-12">
           <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />

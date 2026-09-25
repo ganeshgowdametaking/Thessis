@@ -217,7 +217,7 @@ const DataRequestForm: React.FC<DataRequestFormProps> = () => {
                   >
                     {loading ? (
                       <>
-                        <LoadingSpinner size="small" />
+                        <LoadingSpinner inline />
                         <span>Processing...</span>
                       </>
                     ) : (

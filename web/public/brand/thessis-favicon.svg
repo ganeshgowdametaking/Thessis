@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 266">
+  <style>
+    path { fill: #3E4BFC; }
+    @media (prefers-color-scheme: dark) {
+      path { fill: #4F5DFF; }
+    }
+  </style>
+  <path d="M60 0H107V58C107 104 59 142 0 142V60C0 27 27 0 60 0Z"/>
+  <path d="M108 85H152C184 85 210 111 210 143V266H167C134 266 108 240 108 208Z"/>
+</svg>

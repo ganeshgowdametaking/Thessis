@@ -7,10 +7,7 @@ import { useMediaQuery } from 'react-responsive';
 import LoadingSpinner from './components/LoadingSpinner';
 import GDPRBanner from './components/GDPRBanner';
 import Hero from './components/Hero';
-import ReferralStats from './components/ReferralStats';
-import ReferralCards from './components/ReferralCards';
-import Services from './components/Services';
-import About from './components/About';
+import { HomeHowItWorks, HomeFeatures, HomeWhyThessis, HomeFinalCta } from './components/HomeSections';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiePolicy from './components/CookiePolicy';
 import TermsOfService from './components/TermsOfService';
@@ -79,13 +76,15 @@ function ApplicationsPageWrapper() {
         );
 
         const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as Awaited<typeof queryPromise>;
+        // Supabase returns a cancelled request as `{ error }` instead of throwing.
+        if (controller.signal.aborted) return;
 
         if (error) throw error;
         if (data && isMounted) {
           setReferralTitle((data as any).title);
         }
       } catch (error: any) {
-        if (error.name === 'AbortError') return;
+        if (controller.signal.aborted || error?.name === 'AbortError') return;
         console.error('Error fetching job title:', error);
       }
     };
@@ -231,6 +230,7 @@ function DataRequestFormWrapper() {
 function HomePageWrapper({ onJoinNow }: { onJoinNow?: () => void }) {
   const [searchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const isResetFlow = searchParams.get('reset') === 'true' || location.hash.includes('type=recovery');
 
   if (isResetFlow) {
@@ -239,86 +239,11 @@ function HomePageWrapper({ onJoinNow }: { onJoinNow?: () => void }) {
 
   return (
     <>
-      <div className="relative overflow-hidden bg-parchment -mt-20 pt-20">
-        {/* Decorative background: grid + glow, spanning the hero section AND the
-            spacer below it so the effect doesn't cut off partway down. Pulled up
-            by -mt-20/pt-20 (net-zero shift for Hero itself) so the background box
-            extends behind the 80px sticky header too — Header has z-50 so it still
-            renders on top regardless of this wrapper's DOM order. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-[1]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.38) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.38) 2px, transparent 2px)',
-            backgroundSize: '68px 68px',
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-24 -right-16 z-0 h-[433px] w-[433px] rounded-full bg-gold/70 blur-2xl sm:h-[541px] sm:w-[541px] lg:-top-32 lg:-right-24 lg:h-[649px] lg:w-[649px]"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-24 -left-16 z-0 h-[433px] w-[433px] rounded-full bg-gold/70 blur-2xl sm:h-[541px] sm:w-[541px] lg:-bottom-32 lg:-left-24 lg:h-[649px] lg:w-[649px]"
-        />
-        {/* Clear zone: fades the grid/glow out behind the headline. Positioned by a
-            fixed pixel offset from the top (not a % of this container's height),
-            since the spacer below is viewport-height-dependent and would otherwise
-            shift the text's relative position unpredictably. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-[5] [--clear-y:108px] sm:[--clear-y:100px] lg:[--clear-y:116px]"
-          style={{
-            background:
-              'radial-gradient(ellipse clamp(320px,90vw,900px) clamp(150px,30vw,170px) at 50% var(--clear-y), #F8F9FC 0%, #F8F9FC 75%, rgba(248,249,252,0) 100%)',
-          }}
-        />
-        <Hero onJoinNow={onJoinNow} />
-        <div
-          aria-hidden="true"
-          className="min-h-[calc(100dvh-242px)] sm:min-h-[calc(100dvh-264px)] lg:min-h-[calc(100dvh-320px)]"
-        />
-        <ReferralCards />
-      </div>
-      <ReferralStats />
-      <div className="relative overflow-hidden bg-parchment">
-        {/* Same decorative background as above, resumed on the other side of the
-            dark stats band. Two separate wrapper instances, not one continuous
-            element spanning the dark section — visually reads as the same
-            background continuing, without needing to punch a hole through
-            ReferralStats' own dark section to do it. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-[1]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.38) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.38) 2px, transparent 2px)',
-            backgroundSize: '68px 68px',
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-24 -right-16 z-0 h-[433px] w-[433px] rounded-full bg-gold/70 blur-2xl sm:h-[541px] sm:w-[541px] lg:-top-32 lg:-right-24 lg:h-[649px] lg:w-[649px]"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-24 -left-16 z-0 h-[433px] w-[433px] rounded-full bg-gold/70 blur-2xl sm:h-[541px] sm:w-[541px] lg:-bottom-32 lg:-left-24 lg:h-[649px] lg:w-[649px]"
-        />
-        {/* Clear zone behind the "Better Referrals" heading, same fixed-offset
-            approach as Hero's — values are placeholders until measured against
-            the real rendered position. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-[5] [--clear-y:138px] md:[--clear-y:142px]"
-          style={{
-            background:
-              'radial-gradient(ellipse clamp(320px,90vw,900px) clamp(120px,20vw,160px) at 50% var(--clear-y), #F8F9FC 0%, #F8F9FC 75%, rgba(248,249,252,0) 100%)',
-          }}
-        />
-        <Services />
-      </div>
-      <About />
+      <Hero onJoinNow={onJoinNow} />
+      <HomeHowItWorks onJoinNow={onJoinNow} />
+      <HomeFeatures />
+      <HomeWhyThessis />
+      <HomeFinalCta onJoinNow={onJoinNow} onSignIn={() => navigate('/login')} />
     </>
   );
 }

@@ -190,7 +190,7 @@ const PostsModal: React.FC<PostsModalProps> = ({ isOpen, onClose, onViewProfile 
         {/* Posts List - Scrollable */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <LoadingSpinner text="Loading posts..." />
+            <LoadingSpinner size="small" text="Loading posts..." />
           ) : posts.length > 0 ? (
             <div className="space-y-6 p-6">
               {posts.map((post) => (

@@ -186,7 +186,7 @@ const ContactForm: React.FC = () => {
                 className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
                 {loading ? (
-                  <LoadingSpinner size="small" />
+                  <LoadingSpinner inline />
                 ) : (
                   <>
                     <Send className="h-5 w-5" />

@@ -146,7 +146,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
       {/* Left: auth section */}
       <div className="relative w-full lg:w-1/2 flex items-center justify-center px-6 py-16 sm:py-20 bg-parchment">
         <Link to="/" className="absolute top-6 left-6 sm:top-8 sm:left-8">
-          <img src="/logo2.png?v=2" alt="Thessis Logo" className="h-8 w-8 object-contain" />
+          <img src="/brand/thessis-logo-primary.svg" alt="Thessis" className="h-7 w-auto" />
         </Link>
 
         <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-sm p-8 md:p-10">
@@ -296,12 +296,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
 
       {/* Right: brand panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-ink flex-col justify-between p-16 text-white">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="font-display font-extrabold text-sm">T</span>
-          </div>
-          <span className="font-display font-extrabold text-lg">Thessis</span>
-        </div>
+        <img src="/brand/thessis-logo-white.svg" alt="Thessis" className="h-8 w-auto self-start" />
 
         <div className="flex flex-col gap-5 max-w-md">
           <span className="text-[13px] font-bold uppercase tracking-wider text-indigo-200">

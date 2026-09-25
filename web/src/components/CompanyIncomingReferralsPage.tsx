@@ -137,7 +137,7 @@ const CompanyIncomingReferralsPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <LoadingSpinner text="Loading referrals..." />
+        <LoadingSpinner size="small" text="Loading referrals..." />
       ) : filteredReferrals.length === 0 ? (
         <div className="text-center py-12">
           <img
