@@ -53,15 +53,15 @@ export const hireVerificationService = {
 
                 // Fetch Application -> Job
                 const { data: appData } = await supabase
-                    .from('applications')
-                    .select('job_id, job:jobs(title, company)')
+                    .from((isApplicant ? 'applicant_applications' : 'applications') as any)
+                    .select(isApplicant ? 'job_id, job' : 'job_id, job:jobs(title, company)')
                     .eq('id', v.application_id)
                     .single();
 
                 // Fetch Other Party Name
                 const otherId = isApplicant ? v.referrer_id : v.applicant_id;
                 const { data: profileData } = await supabase
-                    .from('profiles')
+                    .from('public_profiles' as any)
                     .select('full_name')
                     .eq('id', otherId)
                     .single();

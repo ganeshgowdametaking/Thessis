@@ -188,6 +188,10 @@ const CreateReferralPage: React.FC = () => {
       }
     }
     if (!user?.id) return;
+    if (!(profile as any)?.work_email_verified) {
+      alert('Verify your work email in your profile before publishing a referral.');
+      return;
+    }
 
     setLoading(true);
     setSubmitMessage(null);

@@ -9,6 +9,15 @@ from urllib.parse import quote, unquote, urlsplit
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+MAX_RESUME_BYTES = 5 * 1024 * 1024
+
+
+def _validate_resume_bytes(data: bytes) -> bytes:
+    if len(data) > MAX_RESUME_BYTES:
+        raise ResumeUnavailableError("Resume exceeds the 5 MB limit.")
+    if not data.startswith(b"%PDF-"):
+        raise ResumeUnavailableError("Please replace this resume with a PDF file.")
+    return data
 
 
 def _require_configured():
@@ -144,7 +153,10 @@ def download_resume(resume_url: str, expected_owner_id: str) -> bytes:
     permission has been checked by get_application_for_ranking()."""
     if resume_url.startswith("data:application/pdf;base64,"):
         try:
-            return base64.b64decode(resume_url.split(",", 1)[1], validate=True)
+            encoded = resume_url.split(",", 1)[1]
+            if len(encoded) > (MAX_RESUME_BYTES + 2) // 3 * 4:
+                raise ResumeUnavailableError("Resume exceeds the 5 MB limit.")
+            return _validate_resume_bytes(base64.b64decode(encoded, validate=True))
         except binascii.Error as exc:
             raise ResumeUnavailableError("Resume data is invalid.") from exc
 
@@ -156,7 +168,9 @@ def download_resume(resume_url: str, expected_owner_id: str) -> bytes:
     req = urllib.request.Request(url, headers=_auth_headers(), method="GET")
     try:
         with urllib.request.build_opener(_NoRedirect()).open(req, timeout=30) as res:
-            return res.read()
+            return _validate_resume_bytes(res.read(MAX_RESUME_BYTES + 1))
+    except ResumeUnavailableError:
+        raise
     except urllib.error.HTTPError as exc:
         raise ResumeUnavailableError(
             "Resume file could not be found — it may have been deleted or moved.",

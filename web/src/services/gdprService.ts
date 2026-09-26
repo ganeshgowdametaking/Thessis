@@ -138,15 +138,13 @@ export const gdprService = {
     }
   },
   
-  requestDataAction: async (actionType: 'access' | 'delete' | 'correct', userData: any): Promise<boolean> => {
-    try {
-      console.log(`GDPR ${actionType} request:`, userData);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return true;
-    } catch (error) {
-      console.error(`Error requesting data ${actionType}:`, error);
-      return false;
-    }
+  requestDataAction: async (actionType: 'access' | 'delete' | 'correct', userData: { details: string }): Promise<string> => {
+    const { data, error } = await supabase.rpc('submit_data_request' as any, {
+      p_type: actionType, p_details: userData.details.trim(),
+    } as any);
+    if (error) throw new Error(error.message);
+    if (typeof data !== 'string') throw new Error('Your request was not saved. Please try again.');
+    return data;
   }
 };
 

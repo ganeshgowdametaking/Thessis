@@ -9,17 +9,23 @@ except Exception:
 
 
 def extract_clean_text_from_bytes(pdf_bytes: bytes) -> str:
-    """Extracts and cleans text from an in-memory PDF (no disk I/O —
-    the service is stateless, so resumes are scored straight from the bytes
-    downloaded from Supabase Storage rather than written to a local file)."""
+    """Extracts and cleans text from an in-memory PDF — resumes are scored
+    straight from the bytes downloaded from Supabase Storage, no disk I/O
+    (this runs as a stateless serverless function)."""
     if fitz is None:
         raise RuntimeError("PyMuPDF (fitz) is not installed")
+    if len(pdf_bytes) > 5 * 1024 * 1024 or not pdf_bytes.startswith(b"%PDF-"):
+        return ""
 
     try:
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        raw_text = ""
-        for page in doc:
-            raw_text += page.get_text("text")
+        with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+            if doc.is_encrypted or doc.page_count > 30:
+                return ""
+            raw_text = ""
+            for page in doc:
+                raw_text += page.get_text("text")
+                if len(raw_text) > 200_000:
+                    return ""
 
         clean_text = re.sub(r"\s+", " ", raw_text).strip()
         return clean_text

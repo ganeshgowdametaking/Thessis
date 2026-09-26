@@ -208,57 +208,19 @@ export default function ApplicationsPage({
       if (!silent) setLoading(true);
       setError(null);
 
-      const timeoutMs = 60000;
-      const queryPromise = (supabase
-        .from('applications') as any)
-        .select(`
-          id,
-          applicant_id,
-          job_id,
-          status,
-          applied_at,
-          updated_at,
-          cover_letter,
-          resume_url,
-          rating,
-          shortlisted,
-          notes,
-          assigned_referrer_id,
-          assignment_expires_at,
-          ai_score,
-          ai_semantic_score,
-          ai_skill_score,
-          ai_rationale,
-          ai_ranked_at,
-          user_profile:profiles!applications_applicant_id_fkey (
-            id,
-            full_name,
-            email,
-            avatar_url,
-            company,
-            title,
-            location
-          )
-        `)
-        .eq('job_id', referralId)
-        .order('applied_at', { ascending: false })
-        .abortSignal(fetchController.signal)
-        .range(0, 19);
-
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Applications request timed out')), timeoutMs)
-      );
-
-      const result = await Promise.race([queryPromise, timeoutPromise]) as any;
-      // A cancelled request (page left, or React's dev double-mount) comes back
-      // from Supabase as a plain `{ error }` object rather than a thrown
-      // AbortError, so check the signal itself and drop the stale result.
-      if (fetchController.signal.aborted) return;
-      const data = result?.data;
-      const error = result?.error;
-
-      if (error) {
-        throw error;
+      const data: any[] = [];
+      // Fetch every page, with stable server ordering. Search and ranking include
+      // applicants beyond the previous 20-row cutoff without changing the layout.
+      const pageSize = 200;
+      for (let offset = 0; ; offset += pageSize) {
+        const { data: page, error } = await supabase.rpc('get_job_applications' as any, {
+          p_job_id: referralId, p_offset: offset, p_limit: pageSize,
+        } as any).abortSignal(fetchController.signal);
+        if (fetchController.signal.aborted) return;
+        if (error) throw error;
+        const rows = (page || []) as any[];
+        data.push(...rows);
+        if (rows.length < pageSize) break;
       }
 
       const mappedData = (data || []).map((app: any) => ({
@@ -532,7 +494,7 @@ export default function ApplicationsPage({
           status: newStatus,
           shortlisted: newStatus === 'shortlisted' || newStatus === 'referred'
         } as any)
-        .eq('id', applicationId);
+        .eq('id', applicationId).select('id').single();
 
       const error = (response as any).error;
 
@@ -547,6 +509,7 @@ export default function ApplicationsPage({
       );
     } catch (error) {
       console.error('Error updating application status:', error);
+      alert(error instanceof Error ? error.message : 'The decision was not saved. Please try again.');
     }
   };
 
@@ -599,7 +562,7 @@ export default function ApplicationsPage({
         const { error } = await supabase
           .from('applications')
           .update({ status: 'pending', shortlisted: false })
-          .eq('id', applicationToDelete.id);
+          .eq('id', applicationToDelete.id).select('id').single();
 
         if (error) throw error;
 

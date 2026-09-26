@@ -62,7 +62,7 @@ export const searchService = {
     
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('public_profiles' as any)
         .select('company')
         .not('company', 'is', null)
         .ilike('company', `%${query}%`)

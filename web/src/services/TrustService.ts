@@ -67,8 +67,8 @@ export const trustService = {
 
             // Fetch Profile Verification Status
             const { data: profile } = await supabase
-                .from('profiles')
-                .select('work_email, work_email_verified')
+                .from('public_profiles' as any)
+                .select('work_email_verified')
                 .eq('id', referrerId)
                 .single();
 

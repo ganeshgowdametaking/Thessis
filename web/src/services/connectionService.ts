@@ -1,6 +1,5 @@
 import { supabase } from '../lib/supabase'
 import { Database } from '../lib/database.types'
-import { notificationService } from './notificationService'
 
 type Connection = Database['public']['Tables']['connections']['Row']
 
@@ -29,8 +28,8 @@ export const connectionService = {
       .from('connections')
       .select(`
         *,
-        requester:profiles!connections_requester_id_fkey(*),
-        addressee:profiles!connections_addressee_id_fkey(*)
+        requester:public_profiles!connections_requester_id_fkey(*),
+        addressee:public_profiles!connections_addressee_id_fkey(*)
       `)
       .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
       .eq('status', 'pending')
@@ -117,27 +116,7 @@ export const connectionService = {
     localStorage.setItem(cacheKey, JSON.stringify(cacheData))
     console.log('💾 Cached connection state:', cacheData)
 
-    // Notification for the addressee is bookkeeping for them, not something
-    // the requester needs to wait on — fire-and-forget so the button can
-    // update immediately instead of blocking on a profile fetch + insert.
-    (async () => {
-      try {
-        await notificationService.createNotification({
-          type: 'connection',
-          title: 'New Connection Request',
-          message: '',
-          actionable: true,
-          priority: 'high',
-          metadata: {
-            connection_id: data.id,
-            requester_id: user.id
-          }
-        }, addresseeId)
-      } catch (notificationError) {
-        console.warn('Failed to create connection notification:', notificationError)
-      }
-    })()
-
+    // The database writes the notification in the same transaction.
     return data
   },
 
@@ -166,28 +145,6 @@ export const connectionService = {
       localStorage.setItem(cacheKey, JSON.stringify(cacheData))
       console.log('💾 Updated cache after accept:', cacheData)
 
-      // Create notification for the requester
-      try {
-        const { data: accepterProfile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
-          .single()
-
-        await notificationService.createNotification({
-          type: 'connection',
-          title: 'Connection Accepted',
-          message: `${accepterProfile?.full_name || 'Someone'} accepted your connection request`,
-          actionable: false,
-          priority: 'medium',
-          metadata: {
-            connection_id: data.id,
-            accepter_id: user.id
-          }
-        }, data.requester_id === user.id ? data.addressee_id : data.requester_id)
-      } catch (notificationError) {
-        console.warn('Failed to create connection accepted notification:', notificationError)
-      }
     }
 
     return data
@@ -504,7 +461,7 @@ export const connectionService = {
     if (otherUserIds.length === 0) return [];
 
     const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
+      .from('public_profiles' as any)
       .select('id, full_name, title, company, location, avatar_url')
       .in('id', otherUserIds);
 

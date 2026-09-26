@@ -801,7 +801,7 @@ const JobsPage: React.FC = () => {
           <div className="border-[1.5px] border-dashed border-indigo-200 bg-ink-wash/60 rounded-xl p-5 hover:bg-ink-wash transition-colors text-center cursor-pointer relative">
             <input
               type="file"
-              accept=".pdf,.doc,.docx"
+              accept=".pdf,application/pdf"
               onChange={(e) => handleApplicationInputChange('resume', e.target.files?.[0] || null)}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               aria-label="Upload resume"
@@ -819,7 +819,7 @@ const JobsPage: React.FC = () => {
                     <Upload className="w-[18px] h-[18px] text-primary" />
                   </div>
                   <span className="text-sm font-bold text-ink">{isMobile ? 'Choose resume' : <>Drop your resume here, or <span className="text-primary">browse</span></>}</span>
-                  <span className="text-xs text-slate-500">PDF, DOC or DOCX · up to 5MB</span>
+                  <span className="text-xs text-slate-500">PDF · up to 5MB</span>
                 </>
               )}
             </div>

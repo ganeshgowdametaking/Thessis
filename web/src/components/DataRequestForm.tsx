@@ -14,11 +14,16 @@ const DataRequestForm: React.FC<DataRequestFormProps> = () => {
   const [details, setDetails] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [referenceId, setReferenceId] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      setError('Please sign in to submit a request for your account.');
+      return;
+    }
     if (!details.trim()) {
       setError('Please provide details for your request');
       return;
@@ -39,6 +44,7 @@ const DataRequestForm: React.FC<DataRequestFormProps> = () => {
       const result = await gdprService.requestDataAction(requestType, userData);
       
       if (result) {
+        setReferenceId(result);
         setSuccess(true);
         setDetails('');
       } else {
@@ -197,6 +203,7 @@ const DataRequestForm: React.FC<DataRequestFormProps> = () => {
                     value={details}
                     onChange={(e) => setDetails(e.target.value)}
                     required
+                    maxLength={5000}
                   />
                 </div>
 
@@ -239,8 +246,8 @@ const DataRequestForm: React.FC<DataRequestFormProps> = () => {
                 <Check className="text-[40px]" />
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-3">Request Submitted Successfully</h2>
-              <p className="text-slate-500 max-w-md mb-8">
-                We have received your GDPR data request. A confirmation email has been sent to your registered address with a reference ID.
+              <p className="text-slate-500 max-w-md mb-8 break-words">
+                Your request has been saved for review. Reference: {referenceId}. Keep this reference when contacting support.
               </p>
               <button 
                 onClick={() => {

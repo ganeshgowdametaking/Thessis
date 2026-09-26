@@ -283,9 +283,8 @@ const NotificationsPage: React.FC = () => {
     if ((notification.type === 'like' || notification.type === 'comment') && meta.post_id) return '/jobs';
     if (notification.type === 'payout') return '/settings'; // Or wherever payouts are handled
     if (notification.type === 'analytics') return '/analytics';
-    // Referral notifications store the referrer as referrer_id.
-    const referrerId = meta.referrer_id || meta.referrerId;
-    if (notification.type === 'referral' && referrerId) return `/messages?userId=${referrerId}`;
+    // Resolve the employee from the accepted application when the user clicks.
+    if (notification.type === 'referral' && (meta.applicationId || meta.application_id)) return '/messages';
     return null;
   };
 
@@ -302,8 +301,19 @@ const NotificationsPage: React.FC = () => {
     }
   };
 
-  const handleNotificationClick = (notification: NotificationItem) => {
-    const destination = getDestination(notification);
+  const handleNotificationClick = async (notification: NotificationItem) => {
+    let destination = getDestination(notification);
+    if (notification.type === 'referral' && destination) {
+      try {
+        const id = notification.metadata?.applicationId || notification.metadata?.application_id;
+        if (!id) throw new Error('This referral is unavailable.');
+        const employeeId = await notificationService.getReferredEmployee(id);
+        destination = `/messages?userId=${employeeId}`;
+      } catch (error) {
+        setToast({ tone: 'error', text: error instanceof Error ? error.message : 'This referral is unavailable.' });
+        return;
+      }
+    }
     if (destination) {
       navigate(destination);
     }

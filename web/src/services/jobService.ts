@@ -1,6 +1,5 @@
 import { supabase } from '../lib/supabase';
 import { Database } from '../lib/database.types';
-import { notificationService } from './notificationService';
 
 type Job = Database['public']['Tables']['jobs']['Row'];
 type JobInsert = Database['public']['Tables']['jobs']['Insert'];
@@ -42,14 +41,14 @@ export const jobService = {
         const currentUserId = user?.id;
 
         let query = supabase
-          .from('jobs')
-          .select('*, created_by_profile:profiles!jobs_created_by_fkey(response_metric, work_email_verified, work_email, avatar_url, account_type)')
+          .from('referral_listings' as any)
+          .select('*')
           .eq('status', 'active' as any)
           .order('created_at', { ascending: false });
 
         // Exclude jobs created by the current user
         if (currentUserId) {
-          query = query.neq('created_by', currentUserId);
+          query = query.eq('is_owner', false);
         }
 
         // FIX: Only apply filters if they have a non-empty value
@@ -94,17 +93,9 @@ export const jobService = {
     throw new Error('Failed to fetch jobs after all retries');
   },
 
-  // Get job by ID
+  // The listing projection never includes an employee identifier or contact email.
   getJob: async (id: string) => {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select(`
-        *,
-        created_by_profile:profiles!jobs_created_by_fkey(id, full_name, role, work_email_verified, avatar_url, account_type, title, company, location, response_metric)
-      `)
-      .eq('id', id as any)
-      .single();
-
+    const { data, error } = await supabase.from('referral_listings' as any).select('*').eq('id', id).single();
     if (error) throw error;
     return data;
   },
@@ -181,52 +172,6 @@ export const jobService = {
       }
 
       console.log('✅ Job created successfully:', data);
-
-      try {
-        const connections = await supabase
-          .from('connections')
-          .select(`
-            *,
-            requester:profiles!connections_requester_id_fkey(*),
-            addressee:profiles!connections_addressee_id_fkey(*)
-          `)
-          .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
-          .eq('status', 'accepted' as any);
-
-        if (connections.data && connections.data.length > 0) {
-          const { data: referrerProfile } = await supabase
-            .from('profiles')
-            .select('full_name, company')
-            .eq('id', user.id as any)
-            .single();
-
-          for (const connection of (connections.data as any[])) {
-            const recipientId = connection.requester_id === user.id
-              ? connection.addressee_id
-              : connection.requester_id;
-
-            try {
-              await notificationService.createNotification({
-                type: 'referral',
-                title: 'New Job Referral Opportunity',
-                message: `${(referrerProfile as any)?.full_name || 'Someone'} referred you for ${(data as any).title} at ${(data as any).company}. This could be a great opportunity for you!`,
-                actionable: true,
-                priority: 'high',
-                metadata: {
-                  job_id: (data as any).id,
-                  referrer_id: user.id,
-                  company: (data as any).company,
-                  title: (data as any).title
-                }
-              }, recipientId);
-            } catch (notificationError) {
-              console.warn(`Failed to create referral notification for user ${recipientId}:`, notificationError);
-            }
-          }
-        }
-      } catch (notificationError) {
-        console.warn('Failed to create referral notifications (non-critical):', notificationError);
-      }
 
       return data;
     } catch (error: any) {
@@ -310,19 +255,15 @@ export const jobService = {
   // Keep the private Storage object path in the application. Authorized
   // viewers receive a short-lived signed URL when they open the resume.
   uploadResume: async (file: File, userId: string): Promise<string> => {
-    const extension = file.name.match(/\.(pdf|doc|docx)$/i)?.[1]?.toLowerCase();
-    if (!extension) {
-      throw new Error('Please upload a PDF or Word document.');
+    if (!/\.pdf$/i.test(file.name) || file.size > 5 * 1024 * 1024 || file.size === 0) {
+      throw new Error('Please upload a PDF resume up to 5 MB.');
     }
-    const contentTypes: Record<string, string> = {
-      pdf: 'application/pdf',
-      doc: 'application/msword',
-      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    };
-    const path = `${userId}/${crypto.randomUUID()}.${extension}`;
+    const signature = new TextDecoder().decode(await file.slice(0, 5).arrayBuffer());
+    if (signature !== '%PDF-') throw new Error('This file is not a valid PDF.');
+    const path = `${userId}/${crypto.randomUUID()}.pdf`;
     const { error: uploadError } = await supabase.storage
       .from('resumes')
-      .upload(path, file, { upsert: false, contentType: contentTypes[extension] });
+      .upload(path, file, { upsert: false, contentType: 'application/pdf' });
 
     if (uploadError) {
       throw new Error(`Failed to upload resume: ${uploadError.message}`);
@@ -331,339 +272,27 @@ export const jobService = {
     return path;
   },
 
-  // Create application
-  createApplication: async (application: {
-    job_id: string;
-    applicant_id: string;
-    cover_letter?: string | null;
-    resume: string;
-  }) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('You must be logged in to apply.');
-      }
-
-      // Validate required fields
-      if (!application.job_id || !application.resume) {
-        throw new Error('Job ID and resume are required.');
-      }
-
-      console.log('🔍 DEBUG: Application data received:', application);
-      console.log('🔍 DEBUG: User ID from auth:', user.id);
-      console.log('🔍 DEBUG: Applicant ID from application:', application.applicant_id);
-
-      const resumeUrl = application.resume;
-
-      const applicationData = {
-        job_id: application.job_id,
-        applicant_id: user.id, // Use user.id directly instead of application.applicant_id
-        resume_url: resumeUrl,
-        status: 'submitted'
-      };
-
-      console.log('🔍 DEBUG: Final application data to insert:', applicationData);
-
-      // Try to insert with the correct field name
-      let { data, error } = await supabase
-        .from('applications')
-        .insert(applicationData as any)
-        .select('id, job_id')
-        .single();
-
-      // If that fails, try with user_id instead of applicant_id
-      if (error && error.message?.includes('user_id')) {
-        console.log('Retrying with user_id field...');
-        const applicationDataWithUserId = {
-          job_id: application.job_id,
-          user_id: user.id, // Use user.id directly
-          resume_url: resumeUrl,
-          status: 'submitted'
-        };
-
-        console.log('🔍 DEBUG: Retry with user_id data:', applicationDataWithUserId);
-
-        const result = await supabase
-          .from('applications')
-          .insert(applicationDataWithUserId as any)
-          .select('job_id')
-          .single();
-
-        data = result.data;
-        error = result.error;
-      }
-
-      // If that fails, try with profile_id
-      if (error && error.message?.includes('profile_id')) {
-        console.log('Retrying with profile_id field...');
-        const applicationDataWithProfileId = {
-          job_id: application.job_id,
-          profile_id: user.id, // Use user.id as profile_id
-          resume_url: resumeUrl,
-          status: 'submitted'
-        };
-
-        console.log('🔍 DEBUG: Retry with profile_id data:', applicationDataWithProfileId);
-
-        const result = await supabase
-          .from('applications')
-          .insert(applicationDataWithProfileId as any)
-          .select('job_id')
-          .single();
-
-        data = result.data;
-        error = result.error;
-      }
-
-      // If that fails, try with user_profile_id
-      if (error && error.message?.includes('user_profile_id')) {
-        console.log('Retrying with user_profile_id field...');
-        const applicationDataWithUserProfileId = {
-          job_id: application.job_id,
-          user_profile_id: user.id, // Use user.id as user_profile_id
-          resume_url: resumeUrl,
-          status: 'submitted'
-        };
-
-        console.log('🔍 DEBUG: Retry with user_profile_id data:', applicationDataWithUserProfileId);
-
-        const result = await supabase
-          .from('applications')
-          .insert(applicationDataWithUserProfileId as any)
-          .select('job_id')
-          .single();
-
-        data = result.data;
-        error = result.error;
-      }
-
-      if (error) {
-        console.error('Error creating application:', error);
-        if (error.code === '23505') {
-          throw new Error('You have already applied to this job.');
-        }
-        throw new Error(`Failed to submit application: ${error.message}`);
-      }
-
-      console.log('Application created:', data);
-
-      // Notification + milestone email are bookkeeping for the referrer, not
-      // something the applicant needs to wait on — fire-and-forget instead of
-      // awaiting, since this chain (2 lookups + a notification insert + a full
-      // edge function invocation with its own DB queries and a live ZeptoMail
-      // call) was adding several seconds to every submit before the UI could
-      // show success.
-      (async () => {
-        try {
-          const { data: jobData } = await supabase
-            .from('jobs')
-            .select('title, company, created_by')
-            .eq('id', application.job_id)
-            .single();
-
-          if (jobData && (jobData as any).created_by) {
-            const { data: applicantProfile } = await (supabase
-              .from('profiles') as any)
-              .select('full_name')
-              .eq('id', user.id)
-              .single();
-
-            await notificationService.createNotification({
-              type: 'job_application',
-              title: 'New Job Application',
-              message: `${(applicantProfile as any)?.full_name || 'Someone'} has applied for your referral for ${(jobData as any).title} at ${(jobData as any).company}.`,
-              actionable: true,
-              priority: 'high',
-              metadata: {
-                job_id: application.job_id,
-                applicant_id: user.id,
-                company: (jobData as any).company,
-                title: (jobData as any).title
-              }
-            }, (jobData as any).created_by);
-          }
-        } catch (notifErr) {
-          console.warn('Failed to send application notification:', notifErr);
-        }
-
-        try {
-          const { error: milestoneEmailError } = await supabase.functions.invoke(
-            'send-referral-application-milestone',
-            { body: { jobId: application.job_id } }
-          );
-
-          if (milestoneEmailError) {
-            console.warn('Failed to trigger referral milestone email:', milestoneEmailError);
-          }
-        } catch (milestoneInvokeError) {
-          console.warn('Failed to invoke referral milestone email function:', milestoneInvokeError);
-        }
-
-        // Route this application to a referrer (waterfall assignment) — not
-        // something the applicant needs to wait on either.
-        if ((data as any)?.id) {
-          const { error: routeError } = await supabase.rpc('route_new_application' as any, {
-            p_application_id: (data as any).id,
-          } as any);
-          if (routeError) {
-            console.warn('Failed to route application to a referrer:', routeError);
-          }
-        }
-      })();
-
-      return (data as any)?.job_id;
-    } catch (error: any) {
-      console.error('Error in createApplication:', error);
-      throw error;
+  // The database derives identity/state, validates the resume and assigns the referrer atomically.
+  createApplication: async (application: { job_id: string; applicant_id: string; cover_letter?: string | null; resume: string; email?: string }) => {
+    const { data, error } = await supabase.rpc('submit_application' as any, {
+      p_job_id: application.job_id, p_resume_path: application.resume,
+    } as any);
+    if (error) {
+      if (error.code === '23505') throw new Error('You have already applied to this job.');
+      throw new Error(error.message);
     }
+    if (!data) throw new Error('The application was not saved. Please try again.');
+    // Milestone mail selects its own authorized recipient on the server.
+    void supabase.functions.invoke('send-referral-application-milestone', {
+      body: { jobId: application.job_id },
+    }).catch(() => undefined);
+    return application.job_id;
   },
 
-  // Get user's applications
   getUserApplications: async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('Not authenticated');
-      }
-
-      // Try with applicant_id first
-      let { data, error } = await supabase
-        .from('applications')
-        .select('job_id')
-        .eq('applicant_id', user.id as any)
-        .eq('status', 'submitted'); // Only fetch submitted applications
-
-      // If that fails, try with user_id
-      if (error && error.message?.includes('user_id')) {
-        console.log('Retrying getUserApplications with user_id field...');
-        const result = await supabase
-          .from('applications')
-          .select('job_id')
-          .eq('user_id', user.id as any)
-          .eq('status', 'submitted');
-
-        data = result.data;
-        error = result.error;
-      }
-
-      if (error) {
-        console.error('Error fetching user applications:', error);
-        throw error;
-      }
-
-      console.log('Fetched user applications:', data);
-      return (data as any[])?.map((app: any) => app.job_id) || [];
-    } catch (error: any) {
-      console.error('Error in getUserApplications:', error);
-      throw new Error('Failed to load your applications.');
-    }
-  },
-
-
-
-  // TEMPORARY DEBUG FUNCTION - Remove after debugging
-  debugGetAllJobs: async () => {
-    console.log('🔍 DEBUG: Fetching ALL jobs without any filters...');
-
-    try {
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('❌ DEBUG: Error fetching all jobs:', error);
-        throw error;
-      }
-
-      console.log('✅ DEBUG: All jobs in database:', data);
-      console.log('✅ DEBUG: Total jobs found:', data?.length || 0);
-
-      if (data && data.length > 0) {
-        data.forEach((job: any, index: number) => {
-          console.log(`✅ DEBUG: Job ${index + 1}:`, {
-            id: job.id,
-            title: job.title,
-            status: job.status,
-            created_by: job.created_by,
-            created_at: job.created_at
-          });
-        });
-      }
-
-      // TEST: Try filtering by status 'active' specifically
-      console.log('🔍 DEBUG: Testing status filter for "active"...');
-      const { data: activeJobs, error: activeError } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('status', 'active');
-
-      if (activeError) {
-        console.error('❌ DEBUG: Error filtering by status "active":', activeError);
-      } else {
-        console.log('✅ DEBUG: Jobs with status "active":', activeJobs);
-        console.log('✅ DEBUG: Number of active jobs found:', activeJobs?.length || 0);
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('❌ DEBUG: Error in debugGetAllJobs:', error);
-      throw error;
-    }
-  },
-
-  // DEBUG: Check applications table schema
-  debugCheckApplicationsTable: async () => {
-    console.log('🔍 DEBUG: Checking applications table schema...');
-
-    try {
-      // First, let's try to see if we can access the table at all
-      console.log('🔍 DEBUG: Attempting to access applications table...');
-
-      // Try a simple select to see if the table exists
-      const { data, error } = await supabase
-        .from('applications')
-        .select('count')
-        .limit(1);
-
-      if (error) {
-        console.error('❌ DEBUG: Error accessing applications table:', error);
-        console.log('❌ DEBUG: This suggests the table might not exist or have different permissions');
-
-        // Try to get more specific error information
-        if (error.message) {
-          console.log('❌ DEBUG: Error message:', error.message);
-        }
-        if (error.details) {
-          console.log('❌ DEBUG: Error details:', error.details);
-        }
-        if (error.hint) {
-          console.log('❌ DEBUG: Error hint:', error.hint);
-        }
-
-        // Try to check if the table exists by trying to select from it with different approaches
-        console.log('🔍 DEBUG: Trying alternative approaches...');
-
-        // Try without any select
-        const { error: error2 } = await supabase
-          .from('applications')
-          .select('*');
-
-        if (error2) {
-          console.log('❌ DEBUG: Even basic select fails:', error2);
-        }
-
-        return null;
-      }
-
-      console.log('✅ DEBUG: Applications table exists and is accessible');
-      console.log('✅ DEBUG: Sample data structure:', data);
-
-      return data;
-    } catch (error) {
-      console.error('❌ DEBUG: Error in debugCheckApplicationsTable:', error);
-      return null;
-    }
+    const { data, error } = await supabase.from('applicant_applications' as any).select('job_id');
+    if (error) throw error;
+    return (data || []).map((app: any) => app.job_id);
   },
 
   // Fetch this user's first-viewed timestamp for each of the given jobs

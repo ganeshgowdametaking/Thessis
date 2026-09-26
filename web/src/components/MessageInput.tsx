@@ -87,10 +87,15 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Validation: Image or PDF
-            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+            const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
             if (!validTypes.includes(file.type)) {
-                alert('Please select an image or a PDF file.');
+                alert('Please select a JPG, PNG, WebP or PDF file.');
+                e.target.value = '';
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Attachments must be 5 MB or smaller.');
+                e.target.value = '';
                 return;
             }
 
@@ -171,7 +176,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onTyp
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
-                accept="image/*,application/pdf"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
                 onChange={handleFileSelect}
             />
 

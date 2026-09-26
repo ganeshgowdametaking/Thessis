@@ -1,10 +1,12 @@
 import { supabase } from '../lib/supabase'
-import { Database } from '../lib/database.types'
 
-type Notification = Database['public']['Tables']['notifications']['Row']
-type NotificationInsert = Database['public']['Tables']['notifications']['Insert']
 
 export const notificationService = {
+  getReferredEmployee: async (applicationId: string): Promise<string> => {
+    const { data, error } = await supabase.rpc('get_referred_employee' as any, { p_application_id: applicationId } as any)
+    if (error || typeof data !== 'string') throw new Error('A confirmed referral is required to open this conversation.')
+    return data
+  },
   // Get user's notifications with better error handling
   getNotifications: async () => {
     try {
@@ -34,55 +36,6 @@ export const notificationService = {
     } catch (error) {
       console.error('❌ Error in getNotifications:', error)
       return []
-    }
-  },
-
-  // FIXED: Create notification using RPC function to bypass RLS
-  createNotification: async (notification: Omit<NotificationInsert, 'user_id'>, userId: string) => {
-    try {
-      console.log('🔔 Creating notification for user:', userId)
-      console.log('📝 Notification data:', notification)
-
-      // Check if a similar notification already exists to prevent duplicates
-      // This is especially important for connection requests
-      // Check if a similar notification already exists to prevent duplicates
-      // This is especially important for connection requests
-      // NOTE: This check might not work for cross-user notifications due to RLS,
-      // but we keep it for self-notifications or admin contexts.
-      // If we are sending to another user, we trust the RPC or just allow it.
-
-      // Simplified: We skip the advanced metadata check for now to avoid RLS confusion
-      // and rely on the UI/Application logic to not spam requests.
-
-
-      // Use RPC function directly to bypass RLS for system notifications
-      const { data, error } = await supabase
-        .rpc('create_notification_safely', {
-          notification_type: notification.type,
-          notification_title: notification.title,
-          notification_message: notification.message,
-          target_user_id: userId,
-          notification_actionable: notification.actionable || false,
-          notification_priority: notification.priority || 'medium',
-          notification_metadata: notification.metadata || null
-        })
-
-      if (error) {
-        console.error('❌ Error creating notification via RPC:', error)
-        console.error('❌ Error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        })
-        throw error
-      }
-
-      console.log('✅ Notification created successfully via RPC:', data)
-      return data
-    } catch (error) {
-      console.error('❌ Error in createNotification:', error)
-      throw error
     }
   },
 
@@ -133,28 +86,6 @@ export const notificationService = {
       if (error) throw error
     } catch (error) {
       console.error('Error deleting notification:', error)
-      throw error
-    }
-  },
-
-  // Test function to create a sample notification
-  createTestNotification: async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
-      const testNotification = {
-        type: 'test',
-        title: 'Test Notification',
-        message: 'This is a test notification to verify the system is working',
-        actionable: false,
-        priority: 'medium',
-        metadata: { test: true }
-      }
-
-      return await notificationService.createNotification(testNotification, user.id)
-    } catch (error) {
-      console.error('Error creating test notification:', error)
       throw error
     }
   },

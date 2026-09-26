@@ -725,7 +725,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
         let attachment = undefined;
         if (file) {
-          attachment = await messageService.uploadAttachment(file);
+          attachment = await messageService.uploadAttachment(file, conversationId);
         }
 
         const sentMessage = await messageService.sendMessage(conversationId, contentToSend, attachment);

@@ -81,3 +81,27 @@ jobs:
         run: python -m pip install --upgrade pip pip-audit
       - name: Audit resume-ranking requirements
         run: pip-audit -r web/resume-ranking/requirements.txt
+
+  permission-regression:
+    name: Authorization and resume regressions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql
+          python -m pip install -r api/requirements.txt httpx fastapi
+      - name: Test production permission upgrade with synthetic records
+        run: |
+          export PATH="$(pg_config --bindir):$PATH"
+          python scripts/test_security_database.py
+      - name: Test ranking authorization and file limits
+        run: python -m unittest discover -s api/_ranking -p 'test_*.py'
+      - name: Test backup encryption and corruption rejection
+        run: python scripts/backup.py --self-test

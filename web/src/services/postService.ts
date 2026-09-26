@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { Database } from '../lib/database.types'
-import { notificationService } from './notificationService'
+
 
 type Post = Database['public']['Tables']['posts']['Row']
 type PostInsert = Database['public']['Tables']['posts']['Insert']
@@ -16,10 +16,10 @@ export const postService = {
         .from('posts')
         .select(`
           *,
-          author:profiles!posts_author_id_fkey(*),
+          author:public_profiles!posts_author_id_fkey(*),
           comments(
             *,
-            author:profiles!comments_author_id_fkey(*)
+            author:public_profiles!comments_author_id_fkey(*)
           )
         `)
         .order('created_at', { ascending: false })
@@ -70,10 +70,10 @@ export const postService = {
         .from('posts')
         .select(`
           *,
-          author:profiles!posts_author_id_fkey(*),
+          author:public_profiles!posts_author_id_fkey(*),
           comments(
             *,
-            author:profiles!comments_author_id_fkey(*)
+            author:public_profiles!comments_author_id_fkey(*)
           )
         `)
         .eq('id', id)
@@ -110,7 +110,7 @@ export const postService = {
         .insert({ ...post, author_id: user.id })
         .select(`
           *,
-          author:profiles!posts_author_id_fkey(*)
+          author:public_profiles!posts_author_id_fkey(*)
         `)
         .single()
 
@@ -143,7 +143,7 @@ export const postService = {
         .from('posts')
         .select(`
           *,
-          author:profiles!posts_author_id_fkey(*)
+          author:public_profiles!posts_author_id_fkey(*)
         `)
         .eq('id', originalPostId)
         .single()
@@ -168,7 +168,7 @@ export const postService = {
         })
         .select(`
           *,
-          author:profiles!posts_author_id_fkey(*)
+          author:public_profiles!posts_author_id_fkey(*)
         `)
         .single()
 
@@ -381,7 +381,7 @@ export const postService = {
         })
         .select(`
           *,
-          author:profiles!comments_author_id_fkey(*)
+          author:public_profiles!comments_author_id_fkey(*)
         `)
         .single()
 
@@ -393,7 +393,7 @@ export const postService = {
       // Then increment comment count
       const { data: currentPost, error: fetchError } = await supabase
         .from('posts')
-        .select('comments_count, author_id, author:profiles!posts_author_id_fkey(*)')
+        .select('comments_count, author_id, author:public_profiles!posts_author_id_fkey(*)')
         .eq('id', postId)
         .single()
 
@@ -409,25 +409,6 @@ export const postService = {
           console.warn('⚠️ Failed to update comment count:', updateError)
         }
 
-        // Create notification for post author (if different from commenter)
-        if (currentPost.author_id && currentPost.author_id !== user.id) {
-          try {
-            await notificationService.createNotification({
-              type: 'comment',
-              title: 'New Comment',
-              message: `${comment.author?.full_name || 'Someone'} commented on your post: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
-              actionable: false,
-              priority: 'medium',
-              metadata: {
-                post_id: postId,
-                comment_id: comment.id,
-                commenter_id: user.id
-              }
-            }, currentPost.author_id)
-          } catch (notificationError) {
-            console.warn('⚠️ Failed to create comment notification:', notificationError)
-          }
-        }
       }
 
       console.log('✅ Successfully added comment to post:', postId)
@@ -547,37 +528,6 @@ export const postService = {
         // Update post likes count
         await postService.likePost(postId)
 
-        // Get post author info for notification
-        const { data: post, error: postError } = await supabase
-          .from('posts')
-          .select('author_id, author:profiles!posts_author_id_fkey(*), content')
-          .eq('id', postId)
-          .single()
-
-        if (!postError && post.author_id && post.author_id !== user.id) {
-          try {
-            // Get current user's profile for notification
-            const { data: currentUserProfile } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', user.id)
-              .single()
-
-            await notificationService.createNotification({
-              type: 'like',
-              title: 'New Like',
-              message: `${currentUserProfile?.full_name || 'Someone'} liked your post: "${post.content.substring(0, 50)}${post.content.length > 50 ? '...' : ''}"`,
-              actionable: false,
-              priority: 'low',
-              metadata: {
-                post_id: postId,
-                liker_id: user.id
-              }
-            }, post.author_id)
-          } catch (notificationError) {
-            console.warn('⚠️ Failed to create like notification:', notificationError)
-          }
-        }
       }
 
       console.log('✅ Successfully processed like for post:', postId)

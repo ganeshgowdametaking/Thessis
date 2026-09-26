@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { messageService } from '../services/messageService';
 import type { MessageGroup as MessageGroupType } from '../utils/messageGrouping';
 
 interface MessageGroupProps {
@@ -23,6 +24,64 @@ const renderContentWithEmoji = (text: string): React.ReactNode =>
       ? <span key={i} className="text-[0.85em] align-[-0.05em]">{part}</span>
       : part
   );
+
+
+const PrivateAttachment: React.FC<{ message: any; isOwn: boolean }> = ({ message, isOwn }) => {
+  const [url, setUrl] = useState('');
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => messageService.getAttachmentUrl(message.attachment_url)
+      .then(value => { if (active) { setUrl(value); setFailed(false); } })
+      .catch(() => { if (active) { setUrl(''); setFailed(true); } });
+    void refresh();
+    const timer = window.setInterval(refresh, 240_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [message.attachment_url]);
+  if (!url) return <span className="text-sm text-slate-500">{failed ? 'Attachment unavailable' : 'Loading attachment…'}</span>;
+  return (
+                  message.attachment_type?.startsWith('image/') ? (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`block w-fit max-w-full rounded-2xl overflow-hidden shadow-sm ${isOwn ? 'ml-auto' : ''}`}
+                    >
+                      <img
+                        src={url}
+                        alt={message.attachment_name || 'Attachment'}
+                        className="block max-w-full hover:opacity-90 transition-opacity cursor-pointer"
+                        style={{ maxHeight: '300px' }}
+                      />
+                    </a>
+                  ) : (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-fit max-w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl shadow-sm transition-opacity hover:opacity-90 ${isOwn
+                        ? 'bg-sage text-white ml-auto'
+                        : 'bg-stone-off text-slate-900'
+                        }`}
+                    >
+                      <div className={`p-2 rounded-lg ${isOwn ? 'bg-white/20' : 'bg-slate-100'}`}>
+                        <span className="material-symbols-outlined text-[24px]">description</span>
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className={`text-sm font-bold truncate ${isOwn ? 'text-white' : 'text-slate-900'}`}>
+                          {message.attachment_name || 'Document.pdf'}
+                        </span>
+                        <span className={`text-[10px] uppercase tracking-wider font-bold opacity-70 ${isOwn ? 'text-white' : 'text-slate-500'}`}>
+                          PDF DOCUMENT
+                        </span>
+                      </div>
+                      <span className={`material-symbols-outlined text-[20px] ml-auto ${isOwn ? 'text-white/60' : 'text-slate-400'}`}>
+                        download
+                      </span>
+                    </a>
+                  )
+  );
+};
 
 export const MessageGroup: React.FC<MessageGroupProps> = ({ group, otherParticipant }) => {
   const senderName = otherParticipant?.full_name || 'User';
@@ -57,48 +116,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({ group, otherParticip
           <div className="flex flex-col gap-1 w-full">
             {group.messages.map((message) => (
               <React.Fragment key={message.id}>
-                {message.attachment_url && (
-                  message.attachment_type?.startsWith('image/') ? (
-                    <a
-                      href={message.attachment_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`block w-fit max-w-full rounded-2xl overflow-hidden shadow-sm ${group.isOwn ? 'ml-auto' : ''}`}
-                    >
-                      <img
-                        src={message.attachment_url}
-                        alt={message.attachment_name || 'Attachment'}
-                        className="block max-w-full hover:opacity-90 transition-opacity cursor-pointer"
-                        style={{ maxHeight: '300px' }}
-                      />
-                    </a>
-                  ) : (
-                    <a
-                      href={message.attachment_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`w-fit max-w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl shadow-sm transition-opacity hover:opacity-90 ${group.isOwn
-                        ? 'bg-sage text-white ml-auto'
-                        : 'bg-stone-off text-slate-900'
-                        }`}
-                    >
-                      <div className={`p-2 rounded-lg ${group.isOwn ? 'bg-white/20' : 'bg-slate-100'}`}>
-                        <span className="material-symbols-outlined text-[24px]">description</span>
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className={`text-sm font-bold truncate ${group.isOwn ? 'text-white' : 'text-slate-900'}`}>
-                          {message.attachment_name || 'Document.pdf'}
-                        </span>
-                        <span className={`text-[10px] uppercase tracking-wider font-bold opacity-70 ${group.isOwn ? 'text-white' : 'text-slate-500'}`}>
-                          PDF DOCUMENT
-                        </span>
-                      </div>
-                      <span className={`material-symbols-outlined text-[20px] ml-auto ${group.isOwn ? 'text-white/60' : 'text-slate-400'}`}>
-                        download
-                      </span>
-                    </a>
-                  )
-                )}
+                {message.attachment_url && <PrivateAttachment message={message} isOwn={group.isOwn} />}
 
                 {message.content && (
                   <div

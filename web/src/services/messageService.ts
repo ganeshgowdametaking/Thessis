@@ -24,8 +24,8 @@ export const messageService = {
         participant_2,
         deleted_by_p1,
         deleted_by_p2,
-        participant_1_profile:profiles!conversations_participant_1_fkey(id, full_name, avatar_url, verified, title),
-        participant_2_profile:profiles!conversations_participant_2_fkey(id, full_name, avatar_url, verified, title)
+        participant_1_profile:public_profiles!conversations_participant_1_fkey(id, full_name, avatar_url, verified, title),
+        participant_2_profile:public_profiles!conversations_participant_2_fkey(id, full_name, avatar_url, verified, title)
       `)
       .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
       .order('last_message_at', { ascending: false })
@@ -147,7 +147,7 @@ export const messageService = {
       .insert(messageData as any) as any)
       .select(`
         *,
-        sender:profiles!messages_sender_id_fkey(*)
+        sender:public_profiles!messages_sender_id_fkey(*)
       `)
       .single()
 
@@ -159,30 +159,37 @@ export const messageService = {
     return data
   },
 
-  // Upload attachment to Supabase Storage
-  uploadAttachment: async (file: File) => {
+  // Object references remain private; short-lived URLs are generated when displayed.
+  uploadAttachment: async (file: File, conversationId: string) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
-
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${user.id}/${Date.now()}.${fileExt}`
-    const filePath = `${fileName}`
-
-    const { data, error } = await supabase.storage
-      .from('message-attachments')
-      .upload(filePath, file)
-
-    if (error) throw error
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('message-attachments')
-      .getPublicUrl(filePath)
-
-    return {
-      url: publicUrl,
-      type: file.type,
-      name: file.name
+    const extensions: Record<string, string> = {
+      'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
     }
+    const extension = extensions[file.type]
+    if (!extension || file.size === 0 || file.size > 5 * 1024 * 1024) {
+      throw new Error('Choose a PDF, JPG, PNG or WebP file up to 5 MB.')
+    }
+    const path = `${user.id}/${conversationId}/${crypto.randomUUID()}.${extension}`
+    const { error } = await supabase.storage.from('message-attachments').upload(path, file, { upsert: false, contentType: file.type })
+    if (error) throw error
+    return { url: path, type: file.type, name: file.name }
+  },
+
+  getAttachmentUrl: async (reference: string) => {
+    if (reference.startsWith('blob:')) return reference // local upload preview only
+    let path = reference
+    if (/^https?:/.test(reference)) {
+      const source = new URL(reference)
+      const project = new URL(import.meta.env.VITE_SUPABASE_URL)
+      const prefix = '/storage/v1/object/public/message-attachments/'
+      if (source.origin !== project.origin || !source.pathname.startsWith(prefix)) throw new Error('Attachment unavailable')
+      path = decodeURIComponent(source.pathname.slice(prefix.length))
+    }
+    if (!path || path.split('/').some(part => !part || part === '.' || part === '..')) throw new Error('Attachment unavailable')
+    const { data, error } = await supabase.storage.from('message-attachments').createSignedUrl(path, 300)
+    if (error || !data?.signedUrl) throw new Error('You cannot access this attachment')
+    return data.signedUrl
   },
 
   // Mark messages as read
@@ -199,21 +206,7 @@ export const messageService = {
 
     if (error) throw error
 
-    // 2. Reset the cached unread count for this user in the conversation 
-    // This is a safety measure to ensure the badge clears immediately even if the trigger has a tiny delay.
-    const { data: conv } = await supabase
-      .from('conversations')
-      .select('participant_1')
-      .eq('id', conversationId)
-      .single()
-
-    if (conv) {
-      const isP1 = (conv as any).participant_1 === user.id
-      await (supabase
-        .from('conversations')
-        .update(isP1 ? { unread_count_p1: 0 } : { unread_count_p2: 0 } as any) as any)
-        .eq('id', conversationId)
-    }
+    // Read counters are updated atomically by the database trigger.
   },
 
   // Soft Delete conversation

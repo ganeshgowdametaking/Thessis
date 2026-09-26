@@ -108,6 +108,15 @@ class RankingClientSecurityTests(unittest.TestCase):
         self.assertEqual(read_body, {"p_application_id": "app-1", "p_actor_id": "job-owner"})
         self.assertEqual(save_body["p_actor_id"], "job-owner")
 
+    def test_resume_format_and_size_are_enforced_before_parsing(self):
+        for client in (vercel, fastapi):
+            with self.subTest(client=client.__name__):
+                with self.assertRaises(client.ResumeUnavailableError):
+                    client._validate_resume_bytes(b"PK-word-document")
+                with self.assertRaises(client.ResumeUnavailableError):
+                    client._validate_resume_bytes(b"%PDF-" + b"x" * client.MAX_RESUME_BYTES)
+                self.assertEqual(client._validate_resume_bytes(b"%PDF-fixture"), b"%PDF-fixture")
+
     def test_private_download_uses_service_role_and_stays_in_applicant_folder(self):
         class Response:
             def __enter__(self):
@@ -116,7 +125,8 @@ class RankingClientSecurityTests(unittest.TestCase):
             def __exit__(self, *_args):
                 return False
 
-            def read(self):
+            def read(self, size=-1):
+                assert size == vercel.MAX_RESUME_BYTES + 1
                 return b"%PDF-test"
 
         class Opener:
@@ -176,6 +186,16 @@ class RankingClientSecurityTests(unittest.TestCase):
             def json(self):
                 return self.payload
 
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def iter_bytes(self, chunk_size):
+                yield self.content
+
+
         class Client:
             def __init__(self, *args, **kwargs):
                 self.kwargs = kwargs
@@ -190,7 +210,8 @@ class RankingClientSecurityTests(unittest.TestCase):
                 calls.append((url, headers, json))
                 return Response([{"application_id": "app-1"}] if url.endswith("get_application_for_ranking") else True)
 
-            def get(self, url, headers):
+            def stream(self, method, url, headers):
+                assert method == "GET"
                 calls.append((url, headers, None))
                 return Response()
 

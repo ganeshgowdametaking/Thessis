@@ -9,6 +9,17 @@ import httpx
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
+MAX_RESUME_BYTES = 5 * 1024 * 1024
+
+
+def _validate_resume_bytes(data: bytes) -> bytes:
+    if len(data) > MAX_RESUME_BYTES:
+        raise ResumeUnavailableError("Resume exceeds the 5 MB limit.")
+    if not data.startswith(b"%PDF-"):
+        raise ResumeUnavailableError("Please replace this resume with a PDF file.")
+    return data
+
+
 
 def _require_configured():
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
@@ -114,7 +125,10 @@ def download_resume(resume_url: str, expected_owner_id: str) -> bytes:
     authorization check. Historical PDF data URIs remain readable."""
     if resume_url.startswith("data:application/pdf;base64,"):
         try:
-            return base64.b64decode(resume_url.split(",", 1)[1], validate=True)
+            encoded = resume_url.split(",", 1)[1]
+            if len(encoded) > (MAX_RESUME_BYTES + 2) // 3 * 4:
+                raise ResumeUnavailableError("Resume exceeds the 5 MB limit.")
+            return _validate_resume_bytes(base64.b64decode(encoded, validate=True))
         except binascii.Error as exc:
             raise ResumeUnavailableError("Resume data is invalid.") from exc
 
@@ -124,10 +138,15 @@ def download_resume(resume_url: str, expected_owner_id: str) -> bytes:
         raise ResumeUnavailableError("Resume link does not belong to this applicant.")
     url = f"{SUPABASE_URL}/storage/v1/object/authenticated/resumes/{quote(path, safe='/')}"
     with httpx.Client(timeout=30, follow_redirects=False) as client:
-        res = client.get(url, headers=_auth_headers())
-        if res.status_code != 200:
-            raise ResumeUnavailableError(
-                "Resume file could not be found or retrieved.",
-                status_code=502 if res.status_code >= 500 else 422,
-            )
-    return res.content
+        with client.stream("GET", url, headers=_auth_headers()) as res:
+            if res.status_code != 200:
+                raise ResumeUnavailableError(
+                    "Resume file could not be found or retrieved.",
+                    status_code=502 if res.status_code >= 500 else 422,
+                )
+            content = bytearray()
+            for chunk in res.iter_bytes(chunk_size=65536):
+                content.extend(chunk)
+                if len(content) > MAX_RESUME_BYTES:
+                    raise ResumeUnavailableError("Resume exceeds the 5 MB limit.")
+            return _validate_resume_bytes(bytes(content))
