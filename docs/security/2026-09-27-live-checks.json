@@ -236,6 +236,11 @@
       "name": "Expired assignment acceptance rejected in live rollback",
       "passed": true,
       "detail": ""
+    },
+    {
+      "name": "User completed browser delete; record absent in database",
+      "passed": true,
+      "detail": "Confirmed after user-reported deletion; browser reload displayed zero applicants."
     }
   ]
 }
