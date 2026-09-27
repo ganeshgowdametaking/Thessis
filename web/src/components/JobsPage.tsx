@@ -592,6 +592,13 @@ const JobsPage: React.FC = () => {
       return 0;
     });
 
+  // Keep the detail panel in sync when search or filters remove its job.
+  useEffect(() => {
+    if (selectedJob && !filteredJobs.some(job => job.id === selectedJob.id)) {
+      setSelectedJob(isMobile ? null : filteredJobs[0] || null);
+    }
+  }, [filteredJobs, selectedJob, isMobile]);
+
   const handleCopy = () => {
     navigator.clipboard.writeText(jobUrl);
     setCopied(true);
@@ -779,7 +786,7 @@ const JobsPage: React.FC = () => {
           <input
             id="application-name"
             disabled
-            value={user?.user_metadata?.full_name || ''}
+            value={profile?.full_name || user?.user_metadata?.full_name || ''}
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-parchment-sunken text-slate-500 cursor-not-allowed"
           />
         </div>

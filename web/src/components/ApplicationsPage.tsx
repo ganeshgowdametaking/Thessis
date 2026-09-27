@@ -38,7 +38,7 @@ interface Application {
     location?: string;
     linkedin_url?: string;
     phone?: string;
-    skills?: string[];
+    skills?: Array<string | { id?: string; name: string }>;
     // Original profile fields
     company?: string;
     title?: string;
@@ -864,7 +864,7 @@ export default function ApplicationsPage({
           <h3 className="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">Skills</h3>
           <div className="flex flex-wrap gap-1.5">
             {app.user_profile.skills.map((skill, index) => (
-              <span key={index} className="rounded-full bg-parchment-sunken px-2.5 py-1 text-xs font-semibold text-slate-600">{skill}</span>
+              <span key={index} className="rounded-full bg-parchment-sunken px-2.5 py-1 text-xs font-semibold text-slate-600">{typeof skill === 'string' ? skill : skill.name}</span>
             ))}
           </div>
         </section>

@@ -707,3 +707,59 @@ $function$
 ;
 CREATE TRIGGER protect_profile_privileges BEFORE INSERT OR UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.protect_profile_privileges();
 CREATE TRIGGER on_application_status_changed_send_email AFTER UPDATE ON public.applications FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status) EXECUTE FUNCTION public.handle_application_status_email();
+
+-- Existing production trigger executes within submit_application's empty search_path.
+CREATE FUNCTION public.increment_applications_count() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN UPDATE jobs SET applications_count=applications_count+1 WHERE id=NEW.job_id; RETURN NEW; END $$;
+CREATE TRIGGER increment_applications_count AFTER INSERT ON public.applications FOR EACH ROW EXECUTE FUNCTION public.increment_applications_count();
+
+-- Production response points chain: called by accept_referral_assignment.
+CREATE TABLE public.tide_points_ledger(id uuid DEFAULT gen_random_uuid(), user_id uuid, amount integer, action_type text, entity_id uuid);
+-- Referral acceptance runs with an empty search_path. Qualify its legacy points trigger.
+CREATE OR REPLACE FUNCTION public.award_points_for_response()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+DECLARE
+  application_duration interval;
+  referrer_id uuid;
+BEGIN
+  -- Only trigger on status change from 'pending'
+  IF OLD.status = 'pending' AND NEW.status != 'pending' THEN
+
+    -- Get referrer (job creator) ID
+    SELECT created_by INTO referrer_id FROM jobs WHERE id = NEW.job_id;
+
+    -- Calculate response time
+    application_duration := now() - NEW.applied_at;
+
+    -- Fast Response (< 48h)
+    IF application_duration < interval '48 hours' THEN
+      INSERT INTO tide_points_ledger (user_id, amount, action_type, entity_id)
+      VALUES (referrer_id, 50, 'response_48h', NEW.id);
+
+    -- Standard Response (< 5 days)
+    ELSIF application_duration < interval '5 days' THEN
+      INSERT INTO tide_points_ledger (user_id, amount, action_type, entity_id)
+      VALUES (referrer_id, 10, 'response_5d', NEW.id);
+    END IF;
+
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+CREATE OR REPLACE FUNCTION public.update_tide_points_balance()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+BEGIN
+  UPDATE profiles
+  SET tide_points_balance = tide_points_balance + NEW.amount
+  WHERE id = NEW.user_id;
+  RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER check_response_time_points AFTER UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION public.award_points_for_response();
+CREATE TRIGGER update_points_balance AFTER INSERT ON public.tide_points_ledger FOR EACH ROW EXECUTE FUNCTION public.update_tide_points_balance();

@@ -30,6 +30,7 @@ with tempfile.TemporaryDirectory(prefix='thessis-security.', dir='/private/tmp' 
                 '-d', 'postgres', '-v', 'ON_ERROR_STOP=1']
         paths = [ROOT/'supabase/tests/fixtures/production_permissions.sql']
         paths += sorted((ROOT/'supabase/migrations').glob('20260926*.sql'))
+        paths += sorted((ROOT/'supabase/migrations').glob('20260927*.sql'))
         paths += [ROOT/'supabase/tests/security_regression.sql']
         for path in paths:
             result = run(base + ['-f', str(path)])
@@ -37,6 +38,10 @@ with tempfile.TemporaryDirectory(prefix='thessis-security.', dir='/private/tmp' 
             for line in result.stderr.splitlines():
                 if 'PASS:' in line:
                     print(line.split('NOTICE:')[-1].strip())
+        # Signup must ignore privilege fields supplied by untrusted clients.
+        run(base + ['-c', "ALTER TABLE auth.users ADD COLUMN raw_user_meta_data jsonb; CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();"])
+        run(base + ['-f', str(ROOT/'supabase/tests/signup_metadata_security_smoke.sql')])
+        print('PASS: signup metadata cannot assign admin or verified privileges')
         # Exercise an actual pg_dump -> encrypt -> verify -> decrypt -> pg_restore
         # round trip using the synthetic database, not just a readable archive.
         spec = importlib.util.spec_from_file_location('thessis_backup', ROOT/'scripts/backup.py')

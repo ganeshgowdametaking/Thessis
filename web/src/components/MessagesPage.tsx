@@ -891,10 +891,10 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
             <>
               {/* Chat Header */}
               <header className="h-16 md:h-20 shrink-0 border-b border-stone-border flex items-center justify-between px-4 md:px-6 bg-white z-10">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 max-md:min-w-0 max-md:flex-1 max-md:gap-3">
                   {isMobile && <button className="mobile-icon-button" onClick={() => window.history.back()} aria-label="Back to messages"><ArrowLeft size={21} /></button>}
 
-                  <div className="relative">
+                  <div className="relative max-md:shrink-0">
                     <div
                       className="cursor-pointer"
                       onClick={() => activeOtherParticipant && handleProfileClick(activeOtherParticipant.id)}
@@ -902,15 +902,16 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
                       <MessageAvatar profile={activeOtherParticipant} size="md" />
                     </div>
                   </div>
-                  <div>
+                  <div className="max-md:min-w-0">
                     <>
                       <h3
-                        className="text-lg font-bold text-slate-900 leading-tight cursor-pointer hover:text-sage transition-colors"
+                        className="max-md:truncate max-md:text-base text-lg font-bold text-slate-900 leading-tight cursor-pointer hover:text-sage transition-colors"
+                        title={activeOtherParticipant?.full_name || 'User'}
                         onClick={() => activeOtherParticipant && handleProfileClick(activeOtherParticipant.id)}
                       >
                         {activeOtherParticipant?.full_name || 'User'}
                       </h3>
-                      <p className="text-sm text-slate-500">
+                      <p className="max-md:truncate max-md:text-xs text-sm text-slate-500">
                         {activeOtherParticipant?.title || 'Professional'}
                       </p>
                     </>

@@ -1,0 +1,241 @@
+{
+  "date": "2026-09-27",
+  "scope": "Scoped synthetic live API/database checks; separate from browser observations",
+  "results": [
+    {
+      "name": "Browser application stored pending",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Referrer lookup unavailable before referral",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Listing response excludes employee identity",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Unrelated user cannot read private job row",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Applicant cannot read base application reviewer details",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Applicant projection excludes notes and employee ID",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Unrelated reviewer RPC rejected",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Crafted referred application blocked",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Forged referral notification blocked",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Direct admin promotion blocked",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Duplicate application rejected",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "outsider cannot rank another reviewer job",
+      "passed": true,
+      "detail": "404"
+    },
+    {
+      "name": "applicant cannot rank another reviewer job",
+      "passed": true,
+      "detail": "404"
+    },
+    {
+      "name": "Unrelated resume signing denied",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Own applicant resume accessible",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Reviewing employee gets authorized resume link",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Reviewer signed link downloads PDF",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Unrelated user cannot obtain reviewer resume link",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Referrer identity released after acceptance",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Exactly one authentic referral notification",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Browser chat messages persisted",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Recipient cannot edit received content",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Message unchanged after attempted tamper",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Attachment stored as private object reference",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "employee attachment authorization",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Recipient downloads private PDF attachment",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "outsider attachment authorization",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "anon attachment authorization",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Old public attachment URL denied",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Unrelated user cannot read conversation messages",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Unrelated user cannot inject chat message",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "25 test applicants persisted for pagination",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Expired attachment link rejected",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Attachment signed link can be renewed",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Live API returns applicants after first 20",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Browser recipient accepted connection",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Employee read applicant messages",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Browser referrer reply persisted",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Direct employee verification bypass blocked",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Unverified direct referral creation blocked",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Live data request persists within rolled-back transaction",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Live OTP wrong-code, valid-code and reuse checks",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Browser shortlist persisted for applicant 25",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Unrelated user cannot remove application",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Owner can reject a test application",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Rejection creates test applicant notification",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Expired assignment acceptance rejected in live rollback",
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}

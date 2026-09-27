@@ -62,7 +62,9 @@ SELECT assert_ok((SELECT status='pending' FROM applicant_applications LIMIT 1),'
 SELECT assert_ok(get_referred_employee(:'application_id') IS NULL,'employee lookup concealed before referral');
 SELECT set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false);
 SELECT assert_ok((SELECT count(*)=1 FROM get_job_applications('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')),'job owner can review');
+SELECT assert_ok((SELECT applications_count=1 FROM jobs WHERE id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),'application count trigger works inside restricted submit RPC');
 SELECT accept_referral_assignment(:'application_id');
+SELECT assert_ok((SELECT tide_points_balance=50 FROM profiles WHERE id=auth.uid()),'referral response and nested points trigger work inside restricted acceptance RPC');
 SELECT set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
 SELECT assert_ok((SELECT count(*)=1 FROM notifications WHERE metadata->>'referrerId'='22222222-2222-4222-8222-222222222222'),'one named referrer notification after acceptance');
 SELECT assert_ok(get_referred_employee(:'application_id')='22222222-2222-4222-8222-222222222222','employee lookup released to referred applicant');
