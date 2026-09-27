@@ -38,7 +38,7 @@ submission/error messages are deliberate behavior changes.
 
 ## Verification completed locally
 
-- 59 database/recovery checks with synthetic accounts and records, including
+- 60 database/recovery checks with synthetic accounts and records, including
   ordinary member, recipient, employee, administrator and anonymous cases.
 - Nine Python tests covering ranking authorization, resource access and resume
   constraints for both ranking services.
@@ -54,6 +54,10 @@ permission rules, with relevant real functions and synthetic rows. It stubs emai
 delivery and does not reproduce every Supabase extension, trigger, Auth service,
 PostgREST relationship, Storage HTTP behavior or live browser interaction.
 Therefore this is not full production end-to-end sign-off.
+
+The four migrations also passed a transaction-and-rollback dry run against the
+live Supabase schema on 27 September. This identified and corrected the legacy
+`data_requests` queue upgrade; no changes were committed by that dry run.
 
 ## Deployment sequence
 

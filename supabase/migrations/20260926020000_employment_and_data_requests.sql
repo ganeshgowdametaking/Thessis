@@ -118,6 +118,17 @@ CREATE TABLE IF NOT EXISTS public.data_requests (
  resolved_at timestamptz,
  resolution text
 );
+-- Production already has a legacy queue with completed_at and a pending
+-- default. Upgrade it in place; retain its rows and original completion field.
+ALTER TABLE public.data_requests ADD COLUMN IF NOT EXISTS resolved_at timestamptz;
+ALTER TABLE public.data_requests ADD COLUMN IF NOT EXISTS resolution text;
+ALTER TABLE public.data_requests ALTER COLUMN status SET DEFAULT 'submitted';
+ALTER TABLE public.data_requests ADD CONSTRAINT data_requests_valid_type
+ CHECK(request_type IN ('access','delete','correct')) NOT VALID;
+ALTER TABLE public.data_requests ADD CONSTRAINT data_requests_valid_details
+ CHECK(details IS NOT NULL AND length(btrim(details)) BETWEEN 1 AND 5000) NOT VALID;
+ALTER TABLE public.data_requests ADD CONSTRAINT data_requests_valid_status
+ CHECK(status IN ('pending','submitted','in_progress','completed','rejected')) NOT VALID;
 ALTER TABLE public.data_requests ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.data_requests FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.data_requests TO authenticated;

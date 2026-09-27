@@ -95,6 +95,7 @@ SELECT assert_ok((SELECT count(*)=0 FROM messages),'unrelated messages denied');
 SELECT set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
 SELECT submit_data_request('access','Synthetic export request') AS request_id \gset
 SELECT assert_ok((SELECT count(*)=1 FROM data_requests WHERE id=:'request_id'),'data request persisted with reference');
+SELECT assert_ok((SELECT status='submitted' AND resolution IS NULL AND resolved_at IS NULL FROM data_requests WHERE id=:'request_id'),'legacy request queue upgraded for submission and resolution');
 SELECT set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',false);
 SELECT assert_ok((SELECT count(*)=0 FROM data_requests),'other users cannot read data request');
 SELECT set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false);

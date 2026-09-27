@@ -201,6 +201,16 @@ CREATE TABLE public."feedback" ("id" uuid DEFAULT gen_random_uuid() NOT NULL,
 "message" text NOT NULL,
 "created_at" timestamp with time zone DEFAULT now());
 ALTER TABLE public."jobs" ADD CONSTRAINT "jobs_pkey" PRIMARY KEY (id);
+-- The live GDPR queue predates this release and uses the older schema.
+CREATE TABLE public.data_requests (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ user_id uuid NOT NULL,
+ request_type text NOT NULL,
+ status text NOT NULL DEFAULT 'pending',
+ details text,
+ created_at timestamptz DEFAULT now(),
+ completed_at timestamptz
+);
 ALTER TABLE public."email_otps" ADD CONSTRAINT "email_otps_pkey" PRIMARY KEY (id);
 ALTER TABLE public."applications" ADD CONSTRAINT "applications_job_id_applicant_id_key" UNIQUE (job_id, applicant_id);
 ALTER TABLE public."applications" ADD CONSTRAINT "applications_pkey" PRIMARY KEY (id);
