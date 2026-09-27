@@ -1,6 +1,6 @@
 {
   "date": "2026-09-27",
-  "scope": "Scoped synthetic live API/database checks; separate from browser observations",
+  "scope": "Scoped live API/database checks, including owner-authorized LinkedIn login verification; separate from browser observations",
   "results": [
     {
       "name": "Browser application stored pending",
@@ -241,6 +241,11 @@
       "name": "User completed browser delete; record absent in database",
       "passed": true,
       "detail": "Confirmed after user-reported deletion; browser reload displayed zero applicants."
+    },
+    {
+      "name": "Owner-authorized LinkedIn login confirmed by live identity and audit",
+      "passed": true,
+      "detail": "Owner account, LinkedIn identity, recent identity sign-in and recent linkedin_oidc login audit all confirmed; no personal records or credentials exported."
     }
   ]
 }
