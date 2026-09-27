@@ -2,10 +2,15 @@
 
 ## Release state
 
-The fixes are implemented and tested locally. These migrations have **not yet
-been applied to the production project**. Production deployment, a real backup,
-and the browser acceptance checks below remain pending. No paid service or
-Supabase plan upgrade is required for these changes.
+The four migrations were committed to production on 27 September 2026 after
+an encrypted production backup and isolated restore passed. The matching website
+and API release was promoted on Vercel (`dpl_D8QsPG54ttwBy2xVwUUTqMXGCrCH`).
+Twenty-two live database/API checks passed, including metadata joins, denied
+anonymous access, private buckets and rejection of an old public attachment URL.
+No paid service or Supabase plan upgrade was enabled.
+
+Full browser workflow and platform disaster-recovery sign-off remain separate:
+this release verifies the reported permission fixes and the checks listed below.
 
 ## Included changes
 
@@ -55,9 +60,8 @@ delivery and does not reproduce every Supabase extension, trigger, Auth service,
 PostgREST relationship, Storage HTTP behavior or live browser interaction.
 Therefore this is not full production end-to-end sign-off.
 
-The four migrations also passed a transaction-and-rollback dry run against the
-live Supabase schema on 27 September. This identified and corrected the legacy
-`data_requests` queue upgrade; no changes were committed by that dry run.
+The four migrations passed a transaction-and-rollback dry run before the final
+commit. This identified and corrected the legacy `data_requests` queue upgrade.
 
 ## Deployment sequence
 
@@ -122,11 +126,20 @@ verify the request, carry out the requested action, then set `status`,
 `resolved_at` and `resolution`. Administrators receive an in-app notice. The form
 does not promise an email that has not been sent.
 
-The free backup tool needs the existing database password and Storage service
-key entered locally. A recurring schedule has not been activated. A local Mac
+The free backup tool is configured privately and its first production backup
+and isolated application-data restore have passed. A local Mac
 must be awake and connected when a scheduled backup runs. Keep a second secure
 copy to survive loss of that Mac.
 
 Previously reported dependency advisories, remaining type errors and any audit
 findings outside this repair are still separate work; this release is not a claim
 that the entire site is completely secure.
+
+## Existing employee verification requires correction
+
+The live preflight found that creators marked work-verified on active listings
+used `thessis.com` addresses even for Deel, NielsenIQ, Zomato and TankTide jobs.
+Those addresses do not verify employment at the listed companies. New
+applications/verified referral decisions are now blocked until the poster
+completes verification for the actual employer. No exception was added to
+preserve the previously bypassed verification.

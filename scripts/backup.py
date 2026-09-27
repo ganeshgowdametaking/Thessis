@@ -99,14 +99,14 @@ def private_config(path):
     return cfg, keyfile
 
 
-def db_environment(url):
+def db_environment(url, root_certificate='system'):
     parsed = urlsplit(url)
     if parsed.scheme not in ('postgres','postgresql') or not parsed.hostname or not parsed.password:
         raise ValueError('A complete PostgreSQL connection URL is required')
     env = os.environ.copy()
     env.update(PGHOST=parsed.hostname, PGPORT=str(parsed.port or 5432),
                PGUSER=unquote(parsed.username or 'postgres'), PGDATABASE=parsed.path.lstrip('/') or 'postgres',
-               PGPASSWORD=unquote(parsed.password), PGSSLMODE='verify-full', PGSSLROOTCERT='system',
+               PGPASSWORD=unquote(parsed.password), PGSSLMODE='verify-full', PGSSLROOTCERT=str(root_certificate),
                PGCONNECT_TIMEOUT='20')
     return env
 
@@ -122,7 +122,7 @@ def storage_request(cfg, path, body=None, target=None):
         data = json.dumps(body).encode()
         headers['Content-Type'] = 'application/json'
     req = Request(project+'/storage/v1/'+path, data=data, headers=headers)
-    context = ssl.create_default_context()
+    context = ssl.create_default_context(cafile=cfg.get('https_ca_file'))
     with build_opener(HTTPSHandler(context=context), NoRedirect()).open(req, timeout=120) as response:
         if target is not None:
             with target.open('wb') as dest:
@@ -198,7 +198,8 @@ def backup(cfg,keyfile):
         dump = work/'database.dump'
         # ACLs/policies are retained. The restore guide covers managed Supabase
         # schemas, roles, extensions, Vault keys and external function secrets.
-        command(['pg_dump','--format=custom','--no-owner','--file',str(dump)],env=db_environment(cfg['database_url']))
+        command(['pg_dump','--format=custom','--no-owner','--file',str(dump)],
+                env=db_environment(cfg['database_url'],cfg.get('ssl_root_cert','system')))
         command(['pg_restore','--list',str(dump)])
         (work/'objects').mkdir()
         buckets = storage_request(cfg,'bucket')

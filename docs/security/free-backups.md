@@ -20,7 +20,10 @@ in chat or a GitHub issue. The database password is not reset by this tool.
 The Storage key downloads all file contents; it must remain private. Configuration
 and the generated key have mode 0600. The passphrase never appears in process
 arguments; PostgreSQL receives credentials through its child-process environment.
-TLS certificate and hostname verification remain enabled. Use the session pooler
+TLS certificate and hostname verification remain enabled. If required by the
+project, set `ssl_root_cert` in the private configuration to the CA certificate
+from Supabase Database Settings. On this Mac, `https_ca_file` points to
+`/etc/ssl/cert.pem` for the system HTTPS trust bundle. Use the session pooler
 on port 5432, not transaction pooling on 6543, for dumps.
 
 Keep a separate secure offline copy of `backup.key`. Losing it loses access to the
@@ -83,14 +86,25 @@ maintenance period for a recovery point requiring close database/file alignment.
 
 ## Current activation state
 
-The encryption round trip and corruption rejection have been tested. A synthetic
-database was also dumped, encrypted, decrypted and restored into a second isolated
-database; application/message counts, policy counts and bucket privacy matched.
-This does not test production Storage contents, Auth login or platform-managed
-extensions and secrets. **A production backup, recurring schedule and full
-restore rehearsal require the owner to complete local credential setup.** No
-paid plan has been enabled. No production backup exists merely because this file
-or script exists.
+Activated on 27 September 2026 without a paid plan upgrade. An encrypted
+production backup was created and authenticated, including the database dump
+and all 47 Storage objects. Its application/Auth/Storage/migration/webhook
+schemas were restored into a temporary local PostgreSQL instance: all 30 public
+application tables matched the source (441 rows), with 129 Auth users, 47 Storage
+records and 64 pre-upgrade public policies restored. The temporary plaintext
+restore was removed after verification.
+
+Managed platform extensions, hosted Auth login, Edge Function secrets and live
+Storage re-upload have not been rehearsed. The archive contains the Storage file
+bytes, mappings and checksums needed for that separate rehearsal. This is not a
+claim of full platform disaster-recovery sign-off.
+
+The private configuration lives outside Git at
+`~/Library/Application Support/ThessisBackups/config.json`. Encrypted archives
+are saved under `~/Thessis Backups`. The database uses the CA certificate from
+Supabase Database Settings with `verify-full`; HTTPS uses the Mac trust bundle.
+The encryption key must be kept separately and must never be committed.
 
 References: [Supabase backups](https://supabase.com/docs/guides/platform/backups),
-[backup and restore guide](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore).
+[backup and restore guide](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore),
+[verified TLS connections](https://supabase.com/docs/guides/database/connecting-to-postgres).
