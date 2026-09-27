@@ -1,0 +1,9 @@
+# Environment values belong in Vercel project settings, never source uploads.
+.env*
+**/.env*
+**/*.thessis-backup
+**/backup.key
+**/__pycache__/**
+.git/**
+node_modules/**
+**/node_modules/**
