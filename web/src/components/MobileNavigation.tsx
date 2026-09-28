@@ -13,6 +13,24 @@ const destinations = [
 export default function MobileNavigation() {
   const { pathname } = useLocation();
   const [unread, setUnread] = useState(0);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    // This component mounts only on phones. Keep navigation out of the typing area.
+    const update = () => {
+      const field = document.activeElement;
+      const editing = field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || (field instanceof HTMLElement && field.isContentEditable);
+      const viewport = window.visualViewport;
+      setKeyboardOpen(Boolean(editing && viewport && window.innerHeight - viewport.height > 150));
+    };
+    window.visualViewport?.addEventListener('resize', update);
+    document.addEventListener('focusin', update);
+    document.addEventListener('focusout', update);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', update);
+      document.removeEventListener('focusin', update);
+      document.removeEventListener('focusout', update);
+    };
+  }, []);
   useEffect(() => {
     let active = true;
     const refresh = async () => {
@@ -58,7 +76,7 @@ export default function MobileNavigation() {
         {pathname === '/profile' && <Link to="/settings" className="mobile-icon-button" aria-label="Settings"><Settings size={21} /></Link>}
       </div>
     </header>
-    <nav className="mobile-bottom-nav" aria-label="Main navigation">
+    <nav className={`mobile-bottom-nav${keyboardOpen ? ' is-keyboard-open' : ''}`} aria-label="Main navigation">
       {destinations.map(({ to, label, icon: Icon }) => (
         <NavLink key={to} to={to} className={({ isActive }) => `mobile-nav-item${isActive || (to === '/profile' && pathname === '/settings') ? ' is-active' : ''}`}>
           <span className="mobile-nav-icon"><Icon size={21} strokeWidth={1.8} />

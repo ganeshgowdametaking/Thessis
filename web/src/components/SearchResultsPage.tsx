@@ -283,7 +283,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
     const status = statusOf(person.id);
     const isBusy = busyId === person.id;
     const viewProfile = (
-      <button type="button" className={outlineClass} onClick={() => onViewProfile(person.id)}>
+      <button type="button" className={`person-profile-action ${outlineClass}`} onClick={() => onViewProfile(person.id)}>
         View profile
       </button>
     );
@@ -337,7 +337,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
   };
 
   const renderPerson = (person: SearchPerson) => (
-    <div key={person.id} className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 flex flex-col gap-3.5">
+    <div key={person.id} className="person-card bg-white border border-slate-200 rounded-2xl p-4 md:p-5 flex flex-col gap-3.5">
       <div className="flex items-start gap-3">
         {renderAvatar(person)}
         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
@@ -374,7 +374,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
         </div>
       </div>
       {person.bio && <p className="text-[12.5px] leading-relaxed text-slate-500 line-clamp-2">{person.bio}</p>}
-      <div className="flex gap-2 mt-auto">{renderActions(person)}</div>
+      <div className="person-actions flex gap-2 mt-auto">{renderActions(person)}</div>
     </div>
   );
 
@@ -433,7 +433,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
           </div>
         </form>
 
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3 md:gap-4">
+        <div className="people-results-heading flex flex-col lg:flex-row lg:items-end justify-between gap-3 md:gap-4">
           <header className="flex flex-col gap-1 min-w-0">
             <h1 className="font-display text-xl md:text-[28px] font-extrabold text-ink break-words">{searchQuery ? `Results for “${searchQuery}”` : 'Find your next connection'}</h1>
             <p className="text-[13px] md:text-sm text-slate-500">
@@ -446,7 +446,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
           </header>
 
           {!loading && people.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+            <div className="mobile-filter-tabs flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
               {filters.map((item) => {
                 const isActive = filter === item.id;
                 return (
@@ -479,11 +479,11 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
         )}
 
         {loading ? (
-          <div className="grid gap-3 md:gap-4 sm:grid-cols-2 xl:grid-cols-3" role="status" aria-label="Searching">
+          <div className="people-results grid gap-3 md:gap-4 sm:grid-cols-2 xl:grid-cols-3" role="status" aria-label="Searching">
             {[0, 1, 2].map(renderSkeleton)}
           </div>
         ) : isOffline && people.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-2xl px-6 py-12 flex flex-col items-center gap-2.5 text-center">
+          <div className="people-empty bg-white border border-slate-200 rounded-2xl px-6 py-12 flex flex-col items-center gap-2.5 text-center">
             <span className="size-14 rounded-full bg-amber-tint text-amber-ink flex items-center justify-center mb-1"><WifiOff className="h-6 w-6" /></span>
             <p className="font-display text-lg font-extrabold text-ink">{offlineCopy.title}</p>
             <p className="text-[13.5px] leading-relaxed text-slate-500 max-w-md">{offlineCopy.message}</p>
@@ -496,7 +496,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
             </button>
           </div>
         ) : people.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-2xl px-6 py-12 flex flex-col items-center gap-2.5 text-center">
+          <div className="people-empty bg-white border border-slate-200 rounded-2xl px-6 py-12 flex flex-col items-center gap-2.5 text-center">
             <span className="size-14 rounded-full bg-parchment-sunken text-slate-400 flex items-center justify-center mb-1"><Search className="h-6 w-6" /></span>
             <p className="font-display text-lg font-extrabold text-ink break-words">{searchQuery ? `No one matches “${searchQuery}”` : 'Who would you like to meet?'}</p>
             <ul className="flex flex-col gap-1 text-[13.5px] text-slate-500">
@@ -516,7 +516,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
           </div>
         ) : (
           <>
-            <div className="grid gap-3 md:gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="people-results grid gap-3 md:gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {visiblePeople.map(renderPerson)}
             </div>
           </>

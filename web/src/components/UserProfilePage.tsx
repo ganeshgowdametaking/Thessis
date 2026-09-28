@@ -364,12 +364,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   const firstName = (profile?.full_name?.trim() || profile?.username?.trim() || 'this person').split(' ')[0];
 
   const renderStateCard = (icon: React.ReactNode, tone: string, title: string, body: string, buttons: React.ReactNode) => (
-    <div className="bg-parchment min-h-screen flex flex-col">
+    <div className="mobile-page public-profile-page bg-parchment min-h-screen flex flex-col">
       <main className="flex-1 w-full max-w-[1120px] mx-auto px-4 md:px-6 py-4 md:py-8 flex flex-col gap-4">
         <button
           type="button"
           onClick={onBack}
-          className="self-start flex items-center gap-1.5 text-[13px] font-bold text-slate-600 hover:text-ink transition-colors"
+          className="mobile-duplicate-back self-start flex items-center gap-1.5 text-[13px] font-bold text-slate-600 hover:text-ink transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
@@ -566,25 +566,25 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
   };
 
   const renderCard = (title: string, body: React.ReactNode) => (
-    <section className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 flex flex-col gap-4">
+    <section className="profile-section bg-white border border-slate-200 rounded-2xl p-5 md:p-6 flex flex-col gap-4">
       <h2 className="font-display text-[17px] font-extrabold text-ink">{title}</h2>
       {body}
     </section>
   );
 
   return (
-    <div className="bg-parchment min-h-screen flex flex-col">
+    <div className="mobile-page public-profile-page bg-parchment min-h-screen flex flex-col">
       <main className="flex-1 w-full max-w-[1120px] mx-auto px-4 md:px-6 py-4 md:py-8 flex flex-col gap-4 md:gap-5">
         <button
           type="button"
           onClick={onBack}
-          className="self-start flex items-center gap-1.5 text-[13px] font-bold text-slate-600 hover:text-ink transition-colors"
+          className="mobile-duplicate-back self-start flex items-center gap-1.5 text-[13px] font-bold text-slate-600 hover:text-ink transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
         </button>
 
-        <section className="bg-white border border-slate-200 rounded-2xl md:rounded-[22px] overflow-hidden">
+        <section className="profile-summary bg-white border border-slate-200 rounded-2xl md:rounded-[22px] overflow-hidden">
           {isSelf && (
             <div className="flex items-center gap-2.5 px-4 md:px-6 py-3 bg-ink-wash text-primary-hover text-[13px] font-semibold">
               <Eye className="h-4 w-4 shrink-0" />
@@ -595,15 +595,15 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
             </div>
           )}
           <div
-            className="h-28 md:h-44 bg-center bg-cover bg-no-repeat"
+            className="mobile-profile-cover h-28 md:h-44 bg-center bg-cover bg-no-repeat"
             style={{
               backgroundImage: profile.cover_image_url
                 ? `url("${profile.cover_image_url}")`
                 : 'linear-gradient(135deg, #4353FF 0%, #7C86FF 55%, #C7CCFF 100%)',
             }}
           />
-          <div className="px-4 pb-5 md:px-8 md:pb-7 flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 -mt-11 md:-mt-14">
+          <div className="profile-summary-content px-4 pb-5 md:px-8 md:pb-7 flex flex-col gap-3">
+            <div className="public-profile-avatar-row flex flex-col sm:flex-row sm:items-end justify-between gap-3 -mt-11 md:-mt-14">
               <div className="relative z-[1] self-start shrink-0 rounded-full ring-4 md:ring-[5px] ring-white bg-white">
                 {profile.avatar_url ? (
                   <img src={profile.avatar_url} alt={displayName} className="size-[84px] md:size-28 rounded-full object-cover" />
@@ -613,7 +613,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
                   </span>
                 )}
               </div>
-              {!isSelf && <div className="sm:pb-1 order-last sm:order-none">{renderViewerActions()}</div>}
+              {!isSelf && <div className="public-profile-actions sm:pb-1 order-last sm:order-none">{renderViewerActions()}</div>}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -639,7 +639,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ userId, onBack, onVie
         </section>
 
         {!hasMainSections && !hasSideSections ? (
-          <div className="bg-white border border-slate-200 rounded-2xl px-6 py-12 flex flex-col items-center gap-2 text-center">
+          <div className="public-profile-empty bg-white border border-slate-200 rounded-2xl px-6 py-12 flex flex-col items-center gap-2 text-center">
             <span className="size-14 rounded-full bg-ink-wash text-primary flex items-center justify-center mb-1"><Users className="h-6 w-6" /></span>
             <p className="font-display text-lg font-extrabold text-ink">{firstName} hasn't filled in their profile yet</p>
             <p className="text-[13.5px] text-slate-500 max-w-sm">Experience, education and skills will show here once they add them.</p>

@@ -848,9 +848,9 @@ const ProfilePage: React.FC = () => {
     <div className="mobile-page profile-page bg-parchment font-display min-h-screen flex flex-col overflow-x-hidden antialiased">
       <main className="flex-1 w-full max-w-[1120px] mx-auto px-4 md:px-6 py-4 md:py-9 flex flex-col gap-4 md:gap-5">
         {/* Header card */}
-        <section className="bg-white border border-slate-200 rounded-2xl md:rounded-[22px] overflow-hidden">
+        <section className="profile-summary bg-white border border-slate-200 rounded-2xl md:rounded-[22px] overflow-hidden">
           <div className="mobile-profile-cover h-28 md:h-44 bg-center bg-cover bg-no-repeat" style={coverStyle} />
-          <div className="px-4 pb-5 md:px-8 md:pb-7 flex flex-col gap-3">
+          <div className="profile-summary-content px-4 pb-5 md:px-8 md:pb-7 flex flex-col gap-3">
             <div className="flex items-end justify-between gap-3 -mt-11 md:-mt-14">
               <div className="relative z-[1] shrink-0 rounded-full ring-4 md:ring-[5px] ring-white bg-white">
                 <div className="md:hidden">{renderAvatar(84, 'text-[26px]')}</div>

@@ -886,7 +886,7 @@ export default function ApplicationsPage({
   const renderIdentity = (app: Application, avatarSize: number) => {
     const role = roleOf(app);
     return (
-      <div className="flex items-start gap-3.5 md:gap-4">
+      <div className="applicant-identity flex items-start gap-3.5 md:gap-4">
         <ApplicantAvatar name={app.user_profile?.full_name || 'Unknown'} url={app.user_profile?.avatar_url} size={avatarSize} />
         <div className="flex-1 min-w-0 flex flex-col gap-1">
           <div className="flex items-center gap-2.5 flex-wrap">
@@ -925,7 +925,7 @@ export default function ApplicationsPage({
       <div key={application.id} className="flex flex-col gap-2">
         {/* The whole card selects the applicant; the name on top of it opens their profile. */}
         <div
-          className={`relative rounded-2xl p-3.5 md:p-4 border transition-colors ${isSelected
+          className={`applicant-list-card relative rounded-2xl p-3.5 md:p-4 border transition-colors ${isSelected
             ? 'bg-ink-wash border-primary ring-1 ring-primary'
             : 'bg-white border-slate-200 hover:border-slate-300'
             }`}
@@ -1032,7 +1032,7 @@ export default function ApplicationsPage({
         <button
           type="button"
           onClick={onBack}
-          className="self-start flex items-center gap-1.5 text-[13px] font-bold text-slate-600 hover:text-ink transition-colors"
+          className="mobile-duplicate-back self-start flex items-center gap-1.5 text-[13px] font-bold text-slate-600 hover:text-ink transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
@@ -1066,7 +1066,7 @@ export default function ApplicationsPage({
 
         {applications.length > 0 && (
           <div className="flex flex-col gap-2.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-5 rounded-2xl border border-indigo-200 bg-white px-4 py-3.5 md:px-5">
+            <div className="applicant-ranking-summary flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-5 rounded-2xl border border-indigo-200 bg-white px-4 py-3.5 md:px-5">
               <div className="flex items-center gap-3 min-w-0">
                 <span className="size-10 shrink-0 rounded-xl bg-ink-wash text-primary flex items-center justify-center">
                   <Sparkles className="h-[18px] w-[18px]" />
@@ -1132,7 +1132,7 @@ export default function ApplicationsPage({
         )}
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="mobile-filter-tabs flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -1181,7 +1181,7 @@ export default function ApplicationsPage({
         </div>
 
         <div className="flex flex-col lg:flex-row gap-5 items-start">
-          <div className="w-full lg:w-[420px] xl:w-[500px] shrink-0 flex flex-col gap-2.5">
+          <div className="applicant-list w-full lg:w-[420px] xl:w-[500px] shrink-0 flex flex-col gap-2.5">
             {sortedApplications.length === 0 ? renderEmptyList() : sortedApplications.map(renderApplicantRow)}
           </div>
 
@@ -1260,7 +1260,7 @@ export default function ApplicationsPage({
             <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4">
               {renderIdentity(selected, 52)}
               {renderAssignedBanner(selected)}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="applicant-document-actions grid grid-cols-3 gap-2">
                 <button type="button" className={`${secondaryButtonClass} !h-10 !px-2 text-[12.5px]`} onClick={() => handleViewResume(selected)}>
                   <FileText className="h-4 w-4" />
                   Resume

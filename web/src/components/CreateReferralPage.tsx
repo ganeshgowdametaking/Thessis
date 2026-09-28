@@ -22,6 +22,7 @@ type JobInsert = Database['public']['Tables']['jobs']['Insert'];
 const CreateReferralPage: React.FC = () => {
   // Force refresh - Sage & Stone Design
   const { user, profile } = useAuthContext();
+  const [mobilePanel, setMobilePanel] = useState<'create' | 'manage'>('create');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [myReferrals, setMyReferrals] = useState<Job[]>([]);
@@ -578,11 +579,16 @@ const CreateReferralPage: React.FC = () => {
   ];
 
   return (
-    <div className="mobile-page referral-page bg-parchment font-display text-slate-700 antialiased min-h-screen flex flex-col">
+    <div data-mobile-panel={mobilePanel} className="mobile-page referral-page bg-parchment font-display text-slate-700 antialiased min-h-screen flex flex-col">
       <main className="flex-grow w-full px-4 md:px-10 lg:px-12 py-6 md:py-10 max-w-6xl mx-auto">
         <div className="mobile-page-title mb-5 md:mb-8">
           <h1 className="font-display text-2xl md:text-[28px] font-extrabold text-ink">Post a referral</h1>
         </div>
+
+        {isMobile && <nav className="mobile-referral-tabs" aria-label="Referral workspace">
+          <button type="button" aria-pressed={mobilePanel === 'create'} onClick={() => setMobilePanel('create')}>Create referral</button>
+          <button type="button" aria-pressed={mobilePanel === 'manage'} onClick={() => setMobilePanel('manage')}>Your referrals <span>{myReferrals.length}</span></button>
+        </nav>}
 
         {/* Stats */}
         <div className="referral-stats grid grid-cols-3 gap-2.5 md:gap-4 mb-6 md:mb-8">
@@ -598,7 +604,7 @@ const CreateReferralPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 lg:gap-7 items-start">
-          <div className="flex flex-col gap-5 min-w-0">
+          <div className="referral-create-panel flex flex-col gap-5 min-w-0">
             {/* Auto-fill */}
             <div className="referral-import bg-white border border-indigo-200 rounded-2xl p-4 md:p-6" data-mode={mobileImportMode}>
               <div className="referral-import-heading flex items-center gap-3 mb-4">
@@ -679,7 +685,7 @@ const CreateReferralPage: React.FC = () => {
             </div>
 
             {/* Form */}
-            <div className="bg-white border border-slate-200 rounded-2xl">
+            <div className="referral-form-card bg-white border border-slate-200 rounded-2xl">
               <div className="referral-form-title px-4 py-4 md:px-6 md:py-5 border-b border-slate-100">
                 <h2 className="font-display text-[17px] font-extrabold text-ink">Role details</h2>
               </div>
@@ -704,7 +710,7 @@ const CreateReferralPage: React.FC = () => {
                   )}
 
                   {isMobile && (
-                    <div className="grid grid-cols-3 gap-1.5">
+                    <div className="mobile-referral-steps grid grid-cols-3 gap-1.5">
                       {['Basics', 'Role', 'Skills'].map((label, index) => {
                         const step = index + 1;
                         const isActive = mobileFormStep === step;
@@ -923,7 +929,7 @@ const CreateReferralPage: React.FC = () => {
           </div>
 
           {/* Your referrals: all of them. From lg the column stays in view and the list scrolls inside it. */}
-          <aside className="flex flex-col gap-3.5 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7.5rem)]">
+          <aside className="referral-management flex flex-col gap-3.5 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7.5rem)]">
             <div className="flex items-center justify-between px-0.5">
               <h2 className="font-display text-[17px] font-extrabold text-ink">Your referrals</h2>
               <button
@@ -953,7 +959,7 @@ const CreateReferralPage: React.FC = () => {
                 {myReferrals.map((job) => (
                   <div
                     key={job.id}
-                    className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl p-4 cursor-pointer transition-colors"
+                    className="managed-referral-card bg-white border border-slate-200 hover:border-slate-300 rounded-2xl p-4 cursor-pointer transition-colors"
                     onClick={() => handleViewApplications(job.id)}
                   >
                     <div className="flex items-start gap-3">

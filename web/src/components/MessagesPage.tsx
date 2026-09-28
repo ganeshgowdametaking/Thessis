@@ -809,9 +809,9 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
   return (
     <div className={`messages-page ${isMobile && !showConversationsList ? 'mobile-conversation' : ''} bg-stone-bg text-slate-900 font-display w-full flex flex-col overflow-hidden`} style={{ height: viewportHeight, ...phoneViewport }}>
       <div className="flex flex-1 min-h-0 w-full relative">{/* Sidebar */}
-        <div className={`${showConversationsList ? 'flex' : 'hidden'} md:flex w-full md:w-96 flex-shrink-0 flex-col bg-stone-off border-r border-stone-border z-10`}>
+        <div className={`message-inbox ${showConversationsList ? 'flex' : 'hidden'} md:flex w-full md:w-96 flex-shrink-0 flex-col bg-stone-off border-r border-stone-border z-10`}>
           {/* Sidebar Header */}
-          <div className="relative p-4 border-b border-stone-border">
+          <div className="message-inbox-search relative p-4 border-b border-stone-border">
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
                 <Search className="text-[20px]" />

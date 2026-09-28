@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 
 interface ModalProps {
+  className?: string;
   isOpen: boolean;
   onClose: () => void;
   title: React.ReactNode;
@@ -10,7 +11,7 @@ interface ModalProps {
   children: React.ReactNode;
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, footer, maxWidth = 'max-w-lg', children }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, footer, maxWidth = 'max-w-lg', children, className = '' }) => {
   useEffect(() => {
     if (!isOpen) return;
     const handleEscape = (e: KeyboardEvent) => {
@@ -24,7 +25,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, footer, maxWidth 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+      className={`${className} fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4`}
       onClick={onClose}
       role="dialog"
       aria-modal="true"

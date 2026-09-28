@@ -514,7 +514,7 @@ const NotificationsPage: React.FC = () => {
         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
           <p className="text-[13.5px] md:text-sm leading-snug text-ink">{renderHeadline(notification)}</p>
           {detail && <p className="notification-detail text-[12.5px] md:text-[13px] leading-relaxed text-slate-500 line-clamp-2">{detail}</p>}
-          <div className="md:hidden flex items-center gap-2 mt-1.5">{tag}{time}</div>
+          <div className="notification-meta md:hidden flex items-center gap-2 mt-1.5">{tag}{time}</div>
           {(isRequest || actionLabel) && (
             <div className="flex flex-wrap items-center gap-2 mt-2.5" onClick={(e) => e.stopPropagation()}>
               {isRequest ? (
@@ -548,7 +548,7 @@ const NotificationsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleNotificationClick(notification)}
-                  className="h-9 px-3.5 rounded-[10px] border border-slate-200 bg-white text-[12.5px] font-bold text-ink hover:bg-parchment-sunken transition-colors flex items-center gap-1.5"
+                  className="notification-action h-9 px-3.5 rounded-[10px] border border-slate-200 bg-white text-[12.5px] font-bold text-ink hover:bg-parchment-sunken transition-colors flex items-center gap-1.5"
                 >
                   {notification.type === 'referral' && <MessageSquare className="h-3.5 w-3.5" />}
                   {actionLabel}
@@ -595,7 +595,7 @@ const NotificationsPage: React.FC = () => {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="mobile-filter-tabs flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
           {tabs.map((tab) => {
             const isActive = filter === tab.id;
             return (

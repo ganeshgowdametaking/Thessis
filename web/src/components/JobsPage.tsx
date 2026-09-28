@@ -917,14 +917,14 @@ const JobsPage: React.FC = () => {
         {/* Sidebar */}
         <aside className="w-full md:max-w-[510px] flex flex-col border-r border-hairline bg-parchment relative z-10">
           {/* Sidebar Header */}
-          <div className="flex flex-col gap-3.5 px-4 pt-5 pb-3 md:px-5 bg-parchment">
+          <div className="jobs-toolbar flex flex-col gap-3.5 px-4 pt-5 pb-3 md:px-5 bg-parchment">
             <div className="mobile-jobs-heading md:hidden">
               <div><h1>Jobs</h1><p>Your next move starts with a referral.</p></div>
               <button onClick={handleCreateReferralClick} className="mobile-post-button" aria-label="Post referral"><Plus size={16} /> Post</button>
             </div>
             {/* Mobile search and filters */}
             <div className="flex flex-col gap-2.5 md:hidden">
-              <div className="flex items-center rounded-xl bg-white border border-slate-200 focus-within:border-primary transition-colors">
+              <div className="mobile-job-search flex items-center rounded-xl bg-white border border-slate-200 focus-within:border-primary transition-colors">
                 <Search className="h-4 w-4 text-slate-400 ml-3.5 shrink-0" />
                 <input
                   className="flex-1 min-w-0 bg-transparent border-none text-base px-3 py-2.5 placeholder:text-slate-400 text-slate-900 focus:ring-0"
@@ -1034,7 +1034,7 @@ const JobsPage: React.FC = () => {
                         <CompanyAvatar company={job.company} logoUrl={((job as any).created_by_profile?.account_type === 'company' ? (job as any).created_by_profile?.avatar_url : undefined) || getCompanyLogoUrl(job.company)} size="sm" />
                       </div>
                     </div>
-                    <div className="flex flex-1 flex-col min-w-0 gap-1">
+                    <div className="job-card-content flex flex-1 flex-col min-w-0 gap-1">
                       <div className="flex justify-between items-start gap-2">
                         <h3 className="text-[14.5px] font-bold text-ink leading-snug line-clamp-2">
                           {job.title}
@@ -1062,7 +1062,7 @@ const JobsPage: React.FC = () => {
                         {' · '}
                         {job.location.includes(',') ? job.location.split(',')[0] : job.location}
                       </p>
-                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <div className="job-card-tags flex items-center gap-1.5 mt-1 flex-wrap">
                         {job.job_type && <span className={tagClass}>{job.job_type}</span>}
                         <span className={tagClass}>{job.remote_available ? 'Remote' : 'Onsite'}</span>
                         {job.experience_level && <span className={tagClass}>{job.experience_level}</span>}
@@ -1123,6 +1123,7 @@ const JobsPage: React.FC = () => {
           isOpen={showFilters}
           onClose={() => setShowFilters(false)}
           title="Filters"
+          className="job-filters"
           maxWidth="max-w-lg"
           footer={
             <>
