@@ -34,8 +34,8 @@ const AnalyticsDashboard = React.lazy(() => import('./components/AnalyticsDashbo
 const AcceptAdminInvitePage = React.lazy(() => import('./components/AcceptAdminInvitePage'));
 import AuthCallback from './components/AuthCallback';
 import ScrollToTop from './components/ScrollToTop';
-import { analyticsService } from './services/analyticsService';
-import { captureUTMParams } from './utils/utmHandler';
+import { productAnalytics } from './services/productAnalytics';
+import AnalyticsLifecycle from './components/AnalyticsLifecycle';
 
 // Wrapper component for ApplicationsPage to handle React Router integration
 function ApplicationsPageWrapper() {
@@ -231,8 +231,8 @@ function HomePageWrapper({ onJoinNow }: { onJoinNow?: () => void }) {
       <HomeCompanyStrip />
       <HomeHowItWorks />
       <HomeFeatures />
-      <HomeFinalCta onJoinNow={onJoinNow} />
-      <HomeStickyCta onJoinNow={onJoinNow} />
+      <HomeFinalCta onJoinNow={() => { productAnalytics.capture('cta_clicked', {cta: 'signup', placement: 'final'}); onJoinNow?.(); }} />
+      <HomeStickyCta onJoinNow={() => { productAnalytics.capture('cta_clicked', {cta: 'signup', placement: 'sticky'}); onJoinNow?.(); }} />
     </>
   );
 }
@@ -268,21 +268,6 @@ function AppContent() {
   const [resetFlowActive, setResetFlowActive] = useState(false);
   const isResetFlow = location.pathname === '/reset-password' || searchParams.get('reset') === 'true' || location.hash.includes('type=recovery') || resetFlowActive;
   const navigate = useNavigate();
-
-
-  // Initialize analytics and capture UTM params
-  useEffect(() => {
-    analyticsService.init();
-    analyticsService.trackPageView(window.location.pathname);
-
-    // Capture UTM parameters from URL and persist to localStorage
-    captureUTMParams();
-  }, []);
-
-  // Track page views on location change
-  useEffect(() => {
-    analyticsService.trackPageView(location.pathname);
-  }, [location.pathname]);
 
 
   // Ref to track if we've already handled the initial redirect
@@ -389,11 +374,12 @@ function AppContent() {
   return (
     // <TrackingProvider>
     <div className={`${showMobileNavigation ? 'mobile-app ' : ''}flex min-h-screen flex-col relative ${isHeroPage || isLegalPage ? 'bg-parchment' : 'bg-parchment-sunken'}`}>
+      <AnalyticsLifecycle />
       <GDPRBanner />
       {!isOnboardingPage && (!isMobile || isHeroPage || isLegalPage) && (
         <Header
-          onSignIn={() => navigate('/login')}
-          onJoinNow={() => navigate('/signup')}
+          onSignIn={() => { productAnalytics.capture('cta_clicked', {cta: 'login', placement: 'header'}); navigate('/login'); }}
+          onJoinNow={() => { productAnalytics.capture('cta_clicked', {cta: 'signup', placement: 'header'}); navigate('/signup'); }}
         />
       )}
       {showMobileNavigation && <MobileNavigation />}

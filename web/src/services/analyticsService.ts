@@ -1,30 +1,5 @@
-import { gdprService } from './gdprService';
 import { supabase } from '../lib/supabase';
 import { countryCodeToName } from '../utils/countryMapping';
-
-interface PageViewEvent {
-  page: string;
-  referrer?: string;
-  timestamp: string;
-  sessionId?: string;
-  userId?: string;
-  isFirstVisit?: boolean;
-  userAgent?: string;
-  screenResolution?: string;
-  timeOnPage?: number;
-}
-
-interface UserEvent {
-  eventType: string;
-  eventData: any;
-  timestamp: string;
-  sessionId?: string;
-  userId?: string;
-  page?: string;
-  elementId?: string;
-  elementType?: string;
-  elementText?: string;
-}
 
 interface UserInteraction {
   type: 'click' | 'scroll' | 'hover' | 'form_focus' | 'form_submit' | 'button_click' | 'link_click';
@@ -124,321 +99,13 @@ declare global {
   }
 }
 
-// Storage limits to prevent QuotaExceededError
-const MAX_INTERACTIONS_PER_SESSION = 100;
-const MAX_PAGE_VIEWS_PER_SESSION = 50;
-const MAX_SESSIONS_STORED = 10;
-
-// Generate unique session ID
-const generateSessionId = (): string => {
-  return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-};
-
-// Check if this is the first visit
-const isFirstVisit = (): boolean => {
-  const hasVisited = localStorage.getItem('has_visited_before');
-  if (!hasVisited) {
-    localStorage.setItem('has_visited_before', 'true');
-    localStorage.setItem('first_visit_date', new Date().toISOString());
-    return true;
-  }
-  return false;
-};
-
-// Initialize session tracking
-const initializeSession = (): void => {
-  if (!window._sessionId) {
-    window._sessionId = generateSessionId();
-    window._firstVisit = isFirstVisit();
-    window._sessionStartTime = Date.now();
-    window._lastActivity = Date.now();
-    window._pageViews = [];
-    window._interactions = [];
-
-    // Store session data
-    const sessionData: SessionData = {
-      sessionId: window._sessionId,
-      startTime: new Date().toISOString(),
-      lastActivity: new Date().toISOString(),
-      pageViews: [],
-      interactions: [],
-      isFirstVisit: window._firstVisit,
-      referrer: document.referrer,
-      userAgent: navigator.userAgent,
-      screenResolution: `${screen.width}x${screen.height}`,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-    };
-
-    localStorage.setItem('current_session', JSON.stringify(sessionData));
-  }
-};
-
-// Track user interactions
-const trackInteraction = async (interaction: Omit<UserInteraction, 'timestamp' | 'sessionId' | 'userId'>): Promise<void> => {
-  if (!window._analyticsInitialized) return;
-
-  const interactionData: UserInteraction = {
-    ...interaction,
-    timestamp: new Date().toISOString(),
-    sessionId: window._sessionId,
-    userId: undefined
-  };
-
-  window._interactions.push(interactionData);
-  window._lastActivity = Date.now();
-
-  // Store in localStorage for persistence
-  const sessionData = JSON.parse(localStorage.getItem('current_session') || '{}');
-
-  // Cap interactions to prevent storage overflow
-  if (window._interactions.length > MAX_INTERACTIONS_PER_SESSION) {
-    window._interactions = window._interactions.slice(-MAX_INTERACTIONS_PER_SESSION);
-  }
-
-  sessionData.interactions = window._interactions;
-  sessionData.lastActivity = new Date().toISOString();
-  localStorage.setItem('current_session', JSON.stringify(sessionData));
-
-  // Send to analytics service (in real implementation)
-
-};
-
-// Store cleanup function for event listeners
-let trackingCleanup: (() => void) | null = null;
-
-// Debounce utility
-const debounce = <T extends (...args: never[]) => void>(func: T, wait: number): T & { cancel: () => void } => {
-  let timeout: ReturnType<typeof setTimeout>;
-  const debounced = (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args as never[]), wait);
-  };
-  debounced.cancel = () => clearTimeout(timeout);
-  return debounced as T & { cancel: () => void };
-};
-
-// Set up event listeners for automatic tracking
-const setupAutomaticTracking = (): (() => void) => {
-  if (!window._analyticsInitialized) return () => { };
-
-  // If we already have listeners set up, clean them up first to avoid duplicates
-  if (trackingCleanup) {
-    trackingCleanup();
-  }
-
-  // Track scroll depth - Debounced to 2 seconds
-  let maxScrollDepth = 0;
-  const debouncedScrollTracker = debounce(() => {
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const scrollDepth = Math.round((scrollTop / scrollHeight) * 100);
-
-    if (scrollDepth > maxScrollDepth) {
-      maxScrollDepth = scrollDepth;
-      trackInteraction({
-        type: 'scroll',
-        page: window.location.pathname,
-        scrollDepth
-      });
-    }
-  }, 2000);
-
-  const scrollHandler = () => debouncedScrollTracker();
-  document.addEventListener('scroll', scrollHandler);
-
-  // Track form interactions - Debounced
-  const debouncedFormFocus = debounce((e: FocusEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
-      const inputElement = target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-      // Filter out sensitive fields like passwords if needed
-      if (inputElement.type === 'password') return;
-
-      trackInteraction({
-        type: 'form_focus',
-        elementId: inputElement.id || inputElement.name || '',
-        elementType: target.tagName.toLowerCase(),
-        page: window.location.pathname
-      });
-    }
-  }, 1000);
-
-  const focusHandler = (e: FocusEvent) => debouncedFormFocus(e);
-  document.addEventListener('focus', focusHandler, true); // Use capture for focus
-
-  // Track form submissions
-  const submitHandler = (e: Event) => {
-    const target = e.target as HTMLFormElement;
-    trackInteraction({
-      type: 'form_submit',
-      elementId: target.id || target.className,
-      elementType: 'form',
-      page: window.location.pathname
-    });
-  };
-  document.addEventListener('submit', submitHandler);
-
-  // Track link clicks - Specific conversion events
-  const clickHandler = (e: MouseEvent) => {
-    const target = e.target as HTMLElement;
-
-    // Link clicks
-    const link = target.closest('a');
-    if (link) {
-      trackInteraction({
-        type: 'link_click',
-        elementId: link.id || link.className,
-        elementType: 'a',
-        elementText: link.textContent?.trim().substring(0, 100) || '',
-        page: window.location.pathname
-      });
-    }
-
-    // Button clicks
-    const button = target.closest('button');
-    if (button) {
-      trackInteraction({
-        type: 'button_click',
-        elementId: button.id || button.className,
-        elementType: 'button',
-        elementText: button.textContent?.trim().substring(0, 100) || '',
-        page: window.location.pathname
-      });
-    }
-  };
-  document.addEventListener('click', clickHandler);
-
-  // Return cleanup function
-  const cleanup = () => {
-    document.removeEventListener('scroll', scrollHandler);
-    document.removeEventListener('focus', focusHandler, true);
-    document.removeEventListener('submit', submitHandler);
-    document.removeEventListener('click', clickHandler);
-
-    // Cancel any pending debounces
-    if (debouncedScrollTracker.cancel) debouncedScrollTracker.cancel();
-    if (debouncedFormFocus.cancel) debouncedFormFocus.cancel();
-
-    trackingCleanup = null;
-  };
-
-  trackingCleanup = cleanup;
-  return cleanup;
-};
-
 export const analyticsService = {
-  // Initialize analytics
-  init: () => {
-    // Check if user is EU and has not given consent
-    const isEU = localStorage.getItem('is_eu_user') === 'true';
-    const consent = localStorage.getItem('gdpr_consent');
-
-    if (isEU && consent !== 'true') {
-      return;
-    }
-
-    // Initialize session tracking
-    initializeSession();
-
-    // Set up automatic tracking for non-EU users or EU users with consent
-    if (!isEU || consent === 'true') {
-      setupAutomaticTracking();
-    }
-
-    window._analyticsInitialized = true;
-  },
-
-  // Track page view
-  trackPageView: async (page: string) => {
-    const isEU = localStorage.getItem('is_eu_user') === 'true';
-    const consent = localStorage.getItem('gdpr_consent');
-
-    if (isEU && consent !== 'true') {
-      return;
-    }
-
-    // Throttled: Don't track if we just tracked this page < 1s ago
-    const now = Date.now();
-    if (window._lastActivity && (now - window._lastActivity < 1000)) {
-      return;
-    }
-
-    // Initialize if not already initialized
-    if (!window._analyticsInitialized) {
-      analyticsService.init();
-    }
-
-    /* 
-    const pageViewEvent: PageViewEvent = {
-      page,
-      referrer: document.referrer,
-      timestamp: new Date().toISOString(),
-      sessionId: window._sessionId,
-      userId: undefined,
-      isFirstVisit: window._firstVisit,
-      userAgent: navigator.userAgent,
-      screenResolution: `${screen.width}x${screen.height}`
-    };
-    */
-
-    // Track page view
-    // Cap page views to prevent storage overflow
-    if (window._pageViews.length > MAX_PAGE_VIEWS_PER_SESSION) {
-      window._pageViews = window._pageViews.slice(-MAX_PAGE_VIEWS_PER_SESSION);
-    }
-    window._pageViews.push(page);
-    window._lastActivity = Date.now(); // Update activity time
-
-    // Store in localStorage
-    const sessionData = JSON.parse(localStorage.getItem('current_session') || '{}');
-    sessionData.pageViews = window._pageViews;
-    sessionData.lastActivity = new Date().toISOString();
-    localStorage.setItem('current_session', JSON.stringify(sessionData));
-
-
-    (window as any)._prevActivity = Date.now(); // Store for next time check
-  },
-
-  // Track user event
-  trackEvent: async (eventType: string, eventData: any) => {
-    const isEU = localStorage.getItem('is_eu_user') === 'true';
-    const consent = localStorage.getItem('gdpr_consent');
-
-    if (isEU && consent !== 'true') {
-      return;
-    }
-
-    // Initialize if not already initialized
-    if (!window._analyticsInitialized) {
-      analyticsService.init();
-    }
-
-    /*
-    const userEvent: UserEvent = {
-      eventType,
-      eventData,
-      timestamp: new Date().toISOString(),
-      sessionId: window._sessionId,
-      userId: undefined,
-      page: window.location.pathname
-    };
-    */
-
-    // Send to analytics service (in real implementation)
-
-  },
-
-  // Track custom interaction
-  trackInteraction: async (interaction: Omit<UserInteraction, 'timestamp' | 'sessionId' | 'userId'>) => {
-    const isEU = localStorage.getItem('is_eu_user') === 'true';
-    const consent = localStorage.getItem('gdpr_consent');
-
-    if (isEU && consent !== 'true') {
-      return;
-    }
-
-    await trackInteraction(interaction);
-  },
+  // Deprecated collection entry points deliberately do nothing. Operational report
+  // queries below are retained for existing internal tools.
+  init: () => {},
+  trackPageView: async (_page: string) => {},
+  trackEvent: async (_eventType: string, _eventData: unknown) => {},
+  trackInteraction: async (_interaction: unknown) => {},
 
   // Get session data
   getSessionData: (): SessionData | null => {
@@ -455,10 +122,6 @@ export const analyticsService = {
   cleanUp: () => {
     // console.log('Analytics cleaned up'); // Freed up console
 
-    // Remove event listeners
-    if (trackingCleanup) {
-      trackingCleanup();
-    }
 
     // Clear session data
     localStorage.removeItem('current_session');
@@ -832,37 +495,7 @@ export const analyticsService = {
     }
   },
 
-  // Save session data when user leaves
-  saveSessionData: () => {
-    if (!window._analyticsInitialized) return;
-
-    const sessionData = analyticsService.getSessionData();
-    if (sessionData) {
-      try {
-        let allSessions = JSON.parse(localStorage.getItem('all_sessions') || '[]');
-        if (!Array.isArray(allSessions)) allSessions = [];
-
-        // Remove current session if it already exists to avoid duplicates
-        allSessions = allSessions.filter((s: any) => s.sessionId !== sessionData.sessionId);
-
-        // Add current session
-        allSessions.push(sessionData);
-
-        // Cap the number of stored sessions
-        if (allSessions.length > MAX_SESSIONS_STORED) {
-          allSessions = allSessions.slice(-MAX_SESSIONS_STORED);
-        }
-
-        localStorage.setItem('all_sessions', JSON.stringify(allSessions));
-      } catch (error) {
-        console.warn('Analytics: Failed to save session data', error);
-        // Fallback: If we can't save all_sessions, clear it to make room
-        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-          localStorage.removeItem('all_sessions');
-        }
-      }
-    }
-  },
+  saveSessionData: () => {},
 
   // Force clear all analytics data to free up space
   forceClearAnalytics: () => {
@@ -891,34 +524,8 @@ export const analyticsService = {
   },
 
   // GDPR-compliant visitor tracking for EU users
-  trackEUVisitor: () => {
-    const isEU = localStorage.getItem('is_eu_user') === 'true';
-    const consent = localStorage.getItem('gdpr_consent');
+  trackEUVisitor: () => {},
 
-    if (!isEU || consent !== 'true') return;
-
-    // Track total visitors (aggregate only)
-    const totalVisitors = parseInt(localStorage.getItem('total_visitors') || '0') + 1;
-    localStorage.setItem('total_visitors', totalVisitors.toString());
-
-    // Track first-time visitors
-    const isFirstVisit = !localStorage.getItem('has_visited_before');
-    if (isFirstVisit) {
-      const firstTimeVisitors = parseInt(localStorage.getItem('first_time_visitors') || '0') + 1;
-      localStorage.setItem('first_time_visitors', firstTimeVisitors.toString());
-      localStorage.setItem('has_visited_before', 'true');
-      localStorage.setItem('first_visit_date', new Date().toISOString());
-    }
-
-    console.log('EU Visitor tracked (GDPR-compliant):', {
-      totalVisitors,
-      firstTimeVisitors: parseInt(localStorage.getItem('first_time_visitors') || '0'),
-      totalSignups: parseInt(localStorage.getItem('total_signups') || '0'),
-      isFirstVisit
-    });
-  },
-
-  // Get EU visitor statistics (GDPR-compliant)
   getEUVisitorStats: () => {
     const totalVisitors = parseInt(localStorage.getItem('total_visitors') || '0');
     const firstTimeVisitors = parseInt(localStorage.getItem('first_time_visitors') || '0');
@@ -935,30 +542,7 @@ export const analyticsService = {
   },
 
   // Track EU user signup (GDPR-compliant)
-  trackEUSignup: () => {
-    const isEU = localStorage.getItem('is_eu_user') === 'true';
-    const consent = localStorage.getItem('gdpr_consent');
-
-    if (!isEU || consent !== 'true') return;
-
-    const totalSignups = parseInt(localStorage.getItem('total_signups') || '0') + 1;
-    localStorage.setItem('total_signups', totalSignups.toString());
-    localStorage.setItem('last_signup_date', new Date().toISOString());
-
-    console.log('EU Signup tracked (GDPR-compliant):', {
-      totalSignups,
-      totalVisitors: parseInt(localStorage.getItem('total_visitors') || '0'),
-      signupRate: ((totalSignups / parseInt(localStorage.getItem('total_visitors') || '1')) * 100).toFixed(1) + '%'
-    });
-  }
+  trackEUSignup: () => {}
 };
 
-// Save session data when user leaves the page
-window.addEventListener('beforeunload', () => {
-  analyticsService.saveSessionData();
-});
-
-// Save session data periodically
-setInterval(() => {
-  analyticsService.saveSessionData();
-}, 30000); // Every 30 seconds
+// Legacy local reporting only. Global collection is owned by productAnalytics.

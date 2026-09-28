@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from './LoadingSpinner';
+import { productAnalytics } from '../services/productAnalytics';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -19,12 +20,14 @@ const AuthCallback: React.FC = () => {
 
         if (error) {
           console.error('Auth callback error:', error);
+          productAnalytics.failAuth();
           setError('Authentication failed. Please try again.');
           setTimeout(() => navigate('/'), 3000);
           return;
         }
 
         if (data.session) {
+          productAnalytics.completeAuth(data.session.user.id);
           console.log('✅ Authentication successful');
           const pendingInvite = sessionStorage.getItem('adminInviteReturnTo');
           sessionStorage.removeItem('adminInviteReturnTo');
@@ -36,6 +39,7 @@ const AuthCallback: React.FC = () => {
           navigate(returnToInvite || '/jobs', { replace: true });
         } else {
           console.log('❌ No session found');
+          productAnalytics.failAuth();
           setError('Authentication failed. Please try again.');
           setTimeout(() => navigate('/'), 3000);
         }

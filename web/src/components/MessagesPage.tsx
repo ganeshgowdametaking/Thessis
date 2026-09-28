@@ -1,3 +1,4 @@
+import { productAnalytics } from '../services/productAnalytics';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft, Search, MessageSquare, Trash2 } from 'lucide-react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -58,6 +59,11 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showConversationsList, setShowConversationsList] = useState(true);
+  useEffect(() => {
+    if ((!isMobile || !showConversationsList) && (selectedChat || pendingChatUserId)) {
+      productAnalytics.capture('conversation_opened', {}, selectedChat || pendingChatUserId || undefined);
+    }
+  }, [isMobile, showConversationsList, selectedChat, pendingChatUserId]);
   const phoneViewport = usePhoneViewport(isMobile && !showConversationsList);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [firstUnreadMessageId, setFirstUnreadMessageId] = useState<string | null>(null);
@@ -732,6 +738,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
 
         // Update optimistic message with real message from server
         if (sentMessage) {
+          productAnalytics.capture('message_send_completed', {}, sentMessage.id);
           setMessages(prev => prev.map(m => m.id === tempId ? sentMessage : m));
         }
 
@@ -742,6 +749,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ selectedApplicant, onViewPr
       }
       return false;
     } catch (error) {
+      productAnalytics.capture('action_failed', {feature: 'messages', action: 'send', error_category: 'operation_failed'});
       console.error('Error sending message:', error);
       alert('Failed to send message. Please try again.');
       return false;

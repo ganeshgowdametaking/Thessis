@@ -1,3 +1,4 @@
+import { productAnalytics } from './productAnalytics';
 import { supabase } from '../lib/supabase'
 import { Database } from '../lib/database.types'
 
@@ -104,6 +105,7 @@ export const connectionService = {
       throw error
     }
 
+    productAnalytics.capture('connection_request_completed', {}, (data as {id: string} | null)?.id)
     console.log('✅ Connection request created successfully:', data)
 
     // FIXED: Store in localStorage with proper key and immediate update
@@ -131,6 +133,7 @@ export const connectionService = {
 
     if (error) throw error
 
+    productAnalytics.capture('connection_response_completed', {status: 'accepted'}, connectionId)
     // Update localStorage cache
     const { data: { user } } = await supabase.auth.getUser()
     if (user && data) {
@@ -157,6 +160,7 @@ export const connectionService = {
         connection_id: connectionId
       })
       if (error) throw error
+      if (data === true) productAnalytics.capture('connection_response_completed', {status: 'declined'}, connectionId)
       return data
     } catch (e) {
       console.error('Error in declineConnectionRequest:', e)

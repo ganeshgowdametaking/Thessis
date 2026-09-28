@@ -1,3 +1,5 @@
+import { productAnalytics } from '../services/productAnalytics';
+import type { AnalyticsProperties } from '../services/analyticsPrivacy';
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from './LoadingSpinner';
@@ -321,6 +323,7 @@ export default function ApplicationsPage({
         return;
       }
 
+      productAnalytics.capture('ranking_requested');
       let succeeded = 0;
       let lastError: string | null = null;
       const failures: { name: string; reason: string }[] = [];
@@ -381,6 +384,7 @@ export default function ApplicationsPage({
       // entire page, which felt like a full reload for what should just be
       // the ranking panel updating in place).
       await fetchApplications(undefined, { silent: true });
+      productAnalytics.capture('ranking_completed', {outcome: succeeded === validApplications.length ? 'complete' : 'partial'});
       setAiLastUpdatedAt(new Date().toISOString());
       setAiRankingFailures(failures);
 
@@ -388,6 +392,7 @@ export default function ApplicationsPage({
         setAiRankingError(`Ranked ${succeeded} of ${validApplications.length} applicants — ${failures.length} could not be scored.`);
       }
     } catch (runError) {
+      productAnalytics.capture('action_failed', {feature: 'ranking', action: 'rank', error_category: 'operation_failed'});
       const message =
         runError instanceof TypeError && runError.message.includes('Failed to fetch')
           ? `AI ranking service is unreachable at ${resumeRankingApiBase}. Check VITE_RESUME_RANKING_API and CORS/network settings.`
@@ -500,6 +505,9 @@ export default function ApplicationsPage({
 
       if (error) throw error;
 
+      if (applications.find(app => app.id === applicationId)?.status !== newStatus) {
+        productAnalytics.capture('application_status_changed', {status: newStatus as AnalyticsProperties['status']}, `${applicationId}:${newStatus}`);
+      }
       setApplications(prev =>
         prev.map(app =>
           app.id === applicationId
@@ -519,6 +527,7 @@ export default function ApplicationsPage({
         p_application_id: applicationId,
       } as any);
       if (error) throw error;
+      productAnalytics.capture('application_status_changed', {status: 'referred'}, `${applicationId}:referred`);
 
       setApplications(prev =>
         prev.map(app =>
@@ -934,7 +943,7 @@ export default function ApplicationsPage({
             type="button"
             aria-current={isSelected ? 'true' : undefined}
             aria-label={`Open ${application.user_profile?.full_name || 'applicant'}'s application`}
-            onClick={() => setSelectedApplication(application)}
+            onClick={() => { productAnalytics.capture('applicant_review_opened'); setSelectedApplication(application); }}
             className="absolute inset-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           />
           <div className="relative pointer-events-none flex items-start gap-3">

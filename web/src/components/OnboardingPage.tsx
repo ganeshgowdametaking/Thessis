@@ -1,3 +1,4 @@
+import { productAnalytics } from '../services/productAnalytics';
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Check, Pencil } from 'lucide-react';
@@ -369,12 +370,13 @@ const OnboardingPage: React.FC = () => {
 
   const isLastStep = step === STEPS.length - 1;
 
-  const save = async (destination: string) => {
+  const save = async (destination: string, skipped = false) => {
     setSaving(true);
     setError(null);
     try {
       const cleanedExperiences = experiences.filter((exp) => !isBlankExperience(exp));
       await updateProfile({ experiences: cleanedExperiences, education, skills });
+      productAnalytics.capture('onboarding_completed', {outcome: skipped ? 'skipped' : 'complete'});
       navigate(destination);
     } catch (err: any) {
       setError(err?.message || 'Something went wrong saving your profile. Please try again.');
@@ -391,6 +393,7 @@ const OnboardingPage: React.FC = () => {
       }
     }
     setError(null);
+    productAnalytics.capture('onboarding_step_completed', {step: step === 0 ? 'experience' : 'education'});
     setStep((s) => Math.min(STEPS.length - 1, s + 1));
   };
 
@@ -452,7 +455,7 @@ const OnboardingPage: React.FC = () => {
           <span className="text-[12.5px] font-bold text-slate-500">Step {step + 1} of {STEPS.length}</span>
           <button
             type="button"
-            onClick={() => save('/jobs')}
+            onClick={() => save('/jobs', true)}
             disabled={saving}
             className="text-[12.5px] font-bold text-slate-500 hover:text-slate-700 transition-colors disabled:opacity-50"
           >

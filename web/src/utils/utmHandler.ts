@@ -1,132 +1,75 @@
-/**
- * UTM Handler Utility
- * Captures, persists, and retrieves marketing UTM parameters
- */
-
-const STORAGE_KEY = 'platform_attribution_data';
-
+import { analyticsConsent, ANALYTICS_PREFIX } from '../services/analyticsPrivacy';
+const STORAGE_KEY = `${ANALYTICS_PREFIX}attribution_v1`;
+const MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+const sources = ['google', 'linkedin', 'instagram', 'facebook', 'whatsapp', 'email', 'direct', 'other'];
+const mediums = ['organic', 'social', 'paid_social', 'cpc', 'email', 'referral'];
+const campaigns = (import.meta.env.VITE_ANALYTICS_CAMPAIGNS || '').split(',').map((s: string) => s.trim())
+  .filter((s: string) => /^[a-z0-9_-]{1,64}$/.test(s));
 export interface UTMData {
-    utm_source: string | null;
-    utm_medium: string | null;
-    utm_campaign: string | null;
-    utm_content: string | null;
-    utm_term: string | null;
-    captured_at: string;
-    landing_url: string;
+  utm_source: string | null; utm_medium: string | null; utm_campaign: string | null;
+  utm_content: string | null; utm_term: null; captured_at: string;
 }
-
-/**
- * Parse UTM parameters from URL search string
- */
+const pick = (value: string | null, values: readonly string[]) => value && values.includes(value) ? value : null;
 export function parseUTMParams(search: string): Partial<UTMData> | null {
-    const params = new URLSearchParams(search);
-
-    const utm_source = params.get('utm_source');
-    const utm_medium = params.get('utm_medium');
-    const utm_campaign = params.get('utm_campaign');
-    const utm_content = params.get('utm_content');
-    const utm_term = params.get('utm_term');
-
-    // Also check for common aliases
-    const ref = params.get('ref') || params.get('source');
-
-    // Check if any UTM params exist
-    const hasUTMParams = utm_source || utm_medium || utm_campaign || utm_content || utm_term || ref;
-
-    if (!hasUTMParams) {
-        return null;
-    }
-
-    return {
-        utm_source: utm_source || ref || null,
-        utm_medium: utm_medium || null,
-        utm_campaign: utm_campaign || null,
-        utm_content: utm_content || null,
-        utm_term: utm_term || null,
-    };
+  const params = new URLSearchParams(search);
+  const result = {utm_source: pick(params.get('utm_source'), sources),
+    utm_medium: pick(params.get('utm_medium'), mediums),
+    utm_campaign: pick(params.get('utm_campaign'), campaigns),
+    utm_content: pick(params.get('utm_content'), ['hero', 'header', 'footer', 'mobile', 'desktop']), utm_term: null};
+  return Object.values(result).some(Boolean) ? result : null;
 }
-
-/**
- * Capture UTM parameters from current URL and store in localStorage
- * Only overwrites if new URL contains UTM params (prevents direct visits from overwriting)
- */
+function readAttribution(): {first: UTMData; latest: UTMData} | null {
+  try {
+    if (!analyticsConsent()) return null;
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (!data?.first || !data?.latest) return null;
+    const clean = (entry: UTMData) => {
+      const at = Date.parse(entry.captured_at);
+      if (!Number.isFinite(at) || Date.now() - at > MAX_AGE || at > Date.now()) throw new Error('expired');
+      return {...parseUTMParams(new URLSearchParams({
+        utm_source: entry.utm_source || '', utm_medium: entry.utm_medium || '',
+        utm_campaign: entry.utm_campaign || '', utm_content: entry.utm_content || '',
+      }).toString()), captured_at: new Date(at).toISOString()} as UTMData;
+    };
+    return {first: clean(data.first), latest: clean(data.latest)};
+  } catch { return null; }
+}
 export function captureUTMParams(): void {
-    try {
-        const parsedUTM = parseUTMParams(window.location.search);
-
-        // Only store if there are actual UTM params in the URL
-        if (!parsedUTM) {
-            return;
-        }
-
-        const utmData: UTMData = {
-            ...parsedUTM,
-            utm_source: parsedUTM.utm_source || null,
-            utm_medium: parsedUTM.utm_medium || null,
-            utm_campaign: parsedUTM.utm_campaign || null,
-            utm_content: parsedUTM.utm_content || null,
-            utm_term: parsedUTM.utm_term || null,
-            captured_at: new Date().toISOString(),
-            landing_url: window.location.href,
-        };
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(utmData));
-        console.log('[UTM] Captured attribution data:', utmData);
-    } catch (error) {
-        console.warn('[UTM] Failed to capture UTM params:', error);
+  try {
+    if (!analyticsConsent()) return;
+    localStorage.removeItem('platform_attribution_data');
+    const saved = readAttribution();
+    let parsed = parseUTMParams(location.search);
+    if (!parsed && saved) return;
+    if (!parsed) {
+      let source = 'direct';
+      if (document.referrer) {
+        const hostname = new URL(document.referrer).hostname;
+        source = ['google', 'linkedin', 'instagram', 'facebook'].find(name =>
+          hostname === `${name}.com` || hostname.endsWith(`.${name}.com`)) || 'other';
+      }
+      parsed = {utm_source: source};
     }
+    const entry = {utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null,
+      utm_term: null, ...parsed, captured_at: new Date().toISOString()} as UTMData;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({first: saved?.first || entry, latest: entry}));
+  } catch { /* Optional attribution must not interrupt navigation. */ }
 }
-
-/**
- * Retrieve stored UTM data from localStorage
- */
-export function getStoredUTMData(): UTMData | null {
-    try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (!stored) {
-            return null;
-        }
-        return JSON.parse(stored) as UTMData;
-    } catch (error) {
-        console.warn('[UTM] Failed to retrieve UTM data:', error);
-        return null;
-    }
+export function getStoredUTMData(): UTMData | null { return readAttribution()?.latest || null; }
+export function getAnalyticsAttribution(): Record<string, string> {
+  const data = readAttribution();
+  const properties: Record<string, string> = {};
+  if (data) for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'] as const) {
+    if (data.latest[key]) properties[key] = data.latest[key]!;
+    if (data.first[key]) properties[`initial_${key}`] = data.first[key]!;
+  }
+  return properties;
 }
-
-/**
- * Get UTM data formatted for Supabase user metadata
- */
 export function getUTMForSignup(): Record<string, string | null> {
-    const utmData = getStoredUTMData();
-
-    if (!utmData) {
-        return {};
-    }
-
-    return {
-        utm_source: utmData.utm_source,
-        utm_medium: utmData.utm_medium,
-        utm_campaign: utmData.utm_campaign,
-        utm_content: utmData.utm_content,
-        utm_term: utmData.utm_term,
-    };
+  const data = getStoredUTMData();
+  return data ? {utm_source: data.utm_source, utm_medium: data.utm_medium, utm_campaign: data.utm_campaign,
+    utm_content: data.utm_content, utm_term: null} : {};
 }
-
-/**
- * Clear stored UTM data (call after successful signup)
- */
-export function clearUTMData(): void {
-    try {
-        localStorage.removeItem(STORAGE_KEY);
-        console.log('[UTM] Cleared attribution data');
-    } catch (error) {
-        console.warn('[UTM] Failed to clear UTM data:', error);
-    }
-}
-
-/**
- * Check if UTM data is stored
- */
-export function hasStoredUTMData(): boolean {
-    return localStorage.getItem(STORAGE_KEY) !== null;
-}
+// Retain consented attribution for funnel reporting after signup.
+export function clearUTMData(): void { try { localStorage.removeItem('platform_attribution_data'); } catch { /* optional */ } }
+export function hasStoredUTMData(): boolean { return getStoredUTMData() !== null; }

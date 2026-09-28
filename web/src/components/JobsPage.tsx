@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { productAnalytics } from '../services/productAnalytics';
+import React, { useState, useEffect, useRef } from 'react';
 // Cache buster: 2025-01-25-15:30
 import { useNavigate, Link } from 'react-router-dom';
 import { Plus, Search, MapPin, Briefcase, X, CheckCircle, Copy, SlidersHorizontal, CheckCircle2, Upload, BadgeCheck, Loader2, Clock, Check } from 'lucide-react';
@@ -88,6 +89,7 @@ const JobsPage: React.FC = () => {
   const [userJobs, setUserJobs] = useState<string[]>([]);
   const [firstViewedMap, setFirstViewedMap] = useState<Record<string, string>>({});
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const applicationFlow = useRef<string>();
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [applicationForm, setApplicationForm] = useState<ApplicationFormData>({
     resume: null,
@@ -283,6 +285,7 @@ const JobsPage: React.FC = () => {
   };
 
   const handleSearch = (e: React.FormEvent) => {
+    productAnalytics.capture('job_search_performed');
     e.preventDefault();
     // Clear selected job on mobile when searching
     if (isMobile) {
@@ -386,6 +389,7 @@ const JobsPage: React.FC = () => {
   };
 
   const handleApplyFilters = () => {
+    productAnalytics.capture('job_filters_applied');
     setLocationTouched(true);
     if (!validateLocation()) return;
     if (isMobile) setSelectedJob(null);
@@ -433,6 +437,7 @@ const JobsPage: React.FC = () => {
   ].filter(Boolean) as { key: keyof typeof filters; label: string }[];
 
   const handleSelectJob = (job: Job) => {
+    productAnalytics.capture('job_detail_viewed');
     setSelectedJob(job);
   };
   const handleApplyToJob = () => {
@@ -445,6 +450,8 @@ const JobsPage: React.FC = () => {
       // Prevent opening modal if already applied
       return;
     }
+    applicationFlow.current = productAnalytics.newFlow();
+    productAnalytics.capture('application_started', {flow: 'application', flow_id: applicationFlow.current});
     setShowApplicationModal(true);
     setApplicationStep(1);
     setApplicationForm({
@@ -513,6 +520,7 @@ const JobsPage: React.FC = () => {
       setIsSubmittingApplication(true);
       const file = applicationForm.resume as File;
       const resumeUrl = await jobService.uploadResume(file, user.id);
+      productAnalytics.capture('resume_upload_completed', {flow: 'application', flow_id: applicationFlow.current}, applicationFlow.current);
 
       const applicationData = {
         job_id: selectedJob.id,
@@ -523,6 +531,7 @@ const JobsPage: React.FC = () => {
 
       // Call jobService to save the application
       await jobService.createApplication(applicationData);
+      productAnalytics.capture('application_submitted', {flow: 'application', flow_id: applicationFlow.current}, selectedJob.id);
       setApplicationStep(2); // Go to success step
       setIsSubmittingApplication(false);
       loadUserApplications();
@@ -540,6 +549,7 @@ const JobsPage: React.FC = () => {
         setApplicationError(null);
       }, 3000);
     } catch (error: any) {
+      productAnalytics.capture('action_failed', {feature: 'applications', action: 'submit', error_category: 'operation_failed'});
       console.error('❌ Application submission error:', error);
       setApplicationError(error.message || 'Failed to submit application.');
       setIsSubmittingApplication(false);

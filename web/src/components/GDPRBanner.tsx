@@ -1,21 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { gdprService } from '../services/gdprService';
 
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void;
-  }
-}
-
-const applyConsentToGtag = (analytics: boolean, marketing: boolean) => {
-  window.gtag?.('consent', 'update', {
-    analytics_storage: analytics ? 'granted' : 'denied',
-    ad_storage: marketing ? 'granted' : 'denied',
-    ad_user_data: marketing ? 'granted' : 'denied',
-    ad_personalization: marketing ? 'granted' : 'denied',
-  });
-};
-
 // The Cookie Policy's "Change cookie choice" button reopens the banner; the banner reports new choices back.
 export const OPEN_COOKIE_SETTINGS_EVENT = 'thessis:open-cookie-settings';
 export const COOKIE_CHOICE_CHANGED_EVENT = 'thessis:cookie-choice-changed';
@@ -31,13 +16,7 @@ const GDPRBanner: React.FC = () => {
 
   useEffect(() => {
     const stored = gdprService.getPreferences();
-    if (stored) {
-      // Google's Consent Mode default resets on every page load, so re-apply
-      // the user's saved choice each time rather than only at banner interaction.
-      applyConsentToGtag(stored.analytics, stored.marketing);
-    } else {
-      setVisible(true);
-    }
+    if (!stored) setVisible(true);
   }, []);
 
   const handleChoice = (accepted: boolean) => {
@@ -51,9 +30,7 @@ const GDPRBanner: React.FC = () => {
     if (!accepted) {
       gdprService.clearNonEssentialCookies();
     }
-    applyConsentToGtag(preferences.analytics, preferences.marketing);
     setVisible(false);
-    window.dispatchEvent(new Event(COOKIE_CHOICE_CHANGED_EVENT));
   };
 
   if (!visible) return null;
@@ -64,11 +41,11 @@ const GDPRBanner: React.FC = () => {
         <span className="flex-1 text-xs leading-snug md:text-sm md:leading-normal">
           {/* Phones: one compact line so the banner doesn't cover the first screen */}
           <span className="md:hidden">
-            We use cookies.{' '}
+            Optional usage analytics.{' '}
             <a href="/cookie-policy" className="underline hover:text-primary transition-colors">Details</a>
           </span>
           <span className="hidden md:inline">
-            We use cookies and similar technologies to enhance your experience. See our{' '}
+            With your permission, we use PostHog to understand visits and feature usage. See our{' '}
             <a href="/privacy-policy" className="underline hover:text-primary transition-colors">Privacy Policy</a>
             {' '}and{' '}
             <a href="/cookie-policy" className="underline hover:text-primary transition-colors">Cookie Policy</a>

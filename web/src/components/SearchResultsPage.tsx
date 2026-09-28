@@ -1,3 +1,4 @@
+import { productAnalytics } from '../services/productAnalytics';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, Bell, Check, Loader2, MapPin, Search, UserPlus, Users, WifiOff, X } from 'lucide-react';
@@ -116,6 +117,7 @@ const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ searchQuery, onBa
       };
 
       setSearchResults(results);
+      productAnalytics.capture('feature_action', {feature: 'search', action: 'submit', result_bucket: filteredPeople.length === 0 ? '0' : filteredPeople.length <= 5 ? '1-5' : filteredPeople.length <= 20 ? '6-20' : '21+'});
 
       // Cache the results for offline use
       if (results.people.length > 0) {

@@ -9,7 +9,7 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack: _onBack }) => {
   return (
     <LegalPageLayout
       title="Privacy Policy"
-      updated="August 19, 2026"
+      updated="September 28, 2026"
       contact={{ title: 'Questions about your privacy?', body: 'Email us, or ask for a copy or deletion of your data.', showDataRequest: true }}
     >
             <LegalHeading id="introduction" number={1}>Introduction</LegalHeading>
@@ -120,7 +120,7 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack: _onBack }) => {
             <ul className="list-disc pl-6 text-slate-700 mt-2 space-y-2">
               <li><strong>Cloud hosting providers</strong> (e.g., AWS, Google Cloud) - to store data and host the Platform</li>
               <li><strong>Email service providers</strong> - to send transactional and marketing emails</li>
-              <li><strong>Analytics providers</strong> (e.g., Google Analytics) - to understand Platform usage</li>
+              <li><strong>PostHog (US Cloud)</strong> - with your analytics consent, to measure page visits, selected feature actions, and completion of key journeys. We send a random visitor ID or your account ID, normalized page routes, device category, and approved campaign categories. We do not send names, emails, resumes, message contents, search text, or authentication tokens. Session recordings and automatic error collection are disabled.</li>
               <li><strong>Payment processors</strong> - to handle billing and payments</li>
               <li><strong>Customer support tools</strong> - to manage user inquiries</li>
             </ul>
@@ -164,7 +164,7 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack: _onBack }) => {
               <li><strong>Deleted accounts:</strong> 30 days after deletion request (to allow account recovery), then permanently deleted</li>
               <li><strong>Marketing data:</strong> Until you withdraw consent or unsubscribe</li>
               <li><strong>Legal/compliance records:</strong> Up to 7 years where required by law (e.g., tax, accounting)</li>
-              <li><strong>Analytics data:</strong> Aggregated and anonymized data may be retained indefinitely</li>
+              <li><strong>Analytics data:</strong> PostHog event retention is up to one year on our current plan. Withdrawing consent stops future collection and clears browser analytics storage. To request deletion of previously collected account-linked events, use our data-request form.</li>
             </ul>
             <p className="text-slate-700 mt-4">
               You can request deletion of your data at any time by contacting us at <a href="mailto:info@thessis.com" className="text-blue-600 hover:text-blue-800 transition-colors">info@thessis.com</a>.
@@ -234,7 +234,7 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack: _onBack }) => {
               <li><strong>Essential Cookies:</strong> Required for the Platform to function (login, security, preferences)</li>
               <li><strong>Analytics Cookies:</strong> Help us understand how users interact with the Platform</li>
               <li><strong>Marketing Cookies:</strong> Used to deliver relevant advertisements (with your consent)</li>
-              <li><strong>Third-party Cookies:</strong> Set by our service providers (e.g., Google Analytics)</li>
+              <li><strong>Third-party Cookies:</strong> Optional analytics storage is described in our Cookie Policy.</li>
             </ul>
 
             <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-3">9.2 Managing Cookies</h3>
@@ -242,10 +242,10 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack: _onBack }) => {
             <ul className="list-disc pl-6 text-slate-700 mt-2 space-y-2">
               <li>Our cookie consent banner, shown on your first visit, where you can Accept All or Reject Non-Essential cookies</li>
               <li>Your browser settings (to block or delete cookies)</li>
-              <li>Opting out of Google Analytics: <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">https://tools.google.com/dlpage/gaoptout</a></li>
+              <li>Changing your analytics choice through <a href="/cookie-policy" className="text-blue-600 hover:text-blue-800">Cookie preferences</a></li>
             </ul>
             <p className="text-slate-700 mt-2">
-              Rejecting non-essential cookies disables analytics and advertising cookies (including Google Analytics) for your session; only strictly necessary cookies remain active.
+              Rejecting non-essential cookies keeps PostHog analytics off until you explicitly accept it. Necessary sign-in storage remains active.
             </p>
 
             <LegalHeading id="automated-decisions" number={10}>Automated Decision-Making and Profiling</LegalHeading>

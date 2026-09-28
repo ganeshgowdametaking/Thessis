@@ -3,7 +3,7 @@ import { User } from '@supabase/supabase-js'
 import { useAuth } from '../hooks/useAuth'
 import { profileService } from '../services/profileService'
 import { connectionService } from '../services/connectionService'
-import { analyticsService } from '../services/analyticsService'
+import { productAnalytics } from '../services/productAnalytics'
 import { iso2ToIso3 } from '../utils/countryMapping'
 
 interface AuthContextType {
@@ -32,6 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, error: authError, signUp, signIn, signInWithGoogle, signInWithLinkedIn, signOut, verifyOTP, resendOTP, resetPassword, updatePassword } = useAuth()
+  useEffect(() => { if (!authLoading) productAnalytics.identify(user?.id || null); }, [authLoading, user?.id]);
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -115,11 +116,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 })
                 setProfile(newProfile)
 
-                // Track EU signup for GDPR-compliant analytics
-                if (isEU) {
-                  analyticsService.trackEUSignup();
-                }
-
                 // Non-blocking IP fetch for country detection
                 fetch('https://ipapi.co/json/')
                   .then(res => res.json())
@@ -181,6 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const updatedProfile = await profileService.updateProfile(user.id, updates)
       setProfile(updatedProfile)
+      productAnalytics.capture('profile_update_completed')
     } catch (error) {
       console.error('Error updating profile:', error)
       throw error

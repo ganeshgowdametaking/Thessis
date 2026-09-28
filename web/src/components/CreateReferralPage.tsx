@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { productAnalytics } from '../services/productAnalytics';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Database } from '../lib/database.types';
@@ -24,6 +25,12 @@ const CreateReferralPage: React.FC = () => {
   const { user, profile } = useAuthContext();
   const [mobilePanel, setMobilePanel] = useState<'create' | 'manage'>('create');
   const navigate = useNavigate();
+  const referralFlow = useRef<string>();
+  const startReferral = () => {
+    if (referralFlow.current || !productAnalytics.isEnabled()) return;
+    referralFlow.current = productAnalytics.newFlow();
+    productAnalytics.capture('referral_started', {flow: 'referral', flow_id: referralFlow.current});
+  };
   const [loading, setLoading] = useState(false);
   const [myReferrals, setMyReferrals] = useState<Job[]>([]);
   const [loadingReferrals, setLoadingReferrals] = useState(true);
@@ -177,6 +184,7 @@ const CreateReferralPage: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    startReferral();
     e.preventDefault();
     if (isMobile) {
       const form = e.currentTarget as HTMLFormElement;
@@ -217,6 +225,8 @@ const CreateReferralPage: React.FC = () => {
           throw new Error(`Database error: ${joinError.message}`);
         }
 
+        productAnalytics.capture('referral_publish_completed', {outcome: 'reused', flow: 'referral', flow_id: referralFlow.current}, existingJobId);
+        referralFlow.current = undefined;
         setSubmitKind('joined');
         setSubmitMessage(`${title} at ${company} is already one of your active referrals, so we reused that posting.`);
       } else {
@@ -255,10 +265,13 @@ const CreateReferralPage: React.FC = () => {
           const { error: joinSelfError } = await supabase
             .rpc('join_job_as_referrer', { p_job_id: (newJob as any).id } as any);
           if (joinSelfError) {
+            productAnalytics.capture('action_failed', {feature: 'referrals', action: 'submit', error_category: 'operation_failed'});
             console.warn('Failed to join own referrer pool:', joinSelfError);
           }
         }
 
+        productAnalytics.capture('referral_publish_completed', {outcome: 'created', flow: 'referral', flow_id: referralFlow.current}, (newJob as any).id);
+        referralFlow.current = undefined;
         setSubmitKind('created');
         setSubmitMessage("It's live on the Jobs page now.");
       }
@@ -288,6 +301,7 @@ const CreateReferralPage: React.FC = () => {
       fetchMyReferrals();
       setTimeout(() => setSubmitMessage(null), 6000);
     } catch (error: any) {
+      productAnalytics.capture('action_failed', {feature: 'referrals', action: 'submit', error_category: 'operation_failed'});
       console.error('Error creating referral:', error);
       // Keep error alert for now since user needs to know about errors
       alert(error.message || 'Failed to create referral. Please try again.');
@@ -538,6 +552,8 @@ const CreateReferralPage: React.FC = () => {
     const fields = event.currentTarget.closest('section')?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input, textarea, select');
     const invalid = Array.from(fields || []).find(field => !field.checkValidity());
     if (invalid) { invalid.reportValidity(); return; }
+    startReferral();
+    productAnalytics.capture('referral_step_completed', {flow: 'referral', flow_id: referralFlow.current, step: mobileFormStep === 1 ? 'basics' : 'role'});
     setMobileFormStep(step);
   };
 
@@ -690,7 +706,7 @@ const CreateReferralPage: React.FC = () => {
                 <h2 className="font-display text-[17px] font-extrabold text-ink">Role details</h2>
               </div>
 
-              <form onSubmit={handleSubmit} noValidate={isMobile}>
+              <form onSubmit={handleSubmit} onFocusCapture={startReferral} noValidate={isMobile}>
                 <div className="p-4 md:p-6 space-y-6">
                   {submitMessage && (
                     <div

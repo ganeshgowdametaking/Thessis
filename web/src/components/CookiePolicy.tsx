@@ -48,7 +48,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = () => {
   return (
     <LegalPageLayout
       title="Cookie Policy"
-      updated="August 19, 2026"
+      updated="September 28, 2026"
       aside={<CookieChoiceCard />}
       contact={{ title: 'Have questions about this policy?', body: 'If you have any questions about our use of cookies or other technologies, please email us at' }}
     >
@@ -107,11 +107,11 @@ const CookiePolicy: React.FC<CookiePolicyProps> = () => {
                   </tr>
                   <tr className="hover:bg-slate-50 transition-colors">
                     <td className="p-4 text-sm font-semibold text-slate-900 align-top">Performance</td>
-                    <td className="p-4 text-sm text-slate-600 font-mono align-top">_ga</td>
+                    <td className="p-4 text-sm text-slate-600 font-mono align-top">thessis_analytics_*</td>
                     <td className="p-4 text-sm text-slate-600 align-top">
-                      Used by Google Analytics to distinguish users and allow us to analyze site usage.
+                      Optional local and session storage used for PostHog analytics after your consent: a random visitor ID, visit session, approved campaign categories, and sign-in attempt progress.
                     </td>
-                    <td className="p-4 text-sm text-slate-600 align-top">2 years</td>
+                    <td className="p-4 text-sm text-slate-600 align-top">Visitor ID until withdrawn or cleared; campaigns 30 days; sessions 30 minutes of inactivity.</td>
                   </tr>
                 </tbody>
               </table>
@@ -122,7 +122,7 @@ const CookiePolicy: React.FC<CookiePolicyProps> = () => {
         <section>
           <LegalHeading id="managing-your-preferences" number={4}>Managing Your Preferences</LegalHeading>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-4">
-            On your first visit, our cookie consent banner lets you choose "Accept All" or "Reject Non-Essential" — rejecting disables Performance cookies (including Google Analytics) for your session, leaving only Strictly Necessary cookies active. You can also change your cookie preferences at any time by changing your browser settings.
+            On your first visit, our cookie consent banner lets you choose "Accept All" or "Reject Non-Essential" — rejecting keeps optional PostHog analytics off. Your choice persists until you change it. Use Change cookie choice on this page to withdraw consent and clear analytics storage; authentication storage is preserved.
             Please note that if you disable cookies, some features of the Thessis platform may not function correctly.
           </p>
           <p className="text-slate-700 text-base md:text-lg font-normal leading-relaxed mb-4">

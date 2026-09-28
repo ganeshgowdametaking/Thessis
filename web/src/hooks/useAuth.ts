@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase, auth } from '../lib/supabase'
+import { productAnalytics } from '../services/productAnalytics'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -73,6 +74,9 @@ export function useAuth() {
           setError(null)
         }
 
+        if (event === 'SIGNED_IN' && session?.user && productAnalytics.authAttempt()?.flow === 'oauth') {
+          productAnalytics.completeAuth(session.user.id)
+        }
         // Always stop loading on these events
         setLoading(false)
       }
@@ -85,12 +89,18 @@ export function useAuth() {
   }, [user]) // Add user to dependency array so we have fresh state
 
   const signUp = async (email: string, password: string, userData: any) => {
+    productAnalytics.beginAuth('signup', 'email')
     try {
       setError(null)
       const { data, error } = await auth.signUp(email, password, userData)
-      if (error) setError(error.message)
+      if (error) { setError(error.message); productAnalytics.failAuth() }
+      if (!error) {
+        productAnalytics.authStep('submitted')
+        if (data?.session?.user) productAnalytics.completeAuth(data.session.user.id)
+      }
       return { data, error }
     } catch (error: any) {
+      productAnalytics.failAuth()
       const errorMessage = error.message || 'Sign up failed'
       setError(errorMessage)
       return { data: null, error: { message: errorMessage } }
@@ -98,12 +108,15 @@ export function useAuth() {
   }
 
   const signIn = async (email: string, password: string) => {
+    productAnalytics.beginAuth('login', 'email')
     try {
       setError(null)
       const { data, error } = await auth.signIn(email, password)
-      if (error) setError(error.message)
+      if (error) { setError(error.message); productAnalytics.failAuth() }
+      if (!error && data?.user) productAnalytics.completeAuth(data.user.id)
       return { data, error }
     } catch (error: any) {
+      productAnalytics.failAuth()
       const errorMessage = error.message || 'Sign in failed'
       setError(errorMessage)
       return { data: null, error: { message: errorMessage } }
@@ -114,6 +127,7 @@ export function useAuth() {
     try {
       setError(null)
       const { error } = await auth.signOut(options)
+      if (!error && options?.scope !== 'others') productAnalytics.identify(null)
       if (error) setError(error.message)
       return { error }
     } catch (error: any) {
@@ -128,6 +142,13 @@ export function useAuth() {
       setError(null)
       const { data, error } = await auth.verifyOTP(email, token, type)
       if (error) setError(error.message)
+      if (!error && data?.user) {
+        productAnalytics.authStep('verified')
+        if (type === 'signup') productAnalytics.completeAuth(data.user.id)
+      } else if (error) {
+        const attempt = productAnalytics.authAttempt()
+        if (attempt) productAnalytics.capture('auth_failed', {...attempt, error_category: 'validation'})
+      }
       return { data, error }
     } catch (error: any) {
       const errorMessage = error.message || 'OTP verification failed'
@@ -150,12 +171,14 @@ export function useAuth() {
   }
 
   const resetPassword = async (email: string) => {
+    productAnalytics.beginAuth('recovery', 'email')
     try {
       setError(null)
       const { data, error } = await auth.resetPassword(email)
-      if (error) setError(error.message)
+      if (error) { setError(error.message); productAnalytics.failAuth() }
       return { data, error }
     } catch (error: any) {
+      productAnalytics.failAuth()
       const errorMessage = error.message || 'Failed to send password reset email'
       setError(errorMessage)
       return { data: null, error: { message: errorMessage } }
@@ -163,12 +186,14 @@ export function useAuth() {
   }
 
   const signInWithGoogle = async () => {
+    productAnalytics.beginAuth('oauth', 'google')
     try {
       setError(null)
       const { data, error } = await auth.signInWithGoogle()
-      if (error) setError(error.message)
+      if (error) { setError(error.message); productAnalytics.failAuth() }
       return { data, error }
     } catch (error: any) {
+      productAnalytics.failAuth()
       const errorMessage = error.message || 'Google sign in failed'
       setError(errorMessage)
       return { data: null, error: { message: errorMessage } }
@@ -176,12 +201,14 @@ export function useAuth() {
   }
 
   const signInWithLinkedIn = async () => {
+    productAnalytics.beginAuth('oauth', 'linkedin')
     try {
       setError(null)
       const { data, error } = await auth.signInWithLinkedIn()
-      if (error) setError(error.message)
+      if (error) { setError(error.message); productAnalytics.failAuth() }
       return { data, error }
     } catch (error: any) {
+      productAnalytics.failAuth()
       const errorMessage = error.message || 'LinkedIn sign in failed'
       setError(errorMessage)
       return { data: null, error: { message: errorMessage } }
@@ -193,6 +220,7 @@ export function useAuth() {
       setError(null)
       const { data, error } = await auth.updatePassword(password, options)
       if (error) setError(error.message)
+      else productAnalytics.authStep('password_updated')
       return { data, error }
     } catch (error: any) {
       const errorMessage = error.message || 'Password update failed'

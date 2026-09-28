@@ -1,3 +1,4 @@
+import { productAnalytics } from '../services/productAnalytics';
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, AlertTriangle, Bell, Briefcase, Check, CheckCheck, DollarSign, Heart, MessageCircle, MessageSquare, Send, Star, TrendingUp, UserCheck, UserPlus, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -315,6 +316,7 @@ const NotificationsPage: React.FC = () => {
       }
     }
     if (destination) {
+      productAnalytics.capture('notification_action_clicked', {action: notification.type === 'referral' ? 'message_referrer' : destination.startsWith('/applications/') ? 'view_applicants' : 'open'});
       navigate(destination);
     }
 

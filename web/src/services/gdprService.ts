@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { clearAnalyticsStorage, CONSENT_CHANGED, setAnalyticsConsentInMemory } from './analyticsPrivacy';
 
 interface CookiePreferences {
   necessary: boolean;
@@ -54,13 +55,21 @@ export const gdprService = {
     try {
       localStorage.setItem('gdpr_preferences', JSON.stringify(preferences));
       localStorage.setItem('gdpr_consent_timestamp', new Date().toISOString());
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        gdprService.saveConsentToDatabase(user.id, preferences);
-      }
+      setAnalyticsConsentInMemory(preferences.analytics === true);
+      window.dispatchEvent(new Event(CONSENT_CHANGED));
     } catch (error) {
+      // A failed preference write must not retain an earlier opt-in.
+      setAnalyticsConsentInMemory(false);
+      try { localStorage.removeItem('gdpr_preferences'); } catch { /* In-memory denial still applies. */ }
+      window.dispatchEvent(new Event(CONSENT_CHANGED));
       console.error('Error saving GDPR consent:', error);
+      return;
     }
+    // Server-side bookkeeping must not delay or reverse the local choice.
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) void gdprService.saveConsentToDatabase(user.id, preferences);
+    } catch { /* The local choice remains authoritative. */ }
   },
   
   // Save consent to database for authenticated users
@@ -99,7 +108,8 @@ export const gdprService = {
   getPreferences: (): CookiePreferences | null => {
     try {
       const preferences = localStorage.getItem('gdpr_preferences');
-      return preferences ? JSON.parse(preferences) : null;
+      const parsed = preferences ? JSON.parse(preferences) : null;
+      return parsed && typeof parsed.analytics === 'boolean' ? parsed : null;
     } catch (error) {
       console.error('Error getting GDPR preferences:', error);
       return null;
@@ -120,22 +130,7 @@ export const gdprService = {
   },
   
   clearNonEssentialCookies: (): void => {
-    try {
-      const cookies = document.cookie.split(';');
-      const necessaryCookies = ['supabase-auth-token'];
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i];
-        const eqPos = cookie.indexOf('=');
-        const name = eqPos > -1 ? cookie.substring(0, eqPos).trim() : cookie.trim();
-        if (necessaryCookies.includes(name)) {
-          continue;
-        }
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-      }
-      console.log('Non-essential cookies cleared');
-    } catch (error) {
-      console.error('Error clearing non-essential cookies:', error);
-    }
+    clearAnalyticsStorage();
   },
   
   requestDataAction: async (actionType: 'access' | 'delete' | 'correct', userData: { details: string }): Promise<string> => {
